@@ -1,82 +1,64 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { COLORS } from '@constants/theme';
+import { COLORS } from '../constants/theme';
 
-// ---------------------------------------------------------------------------
-// Placeholder screens — replace with real imports once screen files exist
-// ---------------------------------------------------------------------------
+// ─── Screens ──────────────────────────────────────────────────
+import DoctorHomeScreen from '../screens/doctor/DoctorHomeScreen';
+import PatientQueueScreen from '../screens/doctor/PatientQueueScreen';
+import DoctorAvailabilityScreen from '../screens/doctor/DoctorAvailabilityScreen';
+import DoctorPatientRecordsScreen from '../screens/doctor/DoctorPatientRecordsScreen';
+import AIHistoryReviewScreen from '../screens/doctor/AIHistoryReviewScreen';
+import ExaminationScreen from '../screens/doctor/ExaminationScreen';
+import DiagnosisScreen from '../screens/doctor/DiagnosisScreen';
+import InvestigationsScreen from '../screens/doctor/InvestigationsScreen';
+import ManagementPlanScreen from '../screens/doctor/ManagementPlanScreen';
+import PrescriptionScreen from '../screens/doctor/PrescriptionScreen';
+import STGLookupScreen from '../screens/doctor/stg/STGLookupScreen';
+import PracticeSettingsScreen from '../screens/settings/PracticeSettingsScreen';
 
-function DoctorDashboardScreen() {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>Dashboard</Text>
-    </View>
-  );
-}
-
-function DoctorPatientsScreen() {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>Patients</Text>
-    </View>
-  );
-}
-
-function DoctorRecordsScreen() {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>Records</Text>
-    </View>
-  );
-}
-
-function DoctorProfileScreen() {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>Profile</Text>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tab param list
-// ---------------------------------------------------------------------------
+// ─── Param Lists ───────────────────────────────────────────────
 
 export type DoctorTabParamList = {
   Dashboard: undefined;
-  Patients: undefined;
+  Queue: undefined;
   Records: undefined;
-  Profile: undefined;
+  Settings: undefined;
 };
 
-// ---------------------------------------------------------------------------
-// Navigator
-// ---------------------------------------------------------------------------
+export type DoctorStackParamList = {
+  DoctorTabs: undefined;
+  AIHistoryReview: { consultationId: string };
+  Examination: { consultationId: string };
+  Diagnosis: { consultationId: string };
+  Investigations: { consultationId: string };
+  ManagementPlan: { consultationId: string };
+  Prescription: {
+    consultationId: string;
+    patientName?: string;
+    patientId?: string;
+  };
+  STGLookup: { consultationId?: string; applyIcd10?: string };
+  DoctorAvailability: undefined;
+};
 
 const Tab = createBottomTabNavigator<DoctorTabParamList>();
+const Stack = createNativeStackNavigator<DoctorStackParamList>();
 
-type TabIconName =
-  | 'view-dashboard'
-  | 'account-group'
-  | 'folder-medical'
-  | 'account';
+// ─── Bottom Tabs ───────────────────────────────────────────────
 
-interface TabMeta {
-  icon: TabIconName;
-  label: string;
-}
+type TabIconName = 'view-dashboard' | 'account-group' | 'folder-open' | 'cog';
 
-const TAB_META: Record<keyof DoctorTabParamList, TabMeta> = {
+const TAB_META: Record<keyof DoctorTabParamList, { icon: TabIconName; label: string }> = {
   Dashboard: { icon: 'view-dashboard', label: 'Dashboard' },
-  Patients: { icon: 'account-group', label: 'Patients' },
-  Records: { icon: 'folder-medical', label: 'Records' },
-  Profile: { icon: 'account', label: 'Profile' },
+  Queue: { icon: 'account-group', label: 'Queue' },
+  Records: { icon: 'folder-open', label: 'Records' },
+  Settings: { icon: 'cog', label: 'Settings' },
 };
 
-export default function DoctorNavigator() {
+function DoctorTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
@@ -95,36 +77,38 @@ export default function DoctorNavigator() {
             paddingTop: 4,
           },
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name={meta.icon}
-              color={color}
-              size={size ?? 24}
-            />
+            <MaterialCommunityIcons name={meta.icon} color={color} size={size ?? 24} />
           ),
         };
       }}
     >
-      <Tab.Screen name="Dashboard" component={DoctorDashboardScreen} />
-      <Tab.Screen name="Patients" component={DoctorPatientsScreen} />
-      <Tab.Screen name="Records" component={DoctorRecordsScreen} />
-      <Tab.Screen name="Profile" component={DoctorProfileScreen} />
+      <Tab.Screen name="Dashboard" component={DoctorHomeScreen} />
+      <Tab.Screen name="Queue" component={PatientQueueScreen} />
+      <Tab.Screen name="Records" component={DoctorPatientRecordsScreen} />
+      <Tab.Screen name="Settings" component={PracticeSettingsScreen} />
     </Tab.Navigator>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles for placeholder screens
-// ---------------------------------------------------------------------------
+// ─── Root Stack (tabs + consultation flow) ──────────────────────
 
-const styles = StyleSheet.create({
-  placeholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.background,
-  },
-  placeholderText: {
-    fontSize: 18,
-    color: COLORS.textSecondary,
-  },
-});
+export default function DoctorNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="DoctorTabs" component={DoctorTabs} />
+      <Stack.Screen name="AIHistoryReview" component={AIHistoryReviewScreen} />
+      <Stack.Screen name="Examination" component={ExaminationScreen} />
+      <Stack.Screen name="Diagnosis" component={DiagnosisScreen} />
+      <Stack.Screen name="Investigations" component={InvestigationsScreen} />
+      <Stack.Screen name="ManagementPlan" component={ManagementPlanScreen} />
+      <Stack.Screen name="Prescription" component={PrescriptionScreen} />
+      <Stack.Screen name="STGLookup" component={STGLookupScreen} />
+      <Stack.Screen name="DoctorAvailability" component={DoctorAvailabilityScreen} />
+    </Stack.Navigator>
+  );
+}

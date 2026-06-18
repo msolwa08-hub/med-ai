@@ -1,82 +1,54 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { COLORS } from '@constants/theme';
+import { COLORS } from '../constants/theme';
 
-// ---------------------------------------------------------------------------
-// Placeholder screens — replace with real imports once screen files exist
-// ---------------------------------------------------------------------------
+// ─── Screens ──────────────────────────────────────────────────
+import PatientHomeScreen from '../screens/patient/PatientHomeScreen';
+import DoctorSearchScreen from '../screens/patient/DoctorSearchScreen';
+import DoctorProfileScreen from '../screens/patient/DoctorProfileScreen';
+import MyRecordsScreen from '../screens/patient/MyRecordsScreen';
+import LabResultsScreen from '../screens/patient/LabResultsScreen';
+import ConsultationStatusScreen from '../screens/patient/ConsultationStatusScreen';
+import AIHistoryScreen from '../screens/patient/AIHistoryScreen';
+import LanguageSelectScreen from '../screens/patient/LanguageSelectScreen';
+import EmergencyProfileScreen from '../screens/patient/emergency/EmergencyProfileScreen';
 
-function PatientHomeScreen() {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>Patient Home</Text>
-    </View>
-  );
-}
-
-function FindDoctorScreen() {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>Find Doctor</Text>
-    </View>
-  );
-}
-
-function MyRecordsScreen() {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>My Records</Text>
-    </View>
-  );
-}
-
-function PatientProfileScreen() {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>Profile</Text>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tab param list
-// ---------------------------------------------------------------------------
+// ─── Param Lists ───────────────────────────────────────────────
 
 export type PatientTabParamList = {
   Home: undefined;
   FindDoctor: undefined;
   MyRecords: undefined;
-  Profile: undefined;
+  Emergency: undefined;
 };
 
-// ---------------------------------------------------------------------------
-// Navigator
-// ---------------------------------------------------------------------------
+export type PatientStackParamList = {
+  PatientTabs: undefined;
+  DoctorProfile: { doctorId: string };
+  ConsultationStatus: { consultationId: string };
+  AIHistory: { consultationId: string; language?: string };
+  LanguageSelect: { consultationId: string };
+  LabResults: undefined;
+};
 
 const Tab = createBottomTabNavigator<PatientTabParamList>();
+const Stack = createNativeStackNavigator<PatientStackParamList>();
 
-type TabIconName =
-  | 'home'
-  | 'map-marker'
-  | 'folder-medical'
-  | 'account';
+// ─── Bottom Tabs ───────────────────────────────────────────────
 
-interface TabMeta {
-  icon: TabIconName;
-  label: string;
-}
+type TabIconName = 'home' | 'map-marker-radius' | 'folder-medical' | 'ambulance';
 
-const TAB_META: Record<keyof PatientTabParamList, TabMeta> = {
+const TAB_META: Record<keyof PatientTabParamList, { icon: TabIconName; label: string }> = {
   Home: { icon: 'home', label: 'Home' },
-  FindDoctor: { icon: 'map-marker', label: 'Find Doctor' },
+  FindDoctor: { icon: 'map-marker-radius', label: 'Find Doctor' },
   MyRecords: { icon: 'folder-medical', label: 'My Records' },
-  Profile: { icon: 'account', label: 'Profile' },
+  Emergency: { icon: 'ambulance', label: 'Emergency' },
 };
 
-export default function PatientNavigator() {
+function PatientTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
@@ -95,36 +67,45 @@ export default function PatientNavigator() {
             paddingTop: 4,
           },
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name={meta.icon}
-              color={color}
-              size={size ?? 24}
-            />
+            <MaterialCommunityIcons name={meta.icon} color={color} size={size ?? 24} />
           ),
         };
       }}
     >
       <Tab.Screen name="Home" component={PatientHomeScreen} />
-      <Tab.Screen name="FindDoctor" component={FindDoctorScreen} />
+      <Tab.Screen name="FindDoctor" component={DoctorSearchScreen} />
       <Tab.Screen name="MyRecords" component={MyRecordsScreen} />
-      <Tab.Screen name="Profile" component={PatientProfileScreen} />
+      <Tab.Screen
+        name="Emergency"
+        component={EmergencyProfileScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="ambulance" color={COLORS.error} size={size ?? 24} />
+          ),
+          tabBarActiveTintColor: COLORS.error,
+          tabBarLabel: 'Emergency',
+        }}
+      />
     </Tab.Navigator>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles for placeholder screens
-// ---------------------------------------------------------------------------
+// ─── Root Stack (tabs + push screens) ──────────────────────────
 
-const styles = StyleSheet.create({
-  placeholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.background,
-  },
-  placeholderText: {
-    fontSize: 18,
-    color: COLORS.textSecondary,
-  },
-});
+export default function PatientNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="PatientTabs" component={PatientTabs} />
+      <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
+      <Stack.Screen name="ConsultationStatus" component={ConsultationStatusScreen} />
+      <Stack.Screen name="AIHistory" component={AIHistoryScreen} />
+      <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
+      <Stack.Screen name="LabResults" component={LabResultsScreen} />
+    </Stack.Navigator>
+  );
+}

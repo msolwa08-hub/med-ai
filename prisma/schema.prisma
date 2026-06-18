@@ -97,6 +97,34 @@ enum OtpPurpose {
   HPCSA_VERIFY
 }
 
+enum PracticeMode {
+  OPEN_LOOP    // Data on MedAI cloud — doctor appears in patient marketplace
+  CLOSED_LOOP  // Data on doctor's own cloud — private practice only
+}
+
+enum LabProvider {
+  LANCET
+  AMPATH
+  LAB24
+  PATHCARE
+  NHLS
+  OTHER
+}
+
+enum PrescriptionStatus {
+  ISSUED
+  DISPENSED
+  CANCELLED
+  EXPIRED
+}
+
+enum PatientLiteracyLevel {
+  LOW       // Simple yes/no questions
+  MEDIUM    // Everyday language
+  HIGH      // Can handle clinical terminology
+  UNKNOWN   // Not yet assessed (default)
+}
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -138,10 +166,14 @@ model Patient {
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
 
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  consultations Consultation[]
-  consentRecords ConsentRecord[]
-  reviews       Review[]
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations     Consultation[]
+  consentRecords    ConsentRecord[]
+  reviews           Review[]
+  literacy          PatientLiteracy?
+  emergencyProfile  EmergencyProfile?
+  labAccounts       PatientLabAccount[]
+  labResults        LabResult[]
 
   @@index([userId])
   @@map("patients")
@@ -176,6 +208,8 @@ model Doctor {
   availabilityLogs  DoctorAvailabilityLog[]
   consentRecords    ConsentRecord[]
   reviews           Review[]
+  settings          DoctorSettings?
+  incentiveScore    DoctorIncentiveScore?
 
   @@index([userId])
   @@index([hpcsaNumber])
@@ -212,13 +246,15 @@ model Consultation {
 
   patient              Patient               @relation(fields: [patientId], references: [id])
   doctor               Doctor?               @relation(fields: [doctorId], references: [id])
-  medicalHistory       MedicalHistory?
+  medicalHistory        MedicalHistory?
   differentialDiagnosis DifferentialDiagnosis?
-  examinationFindings  ExaminationFindings?
-  investigations       Investigation[]
-  managementPlan       ManagementPlan?
-  consentRecords       ConsentRecord[]
-  reviews              Review[]
+  examinationFindings   ExaminationFindings?
+  investigations        Investigation[]
+  managementPlan        ManagementPlan?
+  consentRecords        ConsentRecord[]
+  reviews               Review[]
+  prescriptions         Prescription[]
+  labResults            LabResult[]
 
   @@index([patientId])
   @@index([doctorId])
@@ -227,9 +263,10 @@ model Consultation {
 }
 
 model MedicalHistory {
-  id                    String    @id @default(cuid())
-  consultationId        String    @unique
-  language              PreferredLanguage @default(en)
+  id                    String               @id @default(cuid())
+  consultationId        String               @unique
+  language              PreferredLanguage    @default(en)
+  literacyLevel         PatientLiteracyLevel @default(UNKNOWN)
   // All fields below are AES-256-GCM encrypted with consultation data key
   chiefComplaint        String    // encrypted
   historyOfPresentIllness String  // encrypted
@@ -380,6 +417,206 @@ model OTP {
 
   @@index([userId, purpose])
   @@map("otps")
+}
+
+// ─────────────────────────────────────────────────────────
+// Doctor Settings (practice mode, open vs closed loop)
+// ─────────────────────────────────────────────────────────
+
+model DoctorSettings {
+  id              String      @id @default(cuid())
+  doctorId        String      @unique
+  doctor          Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  practiceMode    PracticeMode @default(OPEN_LOOP)
+  // Closed-loop: doctor's own cloud storage
+  cloudProvider   String?     // 'aws' | 'azure' | 'gcp'
+  cloudBucket     String?
+  cloudRegion     String?
+  cloudAccessKey  String?     // encrypted
+  cloudSecretKey  String?     // encrypted
+  updatedAt       DateTime    @updatedAt
+
+  @@map("doctor_settings")
+}
+
+// ─────────────────────────────────────────────────────────
+// Doctor Incentive Score (priority ranking)
+// ─────────────────────────────────────────────────────────
+
+model DoctorIncentiveScore {
+  id                String   @id @default(cuid())
+  doctorId          String   @unique
+  doctor            Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  totalPoints       Int      @default(0)
+  completionRate    Float    @default(0)   // % of consultations with full SOAP
+  streakDays        Int      @default(0)   // consecutive days with completed records
+  priorityBoost     Float    @default(1.0) // multiplier for search ranking
+  lastCalculated    DateTime @default(now())
+
+  @@map("doctor_incentive_scores")
+}
+
+// ─────────────────────────────────────────────────────────
+// Patient Literacy Level (for adaptive AI history)
+// ─────────────────────────────────────────────────────────
+
+model PatientLiteracy {
+  id             String               @id @default(cuid())
+  patientId      String               @unique
+  patient        Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  level          PatientLiteracyLevel @default(UNKNOWN)
+  assessedAt     DateTime?
+  educationYears Int?
+  selfReported   Boolean              @default(false)
+
+  @@map("patient_literacy")
+}
+
+// ─────────────────────────────────────────────────────────
+// Emergency Profile (always accessible, quick QR access)
+// ─────────────────────────────────────────────────────────
+
+model EmergencyProfile {
+  id                    String   @id @default(cuid())
+  patientId             String   @unique
+  patient               Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bloodType             String?
+  // Encrypted but accessible via QR emergency token
+  encryptedAllergies    String?
+  encryptedMedications  String?
+  encryptedConditions   String?
+  encryptedContacts     String?
+  organDonor            Boolean  @default(false)
+  // QR code emergency access
+  emergencyAccessToken  String?  @unique // hashed token for QR code
+  isEnabled             Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
+
+  @@map("emergency_profiles")
+}
+
+// ─────────────────────────────────────────────────────────
+// Lab Integration (Lancet, Ampath, Lab24, Pathcare, NHLS)
+// ─────────────────────────────────────────────────────────
+
+model PatientLabAccount {
+  id               String      @id @default(cuid())
+  patientId        String
+  patient          Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider         LabProvider
+  providerPatientId String     // patient ID at the lab
+  encryptedAccessToken String? // encrypted OAuth/API token
+  linkedAt         DateTime    @default(now())
+  lastSyncAt       DateTime?
+  labResults       LabResult[]
+
+  @@unique([patientId, provider])
+  @@map("patient_lab_accounts")
+}
+
+model LabResult {
+  id               String      @id @default(cuid())
+  patientId        String
+  patient          Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultationId   String?
+  consultation     Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  labAccountId     String
+  labAccount       PatientLabAccount @relation(fields: [labAccountId], references: [id], onDelete: Cascade)
+  provider         LabProvider
+  externalResultId String
+  testName         String
+  collectedAt      DateTime
+  reportedAt       DateTime?
+  // Encrypted structured results JSON
+  encryptedResults String
+  // S3 key for raw PDF report (encrypted)
+  encryptedPdfKey  String?
+  isAbnormal       Boolean     @default(false)
+  importedAt       DateTime    @default(now())
+
+  @@unique([provider, externalResultId])
+  @@index([patientId, collectedAt])
+  @@map("lab_results")
+}
+
+// ─────────────────────────────────────────────────────────
+// ICD-10 Codes (seeded from WHO ICD-10 + SA customisations)
+// ─────────────────────────────────────────────────────────
+
+model ICD10Code {
+  code        String     @id   // e.g., "J18.9"
+  description String
+  category    String?          // chapter name
+  blockCode   String?          // e.g., "J10-J18"
+  isLeaf      Boolean    @default(true)
+  parentCode  String?
+  parent      ICD10Code? @relation("ICD10Hierarchy", fields: [parentCode], references: [code])
+  children    ICD10Code[] @relation("ICD10Hierarchy")
+  stgEntry    STGEntry?
+
+  @@index([description])
+  @@index([category])
+  @@map("icd10_codes")
+}
+
+// ─────────────────────────────────────────────────────────
+// Standard Treatment Guidelines (SA DoH STGs)
+// ─────────────────────────────────────────────────────────
+
+model STGEntry {
+  id              String    @id @default(cuid())
+  icd10Code       String    @unique
+  icd10           ICD10Code @relation(fields: [icd10Code], references: [code])
+  conditionName   String
+  synonyms        String[]  @default([])
+  category        String    // "Respiratory", "Cardiovascular", etc.
+  subCategory     String?
+  levelOfCare     String    // "Primary", "Secondary", "Tertiary", "All"
+  edition         String    @default("8th Edition 2023")
+  // JSON arrays of treatment info
+  firstLineTreatment   Json  // [{medication, dose, route, frequency, duration, notes}]
+  alternativeTreatment Json? // [{medication, dose, route, frequency, duration, notes, indication}]
+  investigations  Json      // [{name, urgency: "ROUTINE|URGENT|STAT", rationale}]
+  referralCriteria String?
+  redFlags        String?   // comma-separated red flag symptoms
+  followUpAdvice  String?
+  notes           String?
+  saPrevalence    String?   // "Common", "Uncommon", "Rare in SA"
+  updatedAt       DateTime  @updatedAt
+
+  @@index([conditionName])
+  @@index([category])
+  @@map("stg_entries")
+}
+
+// ─────────────────────────────────────────────────────────
+// Prescriptions / Scripts
+// ─────────────────────────────────────────────────────────
+
+model Prescription {
+  id              String             @id @default(cuid())
+  consultationId  String
+  consultation    Consultation       @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  doctorId        String
+  patientId       String
+  scriptNumber    String             @unique // sequential: MedAI-2026-000001
+  issueDate       DateTime           @default(now())
+  validUntilDate  DateTime?
+  // Encrypted prescription items JSON
+  encryptedItems  String             // [{name, dose, route, frequency, duration, quantity, instructions, isScheduled}]
+  containsDDA     Boolean            @default(false) // Dangerous Drugs Act scheduled substances
+  isRepeat        Boolean            @default(false)
+  repeatTotal     Int                @default(0)
+  repeatRemaining Int                @default(0)
+  // Generated PDF
+  pdfS3Key        String?
+  status          PrescriptionStatus @default(ISSUED)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([patientId, issueDate])
+  @@index([doctorId, issueDate])
+  @@map("prescriptions")
 }
 
 model AuditLog {

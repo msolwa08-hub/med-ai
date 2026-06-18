@@ -14,6 +14,11 @@ import { diagnosisRoutes } from './routes/diagnosis.js';
 import { investigationRoutes } from './routes/investigations.js';
 import { reviewRoutes } from './routes/reviews.js';
 import { hpcsaRoutes } from './routes/hpcsa.js';
+import { prescriptionRoutes } from './routes/prescriptions.js';
+import { stgRoutes } from './routes/stg.js';
+import { emergencyRoutes } from './routes/emergency.js';
+import { labResultRoutes } from './routes/lab-results.js';
+import { doctorSettingsRoutes } from './routes/doctor-settings.js';
 
 // ─────────────────────────────────────────────────────────
 // Bootstrap
@@ -64,6 +69,11 @@ await fastify.register(diagnosisRoutes);
 await fastify.register(investigationRoutes);
 await fastify.register(reviewRoutes);
 await fastify.register(hpcsaRoutes);
+await fastify.register(prescriptionRoutes);
+await fastify.register(stgRoutes);
+await fastify.register(emergencyRoutes);
+await fastify.register(labResultRoutes);
+await fastify.register(doctorSettingsRoutes);
 
 // ─────────────────────────────────────────────────────────
 // Health check (no auth required)
