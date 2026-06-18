@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_BASE_URL = 'https://api.medai.co.za/v1';
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? 'https://api.medai.co.za/v1';
 const TOKEN_KEY = 'medai_access_token';
 const REFRESH_TOKEN_KEY = 'medai_refresh_token';
 
