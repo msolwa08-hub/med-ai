@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "MedAI",
+    "slug": "medai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A3A6B"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "co.za.medai",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "MedAI needs your location to find nearby doctors.",
+        "NSLocationAlwaysUsageDescription": "MedAI needs your location to connect you with nearby doctors.",
+        "NSCameraUsageDescription": "MedAI needs camera access to upload medical documents.",
+        "NSMicrophoneUsageDescription": "MedAI needs microphone access for voice consultations."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A3A6B"
+      },
+      "package": "co.za.medai",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-location",
+      "expo-secure-store",
+      "expo-camera",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1A3A6B"
+        }
+      ]
+    ],
+    "extra": {
+      "apiBaseUrl": "https://api.medai.co.za/v1",
+      "eas": {
+        "projectId": "medai-project-id"
+      }
+    }
+  }
+}

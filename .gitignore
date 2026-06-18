@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.expo/
+ios/
+android/
+*.sqlite
+*.db
+coverage/
+.nyc_output/
+prisma/migrations/dev/

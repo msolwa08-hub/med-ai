@@ -1,0 +1,390 @@
+// Prisma Schema for MedAI - South African Medical AI Application
+// All patient medical data is encrypted at the application layer before storage
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum PreferredLanguage {
+  en   // English
+  zu   // isiZulu
+  xh   // isiXhosa
+  af   // Afrikaans
+  nso  // Sepedi / Northern Sotho
+  tn   // Setswana
+  st   // Sesotho
+  ts   // Xitsonga
+  ss   // Siswati
+  ve   // Tshivenda
+  nr   // isiNdebele
+}
+
+enum HpcsaStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum DoctorType {
+  GP
+  SPECIALIST
+  ALLIED_HEALTH
+  TRAVELLING
+}
+
+enum ConsultationStatus {
+  HISTORY_TAKING
+  DOCTOR_REVIEW
+  EXAMINATION
+  COMPLETED
+  CANCELLED
+}
+
+enum ConsultationType {
+  IN_PERSON
+  TELECONSULT
+  HOME_VISIT
+}
+
+enum InvestigationType {
+  LAB
+  RADIOLOGY
+  OTHER
+}
+
+enum ConsentType {
+  VIEW_HISTORY
+  TREATMENT
+  DATA_PROCESSING
+  RESEARCH
+}
+
+enum OtpPurpose {
+  LOGIN
+  REGISTER
+  RESET_PASSWORD
+  HPCSA_VERIFY
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  phone        String   @unique
+  passwordHash String
+  role         UserRole @default(PATIENT)
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patient        Patient?
+  doctor         Doctor?
+  otps           OTP[]
+  auditLogs      AuditLog[]
+  consentRecords ConsentRecord[]
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
+model Patient {
+  id                       String            @id @default(cuid())
+  userId                   String            @unique
+  firstName                String
+  lastName                 String
+  dateOfBirth              DateTime
+  gender                   Gender
+  // AES-256-GCM encrypted fields (stored as base64 JSON: {encryptedData, iv, authTag})
+  idNumber                 String?           // encrypted South African ID number
+  nationalHealthInsurance  String?           // NHI number
+  emergencyContact         String?           // encrypted JSON: {name, phone, relationship}
+  preferredLanguage        PreferredLanguage @default(en)
+  consentVersion           String?           // version of consent form accepted
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations Consultation[]
+  consentRecords ConsentRecord[]
+  reviews       Review[]
+
+  @@index([userId])
+  @@map("patients")
+}
+
+model Doctor {
+  id                 String      @id @default(cuid())
+  userId             String      @unique
+  firstName          String
+  lastName           String
+  hpcsaNumber        String      @unique
+  hpcsaStatus        HpcsaStatus @default(PENDING)
+  specialization     String?
+  qualifications     Json?       // array of {degree, institution, year}
+  practiceNumber     String?
+  doctorType         DoctorType  @default(GP)
+  isAvailable        Boolean     @default(false)
+  currentLat         Float?
+  currentLng         Float?
+  availabilityRadius Float       @default(10) // km
+  consultationFee    Float?
+  profilePhoto       String?     // S3 key
+  bio                String?
+  languages          String[]    // array of PreferredLanguage codes
+  rating             Float       @default(0)
+  totalReviews       Int         @default(0)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations     Consultation[]
+  availabilityLogs  DoctorAvailabilityLog[]
+  consentRecords    ConsentRecord[]
+  reviews           Review[]
+
+  @@index([userId])
+  @@index([hpcsaNumber])
+  @@index([isAvailable, currentLat, currentLng])
+  @@map("doctors")
+}
+
+model DoctorAvailabilityLog {
+  id          String   @id @default(cuid())
+  doctorId    String
+  lat         Float
+  lng         Float
+  isAvailable Boolean
+  timestamp   DateTime @default(now())
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId, timestamp])
+  @@map("doctor_availability_logs")
+}
+
+model Consultation {
+  id               String             @id @default(cuid())
+  patientId        String
+  doctorId         String?
+  startedAt        DateTime           @default(now())
+  completedAt      DateTime?
+  status           ConsultationStatus @default(HISTORY_TAKING)
+  consultationType ConsultationType   @default(IN_PERSON)
+  // Per-consultation encryption key, itself encrypted with master key
+  encryptedDataKey String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  patient              Patient               @relation(fields: [patientId], references: [id])
+  doctor               Doctor?               @relation(fields: [doctorId], references: [id])
+  medicalHistory       MedicalHistory?
+  differentialDiagnosis DifferentialDiagnosis?
+  examinationFindings  ExaminationFindings?
+  investigations       Investigation[]
+  managementPlan       ManagementPlan?
+  consentRecords       ConsentRecord[]
+  reviews              Review[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([status])
+  @@map("consultations")
+}
+
+model MedicalHistory {
+  id                    String    @id @default(cuid())
+  consultationId        String    @unique
+  language              PreferredLanguage @default(en)
+  // All fields below are AES-256-GCM encrypted with consultation data key
+  chiefComplaint        String    // encrypted
+  historyOfPresentIllness String  // encrypted
+  pastMedicalHistory    String    // encrypted
+  medications           String    // encrypted
+  allergies             String    // encrypted
+  familyHistory         String    // encrypted
+  socialHistory         String    // encrypted
+  systemsReview         String    // encrypted
+  aiConversationLog     String    // encrypted JSON - full AI conversation
+  doctorConfirmed       Boolean   @default(false)
+  doctorNotes           String?   // encrypted
+  confirmedAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId])
+  @@map("medical_histories")
+}
+
+model DifferentialDiagnosis {
+  id                     String    @id @default(cuid())
+  consultationId         String    @unique
+  // JSON array: [{diagnosis, icdCode, probability, reasoning}]
+  diagnoses              Json
+  aiModel                String
+  generatedAt            DateTime  @default(now())
+  doctorReviewed         Boolean   @default(false)
+  doctorSelectedDiagnosis String?
+  doctorNotes            String?
+  reviewedAt             DateTime?
+
+  consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId])
+  @@map("differential_diagnoses")
+}
+
+model ExaminationFindings {
+  id             String   @id @default(cuid())
+  consultationId String   @unique
+  // All fields encrypted with consultation data key
+  vitalSigns     String   // encrypted JSON: {bp, hr, rr, temp, spo2, weight, height}
+  generalExam    String   // encrypted
+  systemicExam   String   // encrypted JSON: {cvs, resp, abdo, neuro, msk}
+  doctorNotes    String?  // encrypted
+  recordedAt     DateTime @default(now())
+
+  consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId])
+  @@map("examination_findings")
+}
+
+model Investigation {
+  id              String            @id @default(cuid())
+  consultationId  String
+  type            InvestigationType
+  name            String
+  encryptedResult String?           // encrypted result data
+  resultDate      DateTime?
+  uploadedFileKey String?           // encrypted S3 key
+  requestedBy     String            // doctorId
+  updatedAt       DateTime          @updatedAt
+
+  consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId])
+  @@map("investigations")
+}
+
+model ManagementPlan {
+  id             String   @id @default(cuid())
+  consultationId String   @unique
+  // All fields encrypted with consultation data key
+  diagnosis      String   // encrypted
+  medications    String   // encrypted JSON array: [{name, dose, frequency, duration, route}]
+  procedures     String?  // encrypted
+  referrals      String?  // encrypted JSON: [{specialty, reason, urgency}]
+  followUp       String?  // plain text follow-up interval
+  doctorNotes    String?  // encrypted
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId])
+  @@map("management_plans")
+}
+
+model ConsentRecord {
+  id             String      @id @default(cuid())
+  patientId      String
+  doctorId       String?
+  consultationId String?
+  consentType    ConsentType
+  granted        Boolean
+  grantedAt      DateTime    @default(now())
+  expiresAt      DateTime?
+  ipAddress      String?
+  deviceInfo     String?
+  createdAt      DateTime    @default(now())
+
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  doctor       Doctor?       @relation(fields: [doctorId], references: [id])
+  consultation Consultation? @relation(fields: [consultationId], references: [id])
+
+  @@index([patientId, doctorId, consentType])
+  @@index([patientId, consultationId])
+  @@map("consent_records")
+}
+
+model Review {
+  id             String   @id @default(cuid())
+  patientId      String
+  doctorId       String
+  consultationId String
+  rating         Int      // 1-5
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  patient      Patient      @relation(fields: [patientId], references: [id])
+  doctor       Doctor       @relation(fields: [doctorId], references: [id])
+  consultation Consultation @relation(fields: [consultationId], references: [id])
+
+  @@unique([patientId, consultationId]) // one review per consultation
+  @@index([doctorId])
+  @@map("reviews")
+}
+
+model OTP {
+  id        String     @id @default(cuid())
+  userId    String
+  code      String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int        @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("otps")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String   // e.g., "VIEW_MEDICAL_HISTORY", "UPDATE_CONSULTATION"
+  resource   String   // e.g., "MedicalHistory", "Consultation"
+  resourceId String?
+  metadata   Json?    // additional context
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
