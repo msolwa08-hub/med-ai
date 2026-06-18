@@ -14,3 +14,4 @@ android/
 coverage/
 .nyc_output/
 prisma/migrations/dev/
+.claude/
