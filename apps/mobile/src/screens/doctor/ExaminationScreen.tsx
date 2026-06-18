@@ -1,0 +1,822 @@
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  Animated,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import Slider from '@react-native-community/slider';
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import { consultationApi } from '../../api/endpoints';
+import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE } from '../../constants/theme';
+
+// ---------- Types ----------
+
+type ExaminationRouteParams = {
+  Examination: {
+    consultationId: string;
+  };
+};
+
+interface VitalSigns {
+  bloodPressureSystolic: string;
+  bloodPressureDiastolic: string;
+  heartRate: string;
+  respiratoryRate: string;
+  temperature: string;
+  oxygenSaturation: string;
+  weight: string;
+  height: string;
+  painScore: number;
+}
+
+interface GeneralExamination {
+  generalAppearance: string;
+  handsNails: string;
+  headNeck: string;
+  jvp: string;
+  lymphNodes: string;
+}
+
+interface SystemicExamination {
+  cardiovascular: string;
+  respiratory: string;
+  abdominal: string;
+  neurological: string;
+  msk: string;
+  skin: string;
+}
+
+interface ExaminationState {
+  vitalSigns: VitalSigns;
+  generalExamination: GeneralExamination;
+  systemicExamination: SystemicExamination;
+}
+
+// ---------- BMI calculation ----------
+
+function calculateBMI(weight: string, height: string): number | null {
+  const w = parseFloat(weight);
+  const h = parseFloat(height) / 100; // cm → m
+  if (!w || !h || h === 0) return null;
+  return w / (h * h);
+}
+
+interface BMIResult {
+  value: number;
+  label: string;
+  color: string;
+}
+
+function getBMIResult(bmi: number): BMIResult {
+  if (bmi < 18.5) return { value: bmi, label: 'Underweight', color: COLORS.warning };
+  if (bmi < 25) return { value: bmi, label: 'Normal', color: COLORS.success };
+  if (bmi < 30) return { value: bmi, label: 'Overweight', color: '#E67E22' };
+  return { value: bmi, label: 'Obese', color: COLORS.error };
+}
+
+// ---------- ExpandableSection ----------
+
+interface ExpandableSectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const ExpandableSection: React.FC<ExpandableSectionProps> = ({ title, children }) => {
+  const [expanded, setExpanded] = useState(false);
+  const animatedHeight = useRef(new Animated.Value(0)).current;
+
+  const toggle = () => {
+    const toValue = expanded ? 0 : 1;
+    Animated.timing(animatedHeight, {
+      toValue,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+    setExpanded(!expanded);
+  };
+
+  return (
+    <View style={exStyles.expandableCard}>
+      <TouchableOpacity style={exStyles.expandableHeader} onPress={toggle} activeOpacity={0.7}>
+        <Text style={exStyles.expandableTitle}>{title}</Text>
+        <Text style={exStyles.chevron}>{expanded ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+      <Animated.View
+        style={{
+          maxHeight: animatedHeight.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 600],
+          }),
+          opacity: animatedHeight,
+          overflow: 'hidden',
+        }}
+      >
+        <View style={exStyles.expandableContent}>{children}</View>
+      </Animated.View>
+    </View>
+  );
+};
+
+// ---------- Helper: labeled input ----------
+
+interface LabeledInputProps {
+  label: string;
+  hint?: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  keyboardType?: 'default' | 'numeric' | 'decimal-pad';
+  multiline?: boolean;
+  numberOfLines?: number;
+  placeholder?: string;
+  unit?: string;
+}
+
+const LabeledInput: React.FC<LabeledInputProps> = ({
+  label,
+  hint,
+  value,
+  onChangeText,
+  keyboardType = 'default',
+  multiline = false,
+  numberOfLines = 1,
+  placeholder,
+  unit,
+}) => (
+  <View style={exStyles.fieldContainer}>
+    <View style={exStyles.fieldLabelRow}>
+      <Text style={exStyles.fieldLabel}>{label}</Text>
+      {unit ? <Text style={exStyles.fieldUnit}>{unit}</Text> : null}
+    </View>
+    {hint ? <Text style={exStyles.fieldHint}>{hint}</Text> : null}
+    <TextInput
+      style={[
+        exStyles.textInput,
+        multiline && { minHeight: numberOfLines * 22 + SPACING.md * 2, textAlignVertical: 'top' },
+      ]}
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType}
+      multiline={multiline}
+      numberOfLines={multiline ? numberOfLines : undefined}
+      placeholder={placeholder ?? (hint ? hint.replace(/[()]/g, '').trim() : label)}
+      placeholderTextColor={COLORS.textSecondary}
+    />
+  </View>
+);
+
+// ---------- Tabs ----------
+
+const TABS = ['Vital Signs', 'General Exam', 'Systemic Exam'];
+
+// ---------- Main Screen ----------
+
+const ExaminationScreen: React.FC = () => {
+  const route = useRoute<RouteProp<ExaminationRouteParams, 'Examination'>>();
+  const navigation = useNavigation<any>();
+  const { consultationId } = route.params;
+
+  const [activeTab, setActiveTab] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  const [state, setState] = useState<ExaminationState>({
+    vitalSigns: {
+      bloodPressureSystolic: '',
+      bloodPressureDiastolic: '',
+      heartRate: '',
+      respiratoryRate: '',
+      temperature: '',
+      oxygenSaturation: '',
+      weight: '',
+      height: '',
+      painScore: 0,
+    },
+    generalExamination: {
+      generalAppearance: '',
+      handsNails: '',
+      headNeck: '',
+      jvp: '',
+      lymphNodes: '',
+    },
+    systemicExamination: {
+      cardiovascular: '',
+      respiratory: '',
+      abdominal: '',
+      neurological: '',
+      msk: '',
+      skin: '',
+    },
+  });
+
+  // Helpers to update nested state
+  const setVital = (field: keyof VitalSigns, value: string | number) => {
+    setState((prev) => ({
+      ...prev,
+      vitalSigns: { ...prev.vitalSigns, [field]: value },
+    }));
+  };
+
+  const setGeneral = (field: keyof GeneralExamination, value: string) => {
+    setState((prev) => ({
+      ...prev,
+      generalExamination: { ...prev.generalExamination, [field]: value },
+    }));
+  };
+
+  const setSystemic = (field: keyof SystemicExamination, value: string) => {
+    setState((prev) => ({
+      ...prev,
+      systemicExamination: { ...prev.systemicExamination, [field]: value },
+    }));
+  };
+
+  const bmi = calculateBMI(state.vitalSigns.weight, state.vitalSigns.height);
+  const bmiResult = bmi ? getBMIResult(bmi) : null;
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const { vitalSigns, generalExamination, systemicExamination } = state;
+
+      const parseNum = (s: string) => (s.trim() ? parseFloat(s) : undefined);
+
+      await consultationApi.saveExamination({
+        consultationId,
+        vitalSigns: {
+          bloodPressureSystolic: parseNum(vitalSigns.bloodPressureSystolic),
+          bloodPressureDiastolic: parseNum(vitalSigns.bloodPressureDiastolic),
+          heartRate: parseNum(vitalSigns.heartRate),
+          respiratoryRate: parseNum(vitalSigns.respiratoryRate),
+          temperature: parseNum(vitalSigns.temperature),
+          oxygenSaturation: parseNum(vitalSigns.oxygenSaturation),
+          weight: parseNum(vitalSigns.weight),
+          height: parseNum(vitalSigns.height),
+        },
+        generalExamination: Object.values(generalExamination).some((v) => v.trim())
+          ? JSON.stringify(generalExamination)
+          : undefined,
+        systemicExamination: Object.fromEntries(
+          Object.entries(systemicExamination).filter(([, v]) => v.trim()),
+        ),
+      });
+
+      navigation.navigate('Diagnosis', { consultationId });
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save examination findings. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ---------- Tab content ----------
+
+  const renderVitalSigns = () => (
+    <ScrollView
+      style={exStyles.tabScrollView}
+      contentContainerStyle={exStyles.tabScrollContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={exStyles.tabSectionHeading}>Blood Pressure</Text>
+      <LabeledInput
+        label="Systolic BP"
+        hint="(90–120 mmHg)"
+        value={state.vitalSigns.bloodPressureSystolic}
+        onChangeText={(v) => setVital('bloodPressureSystolic', v)}
+        keyboardType="numeric"
+        unit="mmHg"
+      />
+      <LabeledInput
+        label="Diastolic BP"
+        hint="(60–80 mmHg)"
+        value={state.vitalSigns.bloodPressureDiastolic}
+        onChangeText={(v) => setVital('bloodPressureDiastolic', v)}
+        keyboardType="numeric"
+        unit="mmHg"
+      />
+
+      <Text style={exStyles.tabSectionHeading}>Measurements</Text>
+      <LabeledInput
+        label="Heart Rate"
+        hint="(60–100 bpm)"
+        value={state.vitalSigns.heartRate}
+        onChangeText={(v) => setVital('heartRate', v)}
+        keyboardType="numeric"
+        unit="bpm"
+      />
+      <LabeledInput
+        label="Respiratory Rate"
+        hint="(12–20 /min)"
+        value={state.vitalSigns.respiratoryRate}
+        onChangeText={(v) => setVital('respiratoryRate', v)}
+        keyboardType="numeric"
+        unit="/min"
+      />
+      <LabeledInput
+        label="Temperature"
+        hint="(36.5–37.5 °C)"
+        value={state.vitalSigns.temperature}
+        onChangeText={(v) => setVital('temperature', v)}
+        keyboardType="decimal-pad"
+        unit="°C"
+      />
+      <LabeledInput
+        label="SpO2"
+        hint="(95–100 %)"
+        value={state.vitalSigns.oxygenSaturation}
+        onChangeText={(v) => setVital('oxygenSaturation', v)}
+        keyboardType="numeric"
+        unit="%"
+      />
+
+      <Text style={exStyles.tabSectionHeading}>Anthropometry</Text>
+      <LabeledInput
+        label="Weight"
+        value={state.vitalSigns.weight}
+        onChangeText={(v) => setVital('weight', v)}
+        keyboardType="decimal-pad"
+        unit="kg"
+        placeholder="e.g. 70"
+      />
+      <LabeledInput
+        label="Height"
+        value={state.vitalSigns.height}
+        onChangeText={(v) => setVital('height', v)}
+        keyboardType="decimal-pad"
+        unit="cm"
+        placeholder="e.g. 175"
+      />
+
+      {bmiResult && (
+        <View style={[exStyles.bmiCard, { borderColor: bmiResult.color }]}>
+          <Text style={exStyles.bmiLabel}>BMI</Text>
+          <Text style={[exStyles.bmiValue, { color: bmiResult.color }]}>
+            {bmiResult.value.toFixed(1)}
+          </Text>
+          <View style={[exStyles.bmiCategoryBadge, { backgroundColor: bmiResult.color }]}>
+            <Text style={exStyles.bmiCategoryText}>{bmiResult.label}</Text>
+          </View>
+        </View>
+      )}
+
+      <Text style={exStyles.tabSectionHeading}>Pain Assessment</Text>
+      <View style={exStyles.painContainer}>
+        <View style={exStyles.painLabelRow}>
+          <Text style={exStyles.fieldLabel}>Pain Score</Text>
+          <View style={exStyles.painScoreBadge}>
+            <Text style={exStyles.painScoreValue}>{state.vitalSigns.painScore}</Text>
+            <Text style={exStyles.painScoreMax}>/10</Text>
+          </View>
+        </View>
+        <View style={exStyles.painScaleLabels}>
+          <Text style={exStyles.painScaleEnd}>No Pain</Text>
+          <Text style={exStyles.painScaleEnd}>Worst</Text>
+        </View>
+        <Slider
+          style={exStyles.slider}
+          minimumValue={0}
+          maximumValue={10}
+          step={1}
+          value={state.vitalSigns.painScore}
+          onValueChange={(v) => setVital('painScore', v)}
+          minimumTrackTintColor={
+            state.vitalSigns.painScore <= 3
+              ? COLORS.success
+              : state.vitalSigns.painScore <= 6
+                ? COLORS.warning
+                : COLORS.error
+          }
+          maximumTrackTintColor={COLORS.border}
+          thumbTintColor={COLORS.primary}
+        />
+        <View style={exStyles.painTickRow}>
+          {Array.from({ length: 11 }, (_, i) => (
+            <Text key={i} style={exStyles.painTick}>
+              {i}
+            </Text>
+          ))}
+        </View>
+      </View>
+
+      <View style={{ height: 32 }} />
+    </ScrollView>
+  );
+
+  const renderGeneralExam = () => (
+    <ScrollView
+      style={exStyles.tabScrollView}
+      contentContainerStyle={exStyles.tabScrollContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      <LabeledInput
+        label="General Appearance"
+        value={state.generalExamination.generalAppearance}
+        onChangeText={(v) => setGeneral('generalAppearance', v)}
+        multiline
+        numberOfLines={4}
+        placeholder="Describe patient's general appearance..."
+      />
+      <LabeledInput
+        label="Hands & Nails"
+        value={state.generalExamination.handsNails}
+        onChangeText={(v) => setGeneral('handsNails', v)}
+        multiline
+        numberOfLines={4}
+        placeholder="Describe hands and nails..."
+      />
+      <LabeledInput
+        label="Head & Neck"
+        value={state.generalExamination.headNeck}
+        onChangeText={(v) => setGeneral('headNeck', v)}
+        multiline
+        numberOfLines={4}
+        placeholder="Describe head and neck..."
+      />
+      <LabeledInput
+        label="JVP"
+        value={state.generalExamination.jvp}
+        onChangeText={(v) => setGeneral('jvp', v)}
+        multiline
+        numberOfLines={4}
+        placeholder="Describe JVP findings..."
+      />
+      <LabeledInput
+        label="Lymph Nodes"
+        value={state.generalExamination.lymphNodes}
+        onChangeText={(v) => setGeneral('lymphNodes', v)}
+        multiline
+        numberOfLines={4}
+        placeholder="Describe lymph node findings..."
+      />
+      <View style={{ height: 32 }} />
+    </ScrollView>
+  );
+
+  const renderSystemicExam = () => (
+    <ScrollView
+      style={exStyles.tabScrollView}
+      contentContainerStyle={exStyles.tabScrollContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      {(
+        [
+          { key: 'cardiovascular', label: 'Cardiovascular' },
+          { key: 'respiratory', label: 'Respiratory' },
+          { key: 'abdominal', label: 'Abdominal' },
+          { key: 'neurological', label: 'Neurological' },
+          { key: 'msk', label: 'MSK (Musculoskeletal)' },
+          { key: 'skin', label: 'Skin' },
+        ] as { key: keyof SystemicExamination; label: string }[]
+      ).map(({ key, label }) => (
+        <ExpandableSection key={key} title={label}>
+          <TextInput
+            style={exStyles.systemicInput}
+            multiline
+            numberOfLines={4}
+            value={state.systemicExamination[key]}
+            onChangeText={(v) => setSystemic(key, v)}
+            placeholder={`Enter ${label} findings...`}
+            placeholderTextColor={COLORS.textSecondary}
+            textAlignVertical="top"
+          />
+        </ExpandableSection>
+      ))}
+      <View style={{ height: 32 }} />
+    </ScrollView>
+  );
+
+  return (
+    <KeyboardAvoidingView
+      style={exStyles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      {/* ── Custom Tab Bar ── */}
+      <View style={exStyles.tabBar}>
+        {TABS.map((tab, idx) => (
+          <TouchableOpacity
+            key={tab}
+            style={[exStyles.tabItem, activeTab === idx && exStyles.tabItemActive]}
+            onPress={() => setActiveTab(idx)}
+            activeOpacity={0.7}
+          >
+            <Text style={[exStyles.tabLabel, activeTab === idx && exStyles.tabLabelActive]}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* ── Tab Content ── */}
+      <View style={exStyles.tabContent}>
+        {activeTab === 0 && renderVitalSigns()}
+        {activeTab === 1 && renderGeneralExam()}
+        {activeTab === 2 && renderSystemicExam()}
+      </View>
+
+      {/* ── Fixed Save Button ── */}
+      <View style={exStyles.saveBar}>
+        <TouchableOpacity
+          style={[exStyles.saveButton, saving && exStyles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={saving}
+          activeOpacity={0.8}
+        >
+          {saving ? (
+            <ActivityIndicator color={COLORS.white} size="small" />
+          ) : (
+            <Text style={exStyles.saveButtonText}>Save Findings</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+};
+
+// ---------- Styles ----------
+
+const exStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  // Tab bar
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    ...{
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabItemActive: {
+    borderBottomColor: COLORS.primary,
+  },
+  tabLabel: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '500',
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  tabLabelActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+
+  // Tab content
+  tabContent: {
+    flex: 1,
+  },
+  tabScrollView: {
+    flex: 1,
+  },
+  tabScrollContent: {
+    padding: SPACING.md,
+  },
+  tabSectionHeading: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.xs,
+    paddingBottom: SPACING.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+
+  // Field
+  fieldContainer: {
+    marginBottom: SPACING.md,
+  },
+  fieldLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 3,
+  },
+  fieldLabel: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  fieldUnit: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    backgroundColor: COLORS.surfaceVariant,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  fieldHint: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    fontSize: FONT_SIZE.md,
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
+  },
+
+  // BMI
+  bmiCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  bmiLabel: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: COLORS.text,
+    width: 36,
+  },
+  bmiValue: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    flex: 1,
+  },
+  bmiCategoryBadge: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  bmiCategoryText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+
+  // Pain
+  painContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.md,
+  },
+  painLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  painScoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  painScoreValue: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  painScoreMax: {
+    fontSize: FONT_SIZE.xs,
+    color: 'rgba(255,255,255,0.75)',
+    marginLeft: 1,
+  },
+  painScaleLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
+  },
+  painScaleEnd: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  painTickRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  painTick: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    width: 18,
+    textAlign: 'center',
+  },
+
+  // Expandable (systemic)
+  expandableCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    marginBottom: SPACING.sm,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  expandableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.md,
+  },
+  expandableTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  chevron: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+  },
+  expandableContent: {
+    padding: SPACING.md,
+    paddingTop: 0,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  systemicInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm,
+    fontSize: FONT_SIZE.md,
+    color: COLORS.text,
+    minHeight: 96,
+    backgroundColor: COLORS.background,
+    marginTop: SPACING.sm,
+  },
+
+  // Save bar
+  saveBar: {
+    backgroundColor: COLORS.surface,
+    padding: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    ...{
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 4,
+      elevation: 8,
+    },
+  },
+  saveButton: {
+    backgroundColor: COLORS.secondary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
+    ...{
+      shadowColor: COLORS.secondary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  saveButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+  },
+});
+
+export default ExaminationScreen;

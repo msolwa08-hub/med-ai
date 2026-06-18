@@ -73,7 +73,14 @@ enum ConsultationType {
 enum InvestigationType {
   LAB
   RADIOLOGY
+  ECG
   OTHER
+}
+
+enum InvestigationUrgency {
+  ROUTINE
+  URGENT
+  STAT
 }
 
 enum ConsentType {
@@ -280,15 +287,18 @@ model ExaminationFindings {
 }
 
 model Investigation {
-  id              String            @id @default(cuid())
-  consultationId  String
-  type            InvestigationType
-  name            String
-  encryptedResult String?           // encrypted result data
-  resultDate      DateTime?
-  uploadedFileKey String?           // encrypted S3 key
-  requestedBy     String            // doctorId
-  updatedAt       DateTime          @updatedAt
+  id                   String               @id @default(cuid())
+  consultationId       String
+  type                 InvestigationType
+  name                 String
+  urgency              InvestigationUrgency @default(ROUTINE)
+  specialInstructions  String?
+  encryptedResult      String?              // encrypted result data
+  resultDate           DateTime?
+  uploadedFileKey      String?              // encrypted S3 key
+  requestedBy          String               // doctorId
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
 
@@ -297,17 +307,19 @@ model Investigation {
 }
 
 model ManagementPlan {
-  id             String   @id @default(cuid())
-  consultationId String   @unique
+  id                  String   @id @default(cuid())
+  consultationId      String   @unique
   // All fields encrypted with consultation data key
-  diagnosis      String   // encrypted
-  medications    String   // encrypted JSON array: [{name, dose, frequency, duration, route}]
-  procedures     String?  // encrypted
-  referrals      String?  // encrypted JSON: [{specialty, reason, urgency}]
-  followUp       String?  // plain text follow-up interval
-  doctorNotes    String?  // encrypted
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  diagnosis           String   // encrypted
+  medications         String   // encrypted JSON array: [{name, dose, frequency, duration, route}]
+  procedures          String?  // encrypted
+  referrals           String?  // encrypted JSON: [{specialty, reason, urgency}]
+  followUpDays        Int?     // number of days for follow-up
+  followUpDate        String?  // ISO date string
+  patientInstructions String?  // encrypted patient-facing instructions
+  doctorNotes         String?  // encrypted
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
 
