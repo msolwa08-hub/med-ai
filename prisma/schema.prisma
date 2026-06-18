@@ -506,6 +506,7 @@ model PatientLabAccount {
   provider         LabProvider
   providerPatientId String     // patient ID at the lab
   encryptedAccessToken String? // encrypted OAuth/API token
+  isActive         Boolean     @default(true)
   linkedAt         DateTime    @default(now())
   lastSyncAt       DateTime?
   labResults       LabResult[]
