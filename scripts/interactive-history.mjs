@@ -9,6 +9,9 @@ if (!apiKey || apiKey.startsWith('sk-ant-placeholder')) {
 
 const client = new Anthropic({ apiKey });
 
+const MEDAI_MODEL = "claude-haiku-4-5-20251001";
+const CACHED_SYSTEM = [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }];
+
 const SYSTEM = `You are MedAI — the AI healthcare assistant for Sandton Family Practice and Dr. Patel. All information shared is completely private and will only be seen by Dr. Patel.
 You take medical histories before patients see their doctor.
 
@@ -363,9 +366,9 @@ messages.push({
 });
 
 const opening = await client.messages.create({
-  model: 'claude-sonnet-4-6',
+  model: MEDAI_MODEL,
   max_tokens: 400,
-  system: SYSTEM,
+  system: CACHED_SYSTEM,
   messages,
 });
 
@@ -387,9 +390,9 @@ while (true) {
   messages.push({ role: 'user', content: input });
 
   const resp = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: MEDAI_MODEL,
     max_tokens: 400,
-    system: SYSTEM,
+    system: CACHED_SYSTEM,
     messages,
   });
 

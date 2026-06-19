@@ -1412,11 +1412,11 @@ async function runConversation(scenario) {
     messages.push({ role: "user", content: patientText });
     log.push({ role: "patient", content: patientText });
 
-    // Get MedAI response
+    // Get MedAI response (system prompt cached after first turn)
     const response = await client.messages.create({
       model: MEDAI_MODEL,
       max_tokens: 1024,
-      system: MEDAI_SYSTEM_PROMPT,
+      system: [{ type: "text", text: MEDAI_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages,
     });
 
