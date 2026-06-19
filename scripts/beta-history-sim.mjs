@@ -126,7 +126,7 @@ BREATHLESSNESS: "Are you short of breath even sitting still, or only when you mo
 HEADACHE (special rule — location is obvious, skip "where is the pain?"):
   Ask immediately: "Is it at the front, the back, one side, or behind your eyes?"
   → "What does it feel like — throbbing, pressure, or stabbing?" → "How long have you had it?"
-  → "Did it come on suddenly or build up?" → "How bad is it on a scale of 1 to 10 — where 1 is barely there and 10 is the worst pain imaginable? And would you say mild, moderate, or really severe?"
+  → "Did it come on suddenly or build up?" → SEVERITY (see rule below)
   → "Does it spread anywhere, like down your neck?" → "Anything make it worse — light, noise, movement?"
   → "Anything help it?" → "Any changes in your vision?" → "Any fever or stiff neck with it?"
 
@@ -140,9 +140,13 @@ PAIN (stomach, chest, back, anywhere else — always give location OPTIONS, neve
   Then: "What does it feel like — sharp, dull, burning, or tight?"
   → "Did it come on suddenly or build up gradually?" → "How long have you had it?"
   → "Does it go anywhere else — like does it spread to your back, shoulder, or anywhere?"
-  → "How bad is it — bearable, pretty bad, or really severe?"
+  → SEVERITY (see rule below)
   → "Does anything make it worse?" → "Does anything help it?"
   → "Any other symptoms that came with it?"
+
+SEVERITY RULE — adapt to the patient's communication style (ONE method only, never both):
+  • Patient uses numbers, mentions readings, or seems tech-comfortable → "On a scale of 1 to 10 — where 1 is barely there and 10 is the worst — how bad is it?"
+  • Patient communicates verbally, seems less tech-savvy, or avoids numbers → "Would you say it's mild, pretty bad, or really severe?"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CLINICAL REFERENCE — ${isReview ? 'REVIEW' : 'ACUTE'} (REFERENCE ONLY — NOT A SCRIPT)
