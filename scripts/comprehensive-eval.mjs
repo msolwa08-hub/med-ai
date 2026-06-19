@@ -94,6 +94,8 @@ ONLY escalate for CONFIRMED symptoms — not suspected diagnoses:
 • Pre-eclampsia: severe headache + flashing lights + upper tummy pain + facial/hand swelling (two or more, in pregnancy)
 • Suicidal ideation with a specific plan
 • Severe breathlessness (can't speak in full sentences)
+• Sudden complete loss of vision in one or both eyes (possible retinal emergency)
+• Sudden severe eye pain with nausea and haloes around lights (possible acute glaucoma)
 
 AFTER ESCALATING — focused questions only (ONE AT A TIME):
 1. "When did this start?"
@@ -120,6 +122,7 @@ Explore the chief complaint fully (follow SYMPTOM CHAINS below). Then gather:
 □ Past medical history
 □ Medications — for EVERY medicine named: ask dose, frequency, duration (one at a time)
 □ Social history: smoking → alcohol → home situation/pets
+□ For gynaecological/sexual health presentations: ask sensitively — "These are questions we ask all our patients." Ask about last menstrual period, contraception, possibility of pregnancy, and (without judgment) number of current partners.
 
 PHASE 4 — BACKGROUND + SA CONTEXT
 □ Family history (heart disease, diabetes, high blood pressure, cancer, TB, asthma, allergies)
@@ -185,6 +188,28 @@ SEVERITY RULE — use ONE method only:
   • If patient uses numbers or seems tech-comfortable → "On a scale of 1 to 10 — where 1 is barely there and 10 is the worst — how bad is it?"
   • If patient communicates verbally → "Would you say it's mild, pretty bad, or really severe?"
 
+URINARY SYMPTOMS: "Is it burning when you pass urine, or more of an urgency to go?" → "Are you going more often than usual?" → "Any blood in the urine?" → "Any pain in your lower tummy?" → "Any pain in your back or side?" → "Any fever?" → (in women of childbearing age) "Is there any chance you could be pregnant?"
+
+LUMP: "How long have you noticed it?" → "Has it changed in size since you first noticed it?" → "Is it painful?" → "What does it feel like — soft, firm, or hard?" → (if breast) "Any discharge from the nipple?" → "Any changes to the skin over it?" → "Any other lumps you've noticed anywhere else?"
+
+EYE COMPLAINT: "Which eye?" → "Any discharge — and what colour is it?" → "Has your vision changed at all?" → "Is there pain in or around the eye?" → "Does light bother you?" → "Is it itchy or gritty-feeling?"
+
+SKIN RASH (non-emergency): "Where on your body is it?" → "How long have you had it?" → "Is it itchy, painful, or just there?" → "Does it come and go, or always there?" → "Have you changed any soaps, detergents, or washing powder recently?" → "Any new animals, plants, or environments?" → "Have you tried anything on it?"
+
+SEIZURE (patient now recovered and alert): A patient who has had a seizure and is now fully conscious, alert, and oriented is NOT a current emergency — do not escalate. Take a full seizure history: "Can you tell me what you remember before it happened?" → "Did anyone witness it — do you know how long it lasted?" → "What were you doing in the hours before — had you slept properly?" → "Have you ever had anything like this before?" → "Do you take any medicines regularly?" → "Does anyone in your family have epilepsy?"
+
+GI / VOMITING AND DIARRHOEA: "How many times have you vomited / had diarrhoea today?" → "Is there any blood?" → "Do you have tummy cramps?" → "Any fever?" → "Are you still able to keep fluids down?" → "Any recent travel or change in food?" → "Has anyone else around you been sick?"
+
+EAR COMPLAINT: "Which ear?" → "Is there pain — and how bad?" → "Any discharge from the ear?" → "Has your hearing changed?" → "Any ringing or buzzing?" → "Any dizziness or spinning feeling?" → "Any recent cold or sore throat?"
+
+MENSTRUAL / GYNAECOLOGICAL: "When was your last period?" → "Has your cycle changed recently — heavier, lighter, or irregular?" → "Any bleeding between periods or after sex?" → "Any pelvic pain?" → "Are you using any contraception?" → "Is there any chance you could be pregnant?"
+
+TRAUMA / INJURY: "Can you tell me what happened?" → "Where does it hurt most?" → "Did you hit your head at all?" → "Are you able to move the injured area normally?" → "Did you lose consciousness, even briefly?" → "Have you taken anything for the pain?"
+
+EPISTAXIS (nosebleed): "Which nostril, or both?" → "How long has it been bleeding?" → "Has it stopped now or is it still going?" → "How much blood — a little or a lot?" → "Has this happened before?" → "Do you take any blood-thinning medicines?" → "Did anything trigger it — a knock, or did it start on its own?"
+
+EYE EMERGENCY — add to RED FLAGS check: If patient reports sudden loss of vision in one or both eyes, or sudden severe pain deep inside the eye with nausea → this is a potential emergency. Ask: "Did the vision loss come on suddenly?" → "Is it completely gone or just blurry?" → If sudden complete vision loss → escalate immediately.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MULTIPLE COMPLAINTS — TRIAGE FIRST
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -213,17 +238,28 @@ POLYPHARMACY — when a patient lists multiple medicines in one reply:
 • Example: patient lists 4 drugs → ask about drug 1 (3 questions) → drug 2 (3 questions) → drug 3 → drug 4 → then move on.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SPECIALTY PROTOCOLS
+DIFFICULT SITUATIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PAEDIATRIC (patient is a child):
-- Address parent/caregiver warmly
-- Ask exact age in years AND months
-- Ask weight if known
-- Ask about feeding (breast/formula/solids)
-- Ask vaccination status
-- Ask what medicines were given for this illness (name, dose, how often)
-- Paediatric red flags: high fever, not feeding, bulging fontanelle, non-blanching rash, inconsolable crying, seizure, severe lethargy, neck stiffness
+PATIENT ASKS FOR A DIAGNOSIS: Never provide one. Say warmly: "I'm not able to tell you what it is — that's what the doctor is here for. What I can do is make sure I pass everything you've told me to them, so they have the full picture." Then continue the history.
+
+PATIENT WANTS TO END EARLY: Respect their wish. Say: "Of course — I'll pass everything we've covered to the doctor now." Then write [HISTORY_COMPLETE]. Do not force them to stay.
+
+PATIENT IS VERY DISTRESSED OR CRYING: Pause the questions. Acknowledge first: "I can hear how hard this is — take your time, there's no rush." Wait. Once they indicate they're ready, continue with a gentle open question. Do not ask a clinical question immediately after they express strong emotion.
+
+PATIENT IS AGGRESSIVE OR REFUSES TO ENGAGE: Stay calm and non-confrontational. Say: "That's completely fine — I'll let the doctor know you're ready to be seen." Write [HISTORY_COMPLETE]. Do not escalate the situation.
+
+MINOR WITHOUT A PARENT (under 18, presenting alone): Acknowledge them warmly. Note their age. Continue the history — minors can and do present alone. Apply the mental health and social protocols carefully. Do not refuse to take the history.
+
+DENTAL PAIN PRESENTING TO GP: Acknowledge the pain warmly. Take a brief history (duration, severity, which tooth/area, any swelling, fever, or difficulty swallowing or opening the mouth). Note: difficulty swallowing + swelling + fever with dental pain may indicate spreading infection — flag as urgent for the doctor. Do not dismiss dental pain.
+
+DOMESTIC VIOLENCE SCREENING: For women presenting with injuries, multiple unexplained visits, or who seem fearful — after completing the main history, ask privately and without judgment: "Sometimes people get hurt at home. Is everything safe for you at home?" If they disclose: acknowledge warmly, do NOT push for details — say "I'll make sure the doctor knows — you're safe here." Flag as priority for doctor. Do not write it in open notes — say "I'll make a note for the doctor privately."
+
+PATIENT PRESENTS WITH SOMETHING OUTSIDE ALL PROTOCOLS: Use the general structure — Phase 1 (open question) → Phase 2 (allergy gate) → Phase 3 (symptom exploration: onset, duration, character, severity, associated symptoms, what makes it better/worse) → Phase 4 (SA context) → Phase 5 (holistic close). The phase structure applies to every presentation regardless of complaint type.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPECIALTY PROTOCOLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 NEONATE (age < 6 weeks):
 - Ask age in DAYS
@@ -250,6 +286,7 @@ Ask directly and compassionately: "Sometimes when people feel this low, they hav
 If yes → ask ONE follow-up: "Have you thought about how you might do it?"
   → If plan confirmed: say EXACTLY "I'm really glad you told me that. This is something the doctor needs to know about right away — I'm going to make sure you are seen urgently today." Then write [HISTORY_COMPLETE] immediately. Do NOT continue the history.
   → If no plan: acknowledge warmly, continue history through all phases, flag as urgent but not emergency.
+  POSTNATAL WOMEN: After asking about self-harm, also ask separately: "Have you had any thoughts of hurting your baby?" This is a distinct question from self-harm — ask it directly and without judgment. If yes to either → treat as RED FLAG.
 
 PAEDIATRIC (patient is a child):
 - Address parent/caregiver warmly; acknowledge their worry first.
@@ -754,6 +791,526 @@ const SCENARIOS = [
       "Asks about traditional medicine/sangoma",
       "Asks about household TB contact",
       "Remains warm and non-judgmental throughout",
+    ],
+  },
+  {
+    id: "B01",
+    title: "Adult 32F UTI",
+    red_flag: false,
+    patient_turns: [
+      "I have a burning feeling when I pass urine.",
+      "It started 2 days ago.",
+      "Yes, I need to go much more often than usual. Like every hour.",
+      "No, no pain in my back or sides.",
+      "No fever that I know of.",
+      "I'm not pregnant — I'm on the pill.",
+      "No allergies to medicines or food.",
+      "I don't smoke. I drink occasionally on weekends.",
+      "My mother had diabetes.",
+    ],
+    expected_behaviors: [
+      "Follows urinary symptom chain (burning, frequency, urgency)",
+      "Asks about loin/back pain to exclude upper UTI",
+      "Asks about fever",
+      "Asks about pregnancy or contraception",
+      "Completes allergy gate early (Phase 2)",
+      "Completes HIV normalisation",
+      "Completes holistic close (Phase 5)",
+    ],
+  },
+  {
+    id: "B02",
+    title: "Adult 58M Hypertension Routine Review",
+    red_flag: false,
+    patient_turns: [
+      "I'm here for my blood pressure check.",
+      "I've had high blood pressure for 8 years.",
+      "I take amlodipine, and something else — I think it's for blood pressure too. I can't remember the name. The small white one.",
+      "I take one of each in the morning.",
+      "I don't know the dose. I just take what the pharmacy gives me.",
+      "My blood pressure at home this morning was 148 over 92.",
+      "I sometimes get headaches at the back of my head.",
+      "No, the headaches are not sudden. They build up slowly.",
+      "I'm a bit stressed at work. I drive a taxi.",
+      "No, I don't smoke. I drink beer on weekends — maybe 3 or 4 cans.",
+      "My father died of a stroke.",
+    ],
+    expected_behaviors: [
+      "Takes full medication list — asks about the unnamed medication description",
+      "Accepts partial medication info (no name, no dose) gracefully",
+      "Asks about home blood pressure readings",
+      "Explores headache without alarming thunderclap escalation (gradual onset = not thunderclap)",
+      "Does not escalate for gradual hypertensive headache",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B03",
+    title: "Adult 44F Chest Infection",
+    red_flag: false,
+    patient_turns: [
+      "I've had a really bad cough for 10 days and I think I have a chest infection.",
+      "The cough is wet. I'm bringing up yellow-green phlegm.",
+      "No blood.",
+      "I have a fever — I measured 38.5 this morning.",
+      "I have some chest pain when I cough deeply — right side.",
+      "I can still speak in full sentences but I get short of breath if I walk fast.",
+      "No, nobody at home has TB. My cough came on after a cold.",
+      "I have no night sweats. I haven't lost any weight.",
+      "I'm not allergic to anything.",
+      "I take no regular medicines.",
+      "I live with my husband and two children.",
+    ],
+    expected_behaviors: [
+      "Follows cough symptom chain (duration, character, sputum colour, blood)",
+      "Asks about fever and chest pain",
+      "Asks TB screen (contact, night sweats, weight loss) — mandatory for respiratory",
+      "Assesses breathlessness: patient can speak in sentences = not emergency, does not escalate",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B04",
+    title: "Adult 26F Vaginal Discharge",
+    red_flag: false,
+    patient_turns: [
+      "I have an unusual discharge. I'm a bit embarrassed to talk about it.",
+      "It started about a week ago. It's yellowish and there's more of it than usual.",
+      "There's a smell too. Not pleasant.",
+      "No itching.",
+      "I have lower tummy pain — mild, mostly on the left side.",
+      "My last period was 3 weeks ago. It was normal.",
+      "I'm not pregnant. I use condoms.",
+      "I have one partner.",
+      "No allergies.",
+      "I don't smoke or drink.",
+    ],
+    expected_behaviors: [
+      "Takes sensitive history without judgment",
+      "Asks about discharge character (colour, smell, amount)",
+      "Asks about associated pelvic pain and its location",
+      "Asks about menstrual history and pregnancy",
+      "Asks about sexual history sensitively and without judgment",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B05",
+    title: "Paeds 3yr Gastroenteritis (Mother for Amara)",
+    red_flag: false,
+    patient_turns: [
+      "My daughter Amara has been vomiting and has diarrhoea since yesterday.",
+      "She's 3 years and 2 months. She weighs about 14 kilograms.",
+      "She's vomited 4 times since last night. The diarrhoea is watery — maybe 6 times today.",
+      "She has a temperature — I measured 38.1 degrees.",
+      "She's still drinking some water but less than usual.",
+      "She had a wet nappy about 3 hours ago.",
+      "She's a bit quieter than usual but she's still awake and responds to me.",
+      "No blood in the stool. No rash.",
+      "She's fully vaccinated. No known allergies.",
+      "Nobody else at home is sick. She started at a new crèche last week.",
+    ],
+    expected_behaviors: [
+      "Addresses parent warmly, asks exact age in years and months",
+      "Asks about vomiting and diarrhoea (frequency and character)",
+      "Assesses hydration: wet nappies, drinking, alertness level",
+      "Asks about fever",
+      "Asks about blood in stool",
+      "Asks about vaccination status",
+      "Asks about contacts and exposure",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B06",
+    title: "Adult 29M Panic Attack",
+    red_flag: false,
+    patient_turns: [
+      "I had a scary episode last night. My heart was racing and I couldn't breathe properly.",
+      "It came on suddenly while I was sitting watching TV. It lasted about 20 minutes.",
+      "My chest felt tight — in the middle. And my hands were tingling.",
+      "No sweating. No pain in my arm or jaw.",
+      "I've had 3 of these episodes in the past month.",
+      "They come and go and I'm completely fine in between.",
+      "Yes, I've been very stressed. I'm going through a difficult divorce.",
+      "I don't take any medicines. No allergies.",
+      "My father has a heart condition — that's why I'm worried.",
+      "I smoke occasionally. I drink socially.",
+    ],
+    expected_behaviors: [
+      "Asks about chest pain character and associated symptoms",
+      "Confirms absence of cardiac red flags (no sweating, no arm/jaw pain, not at rest continuously)",
+      "Does NOT escalate to emergency — patient is now well and between episodes",
+      "Explores anxiety triggers and stress",
+      "Takes family history of heart disease",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B07",
+    title: "Adult 41F Breast Lump",
+    red_flag: false,
+    patient_turns: [
+      "I found a lump in my breast last week. I'm really worried.",
+      "It's in my right breast — upper outer side.",
+      "I noticed it in the shower. It feels about the size of a marble.",
+      "It doesn't really hurt. It feels firm.",
+      "No discharge from the nipple.",
+      "No skin changes that I can see.",
+      "My periods are regular. My last one was 2 weeks ago.",
+      "My mother had breast cancer at 52.",
+      "I'm not on any medicines. No allergies.",
+      "I don't smoke. I drink a glass of wine sometimes.",
+    ],
+    expected_behaviors: [
+      "Follows lump symptom chain (duration, size change, pain, character)",
+      "Asks about nipple discharge",
+      "Asks about skin changes over the lump",
+      "Takes menstrual history",
+      "Takes family history specifically for breast cancer",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+      "Does not alarm patient or suggest a diagnosis",
+    ],
+  },
+  {
+    id: "B08",
+    title: "Adult 19M Sore Throat",
+    red_flag: false,
+    patient_turns: [
+      "My throat is very sore. I can hardly swallow.",
+      "It started 3 days ago.",
+      "I have a fever — 38.7 degrees.",
+      "My neck glands are swollen and tender.",
+      "No, I can breathe fine. I'm not drooling.",
+      "I took two paracetamol this morning.",
+      "500mg. Two tablets. Just this morning.",
+      "No allergies to medicines.",
+      "I'm a student. I live in a residence.",
+      "My roommate had a similar thing last week.",
+    ],
+    expected_behaviors: [
+      "Asks throat symptom chain (duration, fever, difficulty swallowing)",
+      "Checks for airway compromise (drooling, difficulty breathing)",
+      "Does not escalate for sore throat without airway compromise",
+      "Asks about contact with sick person",
+      "Asks medication dose and frequency",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B09",
+    title: "Adult 36F Chronic Itchy Rash",
+    red_flag: false,
+    patient_turns: [
+      "I have a rash on my arms and behind my knees. It's very itchy.",
+      "It's been coming and going for about 2 years but it's worse now.",
+      "The skin is red, dry, and a bit crusty.",
+      "It's worse in winter and when I'm stressed.",
+      "I have a cat at home. I've had her for 3 years.",
+      "I recently changed to a biological washing powder.",
+      "I'm allergic to penicillin — I got hives.",
+      "I've tried a cortisone cream before. It helped while I used it.",
+      "My daughter has asthma. My sister has hay fever.",
+      "I don't smoke. I don't drink.",
+    ],
+    expected_behaviors: [
+      "Follows skin rash chain (location, character, duration, triggers)",
+      "Asks about home environment (pets, detergents)",
+      "Takes allergy history including the reaction",
+      "Takes family history of atopy (asthma, hay fever, eczema)",
+      "Asks about previous treatments",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B10",
+    title: "Adult 68M Stable Angina (Non-emergency)",
+    red_flag: false,
+    patient_turns: [
+      "I get chest tightness when I walk up the hill to my house.",
+      "It's been happening for about 3 months.",
+      "It goes away after I rest for a few minutes.",
+      "It's in the middle of my chest. A tight feeling.",
+      "No sweating. No pain in my arm or jaw.",
+      "I don't get it when I'm sitting still.",
+      "I have diabetes and high blood pressure. I take metformin and lisinopril.",
+      "Metformin 1000mg twice a day. Lisinopril 10mg once a day. For about 5 years each.",
+      "I smoke 5 cigarettes a day.",
+      "My brother had a heart attack at 65.",
+    ],
+    expected_behaviors: [
+      "Identifies chest pain on exertion that resolves with rest",
+      "Confirms absence of acute cardiac red flags (no sweating, no arm/jaw pain, not at rest)",
+      "Does NOT escalate — stable exertional pattern without acute features",
+      "Applies elderly protocol (falls, ADLs, cognition, social support)",
+      "Takes full medication list with doses",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B11",
+    title: "Adult 47F Fatigue and Weight Loss",
+    red_flag: false,
+    patient_turns: [
+      "I've been very tired for 3 months and I've been losing weight.",
+      "I've lost about 8 kilograms without trying.",
+      "I have no appetite. Food doesn't interest me.",
+      "I have a mild cough sometimes. Dry.",
+      "No night sweats.",
+      "No, I haven't been in contact with anyone with TB.",
+      "I feel sad most of the time. Things I used to enjoy, I don't anymore.",
+      "No, I haven't had thoughts of hurting myself.",
+      "I take iron tablets — not sure of the dose.",
+      "No allergies. I don't smoke or drink.",
+      "My mother had bowel cancer.",
+    ],
+    expected_behaviors: [
+      "Explores fatigue and weight loss systematically",
+      "Screens for TB (cough, night sweats, TB contact)",
+      "Screens for depression (mood, anhedonia, suicidal ideation)",
+      "Takes family history including cancer",
+      "Asks about iron tablets and accepts partial dose info gracefully",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B12",
+    title: "Adult 40F Limited English Speaker",
+    red_flag: false,
+    patient_turns: [
+      "Hello. My English is not good. I am from Zimbabwe. I have pain.",
+      "Pain in my tummy. Here. Lower left.",
+      "Two days. Bad pain.",
+      "No, not pregnancy. I have no husband now.",
+      "Left side. Very bad.",
+      "I feel sick. Not vomiting but sick feeling.",
+      "No toilet problem.",
+      "I take nothing. No tablet.",
+      "No allergy.",
+      "I live alone. One child.",
+    ],
+    expected_behaviors: [
+      "Responds warmly and uses short simple questions",
+      "Does not make patient feel embarrassed about language barrier",
+      "Clarifies pain location with options (upper/lower/left/right)",
+      "Explores pain systematically despite limited communication",
+      "Completes HIV normalisation sensitively with simple language",
+      "Completes holistic close with plain simple questions",
+    ],
+  },
+  {
+    id: "B13",
+    title: "Adult 55F Repeat Prescription Only",
+    red_flag: false,
+    patient_turns: [
+      "I just need a repeat of my diabetic medication. I'm almost finished.",
+      "I take metformin. 1000 milligrams. Twice a day. Been on it for 6 years.",
+      "I'm fine otherwise. No new problems.",
+      "My sugar has been about 8 to 9 on my home machine.",
+      "I check it every morning before breakfast.",
+      "I've had a bit of tiredness lately.",
+      "My feet are okay. No numbness.",
+      "I'm not allergic to anything.",
+      "I live with my daughter. She helps me.",
+      "I don't smoke. I don't drink.",
+    ],
+    expected_behaviors: [
+      "Does not shortcut — completes structured history even for repeat prescription",
+      "Asks about diabetes control (home readings, symptoms of hypo/hyperglycaemia)",
+      "Asks about diabetic complications (feet/numbness, vision, kidneys)",
+      "Takes full medication history with doses",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B14",
+    title: "Adult 31M First Seizure (Now Recovered)",
+    red_flag: false,
+    patient_turns: [
+      "I had a seizure this morning. I'm okay now but I'm scared.",
+      "My wife saw it happen. I was shaking all over for about 2 minutes.",
+      "I didn't know what was happening. My wife says I went stiff first then started shaking.",
+      "I was confused afterwards for about 15 minutes. I'm completely clear now.",
+      "I had a terrible headache after but it's mostly gone.",
+      "I slept very badly last night — maybe 3 hours.",
+      "I've never had anything like this before.",
+      "I don't take any medicine. No allergies.",
+      "I don't smoke. I drink socially.",
+      "No family history of epilepsy.",
+    ],
+    expected_behaviors: [
+      "Does NOT escalate — patient is now fully recovered, alert, and oriented",
+      "Takes full seizure history (witness account, duration, type, post-ictal)",
+      "Asks about precipitating factors (sleep deprivation, alcohol, illness)",
+      "Asks about previous episodes",
+      "Takes family history for epilepsy",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B15",
+    title: "Adult 34F Red Eye (Conjunctivitis)",
+    red_flag: false,
+    patient_turns: [
+      "My eye is red and sore. It started yesterday.",
+      "The right eye. There's discharge — yellow and crusty in the morning.",
+      "It's itchy and feels gritty.",
+      "My vision is fine. I can see clearly.",
+      "No deep pain in the eye. No headache.",
+      "No light sensitivity.",
+      "My son had the same thing last week.",
+      "I'm allergic to penicillin — I got a rash.",
+      "I use no eye drops regularly.",
+      "I work as a teacher.",
+    ],
+    expected_behaviors: [
+      "Follows eye complaint chain (discharge, vision, pain, photophobia)",
+      "Confirms vision is not affected",
+      "Does not escalate — simple conjunctivitis presentation",
+      "Takes allergy history with reaction",
+      "Asks about contact with sick person",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B16",
+    title: "Adult 52M Gout Attack",
+    red_flag: false,
+    patient_turns: [
+      "My big toe is killing me. It's red and swollen and I can't put weight on it.",
+      "It came on suddenly last night. I woke up in agony.",
+      "The right big toe. It's very red and warm to touch.",
+      "About 9 out of 10 for pain.",
+      "I've had this before — about a year ago.",
+      "I take allopurinol. 300mg once a day. For about a year.",
+      "I drink quite a bit. Maybe 5 or 6 beers most days.",
+      "I had a braai this weekend — lots of red meat.",
+      "No allergies.",
+      "I smoke 15 cigarettes a day.",
+      "My father also had gout.",
+    ],
+    expected_behaviors: [
+      "Explores joint pain (location, onset, character, severity)",
+      "Asks about previous similar episodes",
+      "Takes full medication history with dose",
+      "Asks about alcohol use and quantifies it",
+      "Asks about dietary triggers",
+      "Takes family history",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B17",
+    title: "Adult 49F Hypertensive Headache (Non-thunderclap)",
+    red_flag: false,
+    patient_turns: [
+      "I have a headache. I know my blood pressure gets high sometimes.",
+      "It built up slowly over the past 2 hours. Not sudden at all.",
+      "It's at the back of my head and neck.",
+      "Dull and pressure-like. About 6 out of 10.",
+      "No flashing lights. My vision is fine.",
+      "No vomiting. No stiff neck.",
+      "I've had this type of headache before when my BP was high.",
+      "I take amlodipine 5mg once a day. I've been on it for 3 years.",
+      "I forgot to take it this morning.",
+      "No allergies.",
+    ],
+    expected_behaviors: [
+      "Asks thunderclap onset question FIRST before any other headache questions",
+      "Patient confirms gradual onset — does NOT escalate",
+      "Explores headache chain (location, character, severity, visual symptoms, neck stiffness)",
+      "Asks about medication compliance",
+      "Completes HIV normalisation",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B18",
+    title: "Paeds 5yr First Wheeze (Father for Liam)",
+    red_flag: false,
+    patient_turns: [
+      "My son Liam is wheezing. This has never happened before.",
+      "He's 5 years and 8 months. About 20 kilograms.",
+      "It started this morning after he was playing outside.",
+      "He has a tight chest and I can hear the wheeze when he breathes out.",
+      "He can still talk normally. He's not too distressed.",
+      "No fever. He had a cold last week.",
+      "We have a dog at home. And it was very windy today.",
+      "He's never had asthma. But I have asthma.",
+      "His vaccinations are up to date.",
+      "I haven't given him any medicines.",
+      "No allergies that I know of.",
+    ],
+    expected_behaviors: [
+      "Addresses father warmly, asks exact age in years and months",
+      "Assesses wheeze severity — child can speak normally, not severe, does not escalate",
+      "Asks about triggers (exercise, cold virus, animals, wind/pollen)",
+      "Asks about family history of asthma or allergies",
+      "Asks about recent illness as trigger",
+      "Takes vaccination and allergy history",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B19",
+    title: "Adolescent 17M Musculoskeletal Chest Pain",
+    red_flag: false,
+    patient_turns: [
+      "I have chest pain and my mom made me come. She's worried about my heart.",
+      "It's on the left side. It's been there for 3 days.",
+      "It's sharp. It gets worse when I press on it or take a deep breath.",
+      "No, it doesn't go to my arm or jaw.",
+      "No sweating. No nausea.",
+      "I did a lot of push-ups 4 days ago — more than usual.",
+      "The pain is there most of the time but worse when I move.",
+      "I'm 17. No medical problems. I don't take any medicines.",
+      "No allergies.",
+      "I'm stressed about my matric exams.",
+    ],
+    expected_behaviors: [
+      "Explores chest pain chain (location, character, radiation, associated symptoms)",
+      "Confirms absence of acute cardiac red flags (no sweating, no arm/jaw pain, no nausea, reproducible on palpation)",
+      "Does NOT escalate for musculoskeletal chest pain",
+      "Identifies exertional trigger (push-ups) and positional worsening",
+      "Screens for mental health — matric stress mentioned",
+      "Completes holistic close",
+    ],
+  },
+  {
+    id: "B20",
+    title: "Adult 28F Postnatal Depression",
+    red_flag: false,
+    patient_turns: [
+      "I've been feeling very low since my baby was born 6 weeks ago.",
+      "I feel like a bad mother. I can't bond with my baby.",
+      "Yes, almost every day I feel sad and hopeless.",
+      "I don't enjoy anything anymore. Not even the baby.",
+      "I'm not sleeping well, even when the baby is sleeping.",
+      "I feel guilty all the time. Like I'm failing.",
+      "No, I haven't had any thoughts of hurting myself or the baby.",
+      "My partner is supportive but he works long hours.",
+      "I'm not on any medicines. No allergies.",
+      "This is my first baby. The birth was fine.",
+    ],
+    expected_behaviors: [
+      "Handles sensitive postnatal topic with warmth and no judgment",
+      "Screens for postnatal depression (low mood, inability to bond, anhedonia, sleep, guilt)",
+      "Asks directly about self-harm AND about thoughts of harming the baby (separate questions)",
+      "Does not escalate — no plan confirmed",
+      "Acknowledges social context and support",
+      "Completes HIV normalisation",
+      "Completes holistic close",
     ],
   },
 ];
