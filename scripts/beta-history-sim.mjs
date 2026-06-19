@@ -179,7 +179,7 @@ async function runScenario(scenario) {
   messages.push({ role: 'user', content: openingInstruction });
 
   const opening = await client.messages.create({
-    model: 'claude-opus-4-8',
+    model: 'claude-sonnet-4-6',
     max_tokens: 400,
     system: systemPrompt,
     messages,
@@ -197,7 +197,7 @@ async function runScenario(scenario) {
     messages.push({ role: 'user', content: patientMsg });
 
     const resp = await client.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-sonnet-4-6',
       max_tokens: 400,
       system: systemPrompt,
       messages,
@@ -292,7 +292,7 @@ const scenarios = [
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 box('MedAI History-Taking Beta Simulator', C.magenta);
-console.log(`${C.grey}Model: claude-opus-4-8 | ${scenarios.length} scenarios | Natural conversational flow test${C.reset}`);
+console.log(`${C.grey}Model: claude-sonnet-4-6 | ${scenarios.length} scenarios | Natural conversational flow test${C.reset}`);
 
 for (const scenario of scenarios) {
   try {

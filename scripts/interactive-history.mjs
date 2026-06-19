@@ -111,7 +111,7 @@ messages.push({
 });
 
 const opening = await client.messages.create({
-  model: 'claude-opus-4-8',
+  model: 'claude-sonnet-4-6',
   max_tokens: 400,
   system: SYSTEM,
   messages,
@@ -135,7 +135,7 @@ while (true) {
   messages.push({ role: 'user', content: input });
 
   const resp = await client.messages.create({
-    model: 'claude-opus-4-8',
+    model: 'claude-sonnet-4-6',
     max_tokens: 400,
     system: SYSTEM,
     messages,
