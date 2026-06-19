@@ -12,11 +12,13 @@ import {
   decryptDataKey,
 } from '../lib/encryption.js';
 import {
-  startMedicalHistorySession,
-  continueMedicalHistorySession,
-  extractStructuredHistory,
-  generateDifferentialDiagnosis,
-} from '../services/ai-medical-history.js';
+  startAdaptiveMedicalHistorySession,
+  continueAdaptiveMedicalHistorySession,
+  extractAdaptiveStructuredHistory,
+  type PatientContext,
+  type PatientLiteracyLevel,
+} from '../services/adaptive-ai-history.js';
+import { generateDifferentialDiagnosis } from '../services/ai-medical-history.js';
 import type { ConversationMessage, StructuredMedicalHistory } from '../types/index.js';
 import { SA_LANGUAGES } from '../types/index.js';
 
@@ -47,9 +49,6 @@ const ConfirmHistorySchema = z.object({
 // Helpers
 // ============================================================
 
-/**
- * Compute age in years from a Date of birth.
- */
 function calculateAge(dateOfBirth: Date): number {
   const today = new Date();
   let age = today.getFullYear() - dateOfBirth.getFullYear();
@@ -61,20 +60,56 @@ function calculateAge(dateOfBirth: Date): number {
 }
 
 /**
- * Shared logic: extract structured history, generate differential, persist to DB.
- * Called both from the explicit /complete endpoint and auto-triggered when
- * continueMedicalHistorySession signals isComplete.
+ * Build PatientContext from the patient's DB record and consultation history.
+ * Checks for previous completed consultations to detect review visits.
+ */
+async function buildPatientContext(
+  patientId: string,
+  currentConsultationId: string,
+  dateOfBirth: Date,
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'
+): Promise<PatientContext> {
+  // Find the most recent completed consultation (excluding the current one)
+  const lastConsultation = await prisma.consultation.findFirst({
+    where: {
+      patientId,
+      id: { not: currentConsultationId },
+      status: { in: ['DOCTOR_REVIEW', 'EXAMINATION', 'MANAGEMENT', 'COMPLETED'] },
+    },
+    orderBy: { completedAt: 'desc' },
+    select: { completedAt: true },
+  });
+
+  const isReviewConsultation = lastConsultation !== null;
+  const lastVisitDays = lastConsultation?.completedAt
+    ? Math.floor((Date.now() - lastConsultation.completedAt.getTime()) / 86_400_000)
+    : undefined;
+
+  return {
+    age: calculateAge(dateOfBirth),
+    gender,
+    knownConditions: [],    // AI discovers these during the consultation
+    currentMedications: [], // AI discovers these during the consultation
+    isSmoker: false,        // AI asks during social history
+    isReviewConsultation,
+    lastVisitDays,
+  };
+}
+
+/**
+ * Extract structured history, generate differential, and persist to DB.
+ * Called from both /complete and auto-triggered on [HISTORY_COMPLETE].
  */
 async function runCompletionFlow(
   consultationId: string,
   conversationHistory: ConversationMessage[],
   language: string,
+  literacyLevel: PatientLiteracyLevel,
   dataKey: Buffer
 ): Promise<{
   structuredHistory: StructuredMedicalHistory;
   diagnoses: ReturnType<typeof generateDifferentialDiagnosis> extends Promise<infer T> ? T : never;
 }> {
-  // Fetch patient demographics for diagnosis generation
   const consultation = await prisma.consultation.findUnique({
     where: { id: consultationId },
     include: {
@@ -82,24 +117,22 @@ async function runCompletionFlow(
     },
   });
 
-  if (!consultation) {
-    throw new Error('Consultation not found');
-  }
+  if (!consultation) throw new Error('Consultation not found');
 
   const patientAge = calculateAge(consultation.patient.dateOfBirth);
   const patientGender = consultation.patient.gender;
 
-  // Extract structured history from conversation
-  const structuredHistory = await extractStructuredHistory(conversationHistory);
+  const structuredHistory = await extractAdaptiveStructuredHistory(
+    conversationHistory,
+    literacyLevel
+  );
 
-  // Generate differential diagnosis
   const diagnoses = await generateDifferentialDiagnosis(
     structuredHistory,
     patientAge,
     patientGender
   );
 
-  // Encrypt each field of structured history and save to MedicalHistory
   await prisma.medicalHistory.update({
     where: { consultationId },
     data: {
@@ -114,22 +147,20 @@ async function runCompletionFlow(
     },
   });
 
-  // Upsert DifferentialDiagnosis record
   await prisma.differentialDiagnosis.upsert({
     where: { consultationId },
     create: {
       consultationId,
       diagnoses: diagnoses as never,
-      aiModel: 'claude-sonnet-4-5',
+      aiModel: 'claude-haiku-4-5',
     },
     update: {
       diagnoses: diagnoses as never,
-      aiModel: 'claude-sonnet-4-5',
+      aiModel: 'claude-haiku-4-5',
       generatedAt: new Date(),
     },
   });
 
-  // Advance consultation status
   await prisma.consultation.update({
     where: { id: consultationId },
     data: { status: 'DOCTOR_REVIEW' },
@@ -162,11 +193,20 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       const { consultationId, language } = parsed.data;
       const userId = request.user!.sub;
 
-      // Verify consultation belongs to this patient
       const consultation = await prisma.consultation.findUnique({
         where: { id: consultationId },
         include: {
-          patient: { select: { id: true, firstName: true, lastName: true, userId: true } },
+          patient: {
+            select: {
+              id: true,
+              userId: true,
+              firstName: true,
+              lastName: true,
+              dateOfBirth: true,
+              gender: true,
+              literacy: { select: { level: true } },
+            },
+          },
         },
       });
 
@@ -183,15 +223,23 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const patientName = `${consultation.patient.firstName} ${consultation.patient.lastName}`;
+      const initialLiteracy = (consultation.patient.literacy?.level ?? 'UNKNOWN') as PatientLiteracyLevel;
 
-      // Start AI session — returns first greeting message
-      const aiResponse = await startMedicalHistorySession(
+      const patientContext = await buildPatientContext(
+        consultation.patient.id,
         consultationId,
-        language as (typeof SA_LANGUAGES)[number],
-        patientName
+        consultation.patient.dateOfBirth,
+        consultation.patient.gender
       );
 
-      // Build initial conversation log with the AI's first message
+      const aiResponse = await startAdaptiveMedicalHistorySession(
+        consultationId,
+        language as (typeof SA_LANGUAGES)[number],
+        patientName,
+        initialLiteracy,
+        patientContext
+      );
+
       const initialLog: ConversationMessage[] = [
         {
           role: 'assistant',
@@ -200,7 +248,6 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         },
       ];
 
-      // Get or create MedicalHistory record, then store the initial AI message
       const existingHistory = await prisma.medicalHistory.findUnique({
         where: { consultationId },
       });
@@ -213,15 +260,16 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
           data: {
             aiConversationLog: encryptJSON(initialLog, dataKey),
             language: language as never,
+            literacyLevel: aiResponse.literacyLevel as never,
           },
         });
       } else {
-        // Create placeholder-encrypted fields using an empty string placeholder
         const emptyEncrypted = encryptField('', dataKey);
         await prisma.medicalHistory.create({
           data: {
             consultationId,
             language: language as never,
+            literacyLevel: aiResponse.literacyLevel as never,
             aiConversationLog: encryptJSON(initialLog, dataKey),
             chiefComplaint: emptyEncrypted,
             historyOfPresentIllness: emptyEncrypted,
@@ -249,6 +297,9 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         data: {
           message: aiResponse.message,
           isComplete: aiResponse.isComplete,
+          literacyLevel: aiResponse.literacyLevel,
+          redFlagDetected: aiResponse.redFlagDetected,
+          suggestedFollowUp: aiResponse.suggestedFollowUp,
         },
       });
     }
@@ -273,12 +324,20 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       const { consultationId, patientMessage } = parsed.data;
       const userId = request.user!.sub;
 
-      // Fetch consultation + medical history
       const consultation = await prisma.consultation.findUnique({
         where: { id: consultationId },
         include: {
-          patient: { select: { userId: true } },
-          medicalHistory: { select: { aiConversationLog: true, language: true } },
+          patient: {
+            select: {
+              id: true,
+              userId: true,
+              dateOfBirth: true,
+              gender: true,
+            },
+          },
+          medicalHistory: {
+            select: { aiConversationLog: true, language: true, literacyLevel: true },
+          },
         },
       });
 
@@ -302,16 +361,21 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const dataKey = decryptDataKey(consultation.encryptedDataKey);
-
-      // Decrypt existing conversation log
       const conversationHistory = decryptJSON(
         consultation.medicalHistory.aiConversationLog,
         dataKey
       ) as ConversationMessage[];
 
       const language = consultation.medicalHistory.language as (typeof SA_LANGUAGES)[number];
+      const currentLiteracy = (consultation.medicalHistory.literacyLevel ?? 'UNKNOWN') as PatientLiteracyLevel;
 
-      // Append patient's message
+      const patientContext = await buildPatientContext(
+        consultation.patient.id,
+        consultationId,
+        consultation.patient.dateOfBirth,
+        consultation.patient.gender
+      );
+
       const patientEntry: ConversationMessage = {
         role: 'user',
         content: patientMessage,
@@ -319,14 +383,14 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       };
       conversationHistory.push(patientEntry);
 
-      // Get AI response
-      const aiResponse = await continueMedicalHistorySession(
+      const aiResponse = await continueAdaptiveMedicalHistorySession(
         conversationHistory,
         patientMessage,
-        language
+        language,
+        currentLiteracy,
+        patientContext
       );
 
-      // Append AI response
       const assistantEntry: ConversationMessage = {
         role: 'assistant',
         content: aiResponse.message,
@@ -334,21 +398,25 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       };
       conversationHistory.push(assistantEntry);
 
-      // Re-encrypt and save updated conversation log
       await prisma.medicalHistory.update({
         where: { consultationId },
         data: {
           aiConversationLog: encryptJSON(conversationHistory, dataKey),
+          literacyLevel: aiResponse.literacyLevel as never,
         },
       });
 
-      // If AI signals completion, run the completion flow automatically
       if (aiResponse.isComplete) {
         try {
-          await runCompletionFlow(consultationId, conversationHistory, language, dataKey);
+          await runCompletionFlow(
+            consultationId,
+            conversationHistory,
+            language,
+            aiResponse.literacyLevel,
+            dataKey
+          );
         } catch (err) {
           console.error('[ai-history/continue] Completion flow failed:', err);
-          // Don't surface the error — return what we have; doctor can trigger manually
         }
       }
 
@@ -366,6 +434,9 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         data: {
           message: aiResponse.message,
           isComplete: aiResponse.isComplete,
+          literacyLevel: aiResponse.literacyLevel,
+          redFlagDetected: aiResponse.redFlagDetected,
+          suggestedFollowUp: aiResponse.suggestedFollowUp,
         },
       });
     }
@@ -390,12 +461,13 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       const { consultationId } = parsed.data;
       const userId = request.user!.sub;
 
-      // Fetch consultation and medical history
       const consultation = await prisma.consultation.findUnique({
         where: { id: consultationId },
         include: {
           patient: { select: { userId: true } },
-          medicalHistory: { select: { aiConversationLog: true, language: true } },
+          medicalHistory: {
+            select: { aiConversationLog: true, language: true, literacyLevel: true },
+          },
         },
       });
 
@@ -403,7 +475,6 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.status(404).send({ success: false, error: 'Consultation not found.' });
       }
 
-      // Allow the owning patient or an assigned doctor to trigger completion
       const isPatient = consultation.patient.userId === userId;
       const isDoctor =
         request.user!.role === 'DOCTOR' && consultation.doctorId !== null;
@@ -430,11 +501,13 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       ) as ConversationMessage[];
 
       const language = consultation.medicalHistory.language;
+      const literacyLevel = (consultation.medicalHistory.literacyLevel ?? 'UNKNOWN') as PatientLiteracyLevel;
 
       const { structuredHistory, diagnoses } = await runCompletionFlow(
         consultationId,
         conversationHistory,
         language,
+        literacyLevel,
         dataKey
       );
 
@@ -478,7 +551,6 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.status(404).send({ success: false, error: 'Consultation not found.' });
       }
 
-      // Access control: patient owns it OR doctor is assigned
       const isOwner = consultation.patient.userId === userId;
       const isAssignedDoctor =
         userRole === 'DOCTOR' &&
@@ -505,7 +577,6 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       const dataKey = decryptDataKey(consultation.encryptedDataKey);
       const history = consultation.medicalHistory;
 
-      // Decrypt all structured history fields
       let structuredHistory: StructuredMedicalHistory | null = null;
       try {
         structuredHistory = {
@@ -522,7 +593,6 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
           systemsReview: decryptField(history.systemsReview, dataKey),
         };
       } catch {
-        // History may be in an initial state with empty placeholders
         structuredHistory = null;
       }
 
@@ -548,6 +618,7 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
           confirmedAt: history.confirmedAt,
           doctorNotes,
           language: history.language,
+          literacyLevel: history.literacyLevel,
         },
       });
     }
@@ -573,7 +644,6 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       const { notes, corrections } = parsed.data;
       const doctorUserId = request.user!.sub;
 
-      // Look up the doctor record
       const doctor = await prisma.doctor.findUnique({
         where: { userId: doctorUserId },
         select: { id: true },
@@ -610,7 +680,6 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       const dataKey = decryptDataKey(consultation.encryptedDataKey);
       const confirmedAt = new Date();
 
-      // Build combined notes string (notes + corrections)
       const combinedNotes = [
         notes ? `Notes: ${notes}` : null,
         corrections ? `Corrections: ${corrections}` : null,
