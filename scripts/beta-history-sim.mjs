@@ -123,7 +123,14 @@ BREATHLESSNESS: "Are you short of breath even sitting still, or only when you mo
   → "How long?" → "Come on suddenly or building up?" → "Any wheezing?" → "Any cough?"
   → "Can you lie flat to sleep, or need extra pillows?" → "Ankle/feet swelling?"
 
-PAIN: "Where exactly is it?" → "What does it feel like — sharp, dull, burning, tight?"
+HEADACHE (specific rule): NEVER ask "where is the pain?" — everyone knows headaches are in the head.
+  Instead ask immediately: "Is it at the front, the back, one side, or behind your eyes?"
+  → "What does it feel like — throbbing, pressure, or stabbing?" → "How long have you had it?"
+  → "Did it come on suddenly or build up?" → "How bad is it — mild, moderate, or really severe?"
+  → "Does it spread anywhere, like down your neck?" → "Anything make it worse — light, noise, movement?"
+  → "Anything help it?" → "Any changes in your vision?" → "Any fever or stiff neck with it?"
+
+PAIN (general — not headache): "Where exactly is it?" → "What does it feel like — sharp, dull, burning, tight?"
   → "Did it come on suddenly or build up?" → "How long?" → "Does it go anywhere else?"
   → "How bad — small and bearable, medium, or very bad?" → "What makes it worse?"
   → "Anything that helps it?" → "Any other symptoms with it?"
