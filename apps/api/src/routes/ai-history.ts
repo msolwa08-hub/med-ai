@@ -29,6 +29,7 @@ import { SA_LANGUAGES } from '../types/index.js';
 const StartHistorySchema = z.object({
   consultationId: z.string().min(1),
   language: z.enum(SA_LANGUAGES as [string, ...string[]]).default('en'),
+  practiceName: z.string().max(120).optional(),
 });
 
 const ContinueHistorySchema = z.object({
@@ -61,38 +62,51 @@ function calculateAge(dateOfBirth: Date): number {
 
 /**
  * Build PatientContext from the patient's DB record and consultation history.
- * Checks for previous completed consultations to detect review visits.
+ * Fetches doctor/practice name for AI persona branding.
  */
 async function buildPatientContext(
   patientId: string,
   currentConsultationId: string,
   dateOfBirth: Date,
-  gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY',
+  doctorId?: string | null
 ): Promise<PatientContext> {
-  // Find the most recent completed consultation (excluding the current one)
-  const lastConsultation = await prisma.consultation.findFirst({
-    where: {
-      patientId,
-      id: { not: currentConsultationId },
-      status: { in: ['DOCTOR_REVIEW', 'EXAMINATION', 'MANAGEMENT', 'COMPLETED'] },
-    },
-    orderBy: { completedAt: 'desc' },
-    select: { completedAt: true },
-  });
+  const [lastConsultation, doctor] = await Promise.all([
+    prisma.consultation.findFirst({
+      where: {
+        patientId,
+        id: { not: currentConsultationId },
+        status: { in: ['DOCTOR_REVIEW', 'EXAMINATION', 'MANAGEMENT', 'COMPLETED'] },
+      },
+      orderBy: { completedAt: 'desc' },
+      select: { completedAt: true },
+    }),
+    doctorId
+      ? prisma.doctor.findUnique({
+          where: { id: doctorId },
+          select: { firstName: true, lastName: true, specialization: true },
+        })
+      : null,
+  ]);
 
   const isReviewConsultation = lastConsultation !== null;
   const lastVisitDays = lastConsultation?.completedAt
     ? Math.floor((Date.now() - lastConsultation.completedAt.getTime()) / 86_400_000)
     : undefined;
 
+  const doctorName = doctor
+    ? `Dr. ${doctor.firstName} ${doctor.lastName}`
+    : undefined;
+
   return {
     age: calculateAge(dateOfBirth),
     gender,
-    knownConditions: [],    // AI discovers these during the consultation
-    currentMedications: [], // AI discovers these during the consultation
-    isSmoker: false,        // AI asks during social history
+    knownConditions: [],
+    currentMedications: [],
+    isSmoker: false,
     isReviewConsultation,
     lastVisitDays,
+    doctorName,
   };
 }
 
@@ -199,7 +213,7 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const { consultationId, language } = parsed.data;
+      const { consultationId, language, practiceName } = parsed.data;
       const userId = request.user!.sub;
 
       const consultation = await prisma.consultation.findUnique({
@@ -238,8 +252,10 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         consultation.patient.id,
         consultationId,
         consultation.patient.dateOfBirth,
-        consultation.patient.gender
+        consultation.patient.gender,
+        consultation.doctorId
       );
+      if (practiceName) patientContext.practiceName = practiceName;
 
       const aiResponse = await startAdaptiveMedicalHistorySession(
         consultationId,
@@ -382,7 +398,8 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         consultation.patient.id,
         consultationId,
         consultation.patient.dateOfBirth,
-        consultation.patient.gender
+        consultation.patient.gender,
+        consultation.doctorId
       );
 
       const patientEntry: ConversationMessage = {
