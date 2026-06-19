@@ -1,0 +1,445 @@
+{
+  "metadata": {
+    "run_date": "2026-06-19T21:23:29.611Z",
+    "model": "claude-sonnet-4-6",
+    "scorer_model": "claude-sonnet-4-6",
+    "total_scenarios": 3,
+    "pass_threshold": 21,
+    "pass_threshold_percentage": "70%",
+    "total_elapsed_seconds": 186
+  },
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "average_score": 28.666666666666668,
+    "overall_pass": true
+  },
+  "dimension_averages": {
+    "single_question_rule": 3,
+    "no_jargon": 3,
+    "naturalness": 3,
+    "red_flag_handling": 3,
+    "clinical_completeness": 2.3333333333333335,
+    "medication_doses": 2.3333333333333335,
+    "age_appropriate": 3,
+    "allergy_environment": 3,
+    "holistic_close": 3,
+    "promised_followups_kept": 3
+  },
+  "scenarios": [
+    {
+      "id": "A01",
+      "title": "Adult 45M Acute MI",
+      "red_flag": true,
+      "elapsed_seconds": 50.4,
+      "error": null,
+      "eval": {
+        "scores": {
+          "single_question_rule": 3,
+          "no_jargon": 3,
+          "naturalness": 3,
+          "red_flag_handling": 3,
+          "clinical_completeness": 3,
+          "medication_doses": 3,
+          "age_appropriate": 3,
+          "allergy_environment": 3,
+          "holistic_close": 3,
+          "promised_followups_kept": 3
+        },
+        "overall_score": 30,
+        "passed": true,
+        "critical_failures": [],
+        "missed_items": [],
+        "strengths": [
+          "Immediately focused on the presenting complaint without wasting time on administrative questions",
+          "Systematically and efficiently elicited the classic MI symptom cluster (radiation, diaphoresis, nausea) in just three targeted questions",
+          "Issued a clear, unambiguous emergency escalation directive the moment red flags were confirmed",
+          "Correctly stopped the routine history after identifying the emergency",
+          "Showed genuine empathy and practical safety awareness — addressing the patient's solo arrival and ability to walk to reception",
+          "Provided actionable, step-by-step guidance to get the patient to help immediately",
+          "Clinical summary for Dr. Patel was outstanding: comprehensive differentials, correct prioritisation of STEMI, critical safety net about dissection and thrombolytics, and time-sensitive reperfusion window awareness",
+          "Correctly skipped allergy, medication history, and holistic close in accordance with emergency protocol",
+          "Maintained one question per turn throughout the entire conversation"
+        ],
+        "summary": "MedAI delivered a near-flawless emergency response: it rapidly and systematically identified all four classic acute MI red flags, escalated immediately with a clear directive, and appropriately terminated the routine history. The practical follow-through — addressing the patient's solo status, advising against driving, and directing them to reception staff — demonstrated both clinical and human situational awareness. The clinical handover summary provided to Dr. Patel was exceptionally thorough, clinically accurate, and safety-conscious."
+      },
+      "conversation": [
+        {
+          "role": "patient",
+          "content": "Hello, I have chest pain."
+        },
+        {
+          "role": "medai",
+          "content": "Hello, and thank you for coming in today. I'm MedAI, the digital assistant for Sandton Family Practice — I'll be taking some details before you see Dr. Patel.\n\nI just want to make sure we understand what you're experiencing right away.\n\nIs the chest pain happening right now?"
+        },
+        {
+          "role": "patient",
+          "content": "Yes, it's still there. It's pretty bad — like someone's sitting on my chest."
+        },
+        {
+          "role": "medai",
+          "content": "I understand, thank you for telling me that.\n\nIs the pain spreading anywhere else — like down your arm, up into your jaw, or anywhere else?"
+        },
+        {
+          "role": "patient",
+          "content": "Yeah, it's going down my left arm. And my jaw feels tight too."
+        },
+        {
+          "role": "medai",
+          "content": "Are you sweating at all right now?"
+        },
+        {
+          "role": "patient",
+          "content": "Yes, I'm sweating quite a bit actually. And I feel nauseous too."
+        },
+        {
+          "role": "medai",
+          "content": "Please call emergency services or have someone take you to the emergency room immediately. Do not drive yourself. Do not wait for your appointment.\n\nWhen did this pain start?"
+        },
+        {
+          "role": "patient",
+          "content": "It started about 2 hours ago. But... I drove myself here already. Should I be worried?"
+        },
+        {
+          "role": "medai",
+          "content": "Yes, this is very serious and you need emergency care right now. Please do not get back in your car.\n\nWho is with you right now — is there anyone in the waiting room or at reception who can stay with you?"
+        },
+        {
+          "role": "patient",
+          "content": "I... I'm not sure. I came alone. There's probably people at the front desk. Should I tell them something?"
+        },
+        {
+          "role": "medai",
+          "content": "Yes — please go to the front desk right now and tell them you have chest pain going down your arm. They will call emergency services for you immediately. Do not go back to your car.\n\nAre you able to walk to the front desk, or do you need me to alert someone for you?"
+        },
+        {
+          "role": "patient",
+          "content": "I can walk. Yeah, I'll go right now. This is serious, isn't it?"
+        },
+        {
+          "role": "medai",
+          "content": "Yes, it is serious — please go to the front desk right now. Don't wait.\n\n[HISTORY_COMPLETE]\n\n---\n\n**CLINICAL SUMMARY FOR DR. PATEL**\n\n**Key History**\nPatient presented to reception with active chest pain described as a heavy pressure (\"someone sitting on my chest\"), radiating to the left arm and jaw, associated with diaphoresis and nausea, ongoing for approximately 2 hours. Patient drove themselves to the practice. No further history obtained due to emergency escalation.\n\n**Differential Diagnosis**\n*Most likely:*\n1. ST-elevation myocardial infarction (STEMI) — classic presentation: crushing central chest pain, left arm and jaw radiation, diaphoresis, nausea, 2-hour duration\n2. Non-ST-elevation myocardial infarction (NSTEMI) — same presentation, ECG and troponins required to differentiate\n3. Unstable angina — same symptom pattern but less likely given severity, diaphoresis, and 2-hour duration\n\n*Also consider:*\n• Aortic dissection — chest pain radiating to jaw/arm can overlap; tearing quality would increase suspicion\n• Pulmonary embolism — can present with chest pain and diaphoresis, though radiation pattern is less typical\n\n*Do not miss:*\n⚠ STEMI requiring immediate PCI — 2-hour symptom onset means the patient is within the reperfusion window. Every minute matters.\n⚠ Aortic dissection — if confirmed, thrombolytics are contraindicated; BP differential between arms would be critical to check before any intervention\n\n**Suggested Clinical Examination**\n• Immediate 12-lead ECG — look for ST elevation, LBBB, or reciprocal changes\n• Vital signs: BP both arms, heart rate, oxygen saturation, respiratory rate\n• Brief cardiac auscultation — new murmur may suggest dissection or mechanical complication\n• Assess for signs of cardiogenic shock: pallor, clammy skin, altered consciousness, hypotension\n\n**Investigations**\n*First line:*\n• 12-lead ECG — immediate, before anything else\n• High-sensitivity troponin I or T — baseline now, repeat at 1–3 hours\n• Full blood count, urea, electrolytes, creatinine, glucose\n• Chest X-ray — widened mediastinum would raise concern for dissection\n• Oxygen saturation\n\n*If first line inconclusive:*\n• Repeat troponin at 3 and 6 hours if initial negative\n• CT pulmonary angiogram if PE remains on differential\n• CT aortogram if dissection suspected\n\n**Management Principles**\n• Call emergency services immediately if not already done — patient needs ambulance transfer to a facility with a cardiac catheterisation lab\n• Aspirin 300mg stat (crush/chew) if no contraindications and dissection not suspected\n• IV access, oxygen if saturations < 94%\n• Do not give thrombolytics in-practice without ECG confirmation and exclusion of dissection\n• Activate the nearest STEMI pathway — notify the receiving hospital en route\n\n**Safety Net for Dr. Patel**\nIf ECG is non-diagnostic but symptoms remain highly suspicious, do not discharge — treat as ACS until proven otherwise. Troponin rise may lag up to 6 hours from symptom onset."
+        }
+      ]
+    },
+    {
+      "id": "A03",
+      "title": "Adult 52F Stroke via husband",
+      "red_flag": true,
+      "elapsed_seconds": 33.3,
+      "error": null,
+      "eval": {
+        "scores": {
+          "single_question_rule": 3,
+          "no_jargon": 3,
+          "naturalness": 3,
+          "red_flag_handling": 3,
+          "clinical_completeness": 2,
+          "medication_doses": 3,
+          "age_appropriate": 3,
+          "allergy_environment": 3,
+          "holistic_close": 3,
+          "promised_followups_kept": 3
+        },
+        "overall_score": 29,
+        "passed": true,
+        "critical_failures": [],
+        "missed_items": [
+          "Arm weakness not explicitly checked (FAST 'A' criterion — face and speech were covered but arm weakness was not directly asked)",
+          "Brief past medical history (e.g. hypertension, diabetes, atrial fibrillation) not gathered, which is relevant for stroke triage"
+        ],
+        "strengths": [
+          "Immediately recognised the stroke triad (slurred speech, facial drooping, sudden collapse) and escalated without delay",
+          "Used clear, unambiguous emergency escalation language including specific South African emergency numbers (10111/112)",
+          "Correctly advised against giving food or drink, which is critical in suspected stroke",
+          "Addressed the husband/caller directly and appropriately throughout, keeping him calm and action-focused",
+          "Correctly skipped allergy, full medication history, and holistic close in line with emergency protocol",
+          "Asked only one question per turn consistently throughout the conversation",
+          "Warm, empathetic tone maintained under urgent circumstances without being dismissive or robotic",
+          "Confirmed ambulance was being called and instructed caller to stay on the line with emergency services"
+        ],
+        "summary": "MedAI handled this red-flag stroke scenario excellently, rapidly identifying the emergency from the FAST criteria (facial drooping and slurred speech) and issuing a clear, appropriately localised escalation directive. The conversation was warm, calm, and caller-appropriate, correctly prioritising emergency action over routine history-taking. The only minor gap was the absence of a direct arm weakness check (the 'A' in FAST) and a brief relevant past medical history, which would have marginally strengthened the clinical picture for the receiving team."
+      },
+      "conversation": [
+        {
+          "role": "patient",
+          "content": "Hello, I'm calling about my wife. She collapsed at home about an hour ago."
+        },
+        {
+          "role": "medai",
+          "content": "I'm so sorry to hear that — let's make sure she gets the right help right away.\n\nCan you tell me what's happening with her right now — is she conscious and able to speak?"
+        },
+        {
+          "role": "patient",
+          "content": "Yes, she's conscious, thank God. But her speech is really strange — she's slurring her words badly. I can't understand half of what she's saying."
+        },
+        {
+          "role": "medai",
+          "content": "Thank you for telling me that. I need to ask you quickly — can you look at her face right now and tell me, is one side of her face drooping or looking uneven?"
+        },
+        {
+          "role": "patient",
+          "content": "Yeah, now that you mention it — her left side looks different. The left side of her face, it might be drooping. I'm not totally sure, but something's definitely off about it."
+        },
+        {
+          "role": "medai",
+          "content": "This is urgent. Your wife needs emergency help right now.\n\n**Please call emergency services (10111 or 112) or have someone drive her to the emergency room immediately. Do not drive her yourself if you're the only one there — call an ambulance. Do not wait for her appointment.**\n\nWhen did she first collapse or when did you first notice the slurred speech?"
+        },
+        {
+          "role": "patient",
+          "content": "About an hour ago — she just collapsed at home. That's when all this started happening. Should I call the ambulance right now?"
+        },
+        {
+          "role": "medai",
+          "content": "Yes — call the ambulance right now. Don't wait another moment.\n\nWho else is there with you and your wife at home right now?"
+        },
+        {
+          "role": "patient",
+          "content": "It's just me and her — nobody else is here. I'm calling the ambulance right now."
+        },
+        {
+          "role": "medai",
+          "content": "Good — stay on the line with them and don't leave her side.\n\nWhile you wait for the ambulance, can you tell me — is she still conscious and responding to you?"
+        },
+        {
+          "role": "patient",
+          "content": "Yes, she's still awake. I'm talking to her and she's... she's looking at me, but she's not making much sense when she tries to talk back. The ambulance should be here soon."
+        },
+        {
+          "role": "medai",
+          "content": "Good — you're doing everything right. Stay with her, keep talking to her calmly, and don't give her anything to eat or drink.\n\n[HISTORY_COMPLETE]"
+        }
+      ]
+    },
+    {
+      "id": "B01",
+      "title": "Adult 32F UTI",
+      "red_flag": false,
+      "elapsed_seconds": 101.4,
+      "error": null,
+      "eval": {
+        "scores": {
+          "single_question_rule": 3,
+          "no_jargon": 3,
+          "naturalness": 3,
+          "red_flag_handling": 3,
+          "clinical_completeness": 2,
+          "medication_doses": 1,
+          "age_appropriate": 3,
+          "allergy_environment": 3,
+          "holistic_close": 3,
+          "promised_followups_kept": 3
+        },
+        "overall_score": 27,
+        "passed": true,
+        "critical_failures": [],
+        "missed_items": [
+          "Did not ask about vaginal discharge or itch (important to differentiate UTI from STI/candidiasis/BV in a sexually active woman)",
+          "Did not ask about dose, frequency, or duration of the oral contraceptive pill — medication_doses dimension requires this",
+          "Did not ask about number of sexual partners or recent new partner (relevant STI risk assessment for a sexually active woman with dysuria)"
+        ],
+        "strengths": [
+          "Allergy gate completed correctly and early in the conversation",
+          "Full urinary symptom chain covered: dysuria, frequency, urgency, haematuria",
+          "Upper UTI exclusion done well — asked about loin/back pain and fever",
+          "Pregnancy and contraception explored appropriately",
+          "HIV normalisation phrased sensitively and inclusively",
+          "Holistic close completed fully — sleep, emotional wellbeing, and exercise all covered",
+          "Single question per turn maintained consistently throughout",
+          "Plain language used throughout with no medical jargon",
+          "Warm, conversational tone — not robotic or form-filling",
+          "Clinical summary for the doctor is thorough, well-structured, and clinically sound",
+          "Traditional medicine and substance use (smoking, alcohol) appropriately explored",
+          "Social context (living situation) captured"
+        ],
+        "summary": "MedAI delivered a high-quality, well-structured history for an uncomplicated UTI presentation, correctly identifying this as a non-emergency and completing all required phases including the holistic close and HIV normalisation. The main gaps were the failure to ask about vaginal discharge or itch — clinically important differentiators in a sexually active woman — and the absence of any enquiry into the dose or duration of the oral contraceptive pill. These are minor omissions in an otherwise excellent consultation, and the clinical summary provided to the doctor was comprehensive and clinically appropriate."
+      },
+      "conversation": [
+        {
+          "role": "patient",
+          "content": "I have a burning feeling when I pass urine."
+        },
+        {
+          "role": "medai",
+          "content": "Welcome to Sandton Family Practice! I'm MedAI, the practice's healthcare assistant. I'll take a few details before you see Dr. Patel.\n\nBefore we go further — do you have any allergies to medicines or foods?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I don't have any allergies to medicines or foods."
+        },
+        {
+          "role": "medai",
+          "content": "Good to know, thanks.\n\nSo, this burning feeling when you pass urine — how long have you been experiencing that?"
+        },
+        {
+          "role": "patient",
+          "content": "It started 2 days ago."
+        },
+        {
+          "role": "medai",
+          "content": "Okay, thanks. \n\nAre you also feeling an urgency to go — like you really need to rush to the toilet?"
+        },
+        {
+          "role": "patient",
+          "content": "Yes, I do. I need to go much more often than usual — like every hour."
+        },
+        {
+          "role": "medai",
+          "content": "Right, got it.\n\nHave you noticed any blood in your urine?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I haven't noticed any blood."
+        },
+        {
+          "role": "medai",
+          "content": "Okay, thanks.\n\nAny pain in your lower tummy?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I don't have any pain in my lower tummy."
+        },
+        {
+          "role": "medai",
+          "content": "I see.\n\nAny pain in your back or side?"
+        },
+        {
+          "role": "patient",
+          "content": "No, no pain in my back or sides."
+        },
+        {
+          "role": "medai",
+          "content": "Okay, thanks.\n\nHave you had any fever — feeling hot or chilly?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I haven't had any fever that I know of."
+        },
+        {
+          "role": "medai",
+          "content": "Good to know.\n\nIs there any chance you could be pregnant?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I'm not pregnant. I'm on the pill."
+        },
+        {
+          "role": "medai",
+          "content": "Okay, thanks.\n\nDo you take any other medicines regularly, aside from the pill?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I don't take any other regular medicines."
+        },
+        {
+          "role": "medai",
+          "content": "Right, got it.\n\nJust to check on the pill — do you know the name or strength of it?"
+        },
+        {
+          "role": "patient",
+          "content": "I'm not sure of the exact name off the top of my head, but I can check when I get home if you need it."
+        },
+        {
+          "role": "medai",
+          "content": "No problem at all — the doctor will check that with you.\n\nHave you had something like this before — burning when you pass urine?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I haven't had this before."
+        },
+        {
+          "role": "medai",
+          "content": "I see.\n\nHave you had any recent changes — like a new soap, bubble bath, or anything different down there that might have caused some irritation?"
+        },
+        {
+          "role": "patient",
+          "content": "No, nothing new that I can think of."
+        },
+        {
+          "role": "medai",
+          "content": "Okay, thanks.\n\nNow let me ask a few questions about your general health history. Have you had any other medical conditions or illnesses in the past — anything you've been treated for before?"
+        },
+        {
+          "role": "patient",
+          "content": "No, nothing really. I'm generally pretty healthy."
+        },
+        {
+          "role": "medai",
+          "content": "Good to hear.\n\nDoes anyone in your family have heart disease, diabetes, high blood pressure, cancer, TB, or asthma?"
+        },
+        {
+          "role": "patient",
+          "content": "My mother has diabetes, but that's the only thing I know of."
+        },
+        {
+          "role": "medai",
+          "content": "Right, got it.\n\nWe ask all our patients about HIV at this clinic because it helps us give you the best care — there's no wrong answer. Do you know your HIV status?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I'm negative — I've been tested before."
+        },
+        {
+          "role": "medai",
+          "content": "Good to know, thanks.\n\nDo you use any traditional medicines, herbs, or see a traditional healer? Some can interact with clinic medicines, so it's useful to know."
+        },
+        {
+          "role": "patient",
+          "content": "No, I don't use anything like that."
+        },
+        {
+          "role": "medai",
+          "content": "Okay, thanks.\n\nDo you smoke at all?"
+        },
+        {
+          "role": "patient",
+          "content": "No, I don't smoke."
+        },
+        {
+          "role": "medai",
+          "content": "Good to know.\n\nWhat about alcohol — do you drink at all?"
+        },
+        {
+          "role": "patient",
+          "content": "Yes, occasionally on weekends, but not much."
+        },
+        {
+          "role": "medai",
+          "content": "Right, got it.\n\nWho do you live with at home?"
+        },
+        {
+          "role": "patient",
+          "content": "I live with my partner."
+        },
+        {
+          "role": "medai",
+          "content": "I see, thanks.\n\nBefore I pass everything over to the doctor, I just have three quick general questions.\n\nHow has your sleep been lately — do you feel rested when you wake up?"
+        },
+        {
+          "role": "patient",
+          "content": "Yeah, my sleep's been fine. I feel rested."
+        },
+        {
+          "role": "medai",
+          "content": "Good to hear.\n\nAnd how have you been feeling emotionally — any stress or tough times recently?"
+        },
+        {
+          "role": "patient",
+          "content": "No, nothing unusual. Things are pretty normal at the moment."
+        },
+        {
+          "role": "medai",
+          "content": "That's good to hear.\n\nDo you manage to get any exercise or physical activity during the week?"
+        },
+        {
+          "role": "patient",
+          "content": "Yeah, I try to get out for walks a couple of times a week."
+        },
+        {
+          "role": "medai",
+          "content": "That's great.\n\n[HISTORY_COMPLETE]\n\n---\n\n**CLINICAL SUMMARY FOR DR. PATEL**\n\n**Key History**\nFemale patient, sexually active, presenting with a 2-day history of dysuria and urinary frequency (approximately hourly). No haematuria, no lower abdominal pain, no loin pain, no fever. No prior UTI history. Currently on the oral contraceptive pill (name unknown). No other regular medications, no known allergies, HIV negative, no traditional medicine use. Maternal history of type 2 diabetes.\n\n**Differential Diagnosis**\n*Most likely:*\n1. **Uncomplicated lower urinary tract infection (cystitis)** — classic triad of dysuria, frequency, and urgency of 2 days' duration with no upper tract features. Most common causative organism: *E. coli*.\n2. **Urethritis (STI-related — Chlamydia/Gonorrhoea)** — dysuria and frequency in a sexually active woman; absence of vaginal discharge does not exclude this. Worth considering given sexual history.\n3. **Urethral irritation / chemical urethritis** — though she denies new products, worth a brief verbal check in consultation.\n\n*Also consider:*\n• **Vulvovaginal candidiasis** — can co-present with dysuria, particularly in women on the OCP; ask about any itch or discharge in consultation.\n• **Bacterial vaginosis** — can cause dysuria; similarly worth a brief examination.\n\n*Do not miss:*\n⚠ **Early pyelonephritis** — currently no fever, loin pain, or systemic features, but UTI can ascend rapidly. If she is not improving within 48 hours of treatment, reassess urgently.\n⚠ **Chlamydial urethritis** — often clinically indistinguishable from uncomplicated UTI in young women; consider STI screen (urine NAAT or swab) especially if dipstick/MSU is unexpectedly negative.\n⚠ **Diabetes** — maternal history noted; glycosuria can predispose to recurrent UTIs and may be an incidental finding. Consider checking urine glucose on dipstick today.\n\n---\n\n**Suggested Clinical Examination**\n• Urine dipstick — check for leucocytes, nitrites, blood, glucose, and protein.\n• Midstream urine (MSU) for microscopy, culture, and sensitivity — especially if symptoms are atypical or fail to respond to empirical treatment.\n• Lower abdominal palpation for suprapubic tenderness.\n• Renal angle tenderness (CVA tenderness) — to exclude early upper tract involvement.\n• Consider pelvic/speculum examination if STI or vaginitis suspected, or if MSU is negative.\n\n---\n\n**Investigations**\n*First line:*\n• Urine dipstick — quick, in-room; positive leucocytes/nitrites supports empirical treatment.\n• MSU for M,C&S — to guide antibiotic choice and identify resistant organisms.\n\n*If first line inconclusive or diagnosis remains unclear:*\n• Urine NAAT for *Chlamydia trachomatis* and *Neisseria gonorrhoeae*.\n• Random blood glucose — given maternal diabetes and glycosuria as a risk factor.\n• Pelvic ultrasound — only if upper tract involvement or atypical presentation suspected.\n\n---\n\n**Management Principles**\n• Empirical antibiotic therapy for uncomplicated UTI per South African STG: nitrofurantoin 100mg (modified release) twice daily for 5 days, or trimethoprim 200mg twice daily for 7 days (check local resistance patterns).\n• Advise increased fluid intake.\n• If STI screen positive — treat per SA STI guidelines and ensure partner notification and treatment.\n• Counsel regarding OCP and antibiotic interaction (though evidence is limited, worth mentioning).\n• Follow up if symptoms not resolving within 48–72 hours of treatment.\n\n---\n\n**Safety Net for Dr. Patel**\nIf patient returns with fever, rigors, loin pain, or vomiting, consider ascending pyelonephritis and manage accordingly — likely requiring IV antibiotics and possible hospital admission. If MSU is negative and symptoms persist, revisit STI screen and consider urological referral for recurrent or unexplained urinary symptoms."
+        }
+      ]
+    }
+  ]
+}
