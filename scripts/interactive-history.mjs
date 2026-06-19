@@ -61,11 +61,19 @@ HEADACHE (special rule — location is obvious, skip "where is the pain?"):
   → "Does it spread anywhere, like down your neck?" → "Anything make it worse — light, noise, movement?"
   → "Anything help it?" → "Any changes in your vision?" → "Any fever or stiff neck with it?"
 
-PAIN (stomach, chest, back, anywhere else — location is NOT obvious, always ask where):
-  "Where exactly is the pain?" → "What does it feel like — sharp, dull, burning, tight?"
-  → "Did it come on suddenly or build up?" → "How long?" → "Does it go anywhere else?"
-  → "How bad — small and bearable, medium, or very bad?" → "What makes it worse?"
-  → "Anything that helps it?" → "Any other symptoms with it?"
+PAIN (stomach, chest, back, anywhere else — always give location OPTIONS, never ask open "where is it?"):
+  STOMACH PAIN → "Is it more in the upper part of your tummy, the lower part, the right side, or the left side?"
+  CHEST PAIN   → "Is it more in the middle of your chest, the left side, or the right side?"
+  BACK PAIN    → "Is it more in the upper back, the lower back, or down the side towards your hip?"
+  LEG PAIN     → "Is it the thigh, the knee, the calf, or the ankle/foot?"
+  ARM PAIN     → "Is it the shoulder, the upper arm, the elbow, or the forearm/wrist?"
+  OTHER        → give 3–4 plain-language location options that make sense for that body area.
+  Then: "What does it feel like — sharp, dull, burning, or tight?"
+  → "Did it come on suddenly or build up gradually?" → "How long have you had it?"
+  → "Does it go anywhere else — like does it spread to your back, shoulder, or anywhere?"
+  → "How bad is it — bearable, pretty bad, or really severe?"
+  → "Does anything make it worse?" → "Does anything help it?"
+  → "Any other symptoms that came with it?"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CLINICAL REFERENCE (not a script)
