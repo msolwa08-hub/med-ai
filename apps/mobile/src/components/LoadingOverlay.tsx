@@ -5,26 +5,27 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
 
 export default function LoadingOverlay(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoCircle}>
-          <Text style={styles.crossSymbol}>+</Text>
-        </View>
-        <Text style={styles.brandName}>MedAI</Text>
+      {/* Logo mark */}
+      <View style={styles.logoSquare}>
+        {/* White medical cross built from two overlapping rectangles */}
+        <View style={styles.crossVertical} />
+        <View style={styles.crossHorizontal} />
+      </View>
 
-        {/* Spinner */}
-        <ActivityIndicator
-          color="#FFFFFF"
-          size="large"
-          style={styles.spinner}
-        />
+      {/* Brand name */}
+      <Text style={styles.brandName}>MedAI</Text>
 
-        {/* Loading label */}
-        <Text style={styles.loadingText}>Loading...</Text>
+      {/* Tagline */}
+      <Text style={styles.tagline}>Healthcare in your language</Text>
+
+      {/* Spinner anchored in the bottom quarter */}
+      <View style={styles.spinnerContainer}>
+        <ActivityIndicator color={COLORS.primary} size="small" />
       </View>
     </View>
   );
@@ -37,40 +38,44 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#1A3A6B',
+    backgroundColor: COLORS.systemBackground,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  content: {
+  logoSquare: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  crossSymbol: {
-    color: '#1A3A6B',
-    fontSize: 36,
-    fontWeight: 'bold',
-    lineHeight: 40,
+  crossVertical: {
+    position: 'absolute',
+    width: 10,
+    height: 38,
+    borderRadius: 5,
+    backgroundColor: COLORS.white,
+  },
+  crossHorizontal: {
+    position: 'absolute',
+    width: 38,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.white,
   },
   brandName: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 12,
+    ...TYPOGRAPHY.title2,
+    color: COLORS.primary,
+    marginTop: SPACING.lg,
   },
-  spinner: {
-    marginTop: 24,
+  tagline: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
+    marginTop: SPACING.xs,
   },
-  loadingText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    opacity: 0.8,
-    marginTop: 8,
+  spinnerContainer: {
+    position: 'absolute',
+    bottom: '22%',
   },
 });

@@ -1,107 +1,143 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  FlatList,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '@navigation/AuthNavigator';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING, BORDER_RADIUS } from '@constants/theme';
 
 type WelcomeNavigationProp = StackNavigationProp<AuthStackParamList, 'Welcome'>;
 
 const SA_LANGUAGES = [
-  { code: 'zu', name: 'isiZulu' },
-  { code: 'xh', name: 'isiXhosa' },
-  { code: 'af', name: 'Afrikaans' },
-  { code: 'en', name: 'English' },
+  { code: 'zu', name: 'isiZulu',    nativeName: 'isiZulu',    flag: '🇿🇦' },
+  { code: 'xh', name: 'isiXhosa',   nativeName: 'isiXhosa',   flag: '🇿🇦' },
+  { code: 'af', name: 'Afrikaans',  nativeName: 'Afrikaans',  flag: '🇿🇦' },
+  { code: 'en', name: 'English',    nativeName: 'English',    flag: '🇿🇦' },
+  { code: 'st', name: 'Sesotho',    nativeName: 'Sesotho',    flag: '🇿🇦' },
+  { code: 'tn', name: 'Setswana',   nativeName: 'Setswana',   flag: '🇿🇦' },
+];
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_GAP = 12;
+const HORIZONTAL_PADDING = 24;
+const CARD_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - CARD_GAP) / 2;
+
+// SA flag stripe: black / gold / green / gold / black (simplified horizontal bands)
+const SA_FLAG_BANDS = [
+  { color: '#000000', flex: 2 },
+  { color: '#FFB612', flex: 2 },
+  { color: '#007A4D', flex: 3 },
+  { color: '#FFB612', flex: 2 },
+  { color: '#000000', flex: 2 },
 ];
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<WelcomeNavigationProp>();
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+
+  function renderLanguageCard({ item }: { item: typeof SA_LANGUAGES[0] }) {
+    const isSelected = selectedLanguage === item.code;
+    return (
+      <TouchableOpacity
+        style={[
+          styles.languageCard,
+          isSelected ? styles.languageCardSelected : styles.languageCardUnselected,
+        ]}
+        onPress={() => setSelectedLanguage(item.code)}
+        activeOpacity={0.75}
+      >
+        <Text style={styles.languageFlag}>{item.flag}</Text>
+        <Text style={[styles.languageName, isSelected && styles.languageNameSelected]}>
+          {item.name}
+        </Text>
+        <Text style={styles.languageNative}>{item.nativeName}</Text>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A3A6B" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.systemGroupedBackground} />
+
+      {/* SCROLLABLE TOP AREA */}
+      <FlatList
+        data={SA_LANGUAGES}
+        keyExtractor={(item) => item.code}
+        renderItem={renderLanguageCard}
+        numColumns={2}
+        columnWrapperStyle={styles.languageRow}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         bounces={false}
-      >
-        {/* TOP SECTION */}
-        <View style={styles.topSection}>
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoPlus}>+</Text>
-          </View>
-
-          {/* App Name */}
-          <Text style={styles.appName}>MedAI</Text>
-
-          {/* SA Flag Stripe */}
-          <View style={styles.flagStripe}>
-            <View style={[styles.flagSegment, { backgroundColor: '#007A4D' }]} />
-            <View style={[styles.flagSegment, { backgroundColor: '#FFB612' }]} />
-            <View style={[styles.flagSegment, { backgroundColor: '#DE3831' }]} />
-          </View>
-
-          {/* Tagline */}
-          <Text style={styles.tagline}>Healthcare in your language</Text>
-
-          {/* Subtitle */}
-          <Text style={styles.subtitle}>
-            {'South Africa\'s AI-powered\nmedical platform'}
-          </Text>
-        </View>
-
-        {/* MIDDLE SECTION */}
-        <View style={styles.middleSection}>
-          {/* Patient Button */}
-          <TouchableOpacity
-            style={styles.patientButton}
-            onPress={() => navigation.navigate('RegisterPatient')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.patientButtonText}>I'm a Patient</Text>
-          </TouchableOpacity>
-
-          {/* Doctor Button */}
-          <TouchableOpacity
-            style={styles.doctorButton}
-            onPress={() => navigation.navigate('RegisterDoctor')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.doctorButtonText}>I'm a Doctor</Text>
-          </TouchableOpacity>
-
-          {/* Login Row */}
-          <View style={styles.loginRow}>
-            <Text style={styles.loginPromptText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')} activeOpacity={0.75}>
-              <Text style={styles.loginLinkText}>Login</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* BOTTOM SECTION */}
-        <View style={styles.bottomSection}>
-          <View style={styles.divider} />
-
-          <Text style={styles.availableInLabel}>Available in:</Text>
-
-          <View style={styles.languageChipsRow}>
-            {SA_LANGUAGES.map((lang) => (
-              <View key={lang.code} style={styles.languageChip}>
-                <Text style={styles.languageChipText}>{lang.name}</Text>
+        ListHeaderComponent={
+          <>
+            {/* HERO SECTION — white top area */}
+            <View style={styles.heroSection}>
+              {/* SA Flag Stripe */}
+              <View style={styles.flagStripe}>
+                {SA_FLAG_BANDS.map((band, idx) => (
+                  <View
+                    key={idx}
+                    style={[styles.flagBand, { backgroundColor: band.color, flex: band.flex }]}
+                  />
+                ))}
               </View>
-            ))}
-          </View>
-        </View>
-      </ScrollView>
+
+              {/* Logo + wordmark */}
+              <View style={styles.logoWrapper}>
+                <View style={styles.logoSquare}>
+                  <Text style={styles.logoPlus}>+</Text>
+                </View>
+                <Text style={styles.wordmark}>MedAI</Text>
+                <Text style={styles.tagline}>
+                  Healthcare in your language · Gesondheidssorg in u taal
+                </Text>
+              </View>
+            </View>
+
+            {/* LANGUAGE HEADING */}
+            <Text style={styles.languageHeading}>Choose your language / Kies u taal</Text>
+          </>
+        }
+      />
+
+      {/* FIXED BOTTOM CTA */}
+      <View style={styles.bottomActions}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('RegisterPatient')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.primaryButtonText}>I'm a Patient</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 12 }} />
+
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={() => navigation.navigate('RegisterDoctor')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.outlineButtonText}>I'm a Doctor</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 16 }} />
+
+        <TouchableOpacity onPress={() => navigation.navigate('Login')} activeOpacity={0.7}>
+          <Text style={styles.signInLink}>
+            Already have an account?{' '}
+            <Text style={styles.signInLinkBold}>Sign In</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -109,168 +145,154 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#1A3A6B',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    minHeight: '100%',
+    backgroundColor: COLORS.systemGroupedBackground,
   },
 
-  // TOP SECTION
-  topSection: {
-    flex: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 48,
-    paddingHorizontal: 24,
+  listContent: {
+    paddingBottom: 8,
   },
-  logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logoPlus: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: '#1A3A6B',
-    lineHeight: 56,
-    textAlign: 'center',
-  },
-  appName: {
-    color: '#FFFFFF',
-    fontSize: 36,
-    fontWeight: '900',
-    letterSpacing: 2,
-    marginTop: 16,
+
+  // HERO
+  heroSection: {
+    backgroundColor: COLORS.systemBackground,
+    paddingBottom: 28,
   },
   flagStripe: {
     flexDirection: 'row',
-    height: 4,
-    width: 120,
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginTop: 8,
+    height: 11,
+    width: '100%',
   },
-  flagSegment: {
-    flex: 1,
+  flagBand: {
+    height: '100%',
+  },
+  logoWrapper: {
+    alignItems: 'center',
+    paddingTop: 32,
+    paddingHorizontal: HORIZONTAL_PADDING,
+  },
+  logoSquare: {
+    width: 72,
+    height: 72,
+    borderRadius: BORDER_RADIUS.xl,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.card,
+  },
+  logoPlus: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: COLORS.white,
+    lineHeight: 48,
+    textAlign: 'center',
+  },
+  wordmark: {
+    ...TYPOGRAPHY.title2,
+    color: COLORS.primary,
+    marginTop: 12,
   },
   tagline: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '300',
-    textAlign: 'center',
-    marginTop: 16,
-    letterSpacing: 0.5,
-  },
-  subtitle: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 14,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
     textAlign: 'center',
     marginTop: 8,
-    lineHeight: 22,
+    paddingHorizontal: 8,
   },
 
-  // MIDDLE SECTION
-  middleSection: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 24,
+  // LANGUAGE SECTION
+  languageHeading: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.label,
+    marginTop: SPACING.lg,
+    marginBottom: 12,
+    marginHorizontal: HORIZONTAL_PADDING,
   },
-  patientButton: {
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
+  languageRow: {
+    paddingHorizontal: HORIZONTAL_PADDING,
+    gap: CARD_GAP,
+  },
+  languageCard: {
+    width: CARD_WIDTH,
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 12,
+    marginBottom: CARD_GAP,
     alignItems: 'center',
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    ...SHADOWS.sm,
   },
-  patientButtonText: {
-    color: '#1A3A6B',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  doctorButton: {
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: 'transparent',
+  languageCardSelected: {
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 8,
+    borderColor: COLORS.primary,
+    backgroundColor: `rgba(26, 58, 107, 0.08)`,
   },
-  doctorButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
+  languageCardUnselected: {
+    borderWidth: 1,
+    borderColor: COLORS.separator,
   },
-  loginRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
+  languageFlag: {
+    fontSize: 24,
+    marginBottom: 6,
   },
-  loginPromptText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+  languageName: {
+    ...TYPOGRAPHY.subheadline,
+    fontWeight: '600',
+    color: COLORS.label,
+    textAlign: 'center',
   },
-  loginLinkText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
+  languageNameSelected: {
+    color: COLORS.primary,
+  },
+  languageNative: {
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
+    textAlign: 'center',
+    marginTop: 2,
   },
 
-  // BOTTOM SECTION
-  bottomSection: {
-    flex: 0.6,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingBottom: 32,
-    paddingHorizontal: 24,
+  // FIXED BOTTOM
+  bottomActions: {
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 16,
+    paddingBottom: 24,
+    backgroundColor: COLORS.systemGroupedBackground,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.separator,
   },
-  divider: {
+  primaryButton: {
+    height: 56,
     width: '100%',
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginBottom: 16,
-  },
-  availableInLabel: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  languageChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
     justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.card,
   },
-  languageChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    marginHorizontal: 4,
-    marginVertical: 2,
+  primaryButtonText: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.white,
   },
-  languageChipText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 12,
+  outlineButton: {
+    height: 56,
+    width: '100%',
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outlineButtonText: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.primary,
+  },
+  signInLink: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
+    textAlign: 'center',
+  },
+  signInLinkBold: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });

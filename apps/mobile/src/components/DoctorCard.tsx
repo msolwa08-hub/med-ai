@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { HPCSABadge } from './HPCSABadge';
 
 export interface NearbyDoctor {
@@ -59,89 +59,97 @@ const renderStars = (rating: number): string => {
 export const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onSelect, compact = false }) => {
   const fullName = `Dr. ${doctor.firstName} ${doctor.lastName}`;
   const typeLabel = DOCTOR_TYPE_LABELS[doctor.doctorType];
+  const initials = `${doctor.firstName[0]}${doctor.lastName[0]}`;
 
   return (
     <View style={[styles.card, compact && styles.cardCompact]}>
-      <View style={styles.topRow}>
-        <View style={styles.avatarContainer}>
-          {doctor.profileImage ? (
-            <Image source={{ uri: doctor.profileImage }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>
-                {doctor.firstName[0]}
-                {doctor.lastName[0]}
-              </Text>
-            </View>
-          )}
-          <View
-            style={[
-              styles.onlineDot,
-              { backgroundColor: doctor.isOnline ? COLORS.success : COLORS.textLight },
-            ]}
-          />
-        </View>
+      {/* Tinted header accent strip */}
+      <View style={styles.headerStrip} />
 
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>
-            {fullName}
-          </Text>
-          <Text style={styles.type}>
-            {typeLabel}
-            {doctor.specialization ? ` · ${doctor.specialization}` : ''}
-          </Text>
-          <HPCSABadge status={doctor.hpcsaStatus} size="small" />
-        </View>
-      </View>
-
-      {!compact && (
-        <>
-          <View style={styles.statsRow}>
-            {doctor.rating !== undefined && (
-              <View style={styles.stat}>
-                <Text style={styles.ratingStars}>{renderStars(doctor.rating)}</Text>
-                <Text style={styles.statText}>
-                  {doctor.rating.toFixed(1)}
-                  {doctor.reviewCount ? ` (${doctor.reviewCount})` : ''}
-                </Text>
+      {/* Card body */}
+      <View style={styles.body}>
+        {/* Row 1: Avatar + name/type */}
+        <View style={styles.topRow}>
+          <View style={styles.avatarContainer}>
+            {doctor.profileImage ? (
+              <Image source={{ uri: doctor.profileImage }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
               </View>
             )}
-            {doctor.distanceKm !== undefined && (
-              <View style={styles.stat}>
-                <Text style={styles.statIcon}>📍</Text>
-                <Text style={styles.statText}>{doctor.distanceKm.toFixed(1)} km</Text>
-              </View>
-            )}
-            {doctor.etaMinutes !== undefined && (
-              <View style={styles.stat}>
-                <Text style={styles.statIcon}>🕐</Text>
-                <Text style={styles.statText}>~{doctor.etaMinutes} min</Text>
-              </View>
-            )}
+            {/* Online presence dot */}
+            <View
+              style={[
+                styles.onlineDot,
+                { backgroundColor: doctor.isOnline ? COLORS.systemGreen : COLORS.systemGray3 },
+              ]}
+            />
           </View>
 
-          {doctor.languagesSpoken && doctor.languagesSpoken.length > 0 && (
-            <View style={styles.languagesRow}>
-              {doctor.languagesSpoken.slice(0, 5).map((lang) => (
-                <Text key={lang} style={styles.langFlag}>
-                  {LANGUAGE_FLAGS[lang] || '🌐'}
-                </Text>
-              ))}
-              {doctor.languagesSpoken.length > 5 && (
-                <Text style={styles.moreLanguages}>+{doctor.languagesSpoken.length - 5}</Text>
-              )}
-            </View>
-          )}
-        </>
-      )}
+          <View style={styles.info}>
+            <Text style={styles.name} numberOfLines={1}>
+              {fullName}
+            </Text>
+            <Text style={styles.type} numberOfLines={1}>
+              {typeLabel}
+              {doctor.specialization ? ` · ${doctor.specialization}` : ''}
+            </Text>
+            <HPCSABadge status={doctor.hpcsaStatus} size="small" />
+          </View>
+        </View>
 
-      <View style={styles.bottomRow}>
-        {doctor.consultationFee !== undefined && (
-          <Text style={styles.fee}>R {doctor.consultationFee}</Text>
+        {!compact && (
+          <>
+            {/* Row 2: Rating + distance */}
+            {(doctor.rating !== undefined || doctor.distanceKm !== undefined) && (
+              <View style={styles.statsRow}>
+                {doctor.rating !== undefined && (
+                  <View style={styles.statGroup}>
+                    <Text style={styles.ratingStars}>⭐</Text>
+                    <Text style={styles.ratingValue}>{doctor.rating.toFixed(1)}</Text>
+                    {doctor.reviewCount !== undefined && (
+                      <Text style={styles.reviewCount}>({doctor.reviewCount})</Text>
+                    )}
+                  </View>
+                )}
+                <View style={styles.statSpacer} />
+                {doctor.distanceKm !== undefined && (
+                  <View style={styles.statGroup}>
+                    <Text style={styles.statIcon}>📍</Text>
+                    <Text style={styles.distanceText}>{doctor.distanceKm.toFixed(1)} km</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Row 3: Languages */}
+            {doctor.languagesSpoken && doctor.languagesSpoken.length > 0 && (
+              <View style={styles.languagesRow}>
+                {doctor.languagesSpoken.slice(0, 4).map((lang) => (
+                  <Text key={lang} style={styles.langFlag}>
+                    {LANGUAGE_FLAGS[lang] || '🌐'}
+                  </Text>
+                ))}
+                {doctor.languagesSpoken.length > 4 && (
+                  <Text style={styles.moreLanguages}>+{doctor.languagesSpoken.length - 4}</Text>
+                )}
+              </View>
+            )}
+          </>
         )}
-        <TouchableOpacity style={styles.selectButton} onPress={onSelect} activeOpacity={0.85}>
-          <Text style={styles.selectButtonText}>Select</Text>
-        </TouchableOpacity>
+
+        {/* Row 4: Fee + Select button */}
+        <View style={styles.bottomRow}>
+          {doctor.consultationFee !== undefined ? (
+            <Text style={styles.fee}>R{doctor.consultationFee}</Text>
+          ) : (
+            <View />
+          )}
+          <TouchableOpacity style={styles.selectButton} onPress={onSelect} activeOpacity={0.7}>
+            <Text style={styles.selectButtonText}>Select</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -149,103 +157,116 @@ export const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onSelect, compac
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.systemBackground,
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
     marginVertical: SPACING.xs,
-    ...SHADOWS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    overflow: 'hidden',
+    ...SHADOWS.card,
   },
   cardCompact: {
-    padding: SPACING.sm,
+    // compact variant — body padding already reduced via body style override isn't needed;
+    // the card itself just renders fewer rows
+  },
+  headerStrip: {
+    height: 8,
+    backgroundColor: COLORS.primary + '0F', // 6% opacity
+  },
+  body: {
+    padding: SPACING.md,
+    gap: SPACING.sm,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: SPACING.sm,
   },
   avatarContainer: {
     position: 'relative',
     marginRight: SPACING.md,
+    width: 48,
+    height: 48,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.full,
   },
   avatarPlaceholder: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.primaryLight,
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitials: {
+    ...TYPOGRAPHY.headline,
     color: COLORS.white,
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
   },
   onlineDot: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: COLORS.surface,
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1.5,
+    borderColor: COLORS.systemBackground,
   },
   info: {
     flex: 1,
     gap: 2,
   },
   name: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.text,
+    ...TYPOGRAPHY.headline,
+    color: COLORS.label,
   },
   type: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: SPACING.md,
-    marginBottom: SPACING.sm,
-    flexWrap: 'wrap',
+    alignItems: 'center',
   },
-  stat: {
+  statGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
   },
+  statSpacer: {
+    flex: 1,
+  },
   ratingStars: {
-    color: COLORS.warning,
-    fontSize: FONT_SIZE.sm,
+    fontSize: 13,
+  },
+  ratingValue: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.label,
+  },
+  reviewCount: {
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.tertiaryLabel,
   },
   statIcon: {
     fontSize: 12,
   },
-  statText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+  distanceText: {
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
   },
   languagesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
     gap: 4,
   },
   langFlag: {
+    ...TYPOGRAPHY.caption1,
     fontSize: 16,
   },
   moreLanguages: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
-    backgroundColor: COLORS.surfaceVariant,
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
+    backgroundColor: COLORS.systemGray6,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: BORDER_RADIUS.sm,
@@ -257,20 +278,22 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   fee: {
-    fontSize: FONT_SIZE.xl,
+    ...TYPOGRAPHY.headline,
     fontWeight: '700',
     color: COLORS.primary,
   },
   selectButton: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: BORDER_RADIUS.full,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   selectButtonText: {
+    ...TYPOGRAPHY.subheadline,
     color: COLORS.white,
-    fontWeight: '700',
-    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
   },
 });
 

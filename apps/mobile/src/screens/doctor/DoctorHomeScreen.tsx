@@ -10,10 +10,15 @@ import {
   ActivityIndicator,
   Animated,
   StatusBar,
+  SafeAreaView,
+  Switch,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { doctorApi } from '../../api/endpoints';
-import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE, SHADOWS } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Props = { navigation: any };
 
@@ -37,6 +42,8 @@ interface RecentConsultation {
   status: 'completed' | 'cancelled' | 'ongoing';
 }
 
+// ─── Mock data (unchanged from original) ─────────────────────────────────────
+
 const MOCK_WAITING_PATIENTS: WaitingPatient[] = [
   { id: '1', name: 'Sipho M.', distance: '1.2 km', type: 'TELECONSULT' },
   { id: '2', name: 'Zanele D.', distance: '3.4 km', type: 'IN-PERSON' },
@@ -56,6 +63,8 @@ const MOCK_STATS: StatCard[] = [
   { label: 'Earnings Today', value: 'R 2 100', subLabel: 'incl. 7 consults' },
 ];
 
+// ─── Utility helpers (unchanged from original) ────────────────────────────────
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
@@ -72,7 +81,7 @@ function getConsultationTypeColor(type: WaitingPatient['type']): string {
     case 'HOME VISIT':
       return COLORS.accent;
     default:
-      return COLORS.textSecondary;
+      return COLORS.secondaryLabel;
   }
 }
 
@@ -85,9 +94,24 @@ function getStatusColor(status: RecentConsultation['status']): string {
     case 'ongoing':
       return COLORS.warning;
     default:
-      return COLORS.textSecondary;
+      return COLORS.secondaryLabel;
   }
 }
+
+function getConsultationTypeIcon(type: WaitingPatient['type']): keyof typeof Ionicons.glyphMap {
+  switch (type) {
+    case 'TELECONSULT':
+      return 'videocam-outline';
+    case 'IN-PERSON':
+      return 'person-outline';
+    case 'HOME VISIT':
+      return 'home-outline';
+    default:
+      return 'medical-outline';
+  }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DoctorHomeScreen({ navigation }: Props) {
   const { user } = useAuthStore();
@@ -114,28 +138,12 @@ export default function DoctorHomeScreen({ navigation }: Props) {
     Animated.loop(
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.6,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 900,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.6, duration: 900, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
         ]),
         Animated.sequence([
-          Animated.timing(pulseOpacity, {
-            toValue: 0,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseOpacity, {
-            toValue: 1,
-            duration: 900,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseOpacity, { toValue: 0, duration: 900, useNativeDriver: true }),
+          Animated.timing(pulseOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
         ]),
       ])
     ).start();
@@ -172,26 +180,41 @@ export default function DoctorHomeScreen({ navigation }: Props) {
   }
 
   function renderWaitingPatient({ item }: { item: WaitingPatient }) {
+    const typeColor = getConsultationTypeColor(item.type);
     return (
       <TouchableOpacity
         style={styles.waitingCard}
         onPress={() => navigation.navigate('PatientQueue')}
         activeOpacity={0.85}
       >
-        <View style={styles.waitingCardTop}>
-          <Text style={styles.waitingPatientName}>{item.name}</Text>
-          <View style={[styles.typeBadge, { backgroundColor: getConsultationTypeColor(item.type) + '20' }]}>
-            <Text style={[styles.typeBadgeText, { color: getConsultationTypeColor(item.type) }]}>
-              {item.type}
-            </Text>
-          </View>
+        {/* Patient avatar */}
+        <View style={styles.waitingAvatar}>
+          <Text style={styles.waitingAvatarText}>{item.name.charAt(0)}</Text>
         </View>
-        <Text style={styles.waitingDistance}>{item.distance} away</Text>
+        <Text style={styles.waitingPatientName} numberOfLines={1}>{item.name}</Text>
+        <View style={styles.waitingDistanceRow}>
+          <Ionicons name="location-outline" size={12} color={COLORS.secondaryLabel} />
+          <Text style={styles.waitingDistance}>{item.distance}</Text>
+        </View>
+        {/* Type badge */}
+        <View style={[styles.typeBadge, { backgroundColor: typeColor + '18' }]}>
+          <Ionicons name={getConsultationTypeIcon(item.type)} size={10} color={typeColor} />
+          <Text style={[styles.typeBadgeText, { color: typeColor }]}>{item.type}</Text>
+        </View>
+        {/* View button */}
+        <TouchableOpacity
+          style={[styles.viewBtn, { borderColor: COLORS.primary }]}
+          onPress={() => navigation.navigate('PatientQueue')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.viewBtnText}>View</Text>
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   }
 
   function renderRecentConsultation({ item }: { item: RecentConsultation }) {
+    const statusColor = getStatusColor(item.status);
     return (
       <View style={styles.recentCard}>
         <View style={styles.recentCardLeft}>
@@ -203,8 +226,8 @@ export default function DoctorHomeScreen({ navigation }: Props) {
             <Text style={styles.recentDate}>{item.date}</Text>
           </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '18' }]}>
-          <Text style={[styles.statusBadgeText, { color: getStatusColor(item.status) }]}>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor + '18' }]}>
+          <Text style={[styles.statusBadgeText, { color: statusColor }]}>
             {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
           </Text>
         </View>
@@ -213,78 +236,76 @@ export default function DoctorHomeScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.greetingText}>{getGreeting()},</Text>
-          <Text style={styles.doctorName}>
-            Dr {user?.lastName ?? 'Doctor'}
-          </Text>
-        </View>
-        <View style={styles.hpcsaBadge}>
-          <Text style={styles.hpcsaShield}>🛡</Text>
-          <Text style={styles.hpcsaText}>HPCSA VERIFIED</Text>
-        </View>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.systemGroupedBackground} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Online Toggle Card */}
-        <View style={styles.toggleCard}>
-          <View style={styles.toggleCardTop}>
-            <View style={styles.statusIndicatorRow}>
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.doctorTitle}>
+              Dr. {user?.lastName ?? 'Doctor'}
+            </Text>
+            <Text style={styles.dashboardSubtitle}>MedAI Provider Dashboard</Text>
+          </View>
+          {/* Online/Offline toggle pill */}
+          <TouchableOpacity
+            style={[styles.onlinePill, isOnline ? styles.onlinePillActive : styles.onlinePillInactive]}
+            onPress={handleToggleOnline}
+            disabled={isToggling}
+            activeOpacity={0.85}
+          >
+            {isToggling ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <>
+                <View style={[styles.pillDot, isOnline ? styles.pillDotActive : styles.pillDotInactive]} />
+                <Text style={[styles.pillText, isOnline ? styles.pillTextActive : styles.pillTextInactive]}>
+                  {isOnline ? 'Online' : 'Offline'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Status Card ── */}
+        <View style={[styles.statusCard, isOnline ? styles.statusCardOnline : styles.statusCardOffline]}>
+          {/* Left accent bar */}
+          <View style={[styles.statusAccentBar, { backgroundColor: isOnline ? COLORS.success : COLORS.systemGray3 }]} />
+          <View style={styles.statusCardBody}>
+            <View style={styles.statusCardTop}>
+              <View>
+                <Text style={styles.statusCardHeadline}>
+                  {isOnline ? 'You are available' : 'You are offline'}
+                </Text>
+                <Text style={styles.statusCardSubtext}>
+                  {isOnline
+                    ? 'Patients can find and book you'
+                    : 'You will not receive new requests'}
+                </Text>
+              </View>
               {isOnline && (
                 <View style={styles.pulseContainer}>
                   <Animated.View
                     style={[
                       styles.pulseRing,
-                      {
-                        transform: [{ scale: pulseAnim }],
-                        opacity: pulseOpacity,
-                      },
+                      { transform: [{ scale: pulseAnim }], opacity: pulseOpacity },
                     ]}
                   />
                   <View style={styles.statusDotGreen} />
                 </View>
               )}
               {!isOnline && <View style={styles.statusDotGray} />}
-              <Text style={[styles.statusLabel, { color: isOnline ? COLORS.success : COLORS.textSecondary }]}>
-                {isOnline ? 'Online' : 'Offline'}
-              </Text>
             </View>
-            {isOnline && (
-              <Text style={styles.locationTrackingText}>Location tracking active</Text>
-            )}
           </View>
-
-          <TouchableOpacity
-            style={[styles.toggleButton, isOnline ? styles.toggleButtonOnline : styles.toggleButtonOffline]}
-            onPress={handleToggleOnline}
-            disabled={isToggling}
-            activeOpacity={0.8}
-          >
-            {isToggling ? (
-              <ActivityIndicator color={COLORS.white} size="small" />
-            ) : (
-              <Text style={styles.toggleButtonText}>
-                {isOnline ? 'GO OFFLINE' : 'GO ONLINE'}
-              </Text>
-            )}
-          </TouchableOpacity>
         </View>
 
-        {/* Stats Row */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsRow}
-        >
+        {/* ── Stats Row ── */}
+        <View style={styles.statsRow}>
           {MOCK_STATS.map((stat, index) => (
             <View key={index} style={styles.statCard}>
               <Text style={styles.statValue}>{stat.value}</Text>
@@ -294,11 +315,11 @@ export default function DoctorHomeScreen({ navigation }: Props) {
               )}
             </View>
           ))}
-        </ScrollView>
+        </View>
 
-        {/* Waiting Patients */}
+        {/* ── Waiting Patients ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Waiting Patients</Text>
+          <Text style={styles.sectionTitle}>WAITING PATIENTS</Text>
           {waitingPatients.length > 0 && (
             <View style={styles.countBadge}>
               <Text style={styles.countBadgeText}>{waitingPatients.length}</Text>
@@ -308,6 +329,7 @@ export default function DoctorHomeScreen({ navigation }: Props) {
 
         {waitingPatients.length === 0 ? (
           <View style={styles.emptySection}>
+            <Ionicons name="checkmark-circle-outline" size={32} color={COLORS.systemGray3} />
             <Text style={styles.emptySectionText}>No patients waiting</Text>
           </View>
         ) : (
@@ -318,98 +340,56 @@ export default function DoctorHomeScreen({ navigation }: Props) {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.waitingList}
-            scrollEnabled={true}
+            scrollEnabled
           />
         )}
 
-        {/* Recent Consultations */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Consultations</Text>
+        {/* ── Recent Consultations ── */}
+        <View style={[styles.sectionHeader, { marginTop: SPACING.lg }]}>
+          <Text style={styles.sectionTitle}>RECENT CONSULTATIONS</Text>
         </View>
 
-        <FlatList
-          data={recentConsultations}
-          keyExtractor={(item) => item.id}
-          renderItem={renderRecentConsultation}
-          scrollEnabled={false}
-          contentContainerStyle={styles.recentList}
-        />
+        <View style={styles.recentList}>
+          {recentConsultations.map((item) => (
+            <View key={item.id}>
+              {renderRecentConsultation({ item })}
+            </View>
+          ))}
+        </View>
 
-        {/* Earnings Summary Card */}
-        <View style={styles.earningsSummaryCard}>
-          <View style={styles.earningsSummaryHeader}>
-            <Text style={styles.earningsSummaryTitle}>Earnings Summary</Text>
-            <Text style={styles.earningsSummaryPeriod}>This Week</Text>
-          </View>
-          <View style={styles.earningsSummaryRow}>
-            <View style={styles.earningsSummaryItem}>
-              <Text style={styles.earningsSummaryAmount}>R 9 450</Text>
-              <Text style={styles.earningsSummaryLabel}>Gross Earnings</Text>
+        {/* ── This Week Earnings Card ── */}
+        <View style={[styles.sectionHeader, { marginTop: SPACING.lg }]}>
+          <Text style={styles.sectionTitle}>THIS WEEK</Text>
+        </View>
+        <View style={styles.earningsCard}>
+          <Text style={styles.earningsBigNumber}>R 9 450</Text>
+          <Text style={styles.earningsSubtitle}>Earned this week</Text>
+          <View style={styles.earningsDivider} />
+          <View style={styles.earningsRow}>
+            <View style={styles.earningsItem}>
+              <Text style={styles.earningsItemValue}>38</Text>
+              <Text style={styles.earningsItemLabel}>Consultations</Text>
             </View>
-            <View style={styles.earningsDivider} />
-            <View style={styles.earningsSummaryItem}>
-              <Text style={styles.earningsSummaryAmount}>38</Text>
-              <Text style={styles.earningsSummaryLabel}>Consultations</Text>
-            </View>
-            <View style={styles.earningsDivider} />
-            <View style={styles.earningsSummaryItem}>
-              <Text style={styles.earningsSummaryAmount}>R 248</Text>
-              <Text style={styles.earningsSummaryLabel}>Avg per Visit</Text>
+            <View style={styles.earningsVerticalDivider} />
+            <View style={styles.earningsItem}>
+              <Text style={styles.earningsItemValue}>R 248</Text>
+              <Text style={styles.earningsItemLabel}>Avg per Visit</Text>
             </View>
           </View>
         </View>
+
+        <View style={{ height: SPACING.xxl }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    backgroundColor: COLORS.primary,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.lg,
-    paddingHorizontal: SPACING.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  greetingText: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.white + 'CC',
-    fontWeight: '400',
-  },
-  doctorName: {
-    fontSize: FONT_SIZE.xxl,
-    color: COLORS.white,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  hpcsaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.accentSA + '30',
-    borderRadius: BORDER_RADIUS.full,
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.accentSA,
-    gap: 4,
-  },
-  hpcsaShield: {
-    fontSize: FONT_SIZE.sm,
-  },
-  hpcsaText: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.accentSA,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    backgroundColor: COLORS.systemGroupedBackground,
   },
   scrollView: {
     flex: 1,
@@ -417,118 +397,181 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: SPACING.xxl,
   },
-  toggleCard: {
-    margin: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    ...SHADOWS.md,
-  },
-  toggleCardTop: {
+
+  // Header
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
   },
-  statusIndicatorRow: {
+  headerLeft: {
+    flex: 1,
+  },
+  doctorTitle: {
+    ...TYPOGRAPHY.largeTitle,
+    color: COLORS.label,
+  },
+  dashboardSubtitle: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
+    marginTop: 2,
+  },
+
+  // Online pill toggle
+  onlinePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 17,
+    gap: 6,
+    marginLeft: SPACING.md,
   },
+  onlinePillActive: {
+    backgroundColor: COLORS.success + '20',
+    borderWidth: 1.5,
+    borderColor: COLORS.success,
+  },
+  onlinePillInactive: {
+    backgroundColor: COLORS.systemGray5,
+    borderWidth: 1.5,
+    borderColor: COLORS.systemGray3,
+  },
+  pillDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  pillDotActive: {
+    backgroundColor: COLORS.success,
+  },
+  pillDotInactive: {
+    backgroundColor: COLORS.systemGray,
+  },
+  pillText: {
+    ...TYPOGRAPHY.footnote,
+    fontWeight: '600',
+  },
+  pillTextActive: {
+    color: COLORS.success,
+  },
+  pillTextInactive: {
+    color: COLORS.secondaryLabel,
+  },
+
+  // Status card
+  statusCard: {
+    flexDirection: 'row',
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.lg,
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...SHADOWS.card,
+  },
+  statusCardOnline: {
+    backgroundColor: COLORS.white,
+  },
+  statusCardOffline: {
+    backgroundColor: COLORS.white,
+  },
+  statusAccentBar: {
+    width: 4,
+  },
+  statusCardBody: {
+    flex: 1,
+    padding: SPACING.md,
+  },
+  statusCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusCardHeadline: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.label,
+  },
+  statusCardSubtext: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
+    marginTop: 2,
+  },
+
+  // Pulse animation
   pulseContainer: {
-    width: 16,
-    height: 16,
+    width: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pulseRing: {
     position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.success + '50',
   },
   statusDotGreen: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: COLORS.success,
   },
   statusDotGray: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.textLight,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.systemGray3,
   },
-  statusLabel: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-  },
-  locationTrackingText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.success,
-  },
-  toggleButton: {
-    borderRadius: BORDER_RADIUS.lg,
-    paddingVertical: SPACING.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 52,
-  },
-  toggleButtonOnline: {
-    backgroundColor: COLORS.error,
-  },
-  toggleButtonOffline: {
-    backgroundColor: COLORS.secondary,
-  },
-  toggleButtonText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
+
+  // Stats
   statsRow: {
-    paddingHorizontal: SPACING.md,
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.lg,
     gap: SPACING.sm,
-    paddingBottom: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   statCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
     padding: SPACING.md,
     alignItems: 'center',
-    minWidth: 110,
-    ...SHADOWS.sm,
+    ...SHADOWS.card,
   },
   statValue: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '800',
+    ...TYPOGRAPHY.title2,
     color: COLORS.primary,
+    textAlign: 'center',
   },
   statLabel: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
     textAlign: 'center',
+    marginTop: 4,
   },
   statSubLabel: {
-    fontSize: FONT_SIZE.xs,
+    ...TYPOGRAPHY.caption2,
     color: COLORS.secondary,
-    marginTop: 2,
     textAlign: 'center',
+    marginTop: 2,
   },
+
+  // Section headers
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    marginBottom: 8,
     gap: SPACING.sm,
   },
   sectionTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.text,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   countBadge: {
     backgroundColor: COLORS.primary,
@@ -540,72 +583,114 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   countBadgeText: {
+    ...TYPOGRAPHY.caption2,
     color: COLORS.white,
-    fontSize: FONT_SIZE.xs,
     fontWeight: '700',
   },
+
+  // Waiting patients
   waitingList: {
-    paddingHorizontal: SPACING.md,
+    paddingLeft: SPACING.lg,
+    paddingRight: SPACING.sm,
     gap: SPACING.sm,
   },
   waitingCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
     padding: SPACING.md,
-    width: 160,
-    ...SHADOWS.sm,
+    width: 150,
+    marginRight: SPACING.sm,
+    alignItems: 'center',
+    ...SHADOWS.card,
   },
-  waitingCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SPACING.xs,
+  waitingAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primaryLight + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  waitingAvatarText: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.primary,
   },
   waitingPatientName: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
-    color: COLORS.text,
-    flex: 1,
-    marginRight: SPACING.xs,
+    ...TYPOGRAPHY.subheadline,
+    fontWeight: '600',
+    color: COLORS.label,
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  typeBadge: {
-    borderRadius: BORDER_RADIUS.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  typeBadgeText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '700',
+  waitingDistanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginBottom: 8,
   },
   waitingDistance: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
   },
-  emptySection: {
-    marginHorizontal: SPACING.md,
-    paddingVertical: SPACING.lg,
+  typeBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    ...SHADOWS.sm,
+    gap: 4,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    marginBottom: 10,
+  },
+  typeBadgeText: {
+    ...TYPOGRAPHY.caption2,
+    fontWeight: '700',
+  },
+  viewBtn: {
+    borderWidth: 1.5,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    minHeight: 32,
+    justifyContent: 'center',
+  },
+  viewBtnText: {
+    ...TYPOGRAPHY.footnote,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+
+  // Empty state
+  emptySection: {
+    marginHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xl,
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    gap: SPACING.sm,
+    ...SHADOWS.card,
   },
   emptySectionText: {
-    color: COLORS.textSecondary,
-    fontSize: FONT_SIZE.md,
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
   },
+
+  // Recent consultations
   recentList: {
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     gap: SPACING.sm,
   },
   recentCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
     padding: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...SHADOWS.sm,
+    marginBottom: SPACING.sm,
+    ...SHADOWS.card,
   },
   recentCardLeft: {
     flexDirection: 'row',
@@ -614,29 +699,28 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primaryLight + '20',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primaryLight + '18',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
+    ...TYPOGRAPHY.headline,
     color: COLORS.primary,
   },
   recentCardInfo: {
     flex: 1,
   },
   recentPatientName: {
-    fontSize: FONT_SIZE.md,
+    ...TYPOGRAPHY.subheadline,
     fontWeight: '600',
-    color: COLORS.text,
+    color: COLORS.label,
   },
   recentDate: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
     marginTop: 2,
   },
   statusBadge: {
@@ -645,55 +729,57 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   statusBadgeText: {
-    fontSize: FONT_SIZE.sm,
+    ...TYPOGRAPHY.caption1,
     fontWeight: '600',
   },
-  earningsSummaryCard: {
-    margin: SPACING.md,
-    marginTop: SPACING.lg,
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    ...SHADOWS.lg,
-  },
-  earningsSummaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+
+  // Earnings card
+  earningsCard: {
+    marginHorizontal: SPACING.lg,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: SPACING.lg,
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    ...SHADOWS.card,
   },
-  earningsSummaryTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.white,
+  earningsBigNumber: {
+    ...TYPOGRAPHY.title1,
+    color: COLORS.primary,
   },
-  earningsSummaryPeriod: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.white + 'AA',
+  earningsSubtitle: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
+    marginTop: 4,
   },
-  earningsSummaryRow: {
+  earningsDivider: {
+    height: 1,
+    backgroundColor: COLORS.separator,
+    alignSelf: 'stretch',
+    marginVertical: SPACING.md,
+  },
+  earningsRow: {
     flexDirection: 'row',
+    alignSelf: 'stretch',
     justifyContent: 'space-around',
     alignItems: 'center',
   },
-  earningsSummaryItem: {
+  earningsItem: {
     alignItems: 'center',
     flex: 1,
   },
-  earningsSummaryAmount: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '800',
-    color: COLORS.white,
+  earningsItemValue: {
+    ...TYPOGRAPHY.title2,
+    color: COLORS.primary,
   },
-  earningsSummaryLabel: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.white + 'AA',
+  earningsItemLabel: {
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
     marginTop: 4,
     textAlign: 'center',
   },
-  earningsDivider: {
+  earningsVerticalDivider: {
     width: 1,
     height: 40,
-    backgroundColor: COLORS.white + '30',
+    backgroundColor: COLORS.separator,
   },
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
 
 interface ChatBubbleProps {
   role: 'ai' | 'patient';
@@ -15,27 +15,27 @@ const TypingDots: React.FC = () => {
   const dot3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const bounce = (dot: Animated.Value, delay: number) =>
+    const pulse = (dot: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
           Animated.timing(dot, {
-            toValue: -6,
-            duration: 300,
+            toValue: 1,
+            duration: 400,
             useNativeDriver: true,
           }),
           Animated.timing(dot, {
             toValue: 0,
-            duration: 300,
+            duration: 400,
             useNativeDriver: true,
           }),
-          Animated.delay(600 - delay),
+          Animated.delay(800 - delay),
         ])
       );
 
-    const a1 = bounce(dot1, 0);
-    const a2 = bounce(dot2, 150);
-    const a3 = bounce(dot3, 300);
+    const a1 = pulse(dot1, 0);
+    const a2 = pulse(dot2, 180);
+    const a3 = pulse(dot3, 360);
 
     a1.start();
     a2.start();
@@ -53,7 +53,7 @@ const TypingDots: React.FC = () => {
       {[dot1, dot2, dot3].map((dot, i) => (
         <Animated.View
           key={i}
-          style={[styles.dot, { transform: [{ translateY: dot }] }]}
+          style={[styles.dot, { opacity: dot }]}
         />
       ))}
     </View>
@@ -74,11 +74,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
   return (
     <View style={[styles.row, isAI ? styles.rowAI : styles.rowPatient]}>
-      {isAI && (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>M</Text>
-        </View>
-      )}
       <View style={styles.bubbleWrapper}>
         <View
           style={[
@@ -115,71 +110,53 @@ const styles = StyleSheet.create({
   rowPatient: {
     justifyContent: 'flex-end',
   },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.sm,
-    marginBottom: 16,
-    flexShrink: 0,
-  },
-  avatarText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '700',
-  },
   bubbleWrapper: {
     maxWidth: '75%',
   },
   bubble: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 18,
   },
   bubbleAI: {
-    backgroundColor: '#F0F0F0',
-    borderBottomLeftRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.systemGray6,
+    borderBottomLeftRadius: 4,
   },
   bubblePatient: {
     backgroundColor: COLORS.primary,
-    borderBottomRightRadius: BORDER_RADIUS.sm,
+    borderBottomRightRadius: 4,
   },
   content: {
-    fontSize: FONT_SIZE.md,
-    lineHeight: 22,
+    ...TYPOGRAPHY.body,
   },
   contentAI: {
-    color: COLORS.text,
+    color: COLORS.label,
   },
   contentPatient: {
     color: COLORS.white,
   },
   timestamp: {
-    fontSize: FONT_SIZE.xs,
+    ...TYPOGRAPHY.caption2,
+    color: COLORS.tertiaryLabel,
     marginTop: 3,
   },
   timestampAI: {
-    color: COLORS.textSecondary,
     textAlign: 'left',
   },
   timestampPatient: {
-    color: COLORS.textSecondary,
     textAlign: 'right',
   },
   dotsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 4,
-    gap: 4,
+    gap: 5,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.textSecondary,
+    backgroundColor: COLORS.systemGray,
   },
 });
 

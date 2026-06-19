@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { Consultation } from '../store/consultationStore';
 
 interface ConsultationCardProps {
@@ -18,14 +18,15 @@ const STATUS_LABELS: Record<Consultation['status'], string> = {
   completed: 'Completed',
 };
 
-const STATUS_COLORS: Record<Consultation['status'], { bg: string; text: string }> = {
-  history_taking: { bg: '#FFF8E6', text: '#E67E00' },
-  history_complete: { bg: '#EBF4FF', text: '#1A3A6B' },
-  doctor_reviewing: { bg: '#E8F4FD', text: '#17A2B8' },
-  examination: { bg: '#E8F4FD', text: '#17A2B8' },
-  diagnosis: { bg: '#FFF0F8', text: '#9B59B6' },
-  management: { bg: '#F0FFF4', text: '#28A745' },
-  completed: { bg: '#F0FFF4', text: '#28A745' },
+// Each status maps to an iOS system color for accent bar + pill
+const STATUS_SYSTEM_COLOR: Record<Consultation['status'], string> = {
+  history_taking:   COLORS.systemOrange,
+  history_complete: COLORS.systemBlue,
+  doctor_reviewing: COLORS.systemBlue,
+  examination:      COLORS.systemBlue,
+  diagnosis:        COLORS.systemPurple,
+  management:       COLORS.systemGreen,
+  completed:        COLORS.systemGreen,
 };
 
 const formatDate = (dateString: string): string => {
@@ -39,7 +40,7 @@ const formatDate = (dateString: string): string => {
 
 export const ConsultationCard: React.FC<ConsultationCardProps> = ({ consultation, onPress }) => {
   const statusLabel = STATUS_LABELS[consultation.status];
-  const statusColor = STATUS_COLORS[consultation.status];
+  const accentColor = STATUS_SYSTEM_COLOR[consultation.status];
 
   const doctorName = consultation.doctor
     ? `Dr. ${consultation.doctor.firstName} ${consultation.doctor.lastName}`
@@ -56,27 +57,44 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({ consultation
     : 'Awaiting diagnosis';
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+      {/* Left accent bar */}
+      <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
+
+      {/* Card content */}
+      <View style={styles.content}>
+        {/* Top row: doctor name + date */}
+        <View style={styles.topRow}>
+          <Text style={styles.doctorName} numberOfLines={1}>
+            {doctorName}
+          </Text>
           <Text style={styles.date}>{formatDate(consultation.createdAt)}</Text>
-          <Text style={styles.doctorName}>{doctorName}</Text>
-          {doctorType && <Text style={styles.doctorType}>{doctorType}</Text>}
         </View>
-        <View style={styles.headerRight}>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
-            <Text style={[styles.statusText, { color: statusColor.text }]}>{statusLabel}</Text>
+
+        {/* Doctor type + status pill */}
+        <View style={styles.metaRow}>
+          {doctorType && (
+            <Text style={styles.doctorType}>{doctorType}</Text>
+          )}
+          <View
+            style={[
+              styles.statusPill,
+              { backgroundColor: accentColor + '26' }, // 15% opacity hex
+            ]}
+          >
+            <Text style={[styles.statusPillText, { color: accentColor }]}>
+              {statusLabel}
+            </Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.divider} />
-
-      <View style={styles.footer}>
-        <Text style={styles.diagnosisPreview} numberOfLines={2}>
-          {diagnosisPreview}
-        </Text>
-        <Text style={styles.arrow}>›</Text>
+        {/* Diagnosis preview + chevron */}
+        <View style={styles.bottomRow}>
+          <Text style={styles.diagnosisPreview} numberOfLines={1}>
+            {diagnosisPreview}
+          </Text>
+          <Text style={styles.chevron}>›</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -84,69 +102,71 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({ consultation
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: BORDER_RADIUS.md,
     marginVertical: SPACING.xs,
-    ...SHADOWS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    ...SHADOWS.card,
   },
-  header: {
+  accentBar: {
+    width: 3,
+    // fills the full card height via alignSelf stretch (default)
+  },
+  content: {
+    flex: 1,
+    padding: SPACING.md,
+    gap: SPACING.xs,
+  },
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'baseline',
   },
-  headerLeft: {
+  doctorName: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.label,
     flex: 1,
     marginRight: SPACING.sm,
   },
-  headerRight: {
-    alignItems: 'flex-end',
-  },
   date: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    marginBottom: 2,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
+    flexShrink: 0,
   },
-  doctorName: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  doctorType: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.full,
-  },
-  statusText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '700',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.divider,
-    marginVertical: SPACING.sm,
-  },
-  footer: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  doctorType: {
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
+  },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  statusPillText: {
+    ...TYPOGRAPHY.caption1,
+    fontWeight: '600',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   diagnosisPreview: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
     flex: 1,
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    fontStyle: 'italic',
   },
-  arrow: {
+  chevron: {
     fontSize: 22,
-    color: COLORS.textLight,
+    color: COLORS.tertiaryLabel,
     marginLeft: SPACING.sm,
+    lineHeight: 24,
   },
 });
 

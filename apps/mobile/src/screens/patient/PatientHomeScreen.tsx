@@ -7,27 +7,29 @@ import {
   TouchableOpacity,
   FlatList,
   RefreshControl,
-  Image,
-  Animated,
+  SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { useConsultationStore, Consultation } from '../../store/consultationStore';
 import { ConsultationCard } from '../../components/ConsultationCard';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 
-const GREETINGS: Record<string, (name: string) => string> = {
-  en: (n) => `Good morning, ${n}`,
-  zu: (n) => `Sawubona, ${n}`,
-  xh: (n) => `Molo, ${n}`,
-  af: (n) => `Goeie môre, ${n}`,
-  nso: (n) => `Dumela, ${n}`,
-  tn: (n) => `Dumela, ${n}`,
-  st: (n) => `Dumela, ${n}`,
-  ts: (n) => `Ahee, ${n}`,
-  ss: (n) => `Sawubona, ${n}`,
-  ve: (n) => `Ndaa, ${n}`,
-  nr: (n) => `Lotjhani, ${n}`,
+// ─── Greeting helpers ────────────────────────────────────────────────────────
+
+const GREETING_WORDS: Record<string, string> = {
+  en: 'Good morning',
+  zu: 'Sawubona',
+  xh: 'Molo',
+  af: 'Goeie môre',
+  nso: 'Dumela',
+  tn: 'Dumela',
+  st: 'Dumela',
+  ts: 'Ahee',
+  ss: 'Sawubona',
+  ve: 'Ndaa',
+  nr: 'Lotjhani',
 };
 
 const formatLastVisit = (consultations: Consultation[]): string => {
@@ -51,12 +53,12 @@ const uniqueDoctors = (consultations: Consultation[]) => {
     .map((c) => c.doctor!);
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export const PatientHomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const { consultations, isLoading, loadConsultations } = useConsultationStore();
-
-  const fabScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (user?.id) {
@@ -70,16 +72,9 @@ export const PatientHomeScreen: React.FC = () => {
     }
   }, [user?.id]);
 
-  const pulseFab = () => {
-    Animated.sequence([
-      Animated.timing(fabScale, { toValue: 0.92, duration: 100, useNativeDriver: true }),
-      Animated.timing(fabScale, { toValue: 1, duration: 100, useNativeDriver: true }),
-    ]).start();
-  };
-
   const lang = user?.preferredLanguage || 'en';
-  const greetFn = GREETINGS[lang] || GREETINGS['en'];
-  const greeting = greetFn(user?.firstName || 'there');
+  const greetWord = GREETING_WORDS[lang] || GREETING_WORDS['en'];
+  const firstName = user?.firstName || 'there';
 
   const recentConsultations = [...consultations]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -88,7 +83,7 @@ export const PatientHomeScreen: React.FC = () => {
   const doctors = uniqueDoctors(consultations);
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -97,67 +92,74 @@ export const PatientHomeScreen: React.FC = () => {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* ── Header ── */}
         <View style={styles.header}>
           <View style={styles.headerTextBlock}>
-            <Text style={styles.greeting}>{greeting} 👋</Text>
-            <Text style={styles.subGreeting}>How are you feeling today?</Text>
+            <Text style={styles.greetingWord}>{greetWord},</Text>
+            <Text style={styles.patientName}>{firstName}</Text>
           </View>
-          {user?.profileImage ? (
-            <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
-          ) : (
-            <View style={styles.profilePlaceholder}>
-              <Text style={styles.profileInitials}>
-                {user?.firstName?.[0] ?? '?'}
-                {user?.lastName?.[0] ?? ''}
-              </Text>
-            </View>
-          )}
+          <TouchableOpacity
+            style={styles.notificationBtn}
+            onPress={() => navigation.navigate('Notifications')}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="notifications-outline" size={28} color={COLORS.primary} />
+          </TouchableOpacity>
         </View>
 
-        {/* Start Consultation CTA */}
+        {/* ── Emergency Banner ── */}
         <TouchableOpacity
-          style={styles.ctaButton}
-          activeOpacity={0.88}
-          onPress={() => navigation.navigate('LanguageSelect')}
+          style={styles.emergencyBanner}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('Emergency')}
         >
-          <Text style={styles.ctaIcon}>✨</Text>
-          <View style={styles.ctaTextBlock}>
-            <Text style={styles.ctaTitle}>Start New Consultation</Text>
-            <Text style={styles.ctaSubtitle}>AI-powered · 11 languages · Confidential</Text>
-          </View>
-          <Text style={styles.ctaArrow}>›</Text>
+          <Ionicons name="alert-circle-outline" size={20} color={COLORS.white} style={{ marginRight: 8 }} />
+          <Text style={styles.emergencyBannerText}>Emergency — tap to share QR</Text>
         </TouchableOpacity>
 
-        {/* Quick stats */}
+        {/* ── Stats Row ── */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{consultations.length}</Text>
-            <Text style={styles.statLabel}>Total Consultations</Text>
+            <Text style={styles.statLabel}>Consultations</Text>
           </View>
-          <View style={[styles.statCard, styles.statCardMiddle]}>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>{doctors.length}</Text>
             <Text style={styles.statLabel}>Doctors Seen</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue} numberOfLines={2} style={{ fontSize: FONT_SIZE.sm, fontWeight: '700', color: COLORS.primary }}>
+            <Text style={styles.statValueSmall} numberOfLines={2}>
               {formatLastVisit(consultations)}
             </Text>
             <Text style={styles.statLabel}>Last Visit</Text>
           </View>
         </View>
 
-        {/* Recent Consultations */}
+        {/* ── Primary CTA ── */}
+        <TouchableOpacity
+          style={styles.ctaButton}
+          activeOpacity={0.88}
+          onPress={() => navigation.navigate('LanguageSelect')}
+        >
+          <Ionicons name="add-circle" size={22} color={COLORS.white} style={{ marginRight: 10 }} />
+          <Text style={styles.ctaText}>Start New Consultation</Text>
+        </TouchableOpacity>
+
+        {/* ── Recent Consultations ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Consultations</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('MyRecords')}>
+          <Text style={styles.sectionTitle}>RECENT CONSULTATIONS</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MyRecords')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Text style={styles.seeAll}>See all</Text>
           </TouchableOpacity>
         </View>
 
         {recentConsultations.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>🩺</Text>
+            <Ionicons name="medical-outline" size={40} color={COLORS.systemGray3} />
             <Text style={styles.emptyStateText}>No consultations yet.</Text>
             <Text style={styles.emptyStateSubText}>Tap "Start New Consultation" above.</Text>
           </View>
@@ -181,30 +183,34 @@ export const PatientHomeScreen: React.FC = () => {
           />
         )}
 
-        {/* Your Doctors */}
+        {/* ── Your Doctors ── */}
         {doctors.length > 0 && (
           <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Your Doctors</Text>
+            <View style={[styles.sectionHeader, { marginTop: SPACING.lg }]}>
+              <Text style={styles.sectionTitle}>YOUR DOCTORS</Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.doctorsScroll}
+            >
               {doctors.map((doc) => (
                 <TouchableOpacity
                   key={doc.id}
-                  style={styles.doctorChip}
+                  style={styles.doctorCard}
                   onPress={() => navigation.navigate('DoctorProfile', { doctorId: doc.id })}
                   activeOpacity={0.8}
                 >
-                  <View style={styles.doctorChipAvatar}>
-                    <Text style={styles.doctorChipInitials}>
+                  <View style={styles.doctorAvatar}>
+                    <Text style={styles.doctorInitials}>
                       {doc.firstName[0]}
                       {doc.lastName[0]}
                     </Text>
                   </View>
-                  <Text style={styles.doctorChipName} numberOfLines={1}>
+                  <Text style={styles.doctorName} numberOfLines={1}>
                     Dr. {doc.lastName}
                   </Text>
-                  <Text style={styles.doctorChipType} numberOfLines={1}>
+                  <Text style={styles.doctorType} numberOfLines={1}>
                     {doc.doctorType?.replace('_', ' ')}
                   </Text>
                 </TouchableOpacity>
@@ -213,236 +219,215 @@ export const PatientHomeScreen: React.FC = () => {
           </>
         )}
 
-        {/* Bottom padding for FAB */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: SPACING.xxxl }} />
       </ScrollView>
-
-      {/* Emergency FAB */}
-      <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
-        <TouchableOpacity
-          style={styles.fabButton}
-          activeOpacity={0.85}
-          onPress={() => {
-            pulseFab();
-            navigation.navigate('Emergency');
-          }}
-        >
-          <Text style={styles.fabIcon}>🚨</Text>
-          <Text style={styles.fabLabel}>EMERGENCY</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+    </SafeAreaView>
   );
 };
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.systemGroupedBackground,
   },
   scroll: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xxxl,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.md,
   },
   headerTextBlock: {
     flex: 1,
   },
-  greeting: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '700',
-    color: COLORS.text,
+  greetingWord: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
   },
-  subGreeting: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
+  patientName: {
+    ...TYPOGRAPHY.largeTitle,
+    color: COLORS.label,
     marginTop: 2,
   },
-  profileImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginLeft: SPACING.md,
-  },
-  profilePlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primaryLight,
+  notificationBtn: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: SPACING.md,
+    marginLeft: SPACING.sm,
   },
-  profileInitials: {
-    color: COLORS.white,
-    fontWeight: '700',
-    fontSize: FONT_SIZE.lg,
-  },
-  ctaButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.lg,
+
+  // Emergency Banner
+  emergencyBanner: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.emergency,
+    borderRadius: 12,
+    height: 52,
+    marginHorizontal: SPACING.lg,
     marginBottom: SPACING.lg,
-    ...SHADOWS.md,
   },
-  ctaIcon: {
-    fontSize: 28,
-    marginRight: SPACING.md,
-  },
-  ctaTextBlock: {
-    flex: 1,
-  },
-  ctaTitle: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
+  emergencyBannerText: {
+    ...TYPOGRAPHY.subheadline,
     color: COLORS.white,
+    fontWeight: '600',
   },
-  ctaSubtitle: {
-    fontSize: FONT_SIZE.sm,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 2,
-  },
-  ctaArrow: {
-    fontSize: 28,
-    color: 'rgba(255,255,255,0.8)',
-  },
+
+  // Stats
   statsRow: {
     flexDirection: 'row',
+    paddingHorizontal: SPACING.lg,
     gap: SPACING.sm,
     marginBottom: SPACING.lg,
   },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
     padding: SPACING.md,
     alignItems: 'center',
-    ...SHADOWS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  statCardMiddle: {
-    marginHorizontal: 0,
+    ...SHADOWS.card,
   },
   statValue: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '700',
+    ...TYPOGRAPHY.title2,
     color: COLORS.primary,
     textAlign: 'center',
   },
-  statLabel: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
+  statValueSmall: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.primary,
     textAlign: 'center',
-    marginTop: 2,
+    lineHeight: 20,
   },
+  statLabel: {
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+
+  // CTA Button
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    height: 56,
+    borderRadius: 14,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.lg,
+  },
+  ctaText: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.white,
+  },
+
+  // Section headers
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.text,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   seeAll: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.primaryLight,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.primary,
     fontWeight: '600',
   },
+
+  // Consultation list
   horizontalList: {
-    paddingRight: SPACING.md,
+    paddingLeft: SPACING.lg,
+    paddingRight: SPACING.sm,
     paddingBottom: SPACING.sm,
   },
   horizontalCard: {
     width: 300,
     marginRight: SPACING.sm,
   },
+
+  // Empty state
   emptyState: {
     alignItems: 'center',
     paddingVertical: SPACING.xl,
-  },
-  emptyStateIcon: {
-    fontSize: 40,
-    marginBottom: SPACING.sm,
+    marginHorizontal: SPACING.lg,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    ...SHADOWS.card,
   },
   emptyStateText: {
-    fontSize: FONT_SIZE.lg,
+    ...TYPOGRAPHY.subheadline,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.secondaryLabel,
+    marginTop: SPACING.sm,
   },
   emptyStateSubText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textLight,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.tertiaryLabel,
     marginTop: 4,
   },
-  doctorChip: {
-    alignItems: 'center',
-    marginRight: SPACING.md,
-    width: 80,
+
+  // Doctors
+  doctorsScroll: {
+    paddingLeft: SPACING.lg,
+    paddingRight: SPACING.sm,
+    paddingBottom: SPACING.sm,
+    gap: SPACING.sm,
   },
-  doctorChipAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  doctorCard: {
+    alignItems: 'center',
+    width: 80,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    marginRight: SPACING.sm,
+    ...SHADOWS.card,
+  },
+  doctorAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
-    ...SHADOWS.sm,
+    marginBottom: 6,
   },
-  doctorChipInitials: {
+  doctorInitials: {
+    ...TYPOGRAPHY.headline,
     color: COLORS.white,
-    fontWeight: '700',
-    fontSize: FONT_SIZE.lg,
   },
-  doctorChipName: {
-    fontSize: FONT_SIZE.sm,
+  doctorName: {
+    ...TYPOGRAPHY.caption2,
     fontWeight: '600',
-    color: COLORS.text,
+    color: COLORS.label,
     textAlign: 'center',
   },
-  doctorChipType: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
+  doctorType: {
+    ...TYPOGRAPHY.caption2,
+    color: COLORS.secondaryLabel,
     textAlign: 'center',
     textTransform: 'capitalize',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: SPACING.xl,
-    right: SPACING.lg,
-  },
-  fabButton: {
-    backgroundColor: COLORS.error,
-    borderRadius: BORDER_RADIUS.xl,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    ...SHADOWS.lg,
-  },
-  fabIcon: {
-    fontSize: 20,
-  },
-  fabLabel: {
-    color: COLORS.white,
-    fontWeight: '800',
-    fontSize: FONT_SIZE.md,
-    letterSpacing: 1,
+    marginTop: 2,
   },
 });
 

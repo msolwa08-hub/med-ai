@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
+  Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -8,21 +9,19 @@ import {
   Platform,
   SafeAreaView,
   StatusBar,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import {
-  Button,
   TextInput,
-  Surface,
-  Text,
   Snackbar,
   HelperText,
-  SegmentedButtons,
 } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAuthStore } from '@store/authStore';
 import { authApi } from '@api/endpoints';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '@constants/theme';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING, BORDER_RADIUS } from '@constants/theme';
 import type { AuthStackParamList } from '@navigation/AuthNavigator';
 
 type LoginNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
@@ -69,6 +68,10 @@ function normalisePhone(phone: string): string {
   return stripped;
 }
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PILL_CONTAINER_PADDING = 3;
+const PILL_MARGIN = 24;
+
 export default function LoginScreen() {
   const navigation = useNavigation<LoginNavigationProp>();
   const { login, loginWithEmail, isLoading: storeLoading, error: storeError, clearError } = useAuthStore();
@@ -84,6 +87,11 @@ export default function LoginScreen() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Animated pill switcher
+  const pillAnim = useRef(new Animated.Value(0)).current;
+  const pillContainerWidth = SCREEN_WIDTH - PILL_MARGIN * 2 - PILL_CONTAINER_PADDING * 2;
+  const pillWidth = pillContainerWidth / 2;
 
   const otpInputRef = useRef<React.ElementRef<typeof TextInput>>(null);
 
@@ -178,132 +186,158 @@ export default function LoginScreen() {
     }
   }
 
-  function handleModeChange(value: string) {
-    setLoginMode(value as LoginMode);
+  function handleModeChange(value: LoginMode) {
+    setLoginMode(value);
     setErrors({});
     setOtpSent(false);
     setOtp('');
     clearError();
+    Animated.spring(pillAnim, {
+      toValue: value === 'phone' ? 0 : 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 30,
+    }).start();
   }
+
+  const pillTranslateX = pillAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, pillWidth],
+  });
 
   return (
     <KeyboardAvoidingView
       style={styles.keyboardAvoid}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.systemGroupedBackground} />
       <SafeAreaView style={styles.safeArea}>
+
+        {/* STATIC HEADER — does not scroll */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.backArrow}>{'←'}</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle}>Welcome back</Text>
+          <Text style={styles.headerSubtitle}>Sign in to MedAI</Text>
+
+          {/* Custom pill segmented control */}
+          <View style={styles.pillContainer}>
+            <Animated.View
+              style={[
+                styles.pillIndicator,
+                { width: pillWidth, transform: [{ translateX: pillTranslateX }] },
+              ]}
+            />
+            <TouchableOpacity
+              style={styles.pillOption}
+              onPress={() => handleModeChange('phone')}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.pillLabel,
+                  loginMode === 'phone' ? styles.pillLabelActive : styles.pillLabelInactive,
+                ]}
+              >
+                Phone
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.pillOption}
+              onPress={() => handleModeChange('email')}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.pillLabel,
+                  loginMode === 'email' ? styles.pillLabelActive : styles.pillLabelInactive,
+                ]}
+              >
+                Email
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* SCROLLABLE FORM */}
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* HEADER */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.backArrow}>{'←'}</Text>
-            </TouchableOpacity>
-
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Login</Text>
-              <Text style={styles.headerSubtitle}>Welcome back to MedAI</Text>
-            </View>
-          </View>
-
-          {/* MODE TOGGLE */}
-          <SegmentedButtons
-            value={loginMode}
-            onValueChange={handleModeChange}
-            style={styles.segmentedButtons}
-            buttons={[
-              {
-                value: 'phone',
-                label: 'Phone OTP',
-                icon: 'cellphone',
-                style: loginMode === 'phone' ? styles.segmentActive : styles.segmentInactive,
-                labelStyle: loginMode === 'phone' ? styles.segmentLabelActive : styles.segmentLabelInactive,
-              },
-              {
-                value: 'email',
-                label: 'Email / Password',
-                icon: 'email-outline',
-                style: loginMode === 'email' ? styles.segmentActive : styles.segmentInactive,
-                labelStyle: loginMode === 'email' ? styles.segmentLabelActive : styles.segmentLabelInactive,
-              },
-            ]}
-          />
-
-          {/* FORM */}
-          <Surface style={styles.formSurface} elevation={2}>
+          <View style={styles.formContainer}>
             {loginMode === 'phone' ? (
               <View>
                 {!otpSent ? (
                   /* PHONE ENTRY */
                   <View>
-                    <Text style={styles.fieldLabel}>Phone Number</Text>
-                    <TextInput
-                      mode="outlined"
-                      placeholder="+27 71 234 5678"
-                      value={phone}
-                      onChangeText={(val) => {
-                        setPhone(val);
-                        clearFieldError('phone');
-                      }}
-                      keyboardType="phone-pad"
-                      autoComplete="tel"
-                      textContentType="telephoneNumber"
-                      error={!!errors.phone}
-                      outlineColor={COLORS.border}
-                      activeOutlineColor={COLORS.primary}
-                      style={styles.textInput}
-                      left={<TextInput.Icon icon="phone" color={COLORS.textSecondary} />}
-                      returnKeyType="done"
-                      onSubmitEditing={handleSendOtp}
-                    />
+                    <View style={styles.phoneRow}>
+                      {/* +27 prefix */}
+                      <View style={styles.phonePrefixBox}>
+                        <Text style={styles.phonePrefixText}>+27</Text>
+                      </View>
+                      {/* Phone number field */}
+                      <TextInput
+                        mode="flat"
+                        placeholder="71 234 5678"
+                        value={phone}
+                        onChangeText={(val) => {
+                          setPhone(val);
+                          clearFieldError('phone');
+                        }}
+                        keyboardType="phone-pad"
+                        autoComplete="tel"
+                        textContentType="telephoneNumber"
+                        error={!!errors.phone}
+                        underlineColor="transparent"
+                        activeUnderlineColor="transparent"
+                        style={styles.phoneInput}
+                        returnKeyType="done"
+                        onSubmitEditing={handleSendOtp}
+                      />
+                    </View>
                     {errors.phone ? (
-                      <HelperText type="error" visible={!!errors.phone}>
+                      <HelperText type="error" visible={!!errors.phone} style={styles.helperText}>
                         {errors.phone}
                       </HelperText>
                     ) : (
-                      <HelperText type="info" visible>
-                        Enter your SA mobile number (e.g. 071 234 5678)
+                      <HelperText type="info" visible style={styles.helperText}>
+                        Enter your SA mobile number
                       </HelperText>
                     )}
 
-                    <Button
-                      mode="contained"
+                    <TouchableOpacity
+                      style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
                       onPress={handleSendOtp}
-                      loading={loading}
                       disabled={loading}
-                      style={styles.primaryButton}
-                      contentStyle={styles.primaryButtonContent}
-                      labelStyle={styles.primaryButtonLabel}
-                      buttonColor={COLORS.primary}
+                      activeOpacity={0.85}
                     >
-                      Send OTP
-                    </Button>
+                      <Text style={styles.primaryButtonText}>
+                        {loading ? 'Sending…' : 'Send OTP'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   /* OTP ENTRY */
                   <View>
                     <View style={styles.otpInfoBanner}>
-                      <Text style={styles.otpInfoIcon}>📱</Text>
                       <Text style={styles.otpInfoText}>
-                        {'Code sent to '}
+                        Code sent to{' '}
                         <Text style={styles.otpInfoPhone}>{normalisePhone(phone)}</Text>
                       </Text>
                     </View>
 
-                    <Text style={styles.fieldLabel}>Verification Code</Text>
                     <TextInput
                       ref={otpInputRef}
-                      mode="outlined"
+                      mode="flat"
                       placeholder="123456"
                       value={otp}
                       onChangeText={(val) => {
@@ -314,35 +348,35 @@ export default function LoginScreen() {
                       keyboardType="number-pad"
                       maxLength={6}
                       error={!!errors.otp}
-                      outlineColor={COLORS.border}
-                      activeOutlineColor={COLORS.primary}
-                      style={[styles.textInput, styles.otpInput]}
-                      left={<TextInput.Icon icon="shield-key-outline" color={COLORS.textSecondary} />}
+                      underlineColor="transparent"
+                      activeUnderlineColor="transparent"
+                      style={[styles.flatInput, styles.otpInput]}
                       returnKeyType="done"
                       onSubmitEditing={handlePhoneLogin}
                     />
                     {errors.otp ? (
-                      <HelperText type="error" visible={!!errors.otp}>
+                      <HelperText type="error" visible={!!errors.otp} style={styles.helperText}>
                         {errors.otp}
                       </HelperText>
                     ) : (
-                      <HelperText type="info" visible>
+                      <HelperText type="info" visible style={styles.helperText}>
                         Enter the 6-digit code from your SMS
                       </HelperText>
                     )}
 
-                    <Button
-                      mode="contained"
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryButton,
+                        (loading || otp.length !== 6) && styles.primaryButtonDisabled,
+                      ]}
                       onPress={handlePhoneLogin}
-                      loading={loading}
                       disabled={loading || otp.length !== 6}
-                      style={styles.primaryButton}
-                      contentStyle={styles.primaryButtonContent}
-                      labelStyle={styles.primaryButtonLabel}
-                      buttonColor={COLORS.primary}
+                      activeOpacity={0.85}
                     >
-                      Verify & Login
-                    </Button>
+                      <Text style={styles.primaryButtonText}>
+                        {loading ? 'Verifying…' : 'Verify & Sign In'}
+                      </Text>
+                    </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.changeNumberLink}
@@ -361,9 +395,8 @@ export default function LoginScreen() {
             ) : (
               /* EMAIL / PASSWORD FORM */
               <View>
-                <Text style={styles.fieldLabel}>Email Address</Text>
                 <TextInput
-                  mode="outlined"
+                  mode="flat"
                   placeholder="you@example.com"
                   value={email}
                   onChangeText={(val) => {
@@ -375,22 +408,23 @@ export default function LoginScreen() {
                   autoComplete="email"
                   textContentType="emailAddress"
                   error={!!errors.email}
-                  outlineColor={COLORS.border}
-                  activeOutlineColor={COLORS.primary}
-                  style={styles.textInput}
-                  left={<TextInput.Icon icon="email-outline" color={COLORS.textSecondary} />}
+                  underlineColor="transparent"
+                  activeUnderlineColor="transparent"
+                  style={styles.flatInput}
+                  left={<TextInput.Icon icon="email-outline" color={COLORS.secondaryLabel} />}
                   returnKeyType="next"
                 />
                 {errors.email ? (
-                  <HelperText type="error" visible={!!errors.email}>
+                  <HelperText type="error" visible={!!errors.email} style={styles.helperText}>
                     {errors.email}
                   </HelperText>
                 ) : null}
 
-                <Text style={[styles.fieldLabel, styles.fieldLabelSpaced]}>Password</Text>
+                <View style={{ height: 12 }} />
+
                 <TextInput
-                  mode="outlined"
-                  placeholder="Your password"
+                  mode="flat"
+                  placeholder="Password"
                   value={password}
                   onChangeText={(val) => {
                     setPassword(val);
@@ -401,14 +435,14 @@ export default function LoginScreen() {
                   autoComplete="password"
                   textContentType="password"
                   error={!!errors.password}
-                  outlineColor={COLORS.border}
-                  activeOutlineColor={COLORS.primary}
-                  style={styles.textInput}
-                  left={<TextInput.Icon icon="lock-outline" color={COLORS.textSecondary} />}
+                  underlineColor="transparent"
+                  activeUnderlineColor="transparent"
+                  style={styles.flatInput}
+                  left={<TextInput.Icon icon="lock-outline" color={COLORS.secondaryLabel} />}
                   right={
                     <TextInput.Icon
                       icon={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
-                      color={COLORS.textSecondary}
+                      color={COLORS.secondaryLabel}
                       onPress={() => setPasswordVisible((v) => !v)}
                     />
                   }
@@ -416,50 +450,49 @@ export default function LoginScreen() {
                   onSubmitEditing={handleEmailLogin}
                 />
                 {errors.password ? (
-                  <HelperText type="error" visible={!!errors.password}>
+                  <HelperText type="error" visible={!!errors.password} style={styles.helperText}>
                     {errors.password}
                   </HelperText>
                 ) : null}
 
-                <Button
-                  mode="contained"
+                {/* Forgot password */}
+                <TouchableOpacity style={styles.forgotPasswordLink} activeOpacity={0.7}>
+                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
                   onPress={handleEmailLogin}
-                  loading={loading}
                   disabled={loading}
-                  style={styles.primaryButton}
-                  contentStyle={styles.primaryButtonContent}
-                  labelStyle={styles.primaryButtonLabel}
-                  buttonColor={COLORS.primary}
+                  activeOpacity={0.85}
                 >
-                  Login
-                </Button>
+                  <Text style={styles.primaryButtonText}>
+                    {loading ? 'Signing in…' : 'Sign In'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
-          </Surface>
+          </View>
 
           {/* FOOTER */}
           <View style={styles.footer}>
-            <Text style={styles.footerPrompt}>Don't have an account?</Text>
+            <Text style={styles.footerText}>
+              Don't have an account?{' '}
+            </Text>
             <View style={styles.registerRow}>
-              <Button
-                mode="text"
+              <TouchableOpacity
                 onPress={() => navigation.navigate('RegisterPatient')}
-                compact
-                textColor={COLORS.secondary}
-                labelStyle={styles.registerButtonLabel}
+                activeOpacity={0.7}
               >
-                Register as Patient
-              </Button>
+                <Text style={styles.registerLink}>Register as Patient</Text>
+              </TouchableOpacity>
               <View style={styles.registerDivider} />
-              <Button
-                mode="text"
+              <TouchableOpacity
                 onPress={() => navigation.navigate('RegisterDoctor')}
-                compact
-                textColor={COLORS.secondary}
-                labelStyle={styles.registerButtonLabel}
+                activeOpacity={0.7}
               >
-                Register as Doctor
-              </Button>
+                <Text style={styles.registerLink}>Register as Doctor</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -488,7 +521,7 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.systemGroupedBackground,
   },
   scrollView: {
     flex: 1,
@@ -498,151 +531,205 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl,
   },
 
-  // HEADER
+  // STATIC HEADER
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
+    backgroundColor: COLORS.systemGroupedBackground,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 0,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.surfaceVariant,
+    width: 36,
+    height: 36,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.systemGray6,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: SPACING.md,
-    marginTop: 2,
+    marginBottom: 8,
   },
   backArrow: {
-    fontSize: 20,
+    fontSize: 18,
     color: COLORS.primary,
     fontWeight: '600',
-  },
-  headerTextContainer: {
-    flex: 1,
+    lineHeight: 22,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: COLORS.primary,
-    letterSpacing: 0.3,
+    ...TYPOGRAPHY.largeTitle,
+    color: COLORS.label,
+    marginTop: 40,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    ...TYPOGRAPHY.body,
+    color: COLORS.secondaryLabel,
+    marginTop: 8,
+    marginBottom: 32,
   },
 
-  // TOGGLE
-  segmentedButtons: {
-    marginHorizontal: SPACING.md,
-    marginBottom: SPACING.lg,
+  // PILL SWITCHER
+  pillContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.systemGray6,
+    borderRadius: 10,
+    padding: PILL_CONTAINER_PADDING,
+    marginBottom: 24,
+    position: 'relative',
   },
-  segmentActive: {
-    backgroundColor: COLORS.primary,
+  pillIndicator: {
+    position: 'absolute',
+    top: PILL_CONTAINER_PADDING,
+    left: PILL_CONTAINER_PADDING,
+    bottom: PILL_CONTAINER_PADDING,
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: 8,
+    ...SHADOWS.sm,
   },
-  segmentInactive: {
-    backgroundColor: COLORS.surface,
+  pillOption: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
-  segmentLabelActive: {
-    color: COLORS.white,
-    fontSize: 13,
+  pillLabel: {
+    ...TYPOGRAPHY.subheadline,
+  },
+  pillLabelActive: {
     fontWeight: '600',
+    color: COLORS.label,
   },
-  segmentLabelInactive: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-  },
-
-  // FORM SURFACE
-  formSurface: {
-    marginHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    ...SHADOWS.md,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-  fieldLabelSpaced: {
-    marginTop: SPACING.md,
-  },
-  textInput: {
-    backgroundColor: COLORS.surface,
-    fontSize: 15,
+  pillLabelInactive: {
+    color: COLORS.secondaryLabel,
   },
 
-  // OTP SPECIFIC
-  otpInfoBanner: {
+  // FORM CONTAINER
+  formContainer: {
+    marginHorizontal: 24,
+    marginTop: 24,
+  },
+
+  // FLAT INPUT (white card style)
+  flatInput: {
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.separator,
+    height: 56,
+    ...TYPOGRAPHY.body,
+  },
+
+  // PHONE ROW
+  phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceVariant,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.lg,
+    height: 56,
+    gap: 8,
   },
-  otpInfoIcon: {
-    fontSize: 20,
-    marginRight: SPACING.sm,
+  phonePrefixBox: {
+    height: 56,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.separator,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  phonePrefixText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.label,
+  },
+  phoneInput: {
+    flex: 1,
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.separator,
+    height: 56,
+    ...TYPOGRAPHY.body,
+  },
+
+  helperText: {
+    ...TYPOGRAPHY.footnote,
+    marginTop: 2,
+    marginBottom: 0,
+  },
+
+  // OTP
+  otpInfoBanner: {
+    backgroundColor: COLORS.systemGray6,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   otpInfoText: {
-    flex: 1,
-    fontSize: 14,
-    color: COLORS.text,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
+    textAlign: 'center',
   },
   otpInfoPhone: {
     fontWeight: '700',
     color: COLORS.primary,
   },
   otpInput: {
-    letterSpacing: 4,
-    fontSize: 22,
+    letterSpacing: 8,
+    fontSize: 24,
+    fontWeight: '700',
     textAlign: 'center',
   },
   changeNumberLink: {
     alignSelf: 'center',
-    marginTop: SPACING.md,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   changeNumberText: {
-    fontSize: 14,
-    color: COLORS.primaryLight,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.primary,
     fontWeight: '600',
-    textDecorationLine: 'underline',
   },
 
-  // BUTTONS
+  // FORGOT PASSWORD
+  forgotPasswordLink: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 4,
+  },
+  forgotPasswordText: {
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.primary,
+  },
+
+  // PRIMARY BUTTON
   primaryButton: {
-    marginTop: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
+    height: 56,
+    width: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    ...SHADOWS.card,
   },
-  primaryButtonContent: {
-    height: 52,
+  primaryButtonDisabled: {
+    opacity: 0.55,
   },
-  primaryButtonLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  primaryButtonText: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.white,
   },
 
   // FOOTER
   footer: {
     alignItems: 'center',
     marginTop: SPACING.xl,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: 24,
   },
-  footerPrompt: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
+  footerText: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
+    marginBottom: 8,
   },
   registerRow: {
     flexDirection: 'row',
@@ -651,22 +738,23 @@ const styles = StyleSheet.create({
   },
   registerDivider: {
     width: 1,
-    height: 18,
-    backgroundColor: COLORS.border,
-    marginHorizontal: SPACING.xs,
+    height: 16,
+    backgroundColor: COLORS.separator,
+    marginHorizontal: 12,
   },
-  registerButtonLabel: {
-    fontSize: 14,
+  registerLink: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.primary,
     fontWeight: '600',
   },
 
   // SNACKBAR
   snackbar: {
-    backgroundColor: COLORS.text,
+    backgroundColor: COLORS.label,
     marginBottom: SPACING.sm,
   },
   snackbarText: {
+    ...TYPOGRAPHY.footnote,
     color: COLORS.white,
-    fontSize: 14,
   },
 });
