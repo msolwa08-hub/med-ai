@@ -31,7 +31,7 @@ const info = (s) => `${C.cyan}${s}${C.reset}`;
 const bold = (s) => `${C.bold}${s}${C.reset}`;
 
 // ─── MODELS ──────────────────────────────────────────────────────────────────
-const MEDAI_MODEL = "claude-haiku-4-5-20251001";   // model being tested
+const MEDAI_MODEL = "claude-sonnet-4-6";             // model being tested
 const SCORER_MODEL = "claude-sonnet-4-6";           // keep scorer strong for reliable eval
 
 // ─── SYSTEM PROMPT ───────────────────────────────────────────────────────────

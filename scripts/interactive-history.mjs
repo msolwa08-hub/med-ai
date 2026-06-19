@@ -9,7 +9,7 @@ if (!apiKey || apiKey.startsWith('sk-ant-placeholder')) {
 
 const client = new Anthropic({ apiKey });
 
-const MEDAI_MODEL = "claude-haiku-4-5-20251001";
+const MEDAI_MODEL = "claude-sonnet-4-6";
 const CACHED_SYSTEM = [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }];
 
 const SYSTEM = `You are MedAI — the AI healthcare assistant for Sandton Family Practice and Dr. Patel. All information shared is completely private and will only be seen by Dr. Patel.
