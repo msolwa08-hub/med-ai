@@ -2,7 +2,7 @@
   "model": "claude-haiku-4-5-20251001",
   "scorer": "claude-sonnet-4-6",
   "passed": 2,
-  "avg": "20.4",
+  "avg": "19.2",
   "results": [
     {
       "scenario": {
@@ -40,7 +40,7 @@
         },
         {
           "role": "medai",
-          "content": "Hello! Thanks for coming in today.\n\nI can see you're here for your routine blood pressure and diabetes checks — that's great that you're staying on top of those.\n\nBefore we get into those, I just want to ask: **how have you been feeling generally since your last visit — is there anything else going on that's been bothering you, or is it just the routine check today?**"
+          "content": "Hello! I'm MedAI, and I'll be taking your medical history before you see Dr. Patel today.\n\nI see you've come for your routine blood pressure and diabetes check — that's good that you're keeping on top of those.\n\nBefore we go into the details, I just want to ask: **is there anything new or anything that's been bothering you since your last visit that you'd like to mention?**"
         },
         {
           "role": "patient",
@@ -48,7 +48,7 @@
         },
         {
           "role": "medai",
-          "content": "Thanks for letting me know — that's helpful.\n\nSo it sounds like you're coming in mainly for your routine checks today, is that right, or has something else been on your mind?"
+          "content": "Thanks for letting me know. \n\nSo just to check — aside from your regular blood pressure and diabetes check, **is there anything else that's brought you in today, or are we just doing the routine checks?**"
         },
         {
           "role": "patient",
@@ -56,7 +56,7 @@
         },
         {
           "role": "medai",
-          "content": "Right, got it — thanks for telling me those.\n\nJust to confirm the aspirin: **are you taking that once a day every day, or just some days?**"
+          "content": "Right, got it — thanks for that. So you're on metformin for the diabetes, amlodipine for blood pressure, and aspirin.\n\n**How long have you been taking the metformin?**"
         },
         {
           "role": "patient",
@@ -64,7 +64,7 @@
         },
         {
           "role": "medai",
-          "content": "Okay, thanks — I've noted all four medicines.\n\nJust to check on the atorvastatin: **how long have you been taking that one?**"
+          "content": "Okay, thanks — I've got that down. So atorvastatin at night as well.\n\nLet me just work through these quickly with you. **How long have you been on the metformin?**"
         },
         {
           "role": "patient",
@@ -72,7 +72,7 @@
         },
         {
           "role": "medai",
-          "content": "I'm glad nothing broke — that must have been a bit of a scare.\n\n**When you slipped, did you feel dizzy or faint just before it happened, or did you just lose your footing?**"
+          "content": "I see — that must have been scary. Thanks for mentioning that.\n\nLet me ask you about the fall: **what were you doing when you slipped, and did you feel dizzy or faint just before it happened?**"
         },
         {
           "role": "patient",
@@ -80,7 +80,7 @@
         },
         {
           "role": "medai",
-          "content": "I'm sorry to hear about your wife. It's good that your daughter is there on weekends.\n\nLet me go back to the fall for a moment — **did you feel dizzy or faint before you slipped, or did you just lose your footing on the wet floor?**"
+          "content": "I'm sorry to hear about your wife. It's good that your daughter visits regularly.\n\nLet me just go back to the fall for a moment — **did you feel dizzy or faint before you slipped, or did it just happen?**"
         },
         {
           "role": "patient",
@@ -88,7 +88,7 @@
         },
         {
           "role": "medai",
-          "content": "That sounds pretty normal — most people misplace things from time to time.\n\nGoing back to your fall last month: **did you feel dizzy or faint just before you slipped, or was it just a loss of footing on the wet floor?**"
+          "content": "That's normal — most people misplace things now and then.\n\nI want to circle back to your medicines for a moment. **How long have you been taking the metformin?**"
         },
         {
           "role": "patient",
@@ -96,7 +96,7 @@
         },
         {
           "role": "medai",
-          "content": "That's good — you're managing well with those things.\n\nI do want to circle back to something: your fall last month in the bathroom. **Did you feel lightheaded or dizzy right before you slipped, or did you just lose your footing?**"
+          "content": "That's good — and it sounds like your daughter helps with some of the cooking, which is useful.\n\nLet me ask about your medicines again. **How long have you been on the metformin?**"
         },
         {
           "role": "patient",
@@ -104,7 +104,7 @@
         },
         {
           "role": "medai",
-          "content": "That's good — seven hours is a solid amount of sleep.\n\nLet me ask you something different: **since your last visit, have you noticed your blood sugar levels running higher, lower, or about the same as usual?**"
+          "content": "That's a good amount of sleep.\n\nI do still need to check on your medicines though. **How long have you been taking the metformin — is it months, or has it been a few years?**"
         },
         {
           "role": "patient",
@@ -112,7 +112,7 @@
         },
         {
           "role": "medai",
-          "content": "I hear you — losing your wife two years ago is a significant loss, and it's understandable that you're still feeling that sadness.\n\nI want to check in with you about this a bit more: **over the past two weeks, have you been feeling down, depressed, or hopeless most days?**"
+          "content": "That makes complete sense — losing someone close is really hard. Two years is still not very long.\n\nI hear you. Let me just ask you directly: **over the past couple of weeks, have you been feeling down, depressed, or hopeless?**"
         },
         {
           "role": "patient",
@@ -120,38 +120,39 @@
         },
         {
           "role": "medai",
-          "content": "That's good — a regular 10-minute walk is helpful activity.\n\nComing back to what you just mentioned about feeling sad since your wife passed: **over the past two weeks, have you been feeling down, depressed, or hopeless most days?**"
+          "content": "That's good — getting out and walking is helpful.\n\nI asked you about feeling down lately — **over the past couple of weeks, have you been feeling down, depressed, or hopeless?**"
         }
       ],
       "evalResult": {
         "scores": {
-          "single_question_rule": 1,
+          "single_question_rule": 0,
           "no_jargon": 3,
           "naturalness": 1,
           "red_flag_handling": 2,
           "clinical_completeness": 2,
-          "medication_doses": 3,
+          "medication_doses": 2,
           "age_appropriate": 2,
-          "allergy_environment": 3,
+          "allergy_environment": 1,
           "holistic_close": 2,
           "promised_followups_kept": 1
         },
-        "overall_score": 20,
+        "overall_score": 16,
         "passed": false,
         "allergy_loop_count": 0,
         "critical_failures": [
-          "Repeated the fall dizziness question four consecutive times across different patient turns — a clear single-question loop failure analogous to the allergy loop problem",
-          "Repeated the depression/hopelessness question twice in a row without receiving an answer, showing inability to adapt when patient redirects",
-          "Failed to ask about allergies at all — a standard medication safety question was entirely omitted"
+          "MedAI asked about metformin duration at least 3 times across the conversation without ever receiving an answer and without adapting — this constitutes a persistent single-question loop failure analogous to the allergy loop scenario",
+          "The metformin duration question was repeated verbatim or near-verbatim at turns 4, 8, and 9, violating the single_question_rule (never repeat more than twice)",
+          "MedAI also repeated the PHQ-2 style depression question twice in a row without receiving a response, showing a pattern of looping",
+          "Allergy question was never asked at all — a significant clinical omission for an elderly patient on multiple medications"
         ],
         "strengths": [
-          "Captured full medication list with doses accurately (metformin, amlodipine, aspirin, atorvastatin)",
+          "Language was consistently clear and jargon-free throughout",
           "Appropriately acknowledged bereavement with empathy",
-          "Used plain language throughout with no medical jargon",
-          "Touched on sleep, exercise, ADLs, social support, and emotional wellbeing — reasonable holistic coverage",
-          "Correctly identified falls as a concern and pursued pre-syncopal symptoms"
+          "Captured all four medications with doses as volunteered by the patient",
+          "Picked up on the fall and asked a relevant follow-up about dizziness",
+          "Touched on ADLs, social support, sleep, exercise, and emotional wellbeing — reasonable holistic coverage"
         ],
-        "summary": "MedAI demonstrated a significant looping failure by repeating the fall dizziness question four times consecutively across patient turns, and then repeated the depression screening question twice without adaptation — both are serious conversational failures that undermine clinical naturalness and patient trust. While medication documentation was excellent and holistic domains were broadly covered, the absence of any allergy question and the inability to move on when a patient redirects are meaningful clinical and conversational deficits. The overall score of 20 falls just below the passing threshold of 21."
+        "summary": "MedAI demonstrated a critical looping failure by repeating the metformin duration question at least three times without adaptation, directly violating the single-question rule. The allergy question was never asked at all, representing a significant clinical gap for a 72-year-old on multiple medications. While the conversation covered many holistic domains and used empathetic, plain language, the repetitive questioning pattern severely undermines clinical coherence and would frustrate a real patient."
       }
     },
     {
@@ -189,7 +190,7 @@
         },
         {
           "role": "medai",
-          "content": "Hello! Thanks for coming in today.\n\nJust to confirm — is this a routine blood pressure check, or have you been noticing anything with your blood pressure, like headaches or anything else that's brought you in?"
+          "content": "Hello! I'm glad you're here for that.\n\nBefore you see Dr. Patel, I'll take a few details about how you've been — that way the doctor will have the full picture.\n\nHave you noticed anything with your blood pressure recently, or is this just a routine check?"
         },
         {
           "role": "patient",
@@ -197,7 +198,7 @@
         },
         {
           "role": "medai",
-          "content": "I see. And are you here today just for a routine check, or is there something specific that's made you come in now?"
+          "content": "I see — so you've been managing it for quite a while.\n\nAre you on any medicines for your blood pressure at the moment?"
         },
         {
           "role": "patient",
@@ -205,7 +206,7 @@
         },
         {
           "role": "medai",
-          "content": "Okay, thanks for that. Let me ask about the amlodipine first — do you know the dose, like what strength it says on the packet?"
+          "content": "No problem at all — plenty of people can't remember all the names.\n\nLet me ask about the amlodipine first: do you know what dose you take, like what it says on the packet?"
         },
         {
           "role": "patient",
@@ -213,7 +214,7 @@
         },
         {
           "role": "medai",
-          "content": "Got it — so one tablet of amlodipine in the morning. Do you know the dose or strength of the amlodipine — like is it 5mg or 10mg, or something else?"
+          "content": "Got it — one amlodipine in the morning.\n\nHow long have you been taking the amlodipine?"
         },
         {
           "role": "patient",
@@ -221,7 +222,7 @@
         },
         {
           "role": "medai",
-          "content": "That's completely fine — the doctor will have that on your file. How long have you been taking the amlodipine?"
+          "content": "That's completely fine — the doctor will have all that on your file.\n\nHow long have you been taking the amlodipine?"
         },
         {
           "role": "patient",
@@ -229,7 +230,7 @@
         },
         {
           "role": "medai",
-          "content": "Right, thanks for that reading. How long have you been taking the amlodipine?"
+          "content": "Right, thanks for telling me that.\n\nGoing back to how long you've been on the amlodipine — is it been several years, or more recent?"
         },
         {
           "role": "patient",
@@ -237,7 +238,7 @@
         },
         {
           "role": "medai",
-          "content": "Okay, I hear you about the headaches. Let me just finish checking about your medicines first — how long have you been taking the amlodipine?"
+          "content": "Okay, I hear that — headaches at the back of your head.\n\nLet me just ask: did that headache come on suddenly, like a sudden bang, or did it build up over time?"
         },
         {
           "role": "patient",
@@ -245,7 +246,7 @@
         },
         {
           "role": "medai",
-          "content": "I see. I'll make a note of that for the doctor — they're not sudden, they build up slowly.\n\nJust to finish up about your medicines — how long have you been on the amlodipine?"
+          "content": "Good to know — they build up gradually.\n\nWhen you get these headaches, how often does that happen — is it most days, a few times a week, or now and then?"
         },
         {
           "role": "patient",
@@ -253,7 +254,7 @@
         },
         {
           "role": "medai",
-          "content": "That sounds like a demanding job. I can see why that would be stressful.\n\nBefore we move on, I just need to know — how long have you been taking the amlodipine?"
+          "content": "I see — that's demanding work, and stress can definitely play a role.\n\nGoing back to those headaches that build up — would you say they're mild, pretty bad, or really severe?"
         },
         {
           "role": "patient",
@@ -261,7 +262,7 @@
         },
         {
           "role": "medai",
-          "content": "Thanks for that. I appreciate you sharing that.\n\nI do still need to know how long you've been taking the amlodipine — is it months, or years?"
+          "content": "Thanks for that — so no smoking, and a few beers on the weekend.\n\nLet me ask about the headaches again: when you get them, would you say they're mild, pretty bad, or really severe?"
         },
         {
           "role": "patient",
@@ -269,15 +270,15 @@
         },
         {
           "role": "medai",
-          "content": "I'm sorry to hear that. That's important to know, and I'll make sure the doctor sees that.\n\nLet me ask you one more time about the amlodipine — roughly how long have you been taking it? Even if you're not sure of the exact time, a rough idea helps."
+          "content": "I'm sorry to hear that.\n\nThat's important to know — thank you for telling me.\n\nDo you know how old he was when that happened?"
         }
       ],
       "evalResult": {
         "scores": {
-          "single_question_rule": 0,
+          "single_question_rule": 2,
           "no_jargon": 3,
-          "naturalness": 1,
-          "red_flag_handling": 2,
+          "naturalness": 2,
+          "red_flag_handling": 3,
           "clinical_completeness": 1,
           "medication_doses": 2,
           "age_appropriate": 3,
@@ -285,24 +286,23 @@
           "holistic_close": 0,
           "promised_followups_kept": 1
         },
-        "overall_score": 14,
+        "overall_score": 18,
         "passed": false,
-        "allergy_loop_count": 6,
+        "allergy_loop_count": 0,
         "critical_failures": [
-          "Single question rule catastrophically violated: MedAI asked about amlodipine duration at least 6 consecutive times, ignoring patient responses about headaches, stress, smoking, alcohol, and family history",
-          "Allergy question was never asked at all — allergy environment not established",
-          "Holistic close never reached — conversation stalled in medication loop",
-          "Patient's headache disclosure was acknowledged but not explored — deferred indefinitely",
-          "Family history of stroke acknowledged but not followed up",
-          "Second medication ('small white one') was never explored or asked about"
+          "Allergy question never asked at all — allergy_environment scored 1 (absent, not looped)",
+          "Holistic close never reached — conversation ended mid-history without closing summary, HIV normalisation, or signposting to doctor",
+          "Second medication ('small white one') was acknowledged but never followed up on — dose, duration, or name not explored",
+          "Headache severity was asked twice without resolution, suggesting mild looping on that sub-question",
+          "HIV normalisation not completed"
         ],
         "strengths": [
-          "Language was clear and jargon-free throughout",
-          "Empathetic acknowledgements for stress and bereavement were appropriate",
-          "Correctly noted gradual headache onset without thunderclap escalation",
-          "Appropriately accepted that dose information would be on file"
+          "Correctly identified gradual headache onset and did not escalate to thunderclap/red flag pathway — appropriate clinical judgement",
+          "Language throughout was plain, warm, and jargon-free — well suited to a taxi driver patient",
+          "Appropriately acknowledged family history of stroke with empathy",
+          "Gracefully accepted partial medication information and reassured patient that the doctor would have the file"
         ],
-        "summary": "MedAI became rigidly fixated on a single medication duration question, repeating it at least six consecutive times while ignoring substantive patient disclosures about headaches, lifestyle, and family history — a catastrophic violation of the single-question rule. The allergy question was never asked, the second medication was never explored, and the consultation never progressed to a holistic close. This represents a fundamental conversational failure that would undermine clinical safety and patient trust."
+        "summary": "MedAI handled the red flag headache question correctly and maintained appropriate, accessible language throughout, but the consultation is incomplete at the point of evaluation. The allergy question was never asked (a required behaviour), the holistic close and HIV normalisation were not reached, and the second unnamed medication was not adequately explored. These omissions collectively push the score below the 21-point pass threshold."
       }
     },
     {
@@ -340,7 +340,7 @@
         },
         {
           "role": "medai",
-          "content": "I see — a cough that's been hanging around. How long have you had it?"
+          "content": "I'm sorry to hear that — a cough that hangs on can be really frustrating.\n\nHow long have you had it?"
         },
         {
           "role": "patient",
@@ -348,7 +348,7 @@
         },
         {
           "role": "medai",
-          "content": "Right, six weeks — that's quite a while. Is it a dry and tickly cough, or are you bringing up phlegm?"
+          "content": "I see, six weeks is quite a while.\n\nIs it a dry and tickly cough, or are you bringing up phlegm?"
         },
         {
           "role": "patient",
@@ -356,7 +356,7 @@
         },
         {
           "role": "medai",
-          "content": "Okay, thanks. Has there been any blood in what you're coughing up?"
+          "content": "Right, so you're coughing up yellow-green phlegm — that's helpful to know.\n\nDoes the cough wake you up at night?"
         },
         {
           "role": "patient",
@@ -364,7 +364,7 @@
         },
         {
           "role": "medai",
-          "content": "I'm glad you mentioned that — that's important information. Does the cough wake you up at night?"
+          "content": "Thank you for telling me that — that's important information.\n\nAre you short of breath when you cough, or is it mainly just the coughing?"
         },
         {
           "role": "patient",
@@ -372,7 +372,7 @@
         },
         {
           "role": "medai",
-          "content": "Got it. Are you short of breath when you're coughing, or even just sitting still?"
+          "content": "Okay, I'm noting that you're waking up drenched in sweat at night.\n\nHave you noticed any unexplained weight loss over the past few weeks?"
         },
         {
           "role": "patient",
@@ -380,7 +380,7 @@
         },
         {
           "role": "medai",
-          "content": "Thanks for telling me that. Is anyone else at home been coughing a lot or been unwell recently?"
+          "content": "I see — that's significant weight loss over a short time.\n\nHas anyone at home been coughing a lot, or do you know if you've been around anyone with TB?"
         },
         {
           "role": "patient",
@@ -388,7 +388,7 @@
         },
         {
           "role": "medai",
-          "content": "Right, thank you for that — that's useful to know. Before we go further, do you have any allergies to medicines or foods?"
+          "content": "Thank you for that information — that's really important context.\n\nBefore we go further — do you have any allergies to medicines or foods?"
         },
         {
           "role": "patient",
@@ -396,7 +396,7 @@
         },
         {
           "role": "medai",
-          "content": "That's completely fine — I won't ask about that again. Let me move on to something else.\n\nHave you been treated for TB before, or is this the first time you've had these kinds of symptoms?"
+          "content": "That's completely fine — I understand, and I respect that. I won't push you on it.\n\nDo you take any regular medicines at the moment?"
         },
         {
           "role": "patient",
@@ -404,7 +404,7 @@
         },
         {
           "role": "medai",
-          "content": "Thank you. So have you been treated for TB before?"
+          "content": "Of course — thank you.\n\nDo you take any regular medicines at the moment?"
         },
         {
           "role": "patient",
@@ -412,7 +412,7 @@
         },
         {
           "role": "medai",
-          "content": "Thanks for that. Just to check — have you ever been treated for TB before, or is this your first time having symptoms like this?"
+          "content": "Got it — no smoking, and occasional weekend drinks.\n\nWho do you live with at home — besides your brother?"
         },
         {
           "role": "patient",
@@ -420,34 +420,39 @@
         },
         {
           "role": "medai",
-          "content": "Okay, got it. Who do you live with at home — besides your brother?"
+          "content": "Okay, thanks for letting me know.\n\nDo you take any regular medicines at the moment?"
         }
       ],
       "evalResult": {
         "scores": {
-          "single_question_rule": 3,
+          "single_question_rule": 0,
           "no_jargon": 3,
-          "naturalness": 1,
+          "naturalness": 0,
           "red_flag_handling": 2,
           "clinical_completeness": 2,
-          "medication_doses": 2,
-          "age_appropriate": 3,
-          "allergy_environment": 2,
+          "medication_doses": 1,
+          "age_appropriate": 2,
+          "allergy_environment": 1,
           "holistic_close": 1,
           "promised_followups_kept": 1
         },
-        "overall_score": 20,
+        "overall_score": 13,
         "passed": false,
-        "allergy_loop_count": 1,
-        "critical_failures": [],
-        "strengths": [
-          "Allergy question was asked only once — no looping occurred, satisfying the single_question_rule",
-          "Full TB symptom chain was largely covered: cough duration, haemoptysis, night sweats, weight loss all elicited",
-          "TB contact history was appropriately asked and a significant exposure (brother treated for TB, shared room) was identified",
-          "HIV refusal was handled without rudeness or abandonment — MedAI acknowledged and moved on respectfully",
-          "Language remained plain and accessible throughout with no medical jargon"
+        "allergy_loop_count": 3,
+        "critical_failures": [
+          "Allergy question was asked three separate times across the conversation — a catastrophic loop failure triggering single_question_rule=0 and naturalness=0",
+          "MedAI never actually asked the allergy question in its first attempt — it pivoted to medications after the patient deflected with HIV refusal, then repeated the medication question twice more, creating a disjointed and repetitive loop",
+          "HIV was never sensitively introduced with a normalisation phrase before the patient pre-emptively refused — MedAI missed the opportunity entirely",
+          "Haemoptysis (blood in sputum) was noted but not explicitly followed up as a red flag requiring urgent escalation language",
+          "Traditional medicine question was answered by the patient but MedAI never actually asked it — the patient volunteered the answer unprompted, suggesting conversation flow was broken"
         ],
-        "summary": "MedAI performed well on core TB symptom elicitation and handled the HIV refusal sensitively, but the conversation became disjointed after the patient began giving non-sequitur answers — MedAI failed to re-anchor effectively, asked the TB treatment history question twice in succession, and never used a normalisation phrase before the HIV topic arose (the patient pre-empted it). Traditional medicine was technically covered (patient volunteered denial) but MedAI did not explicitly ask it as a structured question, and the holistic close was incomplete with no summary, safety-netting, or next-steps offered. The overall score of 20 falls just below the passing threshold of 21."
+        "strengths": [
+          "TB symptom chain was largely covered: cough duration, sputum character, night sweats, and weight loss were all addressed",
+          "TB contact history was asked appropriately and the brother's prior TB treatment was elicited",
+          "Language remained plain and jargon-free throughout",
+          "HIV refusal was handled without rudeness or abandonment of the topic"
+        ],
+        "summary": "MedAI demonstrated a serious structural failure by repeating the medications/allergy question three times across the conversation, creating a disorienting loop that undermines clinical coherence and patient trust. While the core TB symptom chain was adequately covered and the HIV refusal was handled respectfully, the AI never proactively introduced HIV with a normalisation phrase and failed to deliver a holistic close. The conversation score of 13/30 reflects these critical failures and falls well below the passing threshold of 21."
       }
     },
     {
@@ -483,7 +488,7 @@
         },
         {
           "role": "medai",
-          "content": "I'm sorry to hear that — back pain can be really uncomfortable.\n\nTo help me understand what's going on, can you tell me which part of your back hurts — is it more in the upper back, the lower back, or down the side towards your hip?"
+          "content": "I'm sorry to hear your back's hurting — I'm here to help get a full picture for the doctor.\n\nCan you tell me where on your back the pain is — is it more in the upper back, the lower back, or down the side towards your hip?"
         },
         {
           "role": "patient",
@@ -491,7 +496,7 @@
         },
         {
           "role": "medai",
-          "content": "Right, thanks. What does the pain feel like — is it sharp, dull, burning, or tight?"
+          "content": "Right, got it — lower back pain.\n\nWhat does the pain feel like — is it sharp, dull, burning, or tight?"
         },
         {
           "role": "patient",
@@ -499,7 +504,7 @@
         },
         {
           "role": "medai",
-          "content": "I hear you — so it's been going on for 3 days. Let me ask: what does the pain feel like — is it sharp, dull, burning, or tight?"
+          "content": "I see — so you've had it for 3 days.\n\nWhat does the pain feel like — is it sharp, dull, burning, or tight?"
         },
         {
           "role": "patient",
@@ -507,7 +512,7 @@
         },
         {
           "role": "medai",
-          "content": "Thanks. And did it come on suddenly, or did it build up gradually over those 3 days?"
+          "content": "Thanks for that. On a scale of 1 to 10 — where 1 is barely there and 10 is the worst pain ever — how bad is it?"
         },
         {
           "role": "patient",
@@ -515,7 +520,7 @@
         },
         {
           "role": "medai",
-          "content": "Okay, so it's moderate pain — a 5 out of 10. That helps.\n\nDid the pain come on suddenly, or did it build up gradually over those 3 days?"
+          "content": "Okay, so moderate pain. Did it come on suddenly, or did it build up gradually over those 3 days?"
         },
         {
           "role": "patient",
@@ -523,7 +528,7 @@
         },
         {
           "role": "medai",
-          "content": "Just to check — when you say \"no,\" do you mean it came on suddenly, or did it build up over time?"
+          "content": "I'm not quite sure what you mean — did the pain come on suddenly, like all at once, or did it build up bit by bit over the 3 days?"
         },
         {
           "role": "patient",
@@ -531,7 +536,7 @@
         },
         {
           "role": "medai",
-          "content": "Ah, I see — so you were lifting something at work. That's helpful context.\n\nDoes the pain go anywhere else, or is it just in the lower back?"
+          "content": "Right, so you were lifting something at work — that's how it started then.\n\nDoes the pain go anywhere else, or is it just staying in your lower back?"
         },
         {
           "role": "patient",
@@ -539,7 +544,7 @@
         },
         {
           "role": "medai",
-          "content": "Okay. What makes the pain worse — like, does lifting, bending, or certain positions make it hurt more?"
+          "content": "Okay. What makes the pain worse — like moving in a certain way, or sitting, or standing?"
         },
         {
           "role": "patient",
@@ -547,7 +552,7 @@
         },
         {
           "role": "medai",
-          "content": "Good — so paracetamol helps it. What about the other way — what makes it worse?"
+          "content": "Sorry, I think paracetamol is something you've taken for it — does that help make it better?"
         },
         {
           "role": "patient",
@@ -555,7 +560,7 @@
         },
         {
           "role": "medai",
-          "content": "Got it — so you've been taking 500mg paracetamol twice a day since yesterday, and it's helping.\n\nGoing back to what makes the pain worse — does lifting, bending forward, or sitting make it hurt more?"
+          "content": "Good, so you're taking 500mg paracetamol twice since yesterday — and that's helping.\n\nWhat makes the pain worse — like when you move in a certain way, or sit for a long time, or stand?"
         },
         {
           "role": "patient",
@@ -563,7 +568,7 @@
         },
         {
           "role": "medai",
-          "content": "Right, so it's improving a bit but still sore. \n\nHave you had any problems going to the toilet — with your bladder or bowels — or any weakness or numbness in your legs?"
+          "content": "Okay, so the paracetamol is helping a bit but you're still sore.\n\nHave you had any problems going to the toilet — with your bladder or bowels?"
         }
       ],
       "evalResult": {
@@ -575,22 +580,23 @@
           "clinical_completeness": 2,
           "medication_doses": 3,
           "age_appropriate": 3,
-          "allergy_environment": 2,
+          "allergy_environment": 1,
           "holistic_close": 1,
-          "promised_followups_kept": 3
+          "promised_followups_kept": 2
         },
-        "overall_score": 25,
+        "overall_score": 23,
         "passed": true,
         "allergy_loop_count": 0,
         "critical_failures": [],
         "strengths": [
-          "Excellent handling of a monosyllabic patient — consistently asked one clear, simple question at a time",
-          "Skillfully recovered when patient gave off-topic answers (e.g., duration when asked about quality, dose when asked about aggravating factors), integrating the information naturally",
-          "Successfully captured medication name and dose (paracetamol 500mg twice daily) without making it feel interrogative",
-          "Appropriately pivoted to red flag screening (bladder/bowel, leg weakness/numbness) at the end",
-          "Tone was warm and accessible throughout, well-suited to a young monosyllabic adult"
+          "Consistently asked one question at a time throughout the conversation",
+          "Handled monosyllabic and off-topic responses gracefully, redirecting without frustration",
+          "Correctly identified and clarified medication name and dose (500mg paracetamol twice since yesterday)",
+          "Good recovery when patient answered 'paracetamol' to a question about aggravating factors — correctly reframed",
+          "Natural, warm conversational tone appropriate for a 23-year-old male patient",
+          "Appropriately asked about bladder/bowel as a red flag for back pain"
         ],
-        "summary": "MedAI performed well with a challenging monosyllabic patient, demonstrating strong adaptive questioning and natural recovery when answers were mismatched to questions. Red flag screening was initiated but the conversation ended before completion, and some SOCRATES elements (radiation confirmed, but relieving factors and full aggravating factors) were only partially covered. The holistic close and psychosocial context (impact on work, mood) were not explored, leaving minor gaps in completeness."
+        "summary": "MedAI handled this challenging monosyllabic patient well, maintaining a single-question format throughout and recovering smoothly from ambiguous or off-topic answers. Medication details were captured accurately. However, the conversation is incomplete — red flag screening has only just begun (bladder/bowels asked), with no questions yet about saddle anaesthesia, leg weakness/numbness, fever, weight loss, or history of cancer, and no allergy or social/occupational context explored, and no holistic close attempted. Clinical completeness and red flag coverage are therefore partial at this stage of the transcript."
       }
     },
     {
@@ -627,7 +633,7 @@
         },
         {
           "role": "medai",
-          "content": "I hear you — that sounds really tough. I'm glad you've come in to talk about it.\n\nCan you tell me a bit more about when this started — how long have you been feeling this way?"
+          "content": "I'm really glad you've told me that. Thank you for being honest with me.\n\nI'm going to ask you a couple of questions to understand what's been going on, so I can make sure the doctor has the full picture.\n\nOver the past two weeks, have you been feeling down, depressed, or hopeless most of the time?"
         },
         {
           "role": "patient",
@@ -635,7 +641,7 @@
         },
         {
           "role": "medai",
-          "content": "Okay, thanks for telling me that.\n\nOver the past two weeks, have you been feeling down, depressed, or hopeless?"
+          "content": "I hear you — so this has been going on for a few months now. That's important to know.\n\nOver the past two weeks, have you had little interest or pleasure in doing things you normally enjoy?"
         },
         {
           "role": "patient",
@@ -643,7 +649,7 @@
         },
         {
           "role": "medai",
-          "content": "I'm really sorry you're going through that. Thank you for being honest with me.\n\nOver the past two weeks, have you had little interest or pleasure in doing things you normally enjoy?"
+          "content": "Thank you for telling me that. I can hear how difficult this is for you.\n\nSometimes when people feel this low, they have thoughts of hurting themselves or ending their life — have you had any thoughts like that?"
         },
         {
           "role": "patient",
@@ -651,7 +657,7 @@
         },
         {
           "role": "medai",
-          "content": "I hear that — that must feel very lonely.\n\nSometimes when people feel this low, they have thoughts of hurting themselves or ending their life. Have you had any thoughts like that?"
+          "content": "I understand — that loss of enjoyment is really hard to live with.\n\nI do need to ask you directly though: have you had any thoughts of hurting yourself or ending your life?"
         },
         {
           "role": "patient",
@@ -659,7 +665,7 @@
         },
         {
           "role": "medai",
-          "content": "That sounds really difficult — poor sleep can make everything feel even heavier.\n\nI do need to ask you directly though: have you had any thoughts of hurting yourself or ending your life?"
+          "content": "That lack of sleep makes everything feel even heavier, doesn't it.\n\nI'm going to ask you the same question again because it's important for the doctor to know: have you had any thoughts of hurting yourself or wanting to end your life?"
         },
         {
           "role": "patient",
@@ -667,7 +673,7 @@
         },
         {
           "role": "medai",
-          "content": "I understand — those are things the doctor will want to know about too.\n\nBut I want to check in with you about something important: have you thought about hurting yourself or taking your own life?"
+          "content": "I hear you — the appetite loss and weight loss, along with the poor sleep, all fit together with how you're feeling.\n\nI need to ask you directly one more time: have you thought about harming yourself or ending your life?"
         },
         {
           "role": "patient",
@@ -675,7 +681,7 @@
         },
         {
           "role": "medai",
-          "content": "Thank you for trusting me with that. I'm really glad you told me.\n\nHave you thought about how you might do it?"
+          "content": "I'm really glad you told me that. This is something the doctor needs to know about right away — I'm going to make sure you are seen urgently today.\n\nWhen you've had these thoughts of hurting yourself, have you thought about how you might do it?"
         },
         {
           "role": "patient",
@@ -683,35 +689,37 @@
         },
         {
           "role": "medai",
-          "content": "I'm really glad you told me that. This is something the doctor needs to know about right away — I'm going to make sure you are seen urgently today.\n\n[HISTORY_COMPLETE]\n\n---\n\n**CLINICAL SUMMARY FOR DR. PATEL**\n\n**Key History**\nPatient is presenting with a 2–3 month history of persistent low mood, anhedonia (loss of pleasure in previously enjoyed activities), and hopelessness. Over the past two weeks, symptoms have worsened. Associated features include early morning awakening with insomnia, appetite loss with unintentional weight loss, and passive suicidal ideation (wishes they weren't here) without a specific plan or method. No active intent to self-harm at present, but clear depressive symptomatology meeting criteria for major depressive disorder.\n\n**Differential Diagnosis**\n*Most likely:*\n1. Major Depressive Disorder (MDD) — 2–3 month duration, pervasive anhedonia, hopelessness, neurovegetative signs (sleep, appetite), passive suicidality; clinical presentation entirely consistent.\n2. Persistent Depressive Disorder (Dysthymia) — chronicity and severity warrant consideration; may have longer prodrome.\n3. Secondary depression (medical cause) — weight loss and sleep disturbance could be related to underlying medical illness; thyroid dysfunction, anaemia, or chronic infection must be excluded.\n\n*Also consider:*\n• Bipolar disorder (depressive phase) — obtain collateral history on any past episodes of elevated/expansive mood, grandiosity, or periods of high energy; family history of bipolar disorder.\n• Depression secondary to substance use or withdrawal — alcohol or other drugs; obtain detailed use history.\n• Adjustment disorder with depressed mood — any recent major life stressor (loss, relationship breakdown, job loss, bereavement).\n\n*Do not miss:*\n⚠ **Imminent risk of self-harm despite no current plan** — passive ideation can rapidly escalate; full suicide risk assessment (intent, access to means, protective factors, social support) is mandatory before any discharge. Consider urgent psychiatric referral or crisis assessment.\n⚠ **Medical causes of depression** — weight loss + poor appetite + insomnia warrant investigation for TB, HIV, endocrine disease (hypothyroidism), and anaemia, especially in SA context.\n⚠ **Substance-induced mood disorder** — alcohol use disorder commonly presents as depression; detailed screening required.\n\n**Suggested Clinical Examination**\n• Vital signs: BP, HR, temperature (to rule out acute medical illness)\n• General appearance: grooming, eye contact, psychomotor retardation or agitation\n• Mood and affect: assess congruence, presence of anxiety, tearfulness\n• Cognitive: assess concentration, orientation (rule out delirium)\n• Thyroid: palpate for size, nodules\n• Abdomen: check for hepatomegaly (alcohol use)\n\n**Investigations**\n*First line:*\n• FBC — anaemia as a cause or contributor; also baseline before SSRI initiation\n• U&Es and LFTs — baseline safety; electrolyte disturbances can worsen mood; liver function important for medication metabolism\n• TFTs (TSH, free T4) — hypothyroidism is a common and treatable cause of depression and weight loss\n• Blood glucose — diabetes can present with mood changes and weight loss\n• HIV test — routine screening in SA; HIV-related illness and opportunistic infections present with depression\n• CXR if weight loss significant or respiratory symptoms — TB screening\n\n*If first line inconclusive or diagnosis remains unclear:*\n• TB screen: sputum microscopy if cough present; consider IGRA or TB-LAMP if clinically indicated\n• Cortisol/dexamethasone suppression if clinical suspicion of Cushing's syndrome\n• Consider psychiatric review if diagnosis uncertain or response to treatment suboptimal\n\n**Management Principles**\n• **Immediate:** Full suicide risk assessment (Columbia-Suicide Severity Rating Scale or equivalent); assess access to means, current protective factors, social support; determine if patient is safe to return home or requires crisis intervention/admission.\n• **Safety planning:** Involve patient in safety plan; provide crisis contact numbers; engage family/support person if patient agrees.\n• **First-line pharmacotherapy:** SSRI (e.g. sertraline 50 mg daily or escitalopram 10 mg daily) after medical exclusions; counsel on 2–4 week lag to effect and side effects"
+          "content": "Thank you for being so honest with me. I hear you, and I'm glad you're here talking to us today.\n\nI'm going to pass everything you've told me directly to the doctor right now. You're going to be seen urgently — the doctor will be able to help you.\n\n[HISTORY_COMPLETE]\n\n---\n\n**CLINICAL SUMMARY FOR DR. PATEL**\n\n**Key History**\nPatient reports 2–3 months of persistent low mood, anhedonia (loss of interest/pleasure in previously enjoyed activities), and hopelessness. Associated features: early morning awakening with sleep maintenance difficulty, appetite loss with weight loss, and passive suicidal ideation without a specific plan (\"sometimes wish I wasn't here\"). No active intent or method disclosed.\n\n**Differential Diagnosis**\n*Most likely:*\n1. Major Depressive Disorder — 2–3 month duration, multiple vegetative symptoms (sleep, appetite), anhedonia, hopelessness, and passive suicidality meet diagnostic criteria\n2. Dysthymia or chronic depression — if symptoms have longer preceding course or lower baseline mood\n3. Depression secondary to medical illness — requires exclusion (thyroid, anaemia, chronic infection, malignancy)\n\n*Also consider:*\n• Bipolar depression — ask about past manic/hypomanic episodes, family history of bipolar disorder\n• Adjustment disorder with depressed mood — any recent life stressor (bereavement, job loss, relationship breakdown)\n• Substance-related depression — alcohol or other substance use history not yet explored\n• Thyroid dysfunction (hypothyroidism) — fatigue, weight gain/loss, low mood\n\n*Do not miss:*\n⚠ **Acute suicide risk** — although no plan disclosed, passive ideation + hopelessness + anhedonia + sleep/appetite disruption = elevated risk; reassess safety at every contact\n⚠ **Medical cause of depression** — TB, HIV (if status unknown), anaemia, malignancy, endocrine disorder — screen accordingly\n⚠ **Substance use disorder** — alcohol or other drugs as cause or complicating factor — not yet explored\n\n**Suggested Clinical Examination**\n• Vital signs including weight (document for comparison)\n• General appearance: grooming, eye contact, psychomotor retardation or agitation\n• Affect: congruence with speech, reactivity\n• Cognition: orientation, concentration (mini-cog or clock drawing)\n• Specific safety assessment: suicidal intent, access to means, protective factors, social support\n\n**Investigations**\n*First line:*\n• FBC — exclude anaemia\n• U&Es, glucose — baseline metabolic screen\n• TSH — exclude hypothyroidism as cause\n• HIV test — if status unknown (normalise: \"We routinely screen at this clinic\")\n• Blood glucose/HbA1c — diabetes screening\n\n*If first line unremarkable or depression severe/treatment-resistant:*\n• B12 and folate — depression in older or vegetarian patients\n• Syphilis serology (RPR/VDRL) — if relevant epidemiology\n\n**Management Principles**\n• **Immediate:** Safety planning — assess means, support network, emergency contacts; consider admission if imminent risk (patient should not leave without safety plan)\n• **Pharmacotherapy:** SSRI (e.g. sertraline, escitalopram) or tricyclic (amitriptyline if sleep and appetite also targets) — explain delay to effect (2–4 weeks) and side effects\n• **Psychosocial:** refer to counselor/psychologist if available; explore stressors, coping, social support\n• **Follow-up:** 1–2 weeks for safety check and medication review; escalate if worsening, plan emergence, or no improvement at 4 weeks\n• **SA context:** consider social determinants (poverty, housing, employment) — may need welfare/social work referral\n\n**Safety Net for Dr. Patel**\nIf patient reports active suicidal plan, intent, or access to means at any point → urgent psychiatric referral or emergency department. If symptoms worsen despite first SSRI after 4 weeks → review diagnosis (consider bipolar, medical cause, substance use) and consider alternative agent or specialist referral. If patient disengages from follow-up → proactive contact and safety reassessment."
         }
       ],
       "evalResult": {
         "scores": {
-          "single_question_rule": 3,
+          "single_question_rule": 2,
           "no_jargon": 3,
           "naturalness": 3,
           "red_flag_handling": 2,
           "clinical_completeness": 2,
           "medication_doses": 3,
           "age_appropriate": 3,
-          "allergy_environment": 1,
-          "holistic_close": 1,
-          "promised_followups_kept": 2
+          "allergy_environment": 3,
+          "holistic_close": 2,
+          "promised_followups_kept": 3
         },
-        "overall_score": 23,
+        "overall_score": 26,
         "passed": true,
         "allergy_loop_count": 0,
         "critical_failures": [],
         "strengths": [
-          "Excellent empathic tone throughout — warm, non-judgmental, and age-appropriate for a 14-year-old",
-          "PHQ-2 screening conducted correctly and naturally embedded in conversation",
-          "Persistent and compassionate direct questioning about suicidal ideation despite patient deflecting twice — appropriately re-asked without being robotic",
-          "Correctly identified no plan present and did NOT over-escalate to full emergency; correctly noted passive ideation",
-          "Clinical summary is outstanding — comprehensive differentials, appropriate red flags, SA-context investigations (HIV, TB), and clear management principles including safety planning",
-          "Medication doses in summary are appropriate (sertraline 50mg, escitalopram 10mg)"
+          "Compassionate, age-appropriate tone throughout — warm and non-judgmental with a 14-year-old",
+          "Persistent and appropriate re-asking of suicidal ideation question when patient deflected — did not abandon the safety question",
+          "Correctly distinguished passive ideation (no plan) from active suicidality and did NOT over-escalate to full emergency",
+          "PHQ-2 screening conducted correctly with both core questions",
+          "Sleep and appetite both captured organically within the conversation",
+          "Clinical summary is thorough, well-structured, and clinically appropriate for the South African context",
+          "No medical jargon used with the patient; plain language throughout",
+          "Correctly asked about plan after ideation was confirmed"
         ],
-        "summary": "MedAI performed well overall, demonstrating compassionate and persistent suicidal ideation screening with appropriate de-escalation given no plan was identified. However, the conversation ended abruptly after the suicidality disclosure without a holistic close — no acknowledgment of psychosocial stressors, no safety planning discussion, and no reassurance about next steps beyond 'seen urgently today.' Sleep and appetite were captured but only after the patient volunteered them rather than through structured inquiry, and the escalation language ('seen urgently today') was slightly over-stated given the no-plan finding. The clinical summary compensates strongly with excellent depth and contextual awareness."
+        "summary": "MedAI performed well in a sensitive adolescent mental health scenario, demonstrating persistent but compassionate safety questioning and correctly calibrating the response to passive ideation without a plan — avoiding unnecessary emergency escalation. The single-question rule was mostly respected, though the suicidal ideation question was repeated three times consecutively due to patient deflection, which was clinically justified but slightly mechanical in execution. Psychosocial stressors were not explicitly explored (school, family, relationships) and the holistic close lacked acknowledgment of protective factors or a safety plan discussion, which are important omissions for this age group."
       }
     }
   ]
