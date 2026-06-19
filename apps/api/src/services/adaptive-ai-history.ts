@@ -1,21 +1,34 @@
 /**
- * Adaptive AI Medical History Service — Clinical Edition
- *
- * A layered clinical history-taking engine for South African primary care.
+ * Adaptive AI Medical History Service — Clinical Edition v3
  *
  * Clinical framework:
- *   1. Acuity + consultation type detection (acute / subacute / chronic / review)
- *   2. Complaint-specific deep history with pathology-relevant associated symptoms
- *   3. Generalised symptom review — constitutional screen every patient gets
- *   4. Risk-stratified opportunistic screening (age / gender / known conditions)
- *   5. Baseline — PMH, medications, allergies, social history
+ *   ACUTE consultations
+ *     1. Opening + acuity classification
+ *     2. FULL ORGAN SYSTEM review of the affected system (not just the complaint)
+ *     3. System-specific clinical scoring system data capture
+ *     4. Constitutional / generalised screen
+ *     5. Opportunistic health promotion (vaccinations, cancer screening)
+ *     6. Baseline (PMH, medications, allergies, social, family history)
  *
- * Chronic review patients get a completely different protocol:
- *   condition control → medication compliance → new problems → lifestyle → screening
+ *   REVIEW consultations (chronic disease management)
+ *     1. Opening + acute intercurrent problems
+ *     2. Disease control per condition
+ *     3. Diet and nutrition (24-hour recall, salt, sugar, fruit/veg)
+ *     4. Exercise and physical activity (FITT assessment)
+ *     5. Weight, smoking, alcohol (AUDIT-C)
+ *     6. Medication compliance + side effects
+ *     7. Monitoring and investigations due
+ *     8. Risk stratification (Framingham, FINDRISC)
+ *     9. Health promotion (screening, vaccinations, self-management goals)
+ *    10. Baseline confirmation
  *
- * Information maximisation strategy:
- *   Open-ended first → focused follow-up → normalised sensitive questions
- *   → catch-all ("anything else?") → close
+ * Clinical scoring systems captured from history for GP report:
+ *   Respiratory:   CRB-65, FeverPAIN, Centor, qSOFA
+ *   Cardiovascular: HEART (history component), Wells PE, Wells DVT
+ *   Neurological:  ABCD2 (TIA)
+ *   Urinary:       IPSS (males)
+ *   Mental health: PHQ-2 → PHQ-9, GAD-7, AUDIT-C
+ *   Infection:     qSOFA, SIRS criteria
  */
 
 import { anthropic, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL } from '../lib/claude.js';
@@ -31,41 +44,15 @@ import type Anthropic from '@anthropic-ai/sdk';
 
 export type PatientLiteracyLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'UNKNOWN';
 export type ConsultationType = 'ACUTE' | 'SUBACUTE' | 'CHRONIC_REVIEW' | 'WELLNESS' | 'UNKNOWN';
-export type ComplaintCategory =
-  | 'PAIN_CARDIAC'
-  | 'PAIN_RESPIRATORY'
-  | 'PAIN_ABDOMINAL'
-  | 'PAIN_HEADACHE'
-  | 'PAIN_MSK'
-  | 'RESPIRATORY'
-  | 'FEVER_INFECTIOUS'
-  | 'GASTROINTESTINAL'
-  | 'URINARY'
-  | 'SKIN'
-  | 'NEUROLOGICAL'
-  | 'WOMENS_HEALTH'
-  | 'MENTAL_HEALTH'
-  | 'GENERAL_UNWELLNESS'
-  | 'UNKNOWN';
 
 export interface PatientContext {
   age: number;
   gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
-  knownConditions: string[];     // e.g. ['hypertension', 'type 2 diabetes', 'asthma']
-  currentMedications: string[];  // e.g. ['metformin 500mg', 'lisinopril 10mg']
+  knownConditions: string[];
+  currentMedications: string[];
   isSmoker: boolean;
   isReviewConsultation: boolean;
   lastVisitDays?: number;
-}
-
-export interface AdaptiveSessionState {
-  consultationId: string;
-  language: SaLanguage;
-  literacyLevel: PatientLiteracyLevel;
-  conversationHistory: ConversationMessage[];
-  questionsAsked: number;
-  redFlagDetected: boolean;
-  completedSections: string[];
 }
 
 export interface AdaptiveResponse {
@@ -78,11 +65,11 @@ export interface AdaptiveResponse {
 
 // ─── Literacy Detection ──────────────────────────────────────────────────────
 
-const LITERACY_DETECTION_PROMPT = `Assess the health literacy level of this patient's message. Return ONLY one word: LOW, MEDIUM, or HIGH.
+const LITERACY_DETECTION_PROMPT = `Assess the health literacy of this patient message. Return ONLY one word: LOW, MEDIUM, or HIGH.
 
-LOW:  One or two words, vague, no medical vocabulary. ("yes", "my chest", "pain bad")
-MEDIUM: Everyday sentences, some detail, may misuse medical terms. ("chest pain for 3 days, nothing helps")
-HIGH: Medical vocabulary, precise descriptions, dates, medication names. ("throbbing right temporal headache, 72h, photophobia, 7/10 NRS")`;
+LOW: one or two vague words, no medical vocabulary ("yes", "my chest", "pain bad", "I don't know")
+MEDIUM: everyday sentences, some detail, may misuse medical terms ("chest pain for 3 days, nothing helps")
+HIGH: medical vocabulary, precise descriptions, dates, medication names ("throbbing right temporal headache, 72h, photophobia, 7/10 NRS")`;
 
 export async function detectLiteracyLevel(
   patientMessages: string[]
@@ -115,7 +102,7 @@ function buildAdaptiveSystemPrompt(
   const ctx = formatPatientContext(patientContext);
   const protocol = getInterviewProtocol(literacyLevel);
   const gathered = gatheredSummary
-    ? `\nCONVERSATION TRACKER:\n${gatheredSummary}\nDo NOT re-ask anything marked as gathered. Focus ONLY on what is still missing.\n`
+    ? `\nCONVERSATION TRACKER (do NOT re-ask anything marked ✓):\n${gatheredSummary}\n`
     : '';
 
   const consultationFlow = patientContext.isReviewConsultation
@@ -123,7 +110,7 @@ function buildAdaptiveSystemPrompt(
     : getAcuteConsultationFlow(patientContext, literacyLevel);
 
   return `You are MedAI — a skilled, warm clinical interviewer for South African primary healthcare.
-You take medical histories from patients before they see a doctor.
+You take thorough medical histories before patients see their doctor.
 
 LANGUAGE: Conduct the entire conversation in ${lang} only.
 
@@ -135,36 +122,32 @@ ${protocol}
 ${consultationFlow}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RED FLAGS — STOP AND ESCALATE IMMEDIATELY
+RED FLAGS — STOP HISTORY AND ADVISE EMERGENCY CARE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-If these appear at any point, stop the history and tell the patient to seek emergency care NOW:
-• Chest pain + shortness of breath or sweating
-• Sudden worst-ever headache ("thunderclap")
-• Facial droop / arm weakness / speech difficulty (stroke)
-• Fitting, loss of consciousness, or confusion
+Any of these → immediately tell patient to go to emergency / call ambulance. Do not continue history.
+• Chest pain + breathlessness, sweating, or left arm / jaw pain
+• Worst-ever sudden headache ("thunderclap")
+• Facial droop / arm weakness / speech difficulty (FAST — stroke)
+• Fitting or loss of consciousness
 • Active heavy bleeding
-• High fever + confusion + fast breathing (sepsis)
-• Suicidal thoughts or plan to harm themselves
-• Child with high fever + neck stiffness + photophobia (meningitis)
+• Fever + confusion + fast breathing + low BP (sepsis)
+• Suicidal ideation or plan to self-harm
+• Child with high fever + neck stiffness + rash (meningococcal)
+• Drooling + inability to swallow / severe stridor (epiglottitis)
+• Rigid abdomen (peritonitis)
 
 SA CLINICAL CONTEXT:
-• High prevalence: TB, HIV, hypertension, type 2 diabetes, rheumatic heart disease
-• TB screen (cough + night sweats + weight loss) is mandatory for any respiratory complaint
-• HIV: ask sensitively, patient may decline — that is acceptable, note as "declined"
+• Mandatory TB screen for any respiratory complaint: chronic cough, night sweats, weight loss, contacts
+• HIV: ask sensitively — "We ask everyone as routine care"
 • Traditional medicine (umuthi/muti): ask non-judgmentally — affects drug interactions
-• Rheumatic heart disease: relevant for any young patient with joint pain + cardiac symptoms
-• Malaria: relevant if patient lives in or travelled to endemic areas (Limpopo, KZN coast, Mpumalanga)
+• Rheumatic heart disease: consider for any young patient with joint pain + cardiac symptoms
+• Malaria: if patient lives in or travelled to Limpopo, KZN coast, or Mpumalanga
 
-INFORMATION MAXIMISATION — CRITICAL:
-• Always start a new topic with an open question: "How have you been feeling with your breathing?"
-• Then close down with specific yes/no questions to fill in gaps
-• Before sensitive topics, normalise: "I'm going to ask about a few different things — these are questions we ask everyone"
-• For HIV/TB: "This is completely private. I ask everyone these questions as part of routine care."
-• For mental health: "Many people feel stressed or low sometimes. How have you been feeling emotionally?"
-• For substance use: "To give you the best care, I need to ask about alcohol and any other substances."
-• For sexual health: "Are there any concerns about your sexual health you'd like to mention?"
-• End every major section with: "Is there anything else about [topic] you'd like to tell me?"
-• Before completing the history, always ask: "Is there anything else worrying you that we haven't talked about yet?" — patients often share the most important thing last
+INFORMATION MAXIMISATION:
+• Start every new topic with an open question, then close with specific yes/no to fill gaps
+• Before sensitive topics: "I ask everyone these questions as routine care"
+• End every section: "Is there anything else about [topic] you'd like to mention?"
+• Always end before HISTORY_COMPLETE: "Is there anything else worrying you that we haven't spoken about yet?"
 
 When the consultation is FULLY COMPLETE, end with: [HISTORY_COMPLETE]`;
 }
@@ -172,368 +155,663 @@ When the consultation is FULLY COMPLETE, end with: [HISTORY_COMPLETE]`;
 // ─── Patient Context Formatter ────────────────────────────────────────────────
 
 function formatPatientContext(ctx: PatientContext): string {
-  const lines: string[] = [
-    `• Age: ${ctx.age} years | Gender: ${ctx.gender}`,
-  ];
-  if (ctx.knownConditions.length > 0) {
+  const lines = [`• Age: ${ctx.age} years | Gender: ${ctx.gender}`];
+  if (ctx.knownConditions.length > 0)
     lines.push(`• Known conditions: ${ctx.knownConditions.join(', ')}`);
-  }
-  if (ctx.currentMedications.length > 0) {
+  if (ctx.currentMedications.length > 0)
     lines.push(`• Current medications: ${ctx.currentMedications.join(', ')}`);
-  }
-  if (ctx.isSmoker) lines.push(`• Smoker: YES — COPD and cardiovascular risk screening required`);
-  if (ctx.isReviewConsultation && ctx.lastVisitDays) {
+  if (ctx.isSmoker)
+    lines.push('• Smoker: YES — COPD and cardiovascular risk screening required');
+  if (ctx.isReviewConsultation && ctx.lastVisitDays)
     lines.push(`• Review visit — last seen ${ctx.lastVisitDays} days ago`);
-  }
   return lines.join('\n');
 }
 
 // ─── Acute Consultation Flow ─────────────────────────────────────────────────
 
 function getAcuteConsultationFlow(ctx: PatientContext, literacy: PatientLiteracyLevel): string {
-  const riskScreening = buildRiskStratifiedScreening(ctx, literacy);
   const simple = literacy === 'LOW';
 
   return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CONSULTATION FLOW — ACUTE / NEW PROBLEM
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-╔══ PHASE 1 — OPENING (2-3 questions) ══╗
-Open with a warm, single open question: "What brings you in today?"
-Let the patient speak. Do NOT interrupt or jump to specifics yet.
-Then establish:
-  • Acuity: "Is this something new, or something you've had before?"
-    - New, started today/yesterday → ACUTE (hours/days)
-    - Going on for weeks → SUBACUTE
-    - Months or years → likely CHRONIC component
-    - Same as a previous known condition → ACUTE-ON-CHRONIC
-  • Severity signal: if they describe it as severe or it sounds like a red flag → check red flags immediately
+╔══ PHASE 1 — OPENING & ACUITY (2-4 questions) ══╗
+Open: "What brings you in today?" — let the patient speak, do not interrupt.
+Then establish acuity:
+• "Is this something new that started recently, or something you've had before?"
+  - New, started today/yesterday → ACUTE
+  - Going on for weeks → SUBACUTE
+  - Months/years → CHRONIC component
+  - Known condition flaring → ACUTE-ON-CHRONIC
+• If complaint sounds severe or is on the red flag list above → check red flags immediately.
 
-╔══ PHASE 2 — COMPLAINT-SPECIFIC DEEP HISTORY ══╗
-Once you know the chief complaint, identify its category and ask the relevant questions.
-ONLY ask what is relevant to this specific complaint. Skip irrelevant categories entirely.
+╔══ PHASE 2 — FULL SYSTEM REVIEW ══╗
+Once you know the chief complaint, identify the body SYSTEM affected.
+Review the ENTIRE system — not just the presenting symptom.
+A patient with a sore throat may have pneumonia. A patient with headache may be stroking.
+Only skip a system section if it is clearly unrelated to this patient's complaint.
 
-─ CHEST PAIN ─
-Location: front/back/side/central | Character: sharp/crushing/tight/burning/tearing
-Onset: sudden or gradual | Duration and whether constant or episodic
-Radiation: arm (left or right), jaw, back, shoulder, stomach?
-Severity: ${simple ? 'small / medium / very bad' : '1-10'}
-Breathlessness at rest or on exertion | Sweating | Nausea | Palpitations
-Positional: worse lying flat? Better sitting forward?
-Relieved by GTN / antacids (helps distinguish cardiac vs GI)
-MANDATORY: history of previous heart attacks, rheumatic fever, hypertension, diabetes, family cardiac history
+─────────────────────────────────────────
+RESPIRATORY SYSTEM
+(Use for: cough, sore throat, runny nose, ear pain, breathlessness, wheeze, haemoptysis, voice changes)
+─────────────────────────────────────────
+UPPER TRACT:
+• Nasal: blocked/runny (colour — clear=viral, yellow-green=bacterial/secondary); loss of smell/taste
+• Throat: sore (how bad?); difficulty swallowing; drooling (RED FLAG — epiglottitis)
+• Ear: pain; discharge; hearing change
+• Voice: hoarseness (if >3 weeks in a smoker — RED FLAG, consider laryngeal Ca)
+• Lymph nodes: swollen neck glands? Tender (infection) or hard/fixed (malignancy)?
 
-─ COUGH / RESPIRATORY ─
-Duration | Dry or productive (colour/consistency of sputum)
-Haemoptysis (blood in sputum) — always ask directly
-Breathlessness: on exertion / at rest / waking from sleep / lying flat
-Wheeze or chest tightness | Stridor (noisy breathing in)
-TB SCREEN MANDATORY: night sweats, weight loss, TB contacts, previous TB treatment
-Fever | Any sick contacts or recent travel
-Occupation (dusty/chemical environments for occupational lung disease)
+LOWER TRACT:
+• Cough: duration; dry or productive — sputum colour: clear/white=viral, yellow-green=bacterial,
+  rusty=pneumococcal, pink-frothy=pulmonary oedema, red blood=haemoptysis (ask directly)
+• Breathlessness: at rest / on exertion / waking at night / lying flat (how many pillows?)
+  ${simple
+    ? 'Ask: "Are you short of breath? When? Resting or walking?"'
+    : 'mMRC scale — Grade 0: exertion only; 1: hurrying/hills; 2: slower than peers or stops after 15min; 3: stops after 100m; 4: too breathless to leave house'
+  }
+• Wheeze or chest tightness | Stridor (noisy breathing in — RED FLAG)
+• Pleuritic chest pain: sharp, worse breathing in or coughing
 
-─ UPPER RESPIRATORY TRACT (cold, sore throat, runny nose, ear pain) ─
-Duration | Sore throat (yes/no) | Ear pain or discharge (yes/no)
-Runny nose (colour — clear vs yellow/green) | Blocked nose
-Voice hoarseness | Difficulty swallowing or breathing | Neck glands swollen
-Fever | Rash (consider scarlet fever or glandular fever)
-Recurrent or first episode?
+TB SCREEN (mandatory every respiratory complaint):
+• Cough for more than 3 weeks?
+• Night sweats?
+• Unexplained weight loss?
+• Anyone at home or close contact diagnosed with TB?
+• Previous TB? If yes — did they complete treatment?
+• HIV status — ask sensitively ("We ask everyone routinely")
 
-─ ABDOMINAL COMPLAINT ─
-Location (ask them to describe where — upper/lower/left/right/all over)
-Character: crampy / constant / colicky | Onset: sudden or gradual
-Severity | Radiation to back (pancreatitis, AAA) or shoulder tip (diaphragm irritation)
-Relation to food: before or after eating, worse or better
-Nausea and/or vomiting (any blood or coffee-ground appearance?)
-Bowel: normal / diarrhoea / constipation / blood in stool / mucus / change in habit
-Last bowel movement | Urinary symptoms (dysuria, frequency)
-For females: last menstrual period, any chance of pregnancy (ectopic)
-Jaundice, dark urine, pale stools (biliary/hepatic)
+SCORING DATA — CAPTURE FOR GP REPORT:
+• CRB-65: (1) Confusion — "Have you felt confused or muddled?" (2) Breathing fast — "Is your breathing much faster than usual even at rest?" (3) BP low — "Have you felt faint or been told your BP is very low?" (4) Age ≥65 — [auto: ${ctx.age >= 65 ? 'YES' : 'NO'}]
+• FeverPAIN (sore throat): (1) Fever — "Do you have a temperature or feel feverish?" (2) Purulence — "Any yellow/green phlegm or white spots on your tonsils?" (3) Rapid onset — "Did this start less than 3 days ago?" (4) Inflamed tonsils — [requires GP examination] (5) No cough — document if cough is absent
+• Centor: also ask — "Do you have tender glands at the front of your neck?"
+• qSOFA (if systemically unwell): same confusion and breathing fast questions; "Has your BP been checked? Is it low?"
 
-─ HEADACHE ─
-Location: one side / both sides / forehead / back of head / behind eyes
-Character: throbbing / pressure / tight band / stabbing | Severity
-Onset: sudden (thunderclap → subarachnoid haemorrhage) or gradual
-Duration and frequency (first time or recurrent pattern)
-Associated: nausea/vomiting, photophobia, phonophobia, visual aura, neck stiffness
-Worsens with: bending, coughing, sneezing, movement, bright light
-Relieved by: rest, painkillers, sleep, darkness
-Fever | Recent head injury | Known migraines
+─────────────────────────────────────────
+CARDIOVASCULAR SYSTEM
+(Use for: chest pain, palpitations, breathlessness, leg swelling, collapse, syncope)
+─────────────────────────────────────────
+CHEST PAIN (if present):
+• Location: central / left side / right side / back / epigastric
+• Character: crushing/tight/pressure (cardiac), sharp/stabbing/worse breathing in (pleuritic/MSK), tearing/ripping (aortic dissection — RED FLAG), burning (GORD)
+• Onset: sudden or gradual | Duration: constant or episodic
+• Radiation: left arm, jaw, right arm, back, epigastric, shoulder tip
+• Severity: ${simple ? 'small, medium, or very bad' : '1-10, and functional impact'}
+• Relieving: rest, GTN (cardiac), antacids (GORD), leaning forward (pericarditis), analgesia (MSK)
+• Aggravating: exertion, breathing, position, food, movement
 
-─ MUSCULOSKELETAL (joint/back/muscle pain) ─
-Location: which joint(s) | One or many joints (mono vs polyarthritis)
-Acute or chronic | Morning stiffness (how long — >30 min suggests inflammatory)
-Swelling, redness, warmth at joint | Ability to weight bear
-Trauma or injury | Back pain: radiation down leg (sciatica), bladder/bowel symptoms (cauda equina — RED FLAG)
-Rheumatic fever history (young patient with joint pain + cardiac symptoms)
-Family history of arthritis / gout
+ASSOCIATED:
+• Breathlessness: at rest or exertion? PND? Orthopnoea (how many pillows)?
+• Palpitations: fast? Irregular? Skipping beats? Onset/offset sudden or gradual? Syncope during?
+• Sweating, nausea, vomiting (anterior MI pattern)
+• Leg swelling: both legs (heart failure, venous) or one leg only (DVT)
+• Leg claudication: calf pain on walking, relieved by rest (PVD)
+• Syncope: warning symptoms beforehand? How long unconscious? Full recovery?
+• Ankle swelling: duration, pitting, worse at end of day
 
-─ FEVER / SYSTEMIC ILLNESS ─
-Duration | How high (measured or feeling very hot)
-Night sweats | Weight loss (how much over what period)
-Rigors (shaking chills — suggests bacteraemia)
-Localising symptoms: cough, urinary, diarrhoea, skin, headache, neck stiffness
-TB contacts | HIV status (sensitively) | Travel history (malaria endemic areas)
-Any sores, wounds, or broken skin | Sick contacts
-Lymph node swelling
+CARDIOVASCULAR RISK FACTORS (mandatory):
+• Hypertension | Diabetes | High cholesterol | Smoking | Family history (father/brother under 55, mother/sister under 65) | Previous heart attack, stent, bypass | Rheumatic fever history
 
-─ URINARY ─
-Dysuria (pain or burning when passing urine) | Frequency | Urgency
-Nocturia (waking at night to pass urine — how many times)
-Haematuria (blood in urine — visible or detected on dipstick)
-Hesitancy or weak stream | Incomplete emptying | Post-void dribble
-Flank or loin pain (upper urinary tract) | Fever (pyelonephritis)
-For females: vaginal discharge (UTI vs STI)
-${ctx.gender === 'MALE' && ctx.age >= 50 ? 'BPH SCREEN (mandatory this age/gender — see risk screening below)' : ''}
+SCORING DATA — CAPTURE FOR GP REPORT:
+• HEART Score — History component: Is chest pain classic/typical (crushing, radiation, sweating, exertion)=2, possible cardiac=1, non-cardiac=0
+• HEART Risk factors: ≥3 of: known atherosclerosis, DM, active smoker, HTN, hyperlipidaemia, obesity, family history → score 2; 1-2 factors → score 1; no factors → score 0
+• Wells PE: (1) Breathless + pleuritic chest pain + haemoptysis? (2) HR felt fast/pounding? (3) Immobile ≥3 days or surgery in last 4 weeks? (4) Previous DVT or PE? (5) Any known cancer?
+• Wells DVT (if leg swelling): (1) One leg swollen (not both)? (2) Calf tender? (3) Collateral veins visible? (4) Cancer? (5) Bedridden >3 days or surgery in 4 weeks?
+• qSOFA if systemically unwell: confusion, fast breathing, low BP
 
-─ SKIN / RASH ─
-Location and distribution: localised or widespread | Symmetrical
-Onset and progression | Character: flat/raised/blistered/scaling/weeping/crusted
-Itchy / painful / burning | Colour: red/brown/white/purple
-Spreading | Any similar rash before | Contact with anything new (irritant, plant, latex)
-Fever | Joint pain with rash (consider viral illness, reactive arthritis)
-HIV status (recurrent or unusual rashes)
+─────────────────────────────────────────
+GASTROINTESTINAL SYSTEM
+(Use for: abdominal pain, nausea, vomiting, bowel changes, jaundice, rectal bleeding, dysphagia)
+─────────────────────────────────────────
+PAIN:
+• Location: upper/lower/left/right/central/all over — ask patient to describe rather than point
+• Character: colicky (bowel/biliary/ureteric), constant (peritoneal), crampy
+• Relation to food: before eating (peptic), after eating (biliary/bowel ischaemia)
+• Radiation: to back (pancreatitis, AAA), to right shoulder tip (diaphragm/biliary)
 
-─ NEUROLOGICAL ─
-Dizziness: true vertigo (spinning) or lightheadedness/presyncope? Positional?
-Syncope: warning symptoms beforehand, how long unconscious, recovery
-Seizures: describe what happens, duration, tongue biting, incontinence, post-ictal state
-Weakness: focal or generalised | Sudden or progressive | Arm / leg / face
-Sensory: numbness, tingling, pins and needles — distribution
-Speech: slurred / finding words / not making sense
-Vision: blurred / double / loss of field / loss of one eye
+UPPER GI:
+• Nausea and vomiting — content: undigested food, bile, blood (fresh/coffee grounds)
+• Dysphagia: solids first (mechanical — malignancy), both liquids and solids (motility)
+• Heartburn / reflux / waterbrash
 
-─ WOMEN'S HEALTH ─
-Last menstrual period | Regular or irregular | Cycle length
-Intermenstrual or post-coital bleeding | Amount of flow (pads per day)
-Dysmenorrhoea (pain with periods) | Dyspareunia (pain with intercourse)
-Vaginal discharge: colour, odour, associated itch
-Any chance of pregnancy | Contraception method
-Breast: any lumps, discharge, skin changes | Last cervical smear
-Menopausal symptoms if age-appropriate
+LOWER GI:
+• Bowel habit change: diarrhoea / constipation / alternating
+• Blood in stool: fresh red (lower GI), dark/tarry melaena (upper GI), mixed in stool
+• Mucus in stool | Tenesmus (feeling of incomplete emptying)
+• Last normal bowel movement
 
-─ MENTAL HEALTH / MOOD ─
-Open: "How have you been feeling emotionally?"
-Duration | Sleep: falling asleep / staying asleep / early waking / quality
-Appetite and weight changes | Energy and motivation
-Concentration | Enjoyment of things they usually enjoy
-Anxiety: excessive worry, panic attacks, avoidance behaviours
-Ask directly about suicidal ideation: "Have you had any thoughts of harming yourself?" (non-judgmentally)
-Social support and stressors | Recent life events
-Alcohol/substance use changes
+HEPATOBILIARY:
+• Jaundice: yellow eyes/skin | Dark urine | Pale/clay stools | Itching (cholestatic)
 
-╔══ PHASE 3 — GENERALISED SYMPTOMS REVIEW ══╗
-Every patient gets this brief screen — it takes 4-5 questions:
-"Before I finish, I want to quickly check a few other things — these are questions I ask everyone."
-• Constitutional: any fever, night sweats, unexplained weight loss, or extreme tiredness lately?
-• Sleep: are you sleeping okay?
-• Appetite: eating normally?
-• Mood: how are you feeling emotionally in general?
-• Any other symptoms or health concerns you've been meaning to mention?
-(The last question often yields the most important information)
+GYNAECOLOGICAL CROSSOVER (females):
+• LMP | Any chance of pregnancy? (ectopic — RED FLAG if positive with pain)
+• Vaginal discharge or bleeding?
 
-╔══ PHASE 4 — RISK-STRATIFIED OPPORTUNISTIC SCREENING ══╗
-${riskScreening}
+SYSTEMIC:
+• Weight loss | Anorexia | Fatigue
 
-╔══ PHASE 5 — BASELINE (every patient, every visit) ══╗
-1. Past medical history: any other illnesses? ${ctx.knownConditions.length > 0 ? `(known: ${ctx.knownConditions.join(', ')} — confirm still current)` : 'Ask specifically: hypertension, diabetes, heart disease, TB (ever), asthma, kidney disease'}
-2. Previous hospitalisations or operations?
-3. Medications: ${ctx.currentMedications.length > 0 ? `known medications (${ctx.currentMedications.join(', ')}) — confirm still taking, any changes, any side effects` : 'any medicines — pills, injections, drops, umuthi/traditional medicine?'}
-4. Allergies: specifically penicillin, aspirin, sulpha drugs, any foods
-5. Social: smoking (${ctx.isSmoker ? 'KNOWN SMOKER — how many per day, how long, any interest in quitting?' : 'yes/no — if yes: how many/day'}), alcohol (yes/no — if yes: how much/week), recreational drugs (sensitively)
-6. Occupation | Living situation | Who is at home
-7. Family history: heart disease, diabetes, TB, cancer, kidney disease — parents and siblings`;
+SCORING DATA — CAPTURE FOR GP REPORT:
+• Alvarado (appendicitis — if right iliac fossa pain): (1) Migration of pain to RIF? (2) Anorexia or nausea? (3) Nausea or vomiting? (4) Fever? (5) RIF tenderness [GP examination] (6) Rebound tenderness [GP examination] (7) Raised WCC [investigation] (8) Shift to left [investigation] — History score: items 1-4 + fever
+• If periumbilical pain migrating to RIF + fever + anorexia = classic Alvarado presentation — note for GP
+
+─────────────────────────────────────────
+NEUROLOGICAL SYSTEM
+(Use for: headache, dizziness, syncope, weakness, numbness, seizures, speech, vision changes)
+─────────────────────────────────────────
+HEADACHE:
+• Location: unilateral (migraine, cluster), bilateral (tension, raised ICP), occipital (cervicogenic, SAH)
+• Character: throbbing (migraine, vascular), tight band (tension), ice-pick/thunderclap (SAH — RED FLAG), pressure (raised ICP)
+• Onset: sudden (thunderclap → IMMEDIATE EMERGENCY — SAH), gradual
+• Frequency and pattern: first time vs recurrent vs changed pattern of known headache
+• Associated: nausea/vomiting, photophobia, phonophobia, visual aura, neck stiffness (meningism — RED FLAG), fever
+
+DIZZINESS:
+• True vertigo (room spinning) vs presyncope (going to faint, lightheaded) vs disequilibrium (unsteady walking)
+• Positional (BPPV) vs constant (central) | Duration of each episode | Nausea/vomiting with it
+
+FOCAL NEUROLOGICAL:
+• Weakness: face / arm / leg — one side (UMN) or both (cord) | Sudden or progressive
+• Speech: dysphasia (can't find words) vs dysarthria (slurred but words correct)
+• Vision: blurred / double / loss of field / one eye gone dark momentarily (amaurosis fugax — TIA sign)
+• Sensory: numbness / tingling — distribution (glove-stocking=DM, hemibody=stroke)
+• Swallowing difficulty
+
+SYNCOPE:
+• Warning: tunnel vision, sweating, pallor (vasovagal) vs sudden without warning (cardiac)
+• During: duration, witnessed, tongue biting, incontinence (suggests seizure)
+• Recovery: immediate (vasovagal) vs slow/confused (post-ictal)
+
+SEIZURES: full description of what happens, duration, post-ictal state, previous seizures, triggers
+
+SCORING DATA — CAPTURE FOR GP REPORT:
+• ABCD2 Score (TIA — if transient neurological symptoms): (1) Age ≥60 [auto: ${ctx.age >= 60 ? 'YES (1pt)' : 'NO (0pt)'}] (2) BP: "Have you been told your BP is high, or was it raised today?" (3) Clinical: unilateral weakness (2pts) vs speech disturbance only (1pt) vs other (0pts) (4) Duration: <10min (0), 10-59min (1), ≥60min (2) (5) Diabetes: "Do you have diabetes?" Score 0-3=low risk; 4-5=moderate; 6-7=high 2-day stroke risk
+• Ottawa SAH rule (severe headache): age ≥40, neck pain or stiffness, onset during exertion, thunderclap, witnessed LOC — any one positive = CT/LP indicated → note for GP
+
+─────────────────────────────────────────
+MUSCULOSKELETAL SYSTEM
+(Use for: joint pain, back pain, muscle pain, swelling, stiffness, trauma)
+─────────────────────────────────────────
+DISTRIBUTION:
+• Which joint(s) or area? | Monoarthritis (one joint) vs polyarthritis (many joints)
+• Symmetrical (RA) or asymmetrical (reactive, psoriatic, gout)
+
+CHARACTER — INFLAMMATORY vs MECHANICAL:
+• Inflammatory: worse at rest / morning, improves with movement, morning stiffness >30min
+• Mechanical: worse with use, better with rest, morning stiffness <30min or absent
+
+JOINT FEATURES:
+• Swelling | Redness | Warmth | Tenderness | Range of motion limitation
+• Ability to weight bear
+
+BACK PAIN — MANDATORY SCREENS:
+• Radiation down leg (sciatica / disc prolapse) | Bilateral leg weakness or numbness
+• Bladder or bowel dysfunction (incontinence or retention) — cauda equina → RED FLAG
+• Night pain waking from sleep (sinister — malignancy, infection)
+• Fever with back pain (discitis, epidural abscess)
+• Trauma or fall
+
+SYSTEMIC ASSOCIATIONS:
+• Fever with joint pain (septic arthritis, reactive arthritis, rheumatic fever, viral)
+• Rheumatic fever history — young patient with joint pain + any cardiac symptoms
+• Rash with joint pain (lupus, psoriasis, reactive, viral)
+• Family history of arthritis, gout, psoriasis, ankylosing spondylitis
+
+─────────────────────────────────────────
+URINARY SYSTEM
+(Use for: dysuria, frequency, haematuria, loin pain, incontinence, urinary retention)
+─────────────────────────────────────────
+LOWER TRACT:
+• Dysuria (pain/burning on urinating) | Frequency | Urgency
+• Haematuria: visible red / smoky urine vs dipstick only
+• Cloudy or offensive-smelling urine | Urethral discharge
+
+UPPER TRACT:
+• Loin / flank pain (unilateral — renal colic or pyelonephritis) | Fever | Rigors
+• Radiation to groin (ureteric stone — loin to groin = classic)
+
+${ctx.gender === 'MALE' && ctx.age >= 40 ? `PROSTATE / BPH ASSESSMENT (male age ${ctx.age} — ask all 7 IPSS questions):
+IPSS (International Prostate Symptom Score) — "Over the past month, how often..."
+(0=not at all, 1=less than 1 in 5 times, 2=less than half, 3=about half, 4=more than half, 5=almost always)
+1. "...have you had a feeling of not emptying your bladder completely after urinating?"
+2. "...have you had to urinate again within 2 hours of finishing?"
+3. "...have you stopped and started several times when urinating?"
+4. "...have you found it difficult to postpone urination?"
+5. "...have you had a weak urinary stream?"
+6. "...have you had to strain to begin urinating?"
+7. "How many times do you typically get up at night to urinate?" (0=none, 1=once, 2=twice, etc.)
+Quality of life: "If your urinary condition stayed like this for the rest of your life, how would you feel?" (0=delighted to 6=terrible)
+IPSS total 0-7=mild, 8-19=moderate, 20-35=severe — include score and severity in GP report` : ''}
+
+FEMALE SPECIFIC:
+• Stress incontinence (leaks on coughing/sneezing/laughing) vs urge incontinence (can't hold on)
+• Vaginal discharge associated with urinary symptoms (STI consideration)
+• Pregnancy test consideration
+
+─────────────────────────────────────────
+HAEMATOLOGICAL / INFECTIOUS / CONSTITUTIONAL
+(Use for: fever, night sweats, weight loss, lymphadenopathy, fatigue, bruising, pallor)
+─────────────────────────────────────────
+B-SYMPTOMS (lymphoma, TB, HIV):
+• Fever: documented or feeling hot — duration, pattern (swinging=abscess, night=TB/lymphoma)
+• Night sweats: drenching? Change clothes/sheets?
+• Weight loss: how much? Over what period? Intentional?
+
+FEVER LOCALISATION — ask about symptoms in every system (takes 4-5 questions):
+• Respiratory: cough, breathlessness | GI: diarrhoea, vomiting | Urinary: dysuria, frequency
+• Neurological: headache, neck stiffness | Skin: rash, wounds | Ears/throat: ear pain, sore throat
+
+TB SCREEN (full):
+• All B-symptoms above | Cough >3 weeks | Haemoptysis | TB contacts | Previous TB | Immunosuppressed?
+
+HIV APPROACH:
+• "This is completely private — we ask everyone. Do you know your HIV status?"
+• "Are you on any HIV treatment (ARVs)?" | "When did you last have a CD4 or viral load test?"
+
+MALARIA (if endemic area or travel):
+• "Have you been to or lived in Limpopo, KZN coastal areas, or Mpumalanga recently?"
+
+ANAEMIA SYMPTOMS:
+• Fatigue, pallor (conjunctival), palpitations, breathlessness on exertion
+• Easy bruising or prolonged bleeding | Heavy menstrual periods (females)
+
+LYMPH NODES:
+• Location | Tender or painless | Single or multiple | Hard/fixed or soft/mobile
+
+SCORING DATA — CAPTURE FOR GP REPORT:
+• qSOFA (sepsis risk): (1) Confusion — "Have you felt confused or muddled?" (2) Fast breathing — "Is your breathing very fast, even at rest?" (3) Low BP — "Have you felt faint or been told your BP is very low?" Score ≥2 = high risk of organ dysfunction
+• SIRS criteria indicators: temperature >38 or <36, heart rate >90 (ask "Is your heart racing?"), fast breathing, symptoms suggesting high or low WCC
+
+─────────────────────────────────────────
+MENTAL HEALTH
+(Use for: mood symptoms, anxiety, sleep disturbance, suicidal ideation, substance use)
+─────────────────────────────────────────
+OPENING (always start open):
+"I'm going to ask about a few things that are important for your health — many people experience these and they are completely confidential."
+"How have you been feeling emotionally over the past few weeks?"
+
+PHQ-2 SCREEN (ask both — each scored 0-3: 0=not at all, 1=several days, 2=more than half, 3=nearly every day):
+1. "Over the past 2 weeks — have you had little interest or pleasure in doing things you normally enjoy?"
+2. "Over the past 2 weeks — have you felt down, depressed, or hopeless?"
+If EITHER answer is ≥1 OR any concern → proceed to full PHQ-9 (all 9 items):
+3. Trouble sleeping or sleeping too much
+4. Feeling tired or having little energy
+5. Poor appetite or overeating
+6. Feeling bad about yourself — that you are a failure or have let people down
+7. Trouble concentrating on things
+8. Moving/speaking so slowly others notice, or the opposite — fidgety, restless
+9. Thoughts that you would be better off dead, or hurting yourself in some way
+(PHQ-9: 0-4=minimal, 5-9=mild, 10-14=moderate, 15-19=moderately severe, 20-27=severe)
+
+ANXIETY — GAD-7 (if anxiety is a feature):
+"Over the past 2 weeks how often have you been bothered by..."
+1. Feeling nervous, anxious, or on edge
+2. Not being able to stop or control worrying
+3. Worrying too much about different things
+4. Trouble relaxing
+5. Being so restless it is hard to sit still
+6. Becoming easily annoyed or irritable
+7. Feeling afraid as if something awful might happen
+(GAD-7: 0-4=minimal, 5-9=mild, 10-14=moderate, 15-21=severe)
+
+SUICIDALITY (ask directly — non-judgmentally):
+"Have you had any thoughts of harming yourself or not wanting to be here anymore?"
+If yes: "Have you thought about how?" → RED FLAG if plan exists
+
+ALCOHOL — AUDIT-C:
+1. "How often do you have a drink containing alcohol?" (0=never, 1=monthly or less, 2=2-4x/month, 3=2-3x/week, 4=4+x/week)
+2. "How many standard drinks do you have on a typical day when you are drinking?" (0=1-2, 1=3-4, 2=5-6, 3=7-9, 4=10+)
+3. "How often do you have 6 or more drinks on one occasion?" (0=never, 1=less than monthly, 2=monthly, 3=weekly, 4=daily)
+AUDIT-C ≥3 women / ≥4 men = positive screen
+
+SLEEP:
+• Difficulty falling asleep | Staying asleep | Early morning waking | Total hours | Quality
+• Daytime sleepiness | Snoring or stopped breathing at night (partner report)
+
+SUBSTANCE USE:
+"To give you the best care I need to ask about other substances — this is completely confidential."
+"Do you use any recreational drugs or substances?" — if yes: which, how often, route
+
+─────────────────────────────────────────
+DERMATOLOGICAL
+(Use for: rashes, skin lesions, wounds, pigment changes, ulcers)
+─────────────────────────────────────────
+• Distribution: localised vs widespread | Symmetrical vs asymmetrical
+• Evolution: onset, progression (spreading or stable)
+• Character: flat/raised/blistered/pustular/scaling/ulcerated/weeping/crusted
+• Colour | Itch | Pain | Burning
+• Contact with anything new: plants, animals, metals, latex, soaps, cosmetics
+• Sun exposure (photodermatitis)
+• Associated: fever, joint pain (viral exanthem, reactive arthritis), weight loss (paraneoplastic)
+• HIV status — recurrent, unusual, or extensive skin conditions in SA context
+• Wound: mechanism, contamination, tetanus status
+
+╔══ PHASE 3 — CONSTITUTIONAL / GENERALISED SCREEN ══╗
+Every patient gets these 4-5 questions — introduce as: "Before finishing, a few quick questions I ask everyone."
+• Constitutional: "Any fever, night sweats, or unexplained weight loss lately?"
+• Energy: "How are your energy levels overall?"
+• Sleep: "Are you sleeping okay?"
+• Appetite: "Eating normally?"
+• Mood: "How have you been feeling emotionally in general?"
+• Catch-all: "Is there anything else worrying you health-wise that we haven't covered yet?"
+
+╔══ PHASE 4 — OPPORTUNISTIC HEALTH PROMOTION ══╗
+${buildHealthPromotion(ctx, 'ACUTE')}
+
+╔══ PHASE 5 — BASELINE (every patient) ══╗
+${getBaseline(ctx, simple)}`;
 }
 
 // ─── Chronic Review Flow ─────────────────────────────────────────────────────
 
 function getChronicReviewFlow(ctx: PatientContext, literacy: PatientLiteracyLevel): string {
-  const riskScreening = buildRiskStratifiedScreening(ctx, literacy);
+  const simple = literacy === 'LOW';
   const conditions = ctx.knownConditions.length > 0
     ? ctx.knownConditions.join(', ')
     : 'chronic conditions';
 
   return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CONSULTATION FLOW — CHRONIC REVIEW VISIT
+CONSULTATION FLOW — CHRONIC DISEASE REVIEW
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-This patient is here for a routine review of ${conditions}.
-Use this specific flow — do not treat this as a new acute presentation.
+Patient here for review of: ${conditions}
+${ctx.lastVisitDays ? `Last seen: approximately ${ctx.lastVisitDays} days ago.` : ''}
+Use this full review protocol. If a significant NEW acute problem emerges, pivot to acute flow for that problem.
 
-╔══ PHASE 1 — SINCE LAST VISIT ══╗
-Open: "How have you been since we last saw you?"
-• Any new problems or symptoms since the last visit?
-• Any visits to hospital, emergency, or another clinic?
-• Any changes in how they have been feeling overall?
-Note: if they report a significant new acute problem, pivot to the ACUTE flow for that problem.
+╔══ PHASE 1 — OPENING ══╗
+"How have you been since we last saw you?"
+• Any acute intercurrent illness since last visit?
+• Any hospital visits, emergency room, or other clinic visits?
+• Any significant life events or changes?
 
-╔══ PHASE 2 — CONDITION CONTROL ══╗
-For EACH known condition, assess control:
+╔══ PHASE 2 — DISEASE CONTROL ASSESSMENT ══╗
+Assess control of EACH known condition:
 
-Hypertension: headaches, visual disturbance, chest pain, breathlessness, ankle swelling?
-Home BP readings if they monitor? Dietary changes (salt)?
+HYPERTENSION (if applicable):
+• Headaches (morning headaches suggest poorly controlled BP) | Visual disturbance | Chest pain | Breathlessness
+• Ankle swelling | Epistaxis (nosebleeds)
+• Home BP readings if monitoring? What are the readings?
+• Adherent to salt restriction? Measuring salt?
 
-Diabetes: hypoglycaemia episodes (shaking, sweating, feeling faint)?
-Hyperglycaemia symptoms (excessive thirst, urination, blurred vision, weight loss)?
-Foot care: any sores, wounds, numbness, tingling in feet?
-Vision: any changes since last check?
-HbA1c trend if known.
+DIABETES (if applicable):
+• Hypoglycaemia episodes — "shaking, sweating, heart racing, feeling faint" — frequency, severity, awareness
+• Hyperglycaemia symptoms — excessive thirst, urination, blurred vision, fatigue
+• Glucose readings if testing at home — what are the numbers?
+• HbA1c result at last test if known
+• Foot: any numbness, tingling, burning, sores, wounds, or changes to foot skin — inspect feet questions
+• Vision: any blurring or changes since last check?
+• Renal: ankle swelling, foamy urine, reduced urine output?
 
-Asthma/COPD: frequency of symptoms, nights disturbed, how often using reliever inhaler,
-any exacerbations since last visit, exercise tolerance compared to before?
+ASTHMA / COPD (if applicable):
+• Symptom frequency since last visit | Night-time symptoms | Exercise tolerance
+• Reliever inhaler (Ventolin): how many puffs per day / per week? More than 2 puffs/week = poorly controlled
+• Exacerbations: any courses of oral steroids or antibiotics since last visit?
+• Inhaler technique — remind to check
+• Triggers: any new triggers identified?
 
-TB/HIV (if known): adherence to treatment, any side effects, any opportunistic infections?
+CARDIAC CONDITIONS (if applicable):
+• Exercise tolerance compared to last visit (distance, stairs)
+• Breathlessness on exertion or at rest | Ankle swelling
+• Chest pain on exertion or at rest | Palpitations
 
-Cardiac conditions: exercise tolerance, breathlessness, ankle swelling, palpitations, chest pain?
+HIV (if applicable):
+• ART adherence: "Have you missed any doses this week? This month?" (non-judgmentally)
+• Side effects from ARVs | Any new infections, rashes, oral thrush, diarrhoea, weight loss
+• Last CD4 count / viral load — result and when?
+• TB symptoms (mandatory screen)
 
-Epilepsy: seizure frequency since last visit, any injuries during seizures?
+TB (if applicable):
+• Treatment adherence | Any doses missed | Side effects (yellow eyes = hepatotoxicity)
+• Symptoms improving — cough, night sweats, weight loss trends
+• Close contacts — any new TB diagnoses at home?
 
-Mental health: mood compared to last visit, sleep, appetite, functioning?
+EPILEPSY (if applicable):
+• Seizure frequency since last visit | Any injuries during seizures
+• Adherence to anti-epileptic medication | Triggers (sleep deprivation, alcohol, missed doses)
+• Driving (important medico-legal issue)
 
-╔══ PHASE 3 — MEDICATION REVIEW ══╗
-${ctx.currentMedications.length > 0
-  ? `Current medications: ${ctx.currentMedications.join(', ')}`
-  : 'Ask about current medications'}
-• Taking all medications as prescribed? Any doses missed?
-• Any side effects? Anything they've stopped taking?
-• Running low on any medication?
-• Any new medications from another doctor or pharmacy?
-• Any new traditional medicine / umuthi?
+MENTAL HEALTH CONDITIONS (if applicable):
+• PHQ-2 quick screen: mood, loss of interest since last visit
+• Sleep and appetite | Functioning at work and socially | Stressors
 
-╔══ PHASE 4 — MONITORING & INVESTIGATIONS ══╗
-What monitoring has been done since last visit?
-Blood pressure (if hypertensive) | Blood glucose (if diabetic) | Weight
-Any blood tests or investigations — results known?
+╔══ PHASE 3 — DIET AND NUTRITION ASSESSMENT ══╗
+This is critical for cardiovascular risk, diabetes control, and weight management.
+"I'd like to understand what you've been eating — let's go through a typical day."
 
-╔══ PHASE 5 — LIFESTYLE ══╗
-Diet: any changes? Eating healthily?
-Exercise: active? Any change in exercise tolerance?
-Smoking: ${ctx.isSmoker ? 'still smoking? Any change? Interested in quitting?' : 'confirmed non-smoker?'}
-Alcohol: any change in consumption?
-Stress and social situation: any major life changes or stressors?
+24-HOUR DIETARY RECALL APPROACH:
+• Breakfast: "What did you have for breakfast yesterday?" — portion size, cooking method
+• Lunch: "What did you have for lunch?"
+• Dinner: "What did you have for supper?"
+• Snacks: "Did you eat anything in between meals? Any sweets, biscuits, cool drinks?"
 
-╔══ PHASE 6 — GENERALISED REVIEW & OPPORTUNISTIC SCREENING ══╗
-Brief constitutional screen: fever, weight loss, night sweats, fatigue, sleep, mood
-"Is there anything else worrying you health-wise that we haven't covered?"
+KEY RISK FACTORS TO ASSESS:
+• Salt: "Do you add salt when cooking, or at the table?" | "Do you eat canned food, packet soups, or processed meats often?" (hidden salt)
+• Sugar: "How many teaspoons of sugar in your tea or coffee?" | "Do you drink cool drinks / fizzy drinks / juice?" | "How often do you eat sweets, cakes, or biscuits?"
+• Fat: "Do you eat a lot of fried food?" | "How often do you eat red meat, fatty meat, or chicken skin?"
+• Fruit and vegetables: "How many portions of fruit and vegetables do you eat each day?" (aim: 5 portions)
+• Carbohydrates: "Do you eat a lot of bread, maize meal (pap), or rice?" | White vs brown/whole grain
+• Alcohol: (capture for AUDIT-C in Phase 5)
 
-${riskScreening}
-
-╔══ PHASE 7 — BASELINE CONFIRMATION ══╗
-Confirm allergies still the same.
-Any new family history of significance.
-Confirm occupation and social situation unchanged or note changes.`;
+BRIEF DIETARY EDUCATION (after assessment, if issues identified):
+${simple
+  ? 'Keep advice simple: "Eat more vegetables, less salt, less sugar, less fat."'
+  : 'Brief SMART goal: e.g., "Could you try using less salt for the next 2 weeks?" — make it specific and achievable'
 }
 
-// ─── Risk-Stratified Opportunistic Screening ─────────────────────────────────
+╔══ PHASE 4 — EXERCISE AND PHYSICAL ACTIVITY ASSESSMENT ══╗
+"Physical activity is medicine — I want to understand how active you are."
 
-function buildRiskStratifiedScreening(ctx: PatientContext, literacy: PatientLiteracyLevel): string {
-  const screens: string[] = [];
-  const simple = literacy === 'LOW';
+FITT FRAMEWORK (Frequency, Intensity, Type, Time):
+• Frequency: "How many days per week do you do any physical activity?"
+  (WHO target: ≥150 min moderate OR ≥75 min vigorous per week)
+• Intensity: "What kind of exercise? Light (walking slowly), moderate (brisk walk — can talk but not sing), or vigorous (running, gym — can't hold a conversation)?"
+• Type: "What do you do? Walking, gym, swimming, dancing, playing sport, household chores, gardening?"
+• Time: "How long do you exercise for each time?"
 
-  // Male-specific
-  if (ctx.gender === 'MALE') {
-    if (ctx.age >= 50) {
-      screens.push(`BPH SCREEN (male age ${ctx.age} — mandatory):
-  ${simple
-    ? '"Do you have any problems with peeing? Like going many times, weak stream, or getting up at night?"'
-    : 'Urinary frequency / urgency / nocturia (how many times per night) / hesitancy / weak stream / terminal dribble / sensation of incomplete emptying / haematuria'
+BARRIERS (if inactive):
+• "What stops you from being more active?" — time, pain, safety, cost, fatigue, no interest
+• Address specific barrier with one practical suggestion
+
+SEDENTARY BEHAVIOUR:
+• "How many hours a day do you sit — at work, watching TV, on your phone?"
+  (>8 hours sitting is independent risk factor even if they exercise)
+
+CURRENT FITNESS INDICATORS:
+• Functional: Can they climb stairs? Walk to the shops? How far before stopping?
+• Exercise tolerance change since last visit — better, worse, or same?
+
+╔══ PHASE 5 — WEIGHT, SMOKING, ALCOHOL ══╗
+WEIGHT:
+• "Do you know your current weight?" | "How does this compare to last visit?"
+• Intentional or unintentional change?
+• Body image — brief sensitive exploration
+
+SMOKING:
+${ctx.isSmoker
+  ? `• "Are you still smoking?" | "How many per day — more or less than before?"
+• "Have you thought about cutting down or stopping?"
+• Assess readiness to change: pre-contemplation (not ready), contemplation (thinking about it), preparation (ready soon)
+• "Would you like help with stopping? There are medications that make it much easier."`
+  : `• Confirm still non-smoker | If ex-smoker: "Are you managing to stay off cigarettes?"`
+}
+
+ALCOHOL — AUDIT-C (capture all 3 scores for GP report):
+1. "How often do you drink alcohol?" (0=never, 1=monthly or less, 2=2-4×/month, 3=2-3×/week, 4=4+×/week)
+2. "When you do drink, how many drinks in a typical day?" (0=1-2, 1=3-4, 2=5-6, 3=7-9, 4=10+)
+3. "How often do you have 6 or more drinks in one occasion?" (0=never, 1=<monthly, 2=monthly, 3=weekly, 4=daily/almost daily)
+AUDIT-C score: ≥3 for women or ≥4 for men = hazardous drinking — note for GP
+
+╔══ PHASE 6 — MEDICATION REVIEW ══╗
+${ctx.currentMedications.length > 0
+  ? `Known medications: ${ctx.currentMedications.join(', ')}`
+  : 'Confirm current medication list'}
+• "Are you taking all your medications as prescribed? Any doses you've been missing?"
+• "Have you had any problems or side effects from any medication?"
+• "Are you running low on any medication? Any difficulty getting to the pharmacy?"
+• "Has any other doctor, nurse, or clinic given you any new medications?"
+• "Are you taking any traditional medicine, herbal remedies, or vitamins? (Umuthi, muti, supplements)"
+• Any medication the patient has stopped taking — explore why non-adherently (cost? Side effect? Feels better? Cultural? Forgetting?)
+
+╔══ PHASE 7 — MONITORING DUE ══╗
+Prompt the patient what monitoring should have been done or is due:
+${getMonitoringDue(ctx)}
+
+╔══ PHASE 8 — RISK STRATIFICATION ══╗
+${getRiskStratificationSection(ctx, literacy)}
+
+╔══ PHASE 9 — HEALTH PROMOTION & SELF-MANAGEMENT GOALS ══╗
+${buildHealthPromotion(ctx, 'REVIEW')}
+
+╔══ PHASE 10 — BASELINE CONFIRMATION ══╗
+• Confirm allergies unchanged | Any new allergies noticed?
+• Any new diagnoses from another doctor or hospital?
+• Family history — any new diagnoses in parents or siblings?
+• Occupation or living situation changes?
+• "Is there anything else worrying you health-wise that we haven't covered today?"`;
+}
+
+// ─── Health Promotion Section ─────────────────────────────────────────────────
+
+function buildHealthPromotion(ctx: PatientContext, mode: 'ACUTE' | 'REVIEW'): string {
+  const lines: string[] = [];
+
+  if (mode === 'ACUTE') {
+    // Brief opportunistic — 2-3 topics maximum in acute
+    lines.push('Briefly cover 2-3 of the most relevant items below — do not extend the consultation. Introduce as: "While you\'re here, a quick health check on a couple of things..."');
+  } else {
+    lines.push('Comprehensive health promotion — cover all relevant items. Introduce each section clearly.');
   }
-  Impact on quality of life? Any acute urinary retention episodes?`);
-    }
-    if (ctx.age >= 40) {
-      screens.push(`CARDIOVASCULAR / METABOLIC (male age ${ctx.age}):
-  Blood pressure awareness | Cholesterol checked recently?
-  Any chest pain on exertion, palpitations, breathlessness on exercise?
-  Family history of early heart disease (father/brother under 55)?`);
-    }
-    if (ctx.age >= 45) {
-      screens.push(`COLORECTAL SCREEN (age ${ctx.age}):
-  Any change in bowel habits? | Blood in stool (red or dark/tarry)?
-  Unexplained weight loss?`);
-    }
-  }
 
-  // Female-specific
+  // Cancer screening
   if (ctx.gender === 'FEMALE') {
-    if (ctx.age >= 21 && ctx.age <= 65) {
-      screens.push(`CERVICAL SCREENING (female age ${ctx.age}):
-  Last cervical smear / Pap smear — when? Result known?`);
-    }
-    if (ctx.age >= 40) {
-      screens.push(`BREAST HEALTH (female age ${ctx.age}):
-  Any lumps, skin changes, nipple discharge, or breast pain noticed?
-  ${ctx.age >= 50 ? 'Last mammogram if applicable?' : ''}`);
-    }
-    if (ctx.age >= 45 && ctx.age <= 60) {
-      screens.push(`MENOPAUSAL SCREEN (female age ${ctx.age}):
-  Any hot flushes, night sweats, irregular periods, vaginal dryness, mood changes?`);
-    }
-    if (ctx.age < 50) {
-      screens.push(`REPRODUCTIVE HEALTH:
-  Contraception method | Menstrual regularity | Any concerns?`);
-    }
+    if (ctx.age >= 21 && ctx.age <= 65)
+      lines.push(`• CERVICAL SCREENING: "When was your last pap smear / cervical smear?" Target: every 3 years (21-65). Overdue reminder.`);
+    if (ctx.age >= 40)
+      lines.push(`• BREAST HEALTH: "Have you noticed any breast lumps, skin changes, or nipple discharge?" ${ctx.age >= 50 ? 'Mammogram: offer referral if not done in 2 years.' : ''}`);
   }
 
-  // Smoker-specific
-  if (ctx.isSmoker) {
-    screens.push(`COPD / SMOKING SCREEN (known smoker):
-  Chronic cough or increased sputum? | Breathlessness on exertion worse than peers?
-  ${simple ? '"Do you get more short of breath than other people your age?"' : 'Exercise tolerance — how many flights of stairs / how far can they walk?'}
-  Cardiovascular risk: any exertional chest pain, leg cramps on walking (peripheral vascular disease)?`);
+  if (ctx.gender === 'MALE' && ctx.age >= 50) {
+    lines.push(`• PROSTATE HEALTH: ${ctx.age >= 50 ? 'PSA discussion — offer opportunistic screening conversation (individual risk/benefit discussion).' : ''}`);
   }
 
-  // Condition-specific additional screens
-  if (ctx.knownConditions.some(c => /diabet/i.test(c))) {
-    screens.push(`DIABETES COMPLICATIONS SCREEN:
-  Foot: any numbness, tingling, sores, or wounds on feet?
-  Vision: any blurring or changes since last check?
-  Renal: any ankle swelling, foamy urine, or reduced urine output?`);
+  if (ctx.age >= 45) {
+    lines.push(`• COLORECTAL CANCER SCREEN (age ${ctx.age}): "Any change in bowel habits, blood in stool, or unexplained weight loss?" Faecal occult blood test (FOBT) discussion if available.`);
   }
 
-  if (ctx.knownConditions.some(c => /hiv/i.test(c))) {
-    screens.push(`HIV REVIEW SCREEN:
-  Adherent to ART? Any missed doses this week/month?
-  Any new infections, rashes, oral thrush, persistent diarrhoea, weight loss?
-  Last CD4 / viral load if known?`);
-  }
-
-  if (ctx.knownConditions.some(c => /hypertens|blood pressure/i.test(c))) {
-    screens.push(`HYPERTENSION END-ORGAN SCREEN:
-  Any headaches, visual disturbance, or chest pain?
-  Any ankle swelling or breathlessness on exertion?
-  Home BP monitoring if available?`);
-  }
-
-  // Age 40+ general screening (everyone)
+  // Cardiovascular / metabolic
   if (ctx.age >= 40 && !ctx.knownConditions.some(c => /hypertens/i.test(c))) {
-    screens.push(`HYPERTENSION SCREEN (age ${ctx.age}, no known diagnosis):
-  Have they ever had their blood pressure checked? | Any headaches or visual symptoms?`);
+    lines.push(`• OPPORTUNISTIC BP CHECK: "Have you had your blood pressure checked recently?" — remind GP to check if not done in 12 months.`);
   }
-
   if (ctx.age >= 40 && !ctx.knownConditions.some(c => /diabet/i.test(c))) {
-    screens.push(`DIABETES SCREEN (age ${ctx.age}, no known diagnosis):
-  Any excessive thirst or urination? | Any unexplained weight loss?
-  Family history of diabetes?`);
+    lines.push(`• DIABETES SCREEN: "Any excessive thirst, urination, or unexplained weight loss?" Fasting glucose / HbA1c if symptomatic or strong family history.`);
+  }
+  if (ctx.age >= 40 && !ctx.knownConditions.some(c => /cholesterol|lipid/i.test(c))) {
+    lines.push(`• CHOLESTEROL: "Has your cholesterol ever been checked?" Lipid profile recommended from age 40 (or earlier with risk factors).`);
   }
 
-  // Sleep — everyone
-  screens.push(`SLEEP SCREEN (every patient):
-  ${simple
-    ? '"Are you sleeping okay at night?"'
-    : 'Quality of sleep | Difficulty falling or staying asleep | Daytime sleepiness | Snoring / witnessed apnoea (ask partner if relevant)'
-  }`);
+  // Vaccinations
+  lines.push(`• VACCINATIONS: "Are your vaccinations up to date?" — Influenza (annually, especially if >65, diabetic, asthmatic, HIV); Pneumococcal (≥65 or immunocompromised); COVID-19 boosters; Tetanus (if wound or >10 years since last); HPV (females 9-45 if not completed).`);
 
-  // Mental health — everyone
-  screens.push(`MENTAL HEALTH SCREEN (every patient):
-  "Many people feel stressed or down at times — how have you been feeling emotionally?"
-  ${simple
-    ? 'Ask: "Are you feeling sad? Worried? Having trouble coping?"'
-    : 'PHQ-2 style: low mood / loss of interest; GAD-2 style: uncontrollable worry / feeling on edge'
+  // Smoking cessation
+  if (ctx.isSmoker) {
+    lines.push(`• SMOKING CESSATION (known smoker): Motivational brief intervention — "Would you like help stopping? Even cutting down saves your heart and lungs. There are medicines that really help."`);
   }
-  If positive: explore further including sleep, appetite, suicidal ideation (ask directly)`);
 
-  if (screens.length === 0) return 'No additional risk screens required for this patient profile.';
+  // Mental health promotion (every patient)
+  lines.push(`• MENTAL HEALTH CHECK: "How have you been coping with stress? Many people find it helpful to have someone to talk to — would you like information about counselling support?"`);
 
-  return screens.map((s, i) => `${i + 1}. ${s}`).join('\n\n');
+  // Physical activity promotion (if inactive or review)
+  if (mode === 'REVIEW') {
+    lines.push(`• PHYSICAL ACTIVITY GOAL: "Can you set a specific activity goal for the next month? E.g., 30-minute walk, 5 days per week." Write it in the patient's health record.`);
+  }
+
+  return lines.join('\n');
+}
+
+// ─── Monitoring Due ───────────────────────────────────────────────────────────
+
+function getMonitoringDue(ctx: PatientContext): string {
+  const items: string[] = [];
+
+  if (ctx.knownConditions.some(c => /hypertens/i.test(c)))
+    items.push('Blood pressure: should be checked every visit');
+  if (ctx.knownConditions.some(c => /diabet/i.test(c)))
+    items.push('HbA1c: every 3 months if uncontrolled, every 6 months if stable | Fasting glucose | Lipid profile annually | Renal function (eGFR, urine ACR) annually | Foot examination annually | Ophthalmology referral annually');
+  if (ctx.knownConditions.some(c => /hiv/i.test(c)))
+    items.push('CD4 count and viral load | LFTs if on certain ARVs | TB screen');
+  if (ctx.knownConditions.some(c => /hypertens|cardiac|heart/i.test(c)))
+    items.push('Renal function and electrolytes if on ACE inhibitor/ARB or diuretic | ECG if symptomatic | Lipid profile annually');
+  if (ctx.knownConditions.some(c => /epilep/i.test(c)))
+    items.push('Anti-epileptic drug levels if on phenytoin/valproate | LFTs | FBC');
+  if (ctx.knownConditions.some(c => /asthma|copd/i.test(c)))
+    items.push('Peak flow if asthma | Spirometry if COPD not yet confirmed');
+
+  if (items.length === 0)
+    return 'Weight and BMI every visit. BP opportunistically. Confirm routine investigations are up to date.';
+
+  return items.map(i => `• ${i}`).join('\n');
+}
+
+// ─── Risk Stratification (Review Only) ───────────────────────────────────────
+
+function getRiskStratificationSection(ctx: PatientContext, literacy: PatientLiteracyLevel): string {
+  const lines: string[] = [];
+
+  lines.push('Capture the following data points to allow GP to calculate cardiovascular and metabolic risk:');
+
+  // Framingham / SCORE2 inputs
+  lines.push(`
+CARDIOVASCULAR RISK (Framingham / SCORE2 inputs from history):
+• Age: ${ctx.age} | Gender: ${ctx.gender}
+• Systolic BP: "What was your last blood pressure reading?" (patient may know or have a card)
+• Total cholesterol / LDL: "Has cholesterol been checked recently — do you know the result?"
+• Smoking: ${ctx.isSmoker ? 'SMOKER — known' : 'confirm status'}
+• Diabetes: ${ctx.knownConditions.some(c => /diabet/i.test(c)) ? 'YES — known diabetic' : 'ask if known'}
+• Family history of premature heart disease (father/brother <55 or mother/sister <65): ask
+• Any previous cardiovascular event: MI, stroke, TIA, PVD?`);
+
+  // FINDRISC (diabetes risk — if not diabetic)
+  if (!ctx.knownConditions.some(c => /diabet/i.test(c)) && ctx.age >= 35) {
+    lines.push(`
+FINDRISC (diabetes risk score — capture for GP):
+• BMI (from weight and height if known): >30 = 3pts, 25-30 = 1pt, <25 = 0pts
+• Waist circumference (patient may know): male >102cm = 3pts, 94-102cm = 1pt; female >88cm = 3pts, 80-88cm = 1pt
+• Physical activity: <30min daily moderate activity = 2pts
+• Fruit/veg/salad: not daily = 1pt
+• BP medication: YES = 2pts
+• High blood glucose previously: YES = 5pts
+• Family history of diabetes: parent/sibling/child = 3pts; no = 0pts
+FINDRISC ≥15 = high risk — consider fasting glucose / HbA1c testing`);
+  }
+
+  // eGFR / renal risk
+  if (ctx.knownConditions.some(c => /hypertens|diabet/i.test(c))) {
+    lines.push(`
+RENAL FUNCTION INDICATORS (for GP):
+• Ankle oedema (both feet) | Foamy or bubbly urine | Reduced urine output | Fatigue
+• Last creatinine/eGFR and urine protein/ACR result if known?`);
+  }
+
+  return lines.join('\n');
+}
+
+// ─── Baseline Questions ───────────────────────────────────────────────────────
+
+function getBaseline(ctx: PatientContext, simple: boolean): string {
+  return `Past medical history: ${ctx.knownConditions.length > 0
+    ? `Known: ${ctx.knownConditions.join(', ')} — confirm still current | Any new diagnoses?`
+    : 'Ask: hypertension, diabetes, heart disease, TB (ever), HIV, asthma, kidney disease, epilepsy, cancer'
+  }
+Previous hospitalisations, operations, or serious illnesses?
+Medications: ${ctx.currentMedications.length > 0
+    ? `Known: ${ctx.currentMedications.join(', ')} — confirm taking correctly | Any changes or new medications?`
+    : `${simple ? '"Are you taking any medicines — tablets, injections, umuthi?"' : 'All medicines: prescription, OTC, herbal, traditional (umuthi/muti), vitamins, supplements'}`
+  }
+Allergies: specifically ask about penicillin, sulpha drugs, aspirin, ibuprofen, any foods, latex
+Social history: ${simple
+    ? '"Do you smoke? Drink alcohol? What work do you do?"'
+    : 'Smoking (pack-year history if smoker) | Alcohol (AUDIT-C if not captured above) | Recreational drugs (sensitively) | Occupation and exposures | Living situation and support'
+  }
+Family history: heart disease, diabetes, TB, cancer, kidney disease, hypertension — parents and siblings`;
 }
 
 // ─── Interview Protocol per Literacy Level ────────────────────────────────────
@@ -543,49 +821,148 @@ function getInterviewProtocol(level: PatientLiteracyLevel): string {
     case 'LOW':
       return `INTERVIEW STYLE — LOW LITERACY:
 • ONE question per message — no exceptions
-• Always start with open, simple question. Then use forced-choice to fill gaps.
-• After "yes": immediately ask the next logical question (never leave "yes" hanging)
-• After "no": accept it, move to next item
-• After "I don't know": rephrase once with simpler options, then move on
-• Forced-choice formats for chat (text only — no gestures):
-  - Location:   "Is it in your chest? Your tummy? Your back? Or somewhere else?"
-  - Character:  "Is it sharp — like something poking? Or dull — like something pressing? Or burning?"
-  - Severity:   "Is it small pain? Medium — quite sore? Or very bad — hard to cope with?"
-  - Timing:     "Did it start today? Yesterday? Last week? More than a week ago?"
-  - Duration:   "Is it there all the time? Or does it come and go?"
-• Max 2 short sentences per message
-• Simple words only (no medical jargon)
-• Warm, calm, never clinical`;
-
-    case 'MEDIUM':
-      return `INTERVIEW STYLE — MEDIUM LITERACY:
-• 1-2 related questions per message
-• Open first, then close with specifics
-• Use everyday language — explain any medical terms in brackets
-• Forced-choice for difficult descriptors ("Is it sharp, dull, or burning?")
-• Warm and encouraging tone`;
-
+• Use simple everyday words only (avoid ALL medical terms)
+• Always start with an open question, then use forced-choice to fill gaps
+  Example: "Is the pain in your chest, tummy, or somewhere else?"
+  Severity: "Is it small and bearable, medium, or very bad?"
+• After "yes": immediately ask the follow-up question — never leave "yes" hanging
+• After "no": accept it and move to the next item
+• After "I don't know": rephrase once with simpler options ("Is it more like a sharp pain or a dull heavy pain?"), then move on
+• Never use numbers for pain scale — use words (small / medium / very bad)
+• Never ask about "radiation" — say "Does it go anywhere else? Into your arm? Your neck?"`;
     case 'HIGH':
       return `INTERVIEW STYLE — HIGH LITERACY:
-• Up to 3 related questions per message for efficiency
-• Use appropriate medical terminology
-• Clinical frameworks (SOCRATES, systems review) may be referenced
-• Standard scales fine (NRS, NYHA, GOLD)
-• Professional and efficient while remaining warm`;
-
-    case 'UNKNOWN':
+• Can ask 2-3 related questions in one message
+• Clinical terminology is appropriate
+• Patient can self-report scores and details accurately
+• Efficient and systematic — avoid over-explaining`;
     default:
-      return `INTERVIEW STYLE — CALIBRATING:
-• ONE question per message until literacy is clear
-• Open question first — assess the response:
-  - One word or vague → switch to LOW literacy protocol
-  - Clear sentence → MEDIUM
-  - Medical vocabulary → HIGH
-• Forced-choice opening: "What is your main problem today — is it pain, breathing, feeling unwell, or something else?"`;
+      return `INTERVIEW STYLE — MEDIUM LITERACY:
+• 1-2 questions per message
+• Everyday language — avoid jargon unless the patient uses it first
+• Confirm understanding of key answers by briefly rephrasing
+• Use simple scales where helpful (1-10 for pain is fine)`;
   }
 }
 
+// ─── Gathered Summary Tracker ─────────────────────────────────────────────────
+
+function buildGatheredSummary(
+  history: ConversationMessage[],
+  latestMsg: string,
+  ctx: PatientContext
+): string {
+  if (history.length === 0) return '';
+
+  const combined = [...history.map(m => m.content), latestMsg].join(' ').toLowerCase();
+  const lines: string[] = [];
+
+  const hasChiefComplaint = /pain|cough|breath|fever|rash|diz|head|tummy|stomach|pee|period|sad|tired|unwell|throat|ear|bleed|swelling|vomit|diarrh|weak|numb/.test(combined);
+  const acuity = /today|yesterday|this morning|few hours|suddenly|just started/.test(combined) ? 'ACUTE'
+    : /week|weeks|month/.test(combined) ? 'SUBACUTE'
+    : /year|years|always|chronic|long time/.test(combined) ? 'CHRONIC'
+    : null;
+
+  if (hasChiefComplaint) lines.push('✓ Chief complaint established');
+  else { lines.push('⬜ Chief complaint not yet established'); return lines.join('\n'); }
+
+  if (acuity) lines.push(`✓ Acuity: ${acuity}`);
+  else lines.push('⬜ Acuity: not yet established');
+
+  // System review tracking
+  const sysChecks: Record<string, boolean> = {
+    'Character of complaint': /character|sharp|dull|burning|crushing|tight|squeezing|throbbing|colicky|aching/.test(combined),
+    'Severity': /how bad|small|medium|very bad|1 to 10|score|severe|mild|moderate/.test(combined),
+    'Aggravating factors': /worse|aggravat|trigger|provok|exertion|movement/.test(combined),
+    'Relieving factors': /better|reliev|help|rest|painkiller|medication|lying/.test(combined),
+    'Associated symptoms': /associated|other symptom|fever|nausea|sweat|breath|vomit/.test(combined),
+    'System review': /breathing|cough|bowel|urine|vision|headache|weakness|mood|sleep/.test(combined),
+  };
+
+  Object.entries(sysChecks).forEach(([k, v]) => lines.push(`${v ? '✓' : '⬜'} ${k}`));
+
+  // Scoring systems tracking
+  if (ctx.gender === 'MALE' && ctx.age >= 40) {
+    const ipssAsked = /empty|frequency|intermittency|urgency|stream|strain|nocturia|night.{0,20}toilet/.test(combined);
+    lines.push(`${ipssAsked ? '✓' : '⬜'} IPSS questions (mandatory male >40)`);
+  }
+  if (/sore throat|tonsil|pharyngit/.test(combined)) {
+    const feverPainAsked = /fever|spot|white|pus|onset|3 day|cough absent/.test(combined);
+    lines.push(`${feverPainAsked ? '✓' : '⬜'} FeverPAIN/Centor score data`);
+  }
+  if (/chest pain|heart/.test(combined)) {
+    const heartAsked = /typical|crushing|radiation|risk factor|diabetes|family|cholesterol|hypertens/.test(combined);
+    lines.push(`${heartAsked ? '✓' : '⬜'} HEART score history data`);
+  }
+
+  // Mental health tracking
+  if (/sad|depress|mood|anxiety|stress|worry|hopeless|interest|pleasure/.test(combined)) {
+    const phq9Complete = /sleep|energy|tired|appetite|guilty|concentrate|slow|restless|suicid|harm/.test(combined);
+    lines.push(`${phq9Complete ? '✓' : '⬜'} PHQ-9 questions (positive screen detected)`);
+  } else {
+    lines.push('⬜ PHQ-2 mental health screen: not yet asked');
+  }
+
+  // TB screen
+  const tbScreened = /tb|tuberculosis|night sweat|weight loss|contacts/.test(combined);
+  lines.push(`${tbScreened ? '✓' : '⬜'} TB screen`);
+
+  // Baseline
+  const baselineChecks: Record<string, boolean> = {
+    'Past medical history': /past medical|previous illness|hospital|operation|condition|known/i.test(combined),
+    'Medications': /medication|medicine|pills|injection|umuthi|muti|tablet/.test(combined),
+    'Allergies': /allerg/.test(combined),
+    'Social history': /smok|alcohol|work|job|occup|live|home/.test(combined),
+    'Family history': /family|parents|siblings|father|mother|brother|sister/.test(combined),
+  };
+
+  Object.entries(baselineChecks).forEach(([k, v]) => lines.push(`${v ? '✓' : '⬜'} ${k}`));
+
+  if (ctx.isReviewConsultation) {
+    const dietAsked = /eat|food|diet|salt|sugar|vegetable|fruit|cooking/.test(combined);
+    const exAsked = /exercise|activity|walk|gym|sport|active|physical/.test(combined);
+    lines.push(`${dietAsked ? '✓' : '⬜'} Diet assessment (review requirement)`);
+    lines.push(`${exAsked ? '✓' : '⬜'} Exercise assessment (review requirement)`);
+  }
+
+  return lines.join('\n');
+}
+
+// ─── Red Flag Detection ───────────────────────────────────────────────────────
+
+const RED_FLAG_PATTERNS = [
+  /chest pain.{0,40}(breath|sweat|arm|jaw)/i,
+  /can'?t breathe|severe shortness of breath/i,
+  /worst headache|thunderclap|sudden severe head/i,
+  /cough.{0,20}blood|haemoptysis|hemoptysis/i,
+  /vomit.{0,20}blood|haematemesis|coffee.ground/i,
+  /confused|unconscious|not waking|seizure|fitting/i,
+  /heavy bleeding|soaking|losing a lot of blood/i,
+  /stroke|face drooping|arm weak|can'?t speak|facial droop/i,
+  /suicid|want to die|kill myself|end my life/i,
+  /stiff neck.{0,20}fever|fever.{0,20}stiff neck|meningit/i,
+  /severe abdominal|rigid abdomen|guarding/i,
+  /drooling.{0,30}swallow|stridor.*severe|severe.*stridor/i,
+];
+
+function detectRedFlags(text: string): boolean {
+  return RED_FLAG_PATTERNS.some(p => p.test(text));
+}
+
 // ─── Session Functions ────────────────────────────────────────────────────────
+
+function defaultPatientContext(): PatientContext {
+  return { age: 35, gender: 'OTHER', knownConditions: [], currentMedications: [], isSmoker: false, isReviewConsultation: false };
+}
+
+function buildOpeningInstruction(language: SaLanguage, patientName: string, literacy: PatientLiteracyLevel, ctx: PatientContext): string {
+  const simple = literacy === 'LOW' || literacy === 'UNKNOWN';
+  const reviewNote = ctx.isReviewConsultation
+    ? ' This is a review visit — open by asking how they have been since last time.'
+    : '';
+  const style = simple ? ' Use a single warm open question: "What brings you in today?"' : '';
+  return `Greet ${patientName} warmly in ${SA_LANGUAGE_NAMES[language]} and open the consultation.${reviewNote}${style}`;
+}
 
 export async function startAdaptiveMedicalHistorySession(
   consultationId: string,
@@ -621,12 +998,11 @@ export async function continueAdaptiveMedicalHistorySession(
   currentLiteracy: PatientLiteracyLevel,
   patientContext: PatientContext = defaultPatientContext()
 ): Promise<AdaptiveResponse> {
-  // Detect literacy from first patient response if still unknown
   let literacyLevel = currentLiteracy;
   if (currentLiteracy === 'UNKNOWN') {
     const patientMsgs = conversationHistory
-      .filter((m) => m.role === 'user')
-      .map((m) => m.content)
+      .filter(m => m.role === 'user')
+      .map(m => m.content)
       .concat(patientMessage);
     if (patientMsgs.length >= 1) {
       literacyLevel = await detectLiteracyLevel(patientMsgs);
@@ -636,7 +1012,7 @@ export async function continueAdaptiveMedicalHistorySession(
   const gatheredSummary = buildGatheredSummary(conversationHistory, patientMessage, patientContext);
 
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-    ...conversationHistory.map((m) => ({ role: m.role, content: m.content })),
+    ...conversationHistory.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: patientMessage },
   ];
 
@@ -667,51 +1043,49 @@ export async function extractAdaptiveStructuredHistory(
   literacyLevel: PatientLiteracyLevel
 ): Promise<StructuredMedicalHistory> {
   const transcript = conversationHistory
-    .map((m) => `${m.role === 'user' ? 'PATIENT' : 'ASSISTANT'}: ${m.content}`)
+    .map(m => `${m.role === 'user' ? 'PATIENT' : 'ASSISTANT'}: ${m.content}`)
     .join('\n\n');
 
-  const literacyHint =
-    literacyLevel === 'LOW'
-      ? 'Patient has LOW health literacy. Translate lay terms to clinical equivalents: "tummy sore"=abdominal pain, "head spinning"=vertigo, "heart beating fast"=palpitations, "can\'t breathe"=dyspnoea, "my chest tight"=chest tightness, "passing urine a lot"=polyuria/frequency.'
-      : literacyLevel === 'HIGH'
-        ? 'Patient uses medical terminology. Extract verbatim.'
-        : 'Normalise everyday language to clinical terms where needed.';
+  const literacyHint = literacyLevel === 'LOW'
+    ? 'Patient has LOW health literacy. Translate lay terms: "tummy sore"=abdominal pain, "head spinning"=vertigo, "heart beating fast"=palpitations, "can\'t breathe"=dyspnoea, "chest tight"=chest tightness, "passing urine a lot"=polyuria/frequency, "white spots throat"=tonsillar exudate.'
+    : literacyLevel === 'HIGH'
+      ? 'Patient uses medical terminology. Extract verbatim.'
+      : 'Normalise everyday language to clinical terms.';
 
   const response = await anthropic.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: 2048,
-    system: `You are a medical data extraction AI. Parse a patient-AI conversation and extract structured medical history.
+    max_tokens: 3000,
+    system: `You are a medical data extraction AI. Parse a patient-AI conversation and extract structured medical history, including calculating clinical scores where sufficient data exists.
 
 ${literacyHint}
 
-Return ONLY a valid JSON object:
+Return ONLY a valid JSON object with this exact structure:
 {
-  "chiefComplaint": "string",
+  "chiefComplaint": "string — primary presenting complaint",
   "acuity": "ACUTE | SUBACUTE | CHRONIC | CHRONIC_REVIEW",
   "historyOfPresentIllness": {
     "onset": "string",
     "duration": "string",
     "severity": "string",
     "character": "string",
-    "radiation": "string",
+    "radiation": "string or 'No radiation'",
     "aggravatingFactors": "string",
     "relievingFactors": "string",
-    "associatedSymptoms": "string"
+    "associatedSymptoms": "string — full list of associated symptoms discussed, including system-based review findings"
   },
   "pastMedicalHistory": "string",
   "medications": "string",
   "allergies": "string",
   "familyHistory": "string",
-  "socialHistory": "string",
-  "systemsReview": "string",
-  "opportunisticFindings": "string — any findings from risk-stratified screening outside the chief complaint",
-  "redFlagsIdentified": "string — any red flag symptoms noted during history"
+  "socialHistory": "string — smoking, alcohol (with AUDIT-C score if data available), occupation, living situation",
+  "systemsReview": "string — summary of all system review findings covered during the history",
+  "clinicalScores": "string — calculate and report ALL applicable scores based on history data. Format: '[SCORE_NAME]: [score]/[max] — [interpretation] ([items answered, items requiring examination])'. Include: CRB-65 if respiratory complaint; FeverPAIN + Centor if sore throat; HEART history+risk components if chest pain; Wells PE/DVT if breathlessness or leg swelling; ABCD2 if TIA-like; IPSS if male urinary symptoms; PHQ-2 and PHQ-9 if mood symptoms discussed; GAD-7 if anxiety discussed; AUDIT-C if alcohol assessed; qSOFA if systemically unwell. For each score: (a) list the items captured from history, (b) list items requiring clinical examination, (c) give the history-calculable score, (d) give interpretation.",
+  "opportunisticFindings": "string — findings from health promotion or screening discussions (e.g. overdue pap smear, not vaccinated against influenza, sedentary, high-salt diet)",
+  "redFlagsIdentified": "string — any red flag symptoms identified (or 'None identified')"
 }
 
-Use "Not asked" or "Not reported" for uncovered sections. Return ONLY JSON.`,
-    messages: [
-      { role: 'user', content: `Extract structured history:\n\n${transcript}` },
-    ],
+Use 'Not asked' or 'Not reported' for sections not covered. Return ONLY the JSON — no markdown, no explanation.`,
+    messages: [{ role: 'user', content: `Extract structured history from this consultation:\n\n${transcript}` }],
   });
 
   const text = extractTextContent(response);
@@ -736,19 +1110,17 @@ export async function generatePatientFriendlySummary(
   literacyLevel: PatientLiteracyLevel
 ): Promise<string> {
   const languageName = SA_LANGUAGE_NAMES[language];
-  const style =
-    literacyLevel === 'LOW'
-      ? 'Very simple words only. Short sentences. No medical terms. Maximum 5 sentences. Be reassuring.'
-      : literacyLevel === 'HIGH'
-        ? 'Medical terminology is fine. Concise and precise.'
-        : 'Plain everyday language. Clear and reassuring.';
+  const style = literacyLevel === 'LOW'
+    ? 'Very simple words only. Short sentences. No medical terms. Maximum 5 sentences. Be reassuring.'
+    : literacyLevel === 'HIGH'
+      ? 'Medical terminology is fine. Concise and precise.'
+      : 'Plain everyday language. Clear and reassuring.';
 
   const summary = `Chief Complaint: ${structuredHistory.chiefComplaint}
 Onset: ${structuredHistory.historyOfPresentIllness.onset}
 Duration: ${structuredHistory.historyOfPresentIllness.duration}
 Past Medical History: ${structuredHistory.pastMedicalHistory}
-Medications: ${structuredHistory.medications}
-Allergies: ${structuredHistory.allergies}`;
+Medications: ${structuredHistory.medications}`;
 
   const response = await anthropic.messages.create({
     model: CLAUDE_HISTORY_MODEL,
@@ -760,132 +1132,11 @@ Allergies: ${structuredHistory.allergies}`;
   return extractTextContent(response);
 }
 
-// ─── Gathered Summary (Phase Tracker) ────────────────────────────────────────
-
-function buildGatheredSummary(
-  history: ConversationMessage[],
-  latestMsg: string,
-  ctx: PatientContext
-): string {
-  if (history.length === 0) return '';
-
-  const combined = [...history.map(m => m.content), latestMsg].join(' ').toLowerCase();
-  const lines: string[] = [];
-
-  // Phase detection
-  const hasChiefComplaint = /pain|cough|breath|fever|rash|diz|head|tummy|stomach|pee|period|sad|tired|unwell|throat|ear/.test(combined);
-  const acuity = /today|yesterday|this morning|few hours|suddenly|just started/.test(combined) ? 'ACUTE'
-    : /week|weeks|month/.test(combined) ? 'SUBACUTE'
-    : /year|years|always|chronic|long time/.test(combined) ? 'CHRONIC'
-    : null;
-
-  if (hasChiefComplaint) lines.push('✓ Phase 1: Chief complaint established');
-  else { lines.push('⬜ Phase 1: Chief complaint not yet established'); return lines.join('\n'); }
-
-  if (acuity) lines.push(`✓ Acuity: ${acuity}`);
-  else lines.push('⬜ Acuity: not yet established (new or existing problem?)');
-
-  // Phase 2 complaint-specific
-  const p2done: string[] = [];
-  const p2missing: string[] = [];
-
-  if (/character|sharp|dull|burning|crushing|tight|squeezing/.test(combined)) p2done.push('character');
-  else p2missing.push('character');
-  if (/severity|how bad|small|medium|very bad|1 to 10|score/.test(combined)) p2done.push('severity');
-  else p2missing.push('severity');
-  if (/radiat|spread|move|arm|jaw/.test(combined) || /chest pain/.test(combined)) p2done.push('radiation');
-  else if (/chest pain|heart/.test(combined)) p2missing.push('radiation (mandatory for chest pain)');
-  if (/worse|aggravat|trigger|provok/.test(combined)) p2done.push('aggravating factors');
-  else p2missing.push('aggravating factors');
-  if (/better|reliev|help|rest|painkiller/.test(combined)) p2done.push('relieving factors');
-  else p2missing.push('relieving factors');
-  if (/associated|other symptom|fever|nausea|sweat|breath/.test(combined)) p2done.push('associated symptoms');
-  else p2missing.push('associated symptoms');
-
-  if (p2done.length) lines.push(`✓ Phase 2 gathered: ${p2done.join(', ')}`);
-  if (p2missing.length) lines.push(`⬜ Phase 2 still needed: ${p2missing.join(', ')}`);
-
-  // Phase 3 — generalised review
-  if (/sleep|sleeping/.test(combined)) lines.push('✓ Sleep: asked');
-  else lines.push('⬜ Sleep: not yet asked');
-  if (/mood|feeling emotionally|sad|depress|anxious|stress/.test(combined)) lines.push('✓ Mood: asked');
-  else lines.push('⬜ Mood: not yet asked');
-
-  // Phase 4 — risk screens
-  if (ctx.gender === 'MALE' && ctx.age >= 50) {
-    if (/pee|urine|frequency|stream|nocturia|bph/.test(combined)) lines.push('✓ BPH screen: done');
-    else lines.push('⬜ BPH screen: not yet done (mandatory male >50)');
-  }
-  if (ctx.isSmoker) {
-    if (/copd|breathless|cough|wheeze|exercise/.test(combined)) lines.push('✓ COPD screen: done');
-    else lines.push('⬜ COPD screen: not yet done (mandatory smoker)');
-  }
-
-  // Phase 5 — baseline
-  if (/past medical|previous illness|hospital|operation|condition/.test(combined)) lines.push('✓ PMH: asked');
-  else lines.push('⬜ PMH: not yet asked');
-  if (/medication|medicine|pills|injection|umuthi|muti/.test(combined)) lines.push('✓ Medications: asked');
-  else lines.push('⬜ Medications: not yet asked');
-  if (/allerg/.test(combined)) lines.push('✓ Allergies: asked');
-  else lines.push('⬜ Allergies: not yet asked');
-  if (/smok|alcohol|work|job|occup/.test(combined)) lines.push('✓ Social history: asked');
-  else lines.push('⬜ Social history: not yet asked');
-
-  return lines.join('\n');
-}
-
-// ─── Red Flag Detection ───────────────────────────────────────────────────────
-
-const RED_FLAG_PATTERNS = [
-  /chest pain.{0,40}(breath|sweat|arm|jaw)/i,
-  /can'?t breathe|severe shortness of breath|dyspn/i,
-  /worst headache|thunderclap|sudden severe head/i,
-  /cough.{0,20}blood|haemoptysis|hemoptysis/i,
-  /vomit.{0,20}blood|haematemesis|coffee.ground/i,
-  /confused|unconscious|not waking|seizure|fitting/i,
-  /heavy bleeding|soaking|losing a lot of blood/i,
-  /stroke|face drooping|arm weak|can'?t speak|facial droop/i,
-  /suicid|want to die|kill myself|end my life/i,
-  /stiff neck.{0,20}fever|fever.{0,20}stiff neck|meningit/i,
-  /severe abdominal|rigid abdomen|guarding/i,
-];
-
-function detectRedFlags(text: string): boolean {
-  return RED_FLAG_PATTERNS.some((p) => p.test(text));
-}
-
 // ─── Private Helpers ──────────────────────────────────────────────────────────
 
 function extractTextContent(response: Anthropic.Message): string {
   const block = response.content[0];
   return block?.type === 'text' ? block.text : '';
-}
-
-function defaultPatientContext(): PatientContext {
-  return {
-    age: 35,
-    gender: 'OTHER',
-    knownConditions: [],
-    currentMedications: [],
-    isSmoker: false,
-    isReviewConsultation: false,
-  };
-}
-
-function buildOpeningInstruction(
-  language: SaLanguage,
-  patientName: string,
-  literacy: PatientLiteracyLevel,
-  ctx: PatientContext
-): string {
-  const simple = literacy === 'LOW' || literacy === 'UNKNOWN';
-  const reviewNote = ctx.isReviewConsultation
-    ? ' This is a review visit. Open by asking how they have been since last time.'
-    : '';
-  const openingStyle = simple
-    ? ' Use a warm single open question: "What brings you in today?"'
-    : '';
-  return `Greet ${patientName} warmly in ${SA_LANGUAGE_NAMES[language]} and open the consultation.${reviewNote}${openingStyle}`;
 }
 
 function getSuggestedFollowUp(literacy: PatientLiteracyLevel, language: SaLanguage): string {
@@ -916,11 +1167,14 @@ function normaliseStructuredHistory(p: Partial<StructuredMedicalHistory>): Struc
     familyHistory: p.familyHistory ?? 'Not reported',
     socialHistory: p.socialHistory ?? 'Not reported',
     systemsReview: p.systemsReview ?? 'Not reported',
+    clinicalScores: p.clinicalScores,
+    opportunisticFindings: p.opportunisticFindings,
+    redFlagsIdentified: p.redFlagsIdentified ?? 'None identified',
   };
 }
 
 function fallbackStructuredHistory(history: ConversationMessage[]): StructuredMedicalHistory {
-  const first = history.find((m) => m.role === 'user');
+  const first = history.find(m => m.role === 'user');
   return {
     chiefComplaint: first?.content ?? 'Unable to extract',
     historyOfPresentIllness: {
@@ -933,5 +1187,6 @@ function fallbackStructuredHistory(history: ConversationMessage[]): StructuredMe
     familyHistory: 'See conversation log',
     socialHistory: 'See conversation log',
     systemsReview: 'See conversation log',
+    redFlagsIdentified: 'See conversation log',
   };
 }

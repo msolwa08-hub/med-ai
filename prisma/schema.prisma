@@ -276,6 +276,9 @@ model MedicalHistory {
   familyHistory         String    // encrypted
   socialHistory         String    // encrypted
   systemsReview         String    // encrypted
+  clinicalScores        String?   // encrypted — validated clinical scores (CRB-65, IPSS, PHQ-9, etc.)
+  opportunisticFindings String?   // encrypted — health promotion / screening findings
+  redFlagsIdentified    String?   // encrypted — red flag symptoms noted
   aiConversationLog     String    // encrypted JSON - full AI conversation
   doctorConfirmed       Boolean   @default(false)
   doctorNotes           String?   // encrypted

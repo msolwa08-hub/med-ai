@@ -144,6 +144,15 @@ async function runCompletionFlow(
       familyHistory: encryptField(structuredHistory.familyHistory, dataKey),
       socialHistory: encryptField(structuredHistory.socialHistory, dataKey),
       systemsReview: encryptField(structuredHistory.systemsReview, dataKey),
+      ...(structuredHistory.clinicalScores
+        ? { clinicalScores: encryptField(structuredHistory.clinicalScores, dataKey) }
+        : {}),
+      ...(structuredHistory.opportunisticFindings
+        ? { opportunisticFindings: encryptField(structuredHistory.opportunisticFindings, dataKey) }
+        : {}),
+      ...(structuredHistory.redFlagsIdentified
+        ? { redFlagsIdentified: encryptField(structuredHistory.redFlagsIdentified, dataKey) }
+        : {}),
     },
   });
 
@@ -591,6 +600,15 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
           familyHistory: decryptField(history.familyHistory, dataKey),
           socialHistory: decryptField(history.socialHistory, dataKey),
           systemsReview: decryptField(history.systemsReview, dataKey),
+          clinicalScores: (history as never as Record<string, string>).clinicalScores
+            ? decryptField((history as never as Record<string, string>).clinicalScores, dataKey)
+            : undefined,
+          opportunisticFindings: (history as never as Record<string, string>).opportunisticFindings
+            ? decryptField((history as never as Record<string, string>).opportunisticFindings, dataKey)
+            : undefined,
+          redFlagsIdentified: (history as never as Record<string, string>).redFlagsIdentified
+            ? decryptField((history as never as Record<string, string>).redFlagsIdentified, dataKey)
+            : undefined,
         };
       } catch {
         structuredHistory = null;
