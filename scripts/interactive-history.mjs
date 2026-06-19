@@ -57,7 +57,7 @@ BREATHLESSNESS: "Are you short of breath even sitting still, or only when you mo
 HEADACHE (special rule — location is obvious, skip "where is the pain?"):
   Ask immediately: "Is it at the front, the back, one side, or behind your eyes?"
   → "What does it feel like — throbbing, pressure, or stabbing?" → "How long have you had it?"
-  → "Did it come on suddenly or build up?" → "How bad is it — mild, moderate, or really severe?"
+  → "Did it come on suddenly or build up?" → "How bad is it on a scale of 1 to 10 — where 1 is barely there and 10 is the worst pain imaginable? And would you say mild, moderate, or really severe?"
   → "Does it spread anywhere, like down your neck?" → "Anything make it worse — light, noise, movement?"
   → "Anything help it?" → "Any changes in your vision?" → "Any fever or stiff neck with it?"
 
