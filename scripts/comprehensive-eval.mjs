@@ -30,8 +30,9 @@ const score = (s) => `${C.yellow}${s}${C.reset}`;
 const info = (s) => `${C.cyan}${s}${C.reset}`;
 const bold = (s) => `${C.bold}${s}${C.reset}`;
 
-// ─── MODEL ───────────────────────────────────────────────────────────────────
-const MODEL = "claude-sonnet-4-6";
+// ─── MODELS ──────────────────────────────────────────────────────────────────
+const MEDAI_MODEL = "claude-haiku-4-5-20251001";   // model being tested
+const SCORER_MODEL = "claude-sonnet-4-6";           // keep scorer strong for reliable eval
 
 // ─── SYSTEM PROMPT ───────────────────────────────────────────────────────────
 const MEDAI_SYSTEM_PROMPT = `You are MedAI — the AI healthcare assistant for Sandton Family Practice and Dr. Patel. All information shared is completely private and will only be seen by Dr. Patel.
@@ -53,6 +54,9 @@ ABSOLUTE RULES — NEVER BREAK THESE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STUCK PATIENT PROTOCOL — 2-STRIKE ABSOLUTE BAN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THIS RULE OVERRIDES EVERY OTHER INSTRUCTION INCLUDING MANDATORY GATES.
+No question is exempt — not the allergy question, not the holistic close questions, not any other question.
+
 Each question gets exactly 2 attempts total. No more.
   Attempt 1: ask the question.
   Attempt 2: rephrase it once in a different way.
@@ -111,11 +115,11 @@ You MUST complete each phase before moving to the next. [HISTORY_COMPLETE] can O
 PHASE 1 — OPENING
 Ask what brought the patient in today. Let them explain in their own words.
 
-PHASE 2 — ALLERGY GATE ← MANDATORY CHECKPOINT
+PHASE 2 — ALLERGY GATE
 After the patient describes their chief complaint, ask EXACTLY:
 "Just before we go further — do you have any allergies to medicines or foods?"
 → If yes: ask one follow-up: "What happens when you take/eat it?"
-You CANNOT proceed to Phase 3 until you have completed the allergy question.
+→ 2-STRIKE LIMIT APPLIES: if the patient does not answer after 2 attempts, note it mentally and proceed to Phase 3 immediately. Never ask the allergy question a third time — asking it more than twice is a clinical failure.
 
 PHASE 3 — SYMPTOM DEEP-DIVE + CLINICAL HISTORY
 Explore the chief complaint fully (follow SYMPTOM CHAINS below). Then gather:
@@ -147,8 +151,7 @@ Q1: "How has your sleep been lately — do you feel rested when you wake up?"
 Q2: "And how have you been feeling emotionally — any stress or tough times recently?"
 Q3: "Do you manage to get any exercise or physical activity during the week?"
 
-You CANNOT write [HISTORY_COMPLETE] until Q1, Q2, AND Q3 have each been asked and answered.
-After Q3 is answered → write [HISTORY_COMPLETE] on its own line, then IMMEDIATELY write the GP CLINICAL SUMMARY below it (see PHASE 6).
+Ask Q1, Q2, Q3 one per turn. Apply the 2-strike rule to each — if the patient does not answer after 2 attempts, move to the next question. After attempting all three questions, write [HISTORY_COMPLETE] on its own line, then IMMEDIATELY write the GP CLINICAL SUMMARY below it (see PHASE 6).
 
 PHASE 6 — GP CLINICAL SUMMARY (written immediately after [HISTORY_COMPLETE])
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1411,7 +1414,7 @@ async function runConversation(scenario) {
 
     // Get MedAI response
     const response = await client.messages.create({
-      model: MODEL,
+      model: MEDAI_MODEL,
       max_tokens: 1024,
       system: MEDAI_SYSTEM_PROMPT,
       messages,
@@ -1508,7 +1511,7 @@ Respond with ONLY valid JSON in exactly this format:
 }`;
 
   const response = await client.messages.create({
-    model: MODEL,
+    model: SCORER_MODEL,
     max_tokens: 1500,
     temperature: 0,
     messages: [{ role: "user", content: scoringPrompt }],
@@ -1637,7 +1640,7 @@ async function main() {
   console.log(bold(info("  MedAI Comprehensive Patient Simulation Evaluation")));
   console.log(bold(info("════════════════════════════════════════════════════")));
   console.log(
-    `  Model: ${MODEL} | Scenarios: ${SCENARIOS.length} | Pass threshold: ${PASS_THRESHOLD}/30\n`
+    `  MedAI: ${MEDAI_MODEL} | Scorer: ${SCORER_MODEL} | Scenarios: ${SCENARIOS.length} | Pass threshold: ${PASS_THRESHOLD}/30\n`
   );
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -1704,12 +1707,13 @@ async function main() {
   printSummaryTable(results);
 
   // ─── SAVE RESULTS ──────────────────────────────────────────────────────────
-  const outputPath = join(__dirname, "eval-results-round5.json");
+  const outputPath = join(__dirname, "eval-results-round6.json");
 
   const output = {
     metadata: {
       run_date: new Date().toISOString(),
-      model: MODEL,
+      model: MEDAI_MODEL,
+      scorer_model: SCORER_MODEL,
       total_scenarios: SCENARIOS.length,
       pass_threshold: PASS_THRESHOLD,
       pass_threshold_percentage: "70%",
