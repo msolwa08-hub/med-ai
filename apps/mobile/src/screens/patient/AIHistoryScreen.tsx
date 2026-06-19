@@ -16,13 +16,15 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
-  Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useConsultationStore, Message } from '../../store/consultationStore';
 import { ChatBubble } from '../../components/ChatBubble';
 import { SA_LANGUAGES } from '../../constants/languages';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../../constants/theme';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type RouteParams = {
   AIHistory: {
@@ -30,6 +32,8 @@ type RouteParams = {
     language: string;
   };
 };
+
+// ─── Stage constants (unchanged) ─────────────────────────────────────────────
 
 const HISTORY_STAGES = [
   'Greeting',
@@ -49,59 +53,7 @@ const deriveStage = (messages: Message[]): number => {
   return Math.min(aiMessages, HISTORY_STAGES.length - 1);
 };
 
-const StageProgressBar: React.FC<{ currentStage: number }> = ({ currentStage }) => {
-  return (
-    <View style={stageStyles.container}>
-      <View style={stageStyles.track}>
-        {HISTORY_STAGES.map((stage, i) => (
-          <View
-            key={stage}
-            style={[
-              stageStyles.segment,
-              i < currentStage && stageStyles.segmentDone,
-              i === currentStage && stageStyles.segmentCurrent,
-            ]}
-          />
-        ))}
-      </View>
-      <Text style={stageStyles.label}>{HISTORY_STAGES[currentStage]}</Text>
-    </View>
-  );
-};
-
-const stageStyles = StyleSheet.create({
-  container: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  track: {
-    flexDirection: 'row',
-    gap: 3,
-    marginBottom: 4,
-  },
-  segment: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.border,
-  },
-  segmentDone: {
-    backgroundColor: COLORS.success,
-  },
-  segmentCurrent: {
-    backgroundColor: COLORS.primary,
-  },
-  label: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-});
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const AIHistoryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -169,6 +121,17 @@ export const AIHistoryScreen: React.FC = () => {
     );
   };
 
+  const handleBack = () => {
+    Alert.alert(
+      'Leave consultation?',
+      'Your progress will be saved.',
+      [
+        { text: 'Stay', style: 'cancel' },
+        { text: 'Leave', onPress: () => navigation.goBack() },
+      ]
+    );
+  };
+
   const renderItem = ({ item }: { item: Message }) => {
     const role = item.role === 'ai' ? 'ai' : 'patient';
     return (
@@ -193,44 +156,50 @@ export const AIHistoryScreen: React.FC = () => {
     );
   };
 
+  // Progress fraction for right side of header
+  const progressFraction = `${currentStage + 1} of ${HISTORY_STAGES.length}`;
+
   return (
     <SafeAreaView style={styles.root}>
-      {/* Top bar */}
-      <View style={styles.topBar}>
+      {/* ── Custom Header ── */}
+      <View style={styles.header}>
+        {/* Back button */}
         <TouchableOpacity
-          onPress={() =>
-            Alert.alert(
-              'Leave consultation?',
-              'Your progress will be saved.',
-              [
-                { text: 'Stay', style: 'cancel' },
-                { text: 'Leave', onPress: () => navigation.goBack() },
-              ]
-            )
-          }
-          style={styles.backButton}
+          style={styles.headerBackBtn}
+          onPress={handleBack}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={28} color={COLORS.primary} />
         </TouchableOpacity>
-        <View style={styles.topBarCenter}>
-          <Text style={styles.topBarLang}>
-            {langMeta?.flag} {langMeta?.name}
-          </Text>
-          <Text style={styles.topBarId} numberOfLines={1}>
-            #{consultationId.slice(-8).toUpperCase()}
-          </Text>
+
+        {/* Center: title + stage */}
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Medical History</Text>
+          <Text style={styles.headerSubtitle}>{HISTORY_STAGES[currentStage]}</Text>
         </View>
-        <View style={styles.topBarRight}>
-          {isSendingMessage && (
+
+        {/* Right: progress fraction + optional spinner */}
+        <View style={styles.headerRight}>
+          {isSendingMessage ? (
             <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <Text style={styles.progressFraction}>{progressFraction}</Text>
           )}
         </View>
       </View>
 
-      {/* Stage progress */}
-      <StageProgressBar currentStage={currentStage} />
+      {/* ── Progress Bar ── */}
+      <View style={styles.progressBarTrack}>
+        <View
+          style={[
+            styles.progressBarFill,
+            { width: `${((currentStage + 1) / HISTORY_STAGES.length) * 100}%` },
+          ]}
+        />
+      </View>
 
-      {/* Messages */}
+      {/* ── Chat + Input ── */}
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -246,13 +215,13 @@ export const AIHistoryScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyChat}>
-              <Text style={styles.emptyChatIcon}>🤖</Text>
+              <Ionicons name="chatbubbles-outline" size={48} color={COLORS.systemGray3} />
               <Text style={styles.emptyChatText}>Starting your consultation...</Text>
             </View>
           }
         />
 
-        {/* Complete history button */}
+        {/* Complete history button — full-width bar above input */}
         {isComplete && (
           <TouchableOpacity
             style={styles.completeButton}
@@ -263,7 +232,7 @@ export const AIHistoryScreen: React.FC = () => {
               <ActivityIndicator color={COLORS.white} />
             ) : (
               <>
-                <Text style={styles.completeButtonIcon}>✓</Text>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.white} style={{ marginRight: 8 }} />
                 <Text style={styles.completeButtonText}>Complete History — Find a Doctor</Text>
               </>
             )}
@@ -273,12 +242,22 @@ export const AIHistoryScreen: React.FC = () => {
         {/* Input bar */}
         {!isComplete && (
           <View style={styles.inputBar}>
+            {/* Mic button */}
+            <TouchableOpacity
+              style={styles.micButton}
+              onPress={() => { /* Voice placeholder */ }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="mic-outline" size={28} color={COLORS.secondaryLabel} />
+            </TouchableOpacity>
+
+            {/* Text input */}
             <TextInput
               style={styles.input}
               value={inputText}
               onChangeText={setInputText}
               placeholder="Type your response..."
-              placeholderTextColor={COLORS.textLight}
+              placeholderTextColor={COLORS.tertiaryLabel}
               multiline
               maxLength={500}
               returnKeyType="send"
@@ -286,25 +265,20 @@ export const AIHistoryScreen: React.FC = () => {
               blurOnSubmit={false}
               editable={!isSendingMessage}
             />
-            <TouchableOpacity
-              style={styles.micButton}
-              onPress={() => {
-                /* Voice placeholder */
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.micIcon}>🎤</Text>
-            </TouchableOpacity>
+
+            {/* Send button */}
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                (!inputText.trim() || isSendingMessage) && styles.sendButtonDisabled,
+                inputText.trim().length > 0 && !isSendingMessage
+                  ? styles.sendButtonActive
+                  : styles.sendButtonInactive,
               ]}
               onPress={handleSend}
               disabled={!inputText.trim() || isSendingMessage}
               activeOpacity={0.85}
             >
-              <Text style={styles.sendButtonIcon}>➤</Text>
+              <Ionicons name="arrow-up" size={20} color={COLORS.white} />
             </TouchableOpacity>
           </View>
         )}
@@ -313,134 +287,142 @@ export const AIHistoryScreen: React.FC = () => {
   );
 };
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.white,
   },
   flex: {
     flex: 1,
   },
-  topBar: {
+
+  // Header
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.separator,
+    minHeight: 52,
   },
-  backButton: {
-    padding: SPACING.sm,
+  headerBackBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 28,
-    color: COLORS.white,
-    fontWeight: '300',
-    lineHeight: 30,
-  },
-  topBarCenter: {
+  headerCenter: {
     flex: 1,
     alignItems: 'center',
   },
-  topBarLang: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.white,
+  headerTitle: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.label,
   },
-  topBarId: {
-    fontSize: FONT_SIZE.xs,
-    color: 'rgba(255,255,255,0.6)',
-    letterSpacing: 1,
+  headerSubtitle: {
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
+    marginTop: 1,
   },
-  topBarRight: {
-    width: 40,
+  headerRight: {
+    width: 56,
     alignItems: 'flex-end',
+    justifyContent: 'center',
+    height: 44,
   },
+  progressFraction: {
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
+  },
+
+  // Progress bar
+  progressBarTrack: {
+    height: 4,
+    backgroundColor: COLORS.systemGray5,
+    width: '100%',
+  },
+  progressBarFill: {
+    height: 4,
+    backgroundColor: COLORS.primary,
+  },
+
+  // Message list
   messageList: {
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.md,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 4,
   },
   emptyChat: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 80,
-  },
-  emptyChatIcon: {
-    fontSize: 48,
-    marginBottom: SPACING.md,
+    gap: SPACING.md,
   },
   emptyChatText: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
   },
+
+  // Complete button — full-width bar, no border radius
   completeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.success,
-    marginHorizontal: SPACING.md,
-    marginVertical: SPACING.sm,
-    paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
-    gap: SPACING.sm,
-    ...SHADOWS.md,
-  },
-  completeButtonIcon: {
-    fontSize: 18,
-    color: COLORS.white,
-    fontWeight: '700',
+    height: 48,
   },
   completeButtonText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
+    ...TYPOGRAPHY.headline,
     color: COLORS.white,
   },
+
+  // Input bar
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: COLORS.separator,
     gap: SPACING.sm,
+  },
+  micButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     flex: 1,
     minHeight: 44,
     maxHeight: 120,
-    backgroundColor: COLORS.surfaceVariant,
-    borderRadius: BORDER_RADIUS.full,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    fontSize: FONT_SIZE.md,
-    color: COLORS.text,
-  },
-  micButton: {
-    width: 44,
-    height: 44,
+    backgroundColor: COLORS.white,
     borderRadius: 22,
-    backgroundColor: COLORS.surfaceVariant,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  micIcon: {
-    fontSize: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.separator,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    ...TYPOGRAPHY.body,
+    color: COLORS.label,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendButtonDisabled: {
-    backgroundColor: COLORS.textLight,
+  sendButtonActive: {
+    backgroundColor: COLORS.primary,
   },
-  sendButtonIcon: {
-    fontSize: 18,
-    color: COLORS.white,
+  sendButtonInactive: {
+    backgroundColor: COLORS.systemGray5,
   },
 });
 
