@@ -14,6 +14,8 @@ export default function App() {
   const [sessions, setSessions] = useState<StoredSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [newSessionLoading, setNewSessionLoading] = useState(false);
+  const [newSessionError, setNewSessionError] = useState('');
 
   useEffect(() => {
     const key = storage.getAccessKey();
@@ -37,7 +39,9 @@ export default function App() {
   }
 
   async function handleNewSession() {
-    if (!accessKey) return;
+    if (!accessKey || newSessionLoading) return;
+    setNewSessionError('');
+    setNewSessionLoading(true);
     try {
       const result = await api.startSession(accessKey);
       storage.createSession(result.sessionId);
@@ -54,7 +58,11 @@ export default function App() {
         storage.clearAll();
         setAccessKey(null);
         setView('gate');
+      } else {
+        setNewSessionError(err instanceof Error ? err.message : 'Failed to start session. Please try again.');
       }
+    } finally {
+      setNewSessionLoading(false);
     }
   }
 
@@ -127,6 +135,8 @@ export default function App() {
           onOpen={handleOpenSession}
           onSignOut={handleSignOut}
           onRename={(id, label) => { storage.renameSession(id, label); refreshSessions(); }}
+          newSessionLoading={newSessionLoading}
+          newSessionError={newSessionError}
         />
       )}
       {view === 'chat' && currentSession && (
