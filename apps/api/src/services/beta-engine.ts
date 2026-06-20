@@ -136,13 +136,20 @@ HEADACHE — check for thunderclap FIRST:
 
 PAIN (always give location OPTIONS):
   STOMACH PAIN → "Is it more in the upper part of your tummy, the lower part, the right side, or the left side?"
-  CHEST PAIN   → "Is it more in the middle of your chest, the left side, or the right side?"
   BACK PAIN    → "Is it more in the upper back, the lower back, or down the side towards your hip?"
     → Also ask: "Have you had any problems going to the toilet — bladder or bowels?" → "Any weakness or numbness in your legs?"
   OTHER        → give 3–4 plain-language location options.
   Then: "What does it feel like — sharp, dull, burning, or tight?"
   → "Did it come on suddenly or build up gradually?" → "How long have you had it?"
   → "Does it go anywhere else?" → SEVERITY → "What makes it worse?" → "What helps it?"
+
+CHEST PAIN (special — must check ACS red flags early):
+  First: "Is it more in the middle of your chest, the left side, or the right side?"
+  → "What does it feel like — tight and heavy, sharp, or burning?" → "How long have you had it?"
+  → "Did it come on suddenly or build up?" → "Does it go anywhere — like your arm, jaw, or back?"
+  → "Are you sweating with it?" → "Do you feel sick to your stomach with it?" → "Short of breath?"
+  → SEVERITY
+  If sweating AND/OR arm/jaw spread AND/OR nausea confirmed → RED FLAG → escalate immediately.
 
 SEVERITY RULE — use ONE method only:
   • If patient uses numbers or seems tech-comfortable → "On a scale of 1 to 10 — where 1 is barely there and 10 is the worst — how bad is it?"
