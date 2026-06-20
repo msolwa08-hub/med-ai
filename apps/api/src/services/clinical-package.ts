@@ -118,14 +118,51 @@ function examText(exam: ExamFindings | undefined): string {
   return lines.length ? lines.join('\n') : 'No examination findings provided.';
 }
 
+// Best-effort repair of a truncated JSON object (e.g. if the model is cut off):
+// drop any dangling partial token and close all still-open strings/brackets.
+function repairTruncatedJSON(s: string): string {
+  const closers: string[] = [];
+  let inStr = false;
+  let esc = false;
+  let lastSafe = 0; // index just after the last complete value/structural boundary
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') {
+        inStr = false;
+        lastSafe = i + 1;
+      }
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === '{') closers.push('}');
+    else if (ch === '[') closers.push(']');
+    else if (ch === '}' || ch === ']') {
+      closers.pop();
+      lastSafe = i + 1;
+    } else if (ch === ',') lastSafe = i + 1;
+  }
+  let out = s.slice(0, lastSafe).replace(/,\s*$/, '');
+  while (closers.length) out += closers.pop();
+  return out;
+}
+
 function extractJSON(raw: string): unknown {
   const fenced = raw.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
   const start = fenced.indexOf('{');
-  const end = fenced.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) {
+  if (start === -1) {
     throw new Error('No JSON object found in model response');
   }
-  return JSON.parse(fenced.slice(start, end + 1));
+  const end = fenced.lastIndexOf('}');
+  const candidate = end > start ? fenced.slice(start, end + 1) : fenced.slice(start);
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    // Likely truncated output — salvage what we can rather than 500.
+    return JSON.parse(repairTruncatedJSON(fenced.slice(start)));
+  }
 }
 
 function asString(v: unknown, fallback = ''): string {
@@ -226,7 +263,7 @@ Produce the DRAFT clinical package as STRICT JSON per your schema.`;
 
   const resp = await client.messages.create({
     model: PACKAGE_MODEL,
-    max_tokens: 3000,
+    max_tokens: 5000, // rich SA cases need ~3.5–4k output tokens; headroom avoids truncation
     temperature: 0,
     system: CLINICAL_PACKAGE_SYSTEM,
     messages: [{ role: 'user', content: userContent }],
