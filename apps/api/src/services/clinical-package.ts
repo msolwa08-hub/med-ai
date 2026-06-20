@@ -15,6 +15,43 @@ import type { ChatMessage } from './beta-engine.js';
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 const PACKAGE_MODEL = 'claude-sonnet-4-6';
 
+// ─── Practice mode ────────────────────────────────────────────────────────────
+
+export type PracticeMode = 'ACUTE_VOLUME' | 'FAMILY_PRACTICE' | 'HOLISTIC';
+
+const PRACTICE_MODE_APPENDIX: Record<PracticeMode, string> = {
+  ACUTE_VOLUME: `
+
+PRACTICE MODE — ACUTE/VOLUME:
+This is a high-throughput acute/urgent care setting. Priorities:
+- Rapid risk stratification and immediate triage focus
+- Keep management plan concise and action-oriented
+- Omit chronic disease optimisation and health promotion unless directly relevant to today's presentation
+- Investigations: only those that change immediate management
+- Prescriptions: ready-to-use acute scripts with correct SA formulary doses
+- Safety netting: concise, must-come-back criteria`,
+
+  FAMILY_PRACTICE: `
+
+PRACTICE MODE — FAMILY PRACTICE:
+This is a continuity family medicine setting. Priorities:
+- Acknowledge the whole patient, not just today's complaint
+- Surface active chronic conditions and their current control (DM, HTN, asthma, HIV, epilepsy, etc.)
+- Opportunistic health promotion: relevant preventive care and screening (cervical, lipids, DM screen)
+- Prescriptions: consider long-term tolerance, adherence, cost, and SA formulary
+- Follow-up plan with clear timeline and care continuity`,
+
+  HOLISTIC: `
+
+PRACTICE MODE — HOLISTIC:
+This practice takes a bio-psycho-social approach. Priorities:
+- Screen for mental health, stress, sleep, and social determinants of health
+- Lifestyle factors: diet, exercise, substances, relationships
+- Full preventive care and health promotion
+- Empower the patient with self-management strategies
+- Consider community resources and support networks`,
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ExamVitals {
@@ -191,7 +228,12 @@ export async function generateClinicalPackage(params: {
   summary: string | null;
   exam?: ExamFindings;
   demographics?: string;
+  practiceMode?: PracticeMode;
 }): Promise<ClinicalPackage> {
+  const systemPrompt = params.practiceMode
+    ? CLINICAL_PACKAGE_SYSTEM + PRACTICE_MODE_APPENDIX[params.practiceMode]
+    : CLINICAL_PACKAGE_SYSTEM;
+
   const userContent = `PATIENT INTERVIEW TRANSCRIPT:
 ${transcriptText(params.transcript)}
 
@@ -209,7 +251,7 @@ Produce the DRAFT clinical package as STRICT JSON per your schema.`;
     model: PACKAGE_MODEL,
     max_tokens: 5000, // rich SA cases need ~3.5–4k output tokens; headroom avoids truncation
     temperature: 0,
-    system: CLINICAL_PACKAGE_SYSTEM,
+    system: systemPrompt,
     messages: [{ role: 'user', content: userContent }],
   });
 

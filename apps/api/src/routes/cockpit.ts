@@ -16,7 +16,7 @@ import {
   buildClinicalPackage,
   confirmClinicalPackage,
 } from '../services/beta-engine.js';
-import type { ClinicalPackage, ExamFindings } from '../services/clinical-package.js';
+import type { ClinicalPackage, ExamFindings, PracticeMode } from '../services/clinical-package.js';
 
 const ExamSchema = z.object({
   vitals: z
@@ -100,6 +100,10 @@ export async function cockpitRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/cockpit/consults/:id/package', async (request, reply) => {
     if (!requireDoctor(request, reply)) return;
     const { id } = request.params as { id: string };
+    const body = request.body as { practiceMode?: string } | undefined;
+    const practiceMode = (['ACUTE_VOLUME', 'FAMILY_PRACTICE', 'HOLISTIC'] as PracticeMode[]).find(
+      (m) => m === body?.practiceMode
+    );
     const detail = getConsultDetail(id);
     if (!detail) {
       return reply.status(404).send({ success: false, error: 'Consult not found or expired' });
@@ -110,7 +114,7 @@ export async function cockpitRoutes(fastify: FastifyInstance): Promise<void> {
         .send({ success: false, error: 'History not yet complete — cannot generate package' });
     }
     try {
-      const pkg = await buildClinicalPackage(id);
+      const pkg = await buildClinicalPackage(id, practiceMode);
       return reply.send({ success: true, data: { package: pkg } });
     } catch (err) {
       fastify.log.error(err, 'cockpit: package generation failed');

@@ -10,6 +10,7 @@ import {
 interface Props {
   doctorKey: string;
   consultId: string;
+  practiceMode?: string;
   onBack: () => void;
 }
 
@@ -48,7 +49,7 @@ const priorityColor: Record<string, string> = {
   ROUTINE: 'bg-gray-100 text-gray-600',
 };
 
-export function ConsultWorkspace({ doctorKey, consultId, onBack }: Props) {
+export function ConsultWorkspace({ doctorKey, consultId, practiceMode, onBack }: Props) {
   const [detail, setDetail] = useState<ConsultDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -106,7 +107,7 @@ export function ConsultWorkspace({ doctorKey, consultId, onBack }: Props) {
     try {
       // Persist any unsaved exam first so the package reflects it.
       await cockpitApi.saveExam(doctorKey, consultId, exam);
-      const { package: generated } = await cockpitApi.generatePackage(doctorKey, consultId);
+      const { package: generated } = await cockpitApi.generatePackage(doctorKey, consultId, practiceMode);
       setPkg(generated);
       const d = await cockpitApi.getConsult(doctorKey, consultId);
       setDetail(d);

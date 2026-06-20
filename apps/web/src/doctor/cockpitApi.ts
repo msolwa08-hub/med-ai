@@ -132,9 +132,10 @@ export const cockpitApi = {
       body: JSON.stringify(exam),
     }),
 
-  generatePackage: (doctorKey: string, id: string) =>
+  generatePackage: (doctorKey: string, id: string, practiceMode?: string) =>
     call<{ package: ClinicalPackage }>(`/consults/${id}/package`, doctorKey, {
       method: 'POST',
+      body: practiceMode ? JSON.stringify({ practiceMode }) : undefined,
     }),
 
   confirmPackage: (doctorKey: string, id: string, pkg: ClinicalPackage) =>

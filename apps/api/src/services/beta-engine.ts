@@ -322,7 +322,7 @@ export function saveExamFindings(sessionId: string, exam: ExamFindings): boolean
   return true;
 }
 
-export async function buildClinicalPackage(sessionId: string): Promise<ClinicalPackage | null> {
+export async function buildClinicalPackage(sessionId: string, practiceMode?: import('./clinical-package.js').PracticeMode): Promise<ClinicalPackage | null> {
   const s = sessions.get(sessionId);
   if (!s) return null;
   if (!s.isComplete) throw new Error('History not yet complete');
@@ -330,6 +330,7 @@ export async function buildClinicalPackage(sessionId: string): Promise<ClinicalP
     transcript: s.displayMessages,
     summary: s.summary,
     exam: s.examFindings ?? undefined,
+    practiceMode,
   });
   s.clinicalPackage = pkg;
   s.consultStatus = 'IN_REVIEW';
