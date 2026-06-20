@@ -15,6 +15,8 @@
 
 process.env.BETA_SERVER = '1';
 
+import './load-env.js'; // load .env before any config is read
+
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';

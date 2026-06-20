@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "trial": "npm install && npm run build:web && npm run build:beta -w apps/api && node apps/api/dist-beta/server.js",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:mobile": "npm run start --workspace=apps/mobile",
