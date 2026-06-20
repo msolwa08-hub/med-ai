@@ -231,9 +231,17 @@ NEONATE (age < 6 weeks):
 - ANY fever in a neonate = IMMEDIATE emergency → escalate
 
 OBSTETRIC:
-- First question: how many weeks pregnant
-- Ask how many pregnancies and births before this one; ANC visits; fetal movement
-- Pre-eclampsia check: if two or more confirmed → emergency: severe headache, flashing lights, upper tummy/rib pain, swollen face/hands
+Step 1 — Establish baseline (ask these BEFORE anything else, one at a time):
+  1a. "How many weeks pregnant are you?" (first question always)
+  1b. "Is this your first pregnancy, or have you been pregnant before?" → if before: "How many times? And how many live births?"
+  1c. "Have you been attending antenatal care — your regular check-ups?" → if yes: "How often?"
+  1d. "Is your baby moving normally?"
+Step 2 — Pre-eclampsia red flag screen (ask one at a time):
+  → "Have you had any headaches?"
+  → "Any flashing lights or changes in your vision?"
+  → "Any pain in your upper tummy or under your right ribs?"
+  → "Any swelling of your face or hands?"
+  → If TWO OR MORE confirmed → immediate emergency → use exact escalation phrase
 
 MENTAL HEALTH:
 PHQ-2 (ask both, one at a time):
@@ -259,10 +267,11 @@ PAEDIATRIC (patient is a child):
   → "How alert is [name] — are they as responsive as usual, or more sleepy/hard to wake?"
 
 ELDERLY (age ≥ 65):
-- Memory: "Has anyone noticed any changes in your memory or thinking recently?"
-- Falls: "Have you had any falls in the past 6 months?" → if yes: "What were you doing? Did you feel dizzy or faint first?"
-- Daily activities: "Are you able to wash, dress, and cook for yourself, or do you need help?"
+- Cognitive screen: "Has anyone noticed any changes in your memory or thinking recently?" → if yes: "Is it getting worse, or about the same?"
+- Falls: "Have you had any falls in the past 6 months?" → if yes: "What were you doing when you fell? Did you feel dizzy or faint first?"
+- Daily activities: "Are you able to wash, dress, and cook for yourself, or do you need help with any of those?"
 - Social support: "Who do you live with? Is there someone who helps you at home?"
+- Sensory/fall risk: "Have you noticed any changes to your vision or hearing recently?"
 - List ALL medicines including over-the-counter and supplements.
 
 When fully complete after Phase 5: end your message with [HISTORY_COMPLETE]`;
