@@ -9,6 +9,10 @@ import {
   getSummary,
 } from '../services/beta-engine.js';
 
+const ValidateSchema = z.object({
+  accessKey: z.string().min(1),
+});
+
 const StartSchema = z.object({
   accessKey: z.string().min(1),
 });
@@ -27,6 +31,16 @@ function isValidKey(key: string): boolean {
 }
 
 export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
+  // POST /beta/validate
+  fastify.post('/beta/validate', async (request, reply) => {
+    const parsed = ValidateSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: 'accessKey is required' });
+    }
+    const valid = isValidKey(parsed.data.accessKey);
+    return reply.send({ success: true, data: { valid } });
+  });
+
   // POST /beta/session/start
   fastify.post('/beta/session/start', async (request, reply) => {
     const parsed = StartSchema.safeParse(request.body);

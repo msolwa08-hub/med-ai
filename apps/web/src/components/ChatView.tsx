@@ -1,17 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api';
-import type { ChatMessage } from '../App';
+import type { StoredSession } from '../storage';
 
 interface Props {
-  sessionId: string;
-  messages: ChatMessage[];
-  isComplete: boolean;
-  onMessage: (patientMsg: string, aiReply: string, complete: boolean, summary?: string) => void;
+  session: StoredSession;
+  onMessage: (sessionId: string, patientMsg: string, aiReply: string, isComplete: boolean, summary?: string) => void;
   onViewSummary: () => void;
-  onReset: () => void;
+  onBackToList: () => void;
 }
 
-export function ChatView({ sessionId, messages, isComplete, onMessage, onViewSummary, onReset }: Props) {
+export function ChatView({ session, onMessage, onViewSummary, onBackToList }: Props) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,23 +18,23 @@ export function ChatView({ sessionId, messages, isComplete, onMessage, onViewSum
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [session.messages, loading]);
 
   useEffect(() => {
-    if (!loading && !isComplete) {
+    if (!loading && !session.isComplete) {
       inputRef.current?.focus();
     }
-  }, [loading, isComplete]);
+  }, [loading, session.isComplete]);
 
   async function handleSend() {
     const text = input.trim();
-    if (!text || loading || isComplete) return;
+    if (!text || loading || session.isComplete) return;
     setInput('');
     setError('');
     setLoading(true);
     try {
-      const result = await api.sendMessage(sessionId, text);
-      onMessage(text, result.reply, result.isComplete, result.summary);
+      const result = await api.sendMessage(session.sessionId, text);
+      onMessage(session.sessionId, text, result.reply, result.isComplete, result.summary);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Connection error. Please try again.');
       setInput(text);
@@ -55,29 +53,40 @@ export function ChatView({ sessionId, messages, isComplete, onMessage, onViewSum
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto">
       {/* Header */}
-      <header className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <header className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={onBackToList}
+          className="text-gray-400 hover:text-gray-600 transition p-1 -ml-1 rounded-lg"
+          aria-label="Back to sessions"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+        </button>
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
             </svg>
           </div>
-          <div>
-            <div className="text-sm font-semibold text-gray-900">MedAI</div>
-            <div className="text-xs text-gray-500">Sandton Family Practice</div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-gray-900 truncate">{session.label}</div>
+            <div className="text-xs text-gray-400">Sandton Family Practice</div>
           </div>
         </div>
-        <button
-          onClick={onReset}
-          className="text-xs text-gray-400 hover:text-gray-600 transition px-2 py-1 rounded"
-        >
-          New session
-        </button>
+        {session.isComplete && (
+          <button
+            onClick={onViewSummary}
+            className="text-xs text-blue-600 hover:text-blue-700 font-medium transition px-2 py-1 rounded flex-shrink-0"
+          >
+            Summary →
+          </button>
+        )}
       </header>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-3 bg-gray-50">
-        {messages.map((msg, i) => (
+        {session.messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'patient' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
               <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0 mt-1">
@@ -107,7 +116,7 @@ export function ChatView({ sessionId, messages, isComplete, onMessage, onViewSum
         )}
 
         {/* Complete banner */}
-        {isComplete && !loading && (
+        {session.isComplete && !loading && (
           <div className="flex justify-center py-2">
             <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-center max-w-sm">
               <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-semibold mb-2">
@@ -117,7 +126,7 @@ export function ChatView({ sessionId, messages, isComplete, onMessage, onViewSum
                 History complete
               </div>
               <p className="text-xs text-green-600 mb-3">
-                The clinical summary has been generated for Dr. Patel.
+                GP Clinical Summary has been generated.
               </p>
               <button
                 onClick={onViewSummary}
@@ -140,7 +149,7 @@ export function ChatView({ sessionId, messages, isComplete, onMessage, onViewSum
       )}
 
       {/* Input */}
-      {!isComplete && (
+      {!session.isComplete && (
         <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3">
           <div className="flex gap-2 items-end">
             <textarea

@@ -23,6 +23,10 @@ export interface MessageResult {
   summary?: string;
 }
 
+export interface ValidateResult {
+  valid: boolean;
+}
+
 export interface StatusResult {
   isValid: boolean;
   isComplete: boolean;
@@ -33,6 +37,12 @@ export interface SummaryResult {
 }
 
 export const api = {
+  validate: (accessKey: string) =>
+    apiFetch<ValidateResult>('/validate', {
+      method: 'POST',
+      body: JSON.stringify({ accessKey }),
+    }),
+
   startSession: (accessKey: string) =>
     apiFetch<StartResult>('/session/start', {
       method: 'POST',

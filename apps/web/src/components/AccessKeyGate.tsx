@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { api } from '../api';
 
 interface Props {
-  onStart: (sessionId: string, openingMessage: string) => void;
+  onValidated: (key: string) => void;
 }
 
-export function AccessKeyGate({ onStart }: Props) {
+export function AccessKeyGate({ onValidated }: Props) {
   const [key, setKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,8 +16,9 @@ export function AccessKeyGate({ onStart }: Props) {
     setError('');
     setLoading(true);
     try {
-      const result = await api.startSession(key.trim());
-      onStart(result.sessionId, result.message);
+      const result = await api.validate(key.trim());
+      if (!result.valid) throw new Error('Invalid access key');
+      onValidated(key.trim());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid access key. Please try again.');
     } finally {
@@ -26,9 +27,8 @@ export function AccessKeyGate({ onStart }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-gray-50">
       <div className="w-full max-w-sm">
-        {/* Logo / Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
             <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -36,29 +36,24 @@ export function AccessKeyGate({ onStart }: Props) {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">MedAI</h1>
-          <p className="text-sm text-gray-500 mt-1">Clinical History Assistant</p>
+          <p className="text-sm text-gray-500 mt-1">Clinical History Assistant — Beta</p>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">Enter your access key</h2>
-          <p className="text-sm text-gray-500 mb-5">
-            This beta is invitation-only. Enter the key provided by your practice.
-          </p>
+          <p className="text-sm text-gray-500 mb-5">Invitation-only beta for Sandton Family Practice.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <input
-                type="text"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                placeholder="MEDAI-BETA-XXXX"
-                disabled={loading}
-                autoComplete="off"
-                spellCheck={false}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-mono text-center tracking-wider placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400 transition"
-              />
-            </div>
+            <input
+              type="text"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              placeholder="MEDAI-BETA-XXXX"
+              disabled={loading}
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-mono text-center tracking-wider placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 transition"
+            />
 
             {error && (
               <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
@@ -72,7 +67,7 @@ export function AccessKeyGate({ onStart }: Props) {
             <button
               type="submit"
               disabled={loading || !key.trim()}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold rounded-xl transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold rounded-xl transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -80,11 +75,9 @@ export function AccessKeyGate({ onStart }: Props) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Starting session...
+                  Validating…
                 </span>
-              ) : (
-                'Start Session'
-              )}
+              ) : 'Continue'}
             </button>
           </form>
         </div>
