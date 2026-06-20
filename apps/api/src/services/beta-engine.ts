@@ -165,12 +165,14 @@ async function generateSummary(messages: ChatMessage[]): Promise<string> {
 
   const resp = await client.messages.create({
     model: BETA_MODEL,
-    max_tokens: 2000,
+    max_tokens: 4000,
     system: SUMMARY_SYSTEM,
     messages: [
       {
         role: 'user',
-        content: `Produce a structured GP Clinical Summary for Dr. Patel based on the patient interview below.
+        content: `IMPORTANT: Output this summary EXACTLY ONCE. Do not repeat or re-print any section.
+
+Produce a structured GP Clinical Summary for Dr. Patel based on the patient interview below.
 
 Use this exact structure:
 
@@ -188,19 +190,19 @@ Use this exact structure:
 [Chronic conditions AND under-reported or demographic case-finding positives surfaced today — e.g. long-standing pain, sleep problems, male urinary/prostate symptoms, post-menopausal bleeding, menopausal symptoms, overdue screening. For known chronic conditions give control status and treatment adherence (flag clearly if DEFAULTED/interrupted, with timing and reason). Mark anything needing prompt attention — e.g. ANY post-menopausal bleeding — as "(URGENT — doctor to review)". Write "None surfaced" if genuinely none.]
 
 **Current Medications:**
-[Bullet list — include approximate doses if stated; mark uncertain with "(to confirm)"; include ARVs, contraceptives, traditional medicine]
+[Bullet list — include correct drug identification (see SOUTH AFRICAN DRUG IDENTIFICATION above), doses if stated; mark uncertain with "(to confirm)"; include ARVs, contraceptives, traditional medicine. Do NOT misidentify a drug as a supplement/vitamin — flag as "(unidentified — to confirm)" if unsure.]
 
 **Allergies:** [List or "NKDA"]
 
 **Family History:** [Relevant first-degree family illnesses, or "Not elicited"]
 
 **Social History:**
-[Smoking: status and pack-years if known | Alcohol: yes/no and frequency | Occupation | Living situation | Traditional medicine/umuthi use | Recent travel]
+[Smoking: status and pack-years if known | Alcohol: yes/no and frequency | Occupation | Living situation | Household contacts with illness | Traditional medicine/umuthi use | Recent travel: state explicitly — "Not elicited" if not asked]
 
 **Systems Review:**
 [Relevant positive findings not already covered | Pertinent negatives worth noting]
 
-**Reproductive/Gynaecological:** [For female patients: LMP, contraception, pregnancy status — or "Not applicable"]
+**Reproductive/Gynaecological:** [For female patients: LMP, contraception, pregnancy status — or "Not applicable (male)" / "Not applicable (post-menopausal)" as relevant]
 
 **HIV/TB Status:**
 [HIV status if disclosed; ARV status; TB screen findings — cough duration, night sweats, weight loss, contacts]
@@ -210,18 +212,23 @@ Use this exact structure:
 ## Clinical Impressions — For Dr. Patel Only
 
 ### Differential Diagnoses
-1. **[Most likely diagnosis]** — [key supporting history]
-2. **[Second differential]** — [key supporting history]
-3. **[Third differential]** — [key supporting history]
+1. **[Most likely diagnosis]** (ICD-10: X00.0) — [key supporting features] | Against: [features against]
+2. **[Second differential]** (ICD-10: X00.0) — [key supporting features] | Against: [features against]
+3. **[Third differential]** (ICD-10: X00.0) — [key supporting features] | Against: [features against]
 
 ### Suggested Examination
 - [Specific targeted examination findings to look for]
 
 ### Suggested Investigations
-- [Specific investigations with clinical rationale]
+- [Specific investigations with clinical rationale and priority — URGENT / ROUTINE]
 
 ### Management Considerations
-- [Therapeutic options for Dr. Patel to consider — frame as suggestions, not prescriptions]
+
+**Pharmacological:**
+- [Drug options, class, reasoning — frame as suggestions not prescriptions; flag relevant SA EML/STG options]
+
+**Non-pharmacological:**
+- [Rest, hydration, lifestyle, patient education, follow-up timing, referral triggers]
 
 ### Secondary Care & Case-Finding Opportunities
 [Flag issues surfaced today that Dr. Patel could act on opportunistically — defaulted chronic treatment AND demographic case-finding positives (e.g. likely prostate/BPH in an older man, post-menopausal bleeding, overdue cervical/breast screening, possible sleep apnoea, normalised chronic pain). One line each with the suggested next step, or "None identified."]
@@ -231,8 +238,6 @@ Use this exact structure:
 
 ---
 *MedAI — AI-generated pre-consultation summary | For clinical use only | Not shown to patient*
-
----
 
 PATIENT INTERVIEW TRANSCRIPT:
 ${transcript}`,
