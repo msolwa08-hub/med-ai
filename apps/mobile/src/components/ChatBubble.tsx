@@ -119,8 +119,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   bubbleAI: {
-    backgroundColor: COLORS.systemGray6,
+    backgroundColor: COLORS.healingTeal,
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.healingTealMid,
   },
   bubblePatient: {
     backgroundColor: COLORS.primary,
@@ -130,7 +132,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.body,
   },
   contentAI: {
-    color: COLORS.label,
+    color: '#134e4a',
   },
   contentPatient: {
     color: COLORS.white,
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.systemGray,
+    backgroundColor: COLORS.primaryLight,
   },
 });
 

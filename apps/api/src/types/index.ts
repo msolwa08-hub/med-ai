@@ -74,9 +74,11 @@ export interface StructuredMedicalHistory {
   familyHistory: string;
   socialHistory: string;
   systemsReview: string;
-  clinicalScores?: string;      // Validated clinical scores calculable from history (CRB-65, IPSS, PHQ-9, etc.)
-  opportunisticFindings?: string; // Findings from risk-stratified/health-promotion screening
-  redFlagsIdentified?: string;  // Red flag symptoms noted
+  clinicalScores?: string;           // Validated clinical scores calculable from history (CRB-65, IPSS, PHQ-9, etc.)
+  opportunisticFindings?: string;    // Findings from risk-stratified/health-promotion screening
+  redFlagsIdentified?: string;       // Red flag symptoms noted
+  differentialDiagnoses?: string;    // Ranked differentials with ICD-10 codes
+  managementConsiderations?: string; // Pharmacological and non-pharmacological suggestions
 }
 
 // ============================================================

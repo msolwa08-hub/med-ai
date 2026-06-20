@@ -107,6 +107,20 @@ function buildAdaptiveSystemPrompt(
     ? `\nCONVERSATION TRACKER (do NOT re-ask anything marked ✓):\n${gatheredSummary}\n`
     : '';
 
+  const demographicsUnknown = patientContext.age === 0
+    || (patientContext.age === 35 && patientContext.gender === 'OTHER');
+  const demographicsNote = demographicsUnknown
+    ? `\n⚠ DEMOGRAPHICS NOT YET CONFIRMED — Establish these in your FIRST TWO questions, one at a time, before any clinical history:
+  1. "Just so I note it down correctly — roughly how old are you?"
+  2. "And are you male or female? — sorry if it seems obvious, it helps me make sure I ask the right questions."
+  Do not proceed to clinical history until both are established.\n`
+    : '';
+
+  const ageSpecificNote = !demographicsUnknown
+    ? (patientContext.age < 12 ? getPaediatricProtocol(patientContext) : '')
+      + (patientContext.age >= 12 && patientContext.age <= 17 ? getAdolescentProtocol(patientContext) : '')
+    : '';
+
   const consultationFlow = patientContext.isReviewConsultation
     ? getChronicReviewFlow(patientContext, literacyLevel)
     : getAcuteConsultationFlow(patientContext, literacyLevel);
@@ -122,7 +136,7 @@ LANGUAGE: Conduct the entire conversation in ${lang} only.
 
 PATIENT PROFILE:
 ${ctx}
-${gathered}
+${demographicsNote}${ageSpecificNote}${gathered}
 ${protocol}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -208,6 +222,7 @@ COUGH (ask in this order, one per message):
   "Does it wake you up at night?"
   "Are you getting short of breath with the cough?"
   "Is anyone else at home coughing too?"
+  "Have you been anywhere different recently — travelled away from home, or been in any crowded places like clinics, schools, or public transport?"
   [synthesise internally: yellow/green = purulent, rust = pneumococcal, pink frothy = pulmonary oedema, haemoptysis]
 
 PAIN (ask in this order, one per message):
@@ -990,8 +1005,8 @@ Medications: ${ctx.currentMedications.length > 0
   }
 Allergies: specifically ask about penicillin, sulpha drugs, aspirin, ibuprofen, any foods, latex
 Social history: ${simple
-    ? '"Do you smoke? Drink alcohol? What work do you do?"'
-    : 'Smoking (pack-year history if smoker) | Alcohol (AUDIT-C if not captured above) | Recreational drugs (sensitively) | Occupation and exposures | Living situation and support'
+    ? '"Do you smoke? Drink alcohol? What work do you do? Have you been anywhere different recently?"'
+    : 'Smoking (pack-year history if smoker) | Alcohol (AUDIT-C if not captured above) | Recreational drugs (sensitively) | Occupation and exposures | Living situation and support | Recent travel ("Have you been anywhere different recently — travelled away from home, or been in crowded places like clinics, schools, or public transport?")'
   }
 Family history: heart disease, diabetes, TB, cancer, kidney disease, hypertension — parents and siblings`;
 }
@@ -1023,6 +1038,46 @@ function getInterviewProtocol(level: PatientLiteracyLevel): string {
 • Confirm important answers by briefly echoing back: "So it started about 3 days ago — is that right?"
 • Pain scale 1-10 is fine for medium literacy`;
   }
+}
+
+// ─── Age-Specific Protocols ───────────────────────────────────────────────────
+
+function getPaediatricProtocol(ctx: PatientContext): string {
+  return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PAEDIATRIC PROTOCOL (under 12 — age ${ctx.age})
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Establish whether a parent/caregiver is present and speaking — direct questions at the caregiver.
+• If the child is old enough to answer, include them: "You can tell me too if you want."
+• Establish weight early — essential for weight-based dosing.
+• Feeding/diet: "What is ${ctx.age < 2 ? 'the baby/child' : 'the child'} eating and drinking?"
+• Developmental milestones if relevant to the complaint.
+• Vaccination status — EPI schedule and any missed vaccines.
+• School attendance: "How many school days have been missed?"
+• Sick contacts: "Anyone else at home or at school who is sick?"
+• Sick note → "a medical certificate for school/crèche"
+`;
+}
+
+function getAdolescentProtocol(ctx: PatientContext): string {
+  return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADOLESCENT PROTOCOL (age 12–17 — age ${ctx.age})
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Establish whether a parent/caregiver is present. If presenting alone: acknowledge and address them directly.
+• Ask weight early — needed for dosing and growth context.
+• School: "Are you currently at school? How many days have you missed because of this?"
+• Vaccination status: flu, COVID, HPV (if applicable).
+• TB risk: school is HIGH-RISK — "Has any teacher or classmate been coughing a lot recently?"
+• Reproductive/sexual health:
+${ctx.gender === 'FEMALE'
+  ? `  → "Have your periods started?" If yes: "When was your last one, and are they regular?"
+  → Do NOT assume sexual inactivity.`
+  : `  → Ask sensitively if relevant to the presentation.`}
+• Mental health and school: "How are things at school — not just studying, but in general?"
+• Substance use: "I ask everyone your age — do you smoke, vape, or use anything else?"
+• Sick note → frame as "a medical certificate for school"
+`;
 }
 
 // ─── Gathered Summary Tracker ─────────────────────────────────────────────────
@@ -1132,19 +1187,19 @@ function detectRedFlags(text: string): boolean {
 // ─── Session Functions ────────────────────────────────────────────────────────
 
 function defaultPatientContext(): PatientContext {
-  return { age: 35, gender: 'OTHER', knownConditions: [], currentMedications: [], isSmoker: false, isReviewConsultation: false };
+  return { age: 0, gender: 'OTHER', knownConditions: [], currentMedications: [], isSmoker: false, isReviewConsultation: false };
 }
 
 function buildOpeningInstruction(language: SaLanguage, patientName: string, literacy: PatientLiteracyLevel, ctx: PatientContext): string {
-  const reviewNote = ctx.isReviewConsultation
-    ? ` This is a review visit — after the introduction, ask warmly: "How have you been since your last visit?"`
-    : ` After the introduction, ask warmly and naturally: "How are you feeling today? What's going on?"`;
+  const openingQuestion = ctx.isReviewConsultation
+    ? 'Great to see you again — how have you been since your last visit?'
+    : "What's brought you in today?";
 
   const persona = ctx.doctorName && ctx.practiceName
-    ? `Say exactly: "Hi ${patientName}, I'm the AI assistant for ${ctx.practiceName} and ${ctx.doctorName}. Everything you share with me is completely private and will only be seen by ${ctx.doctorName}. I'm going to ask you a few health questions before your appointment — it should take about 10 to 15 minutes."${reviewNote}`
+    ? `Say exactly: "Hi ${patientName}! I'm ${ctx.practiceName}'s AI health assistant. Everything you share is completely private. ${openingQuestion}"`
     : ctx.doctorName
-      ? `Say exactly: "Hi ${patientName}, I'm the AI healthcare assistant for ${ctx.doctorName}. Everything you share is private and only goes to ${ctx.doctorName}."${reviewNote}`
-      : `Greet ${patientName} warmly in ${SA_LANGUAGE_NAMES[language]}, then ask: "How are you feeling today? What's going on?"`;
+      ? `Say exactly: "Hi ${patientName}! I'm ${ctx.doctorName}'s AI health assistant. Everything you share is private. ${openingQuestion}"`
+      : `Greet ${patientName} warmly in ${SA_LANGUAGE_NAMES[language]}. Say everything they share is private, then ask: "${openingQuestion}"`;
 
   return persona;
 }
@@ -1239,10 +1294,25 @@ export async function extractAdaptiveStructuredHistory(
 
   const response = await anthropic.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: 3000,
+    max_tokens: 4000,
     system: `You are a medical data extraction AI. Parse a patient-AI conversation and extract structured medical history, including calculating clinical scores where sufficient data exists.
 
 ${literacyHint}
+
+SOUTH AFRICAN DRUG IDENTIFICATION — always identify these correctly, never guess:
+- Betadexamine: betamethasone 0.25 mg + dexchlorpheniramine 2 mg (CORTICOSTEROID + ANTIHISTAMINE — NOT a B-vitamin or multivitamin)
+- Stilpane: paracetamol 320 mg + codeine phosphate 8 mg + caffeine 30 mg (Schedule 5 — opioid-containing)
+- Myprodol: ibuprofen 200 mg + codeine phosphate 10 mg + paracetamol 150 mg (Schedule 5)
+- Syndol: paracetamol 450 mg + codeine 10 mg + doxylamine succinate 5 mg (Schedule 5, sedating)
+- Adco-Alzam / Alzam: alprazolam (benzodiazepine — Schedule 6)
+- Grandpa: aspirin 453.6 mg + paracetamol 324 mg + caffeine 65 mg (OTC powder)
+- ACC 200: acetylcysteine 200 mg (mucolytic — 200 mg TDS or 600 mg once daily; both are valid)
+- Gen-Payne: paracetamol + ibuprofen + codeine (Schedule 5)
+- Corlan: hydrocortisone pellets (topical corticosteroid for mouth ulcers)
+- Stopayne: paracetamol + codeine + meprobamate (Schedule 5)
+- Panado: paracetamol only (OTC analgesic/antipyretic)
+- Voltaren: diclofenac sodium (NSAID)
+When any medication is mentioned, identify the active ingredient(s), drug class, and SA schedule if known.
 
 Return ONLY a valid JSON object with this exact structure:
 {
@@ -1259,12 +1329,14 @@ Return ONLY a valid JSON object with this exact structure:
     "associatedSymptoms": "string — full list of associated symptoms discussed, including system-based review findings"
   },
   "pastMedicalHistory": "string",
-  "medications": "string",
+  "medications": "string — include active ingredient, drug class, and SA schedule for each medication mentioned",
   "allergies": "string",
   "familyHistory": "string",
-  "socialHistory": "string — smoking, alcohol (with AUDIT-C score if data available), occupation, living situation",
+  "socialHistory": "string — smoking, alcohol (with AUDIT-C score if data available), occupation, living situation, recent travel",
   "systemsReview": "string — summary of all system review findings covered during the history",
   "clinicalScores": "string — calculate and report ALL applicable scores based on history data. Format: '[SCORE_NAME]: [score]/[max] — [interpretation] ([items answered, items requiring examination])'. Include: CRB-65 if respiratory complaint; FeverPAIN + Centor if sore throat; HEART history+risk components if chest pain; Wells PE/DVT if breathlessness or leg swelling; ABCD2 if TIA-like; IPSS if male urinary symptoms; PHQ-2 and PHQ-9 if mood symptoms discussed; GAD-7 if anxiety discussed; AUDIT-C if alcohol assessed; qSOFA if systemically unwell. For each score: (a) list the items captured from history, (b) list items requiring clinical examination, (c) give the history-calculable score, (d) give interpretation.",
+  "differentialDiagnoses": "string — MUST include ICD-10 codes. List 3-5 differentials in order of probability. Format each as: '1. [Diagnosis] (ICD-10: X00.0) — Supporting: [key features for]. Against: [features against]'. Consider South African epidemiology: TB, HIV, hypertension, diabetes, rheumatic heart disease.",
+  "managementConsiderations": "string — structured as follows (frame as clinical suggestions for the doctor, NOT direct patient advice):\n\nPharmacological:\n- [Drug options, class, reasoning. Flag SA EML/STG-aligned options. Note relevant SA schedule.]\n\nNon-pharmacological:\n- [Rest, hydration, lifestyle modification, patient education, follow-up timing, referral triggers, safety-netting advice]",
   "opportunisticFindings": "string — findings from health promotion or screening discussions (e.g. overdue pap smear, not vaccinated against influenza, sedentary, high-salt diet)",
   "redFlagsIdentified": "string — any red flag symptoms identified (or 'None identified')"
 }
@@ -1353,6 +1425,8 @@ function normaliseStructuredHistory(p: Partial<StructuredMedicalHistory>): Struc
     socialHistory: p.socialHistory ?? 'Not reported',
     systemsReview: p.systemsReview ?? 'Not reported',
     clinicalScores: p.clinicalScores,
+    differentialDiagnoses: p.differentialDiagnoses,
+    managementConsiderations: p.managementConsiderations,
     opportunisticFindings: p.opportunisticFindings,
     redFlagsIdentified: p.redFlagsIdentified ?? 'None identified',
   };

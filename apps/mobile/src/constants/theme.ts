@@ -25,7 +25,7 @@ export const COLORS = {
   systemOrange: '#FF9500',
   systemYellow: '#FFCC00',
   systemPurple: '#AF52DE',
-  systemTeal: '#5AC8FA',
+  systemTeal: '#14b8a6',
   systemGray: '#8E8E93',
   systemGray2: '#AEAEB2',
   systemGray3: '#C7C7CC',
@@ -33,13 +33,13 @@ export const COLORS = {
   systemGray5: '#E5E5EA',
   systemGray6: '#F2F2F7',
 
-  // Brand — South African medical
-  primary: '#1A3A6B',
-  primaryLight: '#2E5BA8',
-  primaryDark: '#0F2347',
-  secondary: '#007A4D',
-  secondaryLight: '#00A35A',
-  secondaryDark: '#1F5E3A',
+  // Brand — health-focused teal palette (calming, trustworthy, clinical)
+  primary: '#0d9488',        // teal-600 — confident, clinical
+  primaryLight: '#14b8a6',   // teal-500 — actionable elements
+  primaryDark: '#0f766e',    // teal-700 — depth / pressed states
+  secondary: '#059669',      // emerald-600 — success, approved states
+  secondaryLight: '#10b981', // emerald-500
+  secondaryDark: '#047857',  // emerald-700
 
   // Medical semantics
   emergency: '#FF3B30',
@@ -61,6 +61,11 @@ export const COLORS = {
   overlay: 'rgba(0,0,0,0.4)',
   overlayLight: 'rgba(0,0,0,0.12)',
 
+  // Healing / calm accents
+  healingMint: '#f0fdfa',   // teal-50 — very light background
+  healingTeal: '#ccfbf1',   // teal-100 — card backgrounds, chat bubbles
+  healingTealMid: '#99f6e4', // teal-200 — subtle borders
+
   // SA flag palette
   saGreen: '#007A4D',
   saGold: '#FFB612',
@@ -77,7 +82,7 @@ export const COLORS = {
   border: '#E5E5EA',
   divider: '#E5E5EA',
   accent: '#FF9500',
-  accentSA: '#007A4D',
+  accentSA: '#0d9488',
 };
 
 // ─── SF Pro-inspired type scale ─────────────────────────────────────────────
@@ -160,7 +165,7 @@ export const SHADOWS = {
     elevation: 6,
   },
   card: {
-    shadowColor: '#1A3A6B',
+    shadowColor: '#0d9488',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
