@@ -323,7 +323,7 @@ export async function startHistory(sessionId: string): Promise<string> {
 
   const resp = await client.messages.create({
     model: BETA_MODEL,
-    max_tokens: 400,
+    max_tokens: 600,
     system: CACHED_SYSTEM as never,
     messages: session.messages,
   });
@@ -352,7 +352,7 @@ export async function sendMessage(
 
   const resp = await client.messages.create({
     model: BETA_MODEL,
-    max_tokens: 400,
+    max_tokens: 600,
     system: CACHED_SYSTEM as never,
     messages: session.messages,
   });
