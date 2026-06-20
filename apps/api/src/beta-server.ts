@@ -25,6 +25,7 @@ import { existsSync } from 'node:fs';
 import { betaConfig } from './lib/beta-config.js';
 import { betaRoutes } from './routes/beta.js';
 import { cockpitRoutes } from './routes/cockpit.js';
+import { toolsRoutes } from './routes/tools.js';
 
 const fastify = Fastify({
   logger: {
@@ -43,6 +44,7 @@ await fastify.register(rateLimit, {
 // API routes
 await fastify.register(betaRoutes);
 await fastify.register(cockpitRoutes);
+await fastify.register(toolsRoutes);
 
 // Health check
 fastify.get('/health', async () => ({ status: 'ok', service: 'medai-beta', timestamp: new Date().toISOString() }));
@@ -67,6 +69,7 @@ if (existsSync(webDist)) {
     if (
       request.url.startsWith('/beta') ||
       request.url.startsWith('/cockpit') ||
+      request.url.startsWith('/tools') ||
       request.url.startsWith('/health')
     ) {
       return reply.status(404).send({ success: false, error: 'Not found' });
