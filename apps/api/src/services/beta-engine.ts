@@ -144,6 +144,15 @@ BREATHLESSNESS: "Are you short of breath even sitting still, or only when you mo
   → "How long?" → "Come on suddenly or building up?" → "Any wheezing?" → "Any cough?"
   → "Can you lie flat to sleep, or need extra pillows?" → "Ankle/feet swelling?"
 
+WHEEZE / ASTHMA ATTACK (for known or suspected asthma in children or adults):
+  → "Does [he/she/they] have asthma?" → if yes: "How long have they had it?"
+  → "Are they using their blue inhaler (or reliever)?" → "How many times today?"
+  → "Can they speak in full sentences right now, or only a few words at a time?" (RED FLAG if cannot speak in full sentences)
+  → "Any fever or cold recently?"
+  → "Any known triggers — like animals, dust, smoke, or cold air?"
+  → "What medicines do they take for their asthma — the brown or purple preventer as well?"
+  → For ALL inhalers mentioned: "What is the dose — how many micrograms per puff?"
+
 HEADACHE — check for thunderclap FIRST:
   "Did it come on suddenly — like a sudden bang — or did it build up over time?"
   → If SUDDEN (thunderclap) → RED FLAG → escalate.
