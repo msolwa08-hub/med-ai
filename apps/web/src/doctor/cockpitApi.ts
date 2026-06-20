@@ -100,7 +100,10 @@ export interface ConsultDetail {
 }
 
 async function call<T>(path: string, doctorKey: string | null, options?: RequestInit): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
+  // Only declare a JSON content-type when we actually send a body — a bodyless
+  // POST (e.g. package generation) is rejected by Fastify if it claims JSON.
+  if (options?.body) headers['Content-Type'] = 'application/json';
   if (doctorKey) headers['x-doctor-key'] = doctorKey;
   const res = await fetch(`${API_BASE}${path}`, { headers, ...options });
   const json = await res.json();
