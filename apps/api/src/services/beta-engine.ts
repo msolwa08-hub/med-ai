@@ -147,8 +147,8 @@ Use this exact structure:
 **Past Medical History:**
 [Bullet list of confirmed conditions, or "Nil of note"]
 
-**Chronic / Ongoing Conditions:**
-[Any chronic/long-term condition surfaced, INCLUDING ones unrelated to today's complaint. For each: control status and — critically — treatment adherence: state clearly if the patient has DEFAULTED, interrupted, or never started treatment, with timing and reason if given. Write "None surfaced" if genuinely none.]
+**Chronic / Ongoing & Newly Surfaced Issues:**
+[Chronic conditions AND under-reported or demographic case-finding positives surfaced today — e.g. long-standing pain, sleep problems, male urinary/prostate symptoms, post-menopausal bleeding, menopausal symptoms, overdue screening. For known chronic conditions give control status and treatment adherence (flag clearly if DEFAULTED/interrupted, with timing and reason). Mark anything needing prompt attention — e.g. ANY post-menopausal bleeding — as "(URGENT — doctor to review)". Write "None surfaced" if genuinely none.]
 
 **Current Medications:**
 [Bullet list — include approximate doses if stated; mark uncertain with "(to confirm)"; include ARVs, contraceptives, traditional medicine]
@@ -186,8 +186,8 @@ Use this exact structure:
 ### Management Considerations
 - [Therapeutic options for Dr. Patel to consider — frame as suggestions, not prescriptions]
 
-### Secondary / Chronic Care Opportunities
-[Explicitly flag any chronic or ongoing issue surfaced today that Dr. Patel could address opportunistically — especially defaulted chronic treatment (e.g. hypertension, diabetes, HIV/ARVs, asthma, mental health). One line each, or "None identified."]
+### Secondary Care & Case-Finding Opportunities
+[Flag issues surfaced today that Dr. Patel could act on opportunistically — defaulted chronic treatment AND demographic case-finding positives (e.g. likely prostate/BPH in an older man, post-menopausal bleeding, overdue cervical/breast screening, possible sleep apnoea, normalised chronic pain). One line each with the suggested next step, or "None identified."]
 
 ### Red Flags / Safety Netting
 [Any red flags elicited, or "None identified. Advise patient to return if [specific worsening symptoms]."]
