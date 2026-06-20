@@ -358,7 +358,7 @@ async function main() {
   console.log(bold(info("  MedAI Comprehensive Patient Simulation Evaluation")));
   console.log(bold(info("════════════════════════════════════════════════════")));
   console.log(
-    `  MedAI: ${MEDAI_MODEL} | Scorer: ${SCORER_MODEL} | Scenarios: ${SCENARIOS.length} | Pass threshold: ${PASS_THRESHOLD}/30\n`
+    `  MedAI: ${MEDAI_MODEL} | Scorer: ${SCORER_MODEL} | Total scenarios: ${SCENARIOS.length} | Pass threshold: ${PASS_THRESHOLD}/30\n`
   );
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -368,11 +368,32 @@ async function main() {
     process.exit(1);
   }
 
-  // Optional subset filter for smoke tests: ONLY=A01,A03,B01 node scripts/comprehensive-eval.mjs
+  // ── COST GUARD ───────────────────────────────────────────────────────────────
+  // Running all 40 scenarios costs ~$5–10 in API credits. Require FULL_EVAL=1
+  // to proceed with the full suite. For quick checks use spot-check.mjs instead.
+  const fullEval = process.env.FULL_EVAL === "1";
+  const maxScenarios = process.env.MAX_SCENARIOS ? parseInt(process.env.MAX_SCENARIOS, 10) : null;
+
+  if (!fullEval && !maxScenarios && !process.env.ONLY) {
+    console.error(
+      fail("\nCOST GUARD: Full 40-scenario eval costs ~$5–10 in API credits.")
+    );
+    console.error(info("  For a quick 5-scenario check:  node scripts/spot-check.mjs"));
+    console.error(info("  To cap the run:                MAX_SCENARIOS=10 node scripts/comprehensive-eval.mjs"));
+    console.error(info("  To run the full suite:         FULL_EVAL=1 node scripts/comprehensive-eval.mjs"));
+    process.exit(1);
+  }
+
+  // Optional subset filter: ONLY=A01,A03,B01 node scripts/comprehensive-eval.mjs
   const onlyIds = process.env.ONLY ? process.env.ONLY.split(",").map((s) => s.trim()) : null;
-  const scenariosToRun = onlyIds
+  let scenariosToRun = onlyIds
     ? SCENARIOS.filter((s) => onlyIds.includes(s.id))
     : SCENARIOS;
+
+  if (maxScenarios && !onlyIds) {
+    scenariosToRun = scenariosToRun.slice(0, maxScenarios);
+    console.log(info(`  (Capped at ${maxScenarios} scenarios via MAX_SCENARIOS)\n`));
+  }
 
   const results = [];
   const startTime = Date.now();
@@ -431,7 +452,8 @@ async function main() {
   printSummaryTable(results);
 
   // ─── SAVE RESULTS ──────────────────────────────────────────────────────────
-  const outputPath = join(__dirname, "eval-results-round6.json");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const outputPath = join(__dirname, `eval-results-${timestamp}.json`);
 
   const output = {
     metadata: {

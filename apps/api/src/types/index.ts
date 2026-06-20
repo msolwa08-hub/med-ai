@@ -22,9 +22,12 @@ export interface RefreshTokenPayload {
 // Request augmentation
 // ============================================================
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: JwtPayload;
+// @fastify/jwt v8 provides request.user via FastifyJWT interface — augmenting
+// it here avoids TS2717 (conflicting property type on FastifyRequest).
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: JwtPayload | RefreshTokenPayload;
+    user: JwtPayload;
   }
 }
 
