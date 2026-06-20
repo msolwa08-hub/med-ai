@@ -8,8 +8,8 @@ services:
     name: medai-beta
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter # change to "free" if available on your account
-    region: frankfurt # closest Render region to South Africa
+    plan: free # no payment required; sleeps when idle (~30s cold start)
+    region: frankfurt # closest free Render region to South Africa
     healthCheckPath: /health
     autoDeploy: true
     envVars:
