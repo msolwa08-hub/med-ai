@@ -36,7 +36,12 @@ export function ChatView({ session, onMessage, onViewSummary, onBackToList }: Pr
       const result = await api.sendMessage(session.sessionId, text);
       onMessage(session.sessionId, text, result.reply, result.isComplete, result.summary);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Connection error. Please try again.');
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('expired')) {
+        setError('This session has expired (server restarted). Please go back and start a new patient session.');
+      } else {
+        setError(msg || 'Connection error. Please try again.');
+      }
       setInput(text);
     } finally {
       setLoading(false);
