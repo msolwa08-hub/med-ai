@@ -37,10 +37,12 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// ─── MEDAI SYSTEM PROMPT (single source of truth: comprehensive-eval.mjs) ──────
-const evalSrc = readFileSync(join(__dirname, "comprehensive-eval.mjs"), "utf8");
-const promptMatch = evalSrc.match(/const MEDAI_SYSTEM_PROMPT = `([\s\S]*?)`;[\s\n]*\/\/ ─── PATIENT SCENARIOS/);
-if (!promptMatch) { console.error("Could not extract MEDAI_SYSTEM_PROMPT from comprehensive-eval.mjs"); process.exit(1); }
+// ─── MEDAI SYSTEM PROMPT (single source of truth: shared medai-prompt.ts) ──────
+// Loaded from the exact module the production beta engine imports, so this
+// spot-check tests the prompt the deployed app actually runs.
+const promptSrc = readFileSync(join(__dirname, "../apps/api/src/services/medai-prompt.ts"), "utf8");
+const promptMatch = promptSrc.match(/export const MEDAI_SYSTEM_PROMPT = `([\s\S]*?)`;/);
+if (!promptMatch) { console.error("Could not extract MEDAI_SYSTEM_PROMPT from medai-prompt.ts"); process.exit(1); }
 const MEDAI_SYSTEM_PROMPT = promptMatch[1];
 
 // ─── PATIENT SIMULATOR ─────────────────────────────────────────────────────────
