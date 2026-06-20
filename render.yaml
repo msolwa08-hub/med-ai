@@ -1,21 +1,26 @@
 # Render Blueprint for MedAI Beta
 # Deploy from your phone: render.com → New → Blueprint → pick this repo.
-# Render reads this file, builds the Dockerfile, and asks you for the two
-# secret values below.
+# Render reads this file, builds the Dockerfile, and asks you for the secrets
+# marked "sync: false" below.
 
 services:
   - type: web
     name: medai-beta
     runtime: docker
     dockerfilePath: ./Dockerfile
+    branch: claude/ai-medical-history-app-vhsw63 # build the full app (patient + cockpit + tools)
     plan: free # no payment required; sleeps when idle (~30s cold start)
     region: frankfurt # closest free Render region to South Africa
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: ANTHROPIC_API_KEY
-        sync: false # you paste this in the Render dashboard (kept secret)
+        sync: false # paste your sk-ant-... key in the Render dashboard (secret)
       - key: BETA_ACCESS_KEYS
-        sync: false # comma-separated list of access keys you hand out
+        sync: false # patient app keys, comma-separated (e.g. MEDAI-BETA-TRIAL)
+      - key: BETA_DOCTOR_KEYS
+        sync: false # doctor cockpit keys for /doctor (e.g. MEDAI-DOC-TRIAL)
+      - key: BETA_TOOLS_KEYS
+        sync: false # personal intern-tools keys for /tools (e.g. MEDAI-INTERN-TRIAL)
       - key: NODE_ENV
         value: production

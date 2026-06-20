@@ -1,54 +1,52 @@
-# MedAI Beta — Deploy from your phone
+# MedAI — Set up your trial (no laptop needed)
 
-No laptop needed. Everything below is done in your phone's browser. The whole
-thing is **one service** (web app + API together), so there's only one thing to
-deploy and one URL to share.
+Everything below is done in your phone or computer browser. The whole thing is
+**one service** — patient app, doctor cockpit, and your personal intern tools all
+run together, with **one URL** to open.
 
----
+When you're done you'll have:
 
-## What you'll end up with
-
-- A public `https://medai-beta-xxxx.onrender.com` URL
-- An access-key gate — only people with a key you generate can use it
-- The validated history-taking AI + the GP Clinical Summary (differentials,
-  exam, investigations, management) for the clinician view
+| What | Where | Who it's for |
+|---|---|---|
+| Patient history-taker | `your-url.onrender.com/` | patients |
+| Doctor cockpit | `your-url.onrender.com/doctor` | the clinician |
+| Personal intern tools | `your-url.onrender.com/tools` | you |
 
 ---
 
 ## Step 1 — Get an Anthropic API key (2 min)
 
-1. On your phone, open **console.anthropic.com**
-2. Sign in → **API Keys** → **Create Key**
-3. Copy it (starts with `sk-ant-...`). Keep this tab handy — you'll paste it in Step 3.
+1. Open **console.anthropic.com** and sign in (your `msolwa08@gmail.com` account).
+2. Go to **API Keys** → **Create Key** → copy it (it starts with `sk-ant-...`).
+3. Keep that tab open — you'll paste it in Step 3.
 
-> The key in this repo's `.env` is never committed, so you'll use a fresh one here.
+> This is what pays for the AI. Cost is only a few cents per conversation.
 
 ---
 
 ## Step 2 — Create the Render service (3 min)
 
-1. On your phone, open **render.com** → sign in **with GitHub**
-2. Tap **New** → **Blueprint**
-3. Pick the repository **`msolwa08-hub/med-ai`**
-4. Render detects `render.yaml` automatically and shows a service called **medai-beta**
-5. Tap **Apply** / **Create**
+1. Open **render.com** and **Sign in with GitHub** (the account that owns
+   `msolwa08-hub/med-ai`).
+2. Tap **New** → **Blueprint**.
+3. Pick the repository **`msolwa08-hub/med-ai`**.
+4. Render reads `render.yaml` and shows a service called **medai-beta**
+   (already set to build the correct branch). Tap **Apply** / **Create**.
 
 ---
 
-## Step 3 — Set your two secrets (2 min)
+## Step 3 — Fill in 4 values (2 min)
 
-Render will prompt for the two values marked `sync: false`:
+Render will ask you for the four values below. The first is your secret key; the
+other three you can copy exactly as written (they're the "passwords" people type
+to get into each part of the app — change them later if you like).
 
 | Variable | What to paste |
 |---|---|
-| `ANTHROPIC_API_KEY` | the `sk-ant-...` key from Step 1 |
-| `BETA_ACCESS_KEYS`  | your access keys, comma-separated (see below) |
-
-**Access keys** — make up anything memorable, comma-separated, e.g.:
-```
-MEDAI-BETA-SARAH,MEDAI-BETA-THABO,MEDAI-BETA-AMARA
-```
-Each friend gets one. They type it into the app's first screen to get in.
+| `ANTHROPIC_API_KEY` | your `sk-ant-...` key from Step 1 |
+| `BETA_ACCESS_KEYS` | `MEDAI-BETA-TRIAL` |
+| `BETA_DOCTOR_KEYS` | `MEDAI-DOC-TRIAL` |
+| `BETA_TOOLS_KEYS` | `MEDAI-INTERN-TRIAL` |
 
 Tap **Save** / **Deploy**.
 
@@ -56,40 +54,45 @@ Tap **Save** / **Deploy**.
 
 ## Step 4 — Wait for the build (~4 min)
 
-Render builds the Docker image and starts the service. When the status goes
-**green / Live**, tap the URL at the top — that's your app.
-
-Test it: enter one of your access keys → you should see MedAI greet you and ask
-how you're feeling.
+Render builds and starts the app. When the status turns **green / Live**, tap the
+URL at the top (looks like `https://medai-beta-xxxx.onrender.com`). That's your app.
 
 ---
 
-## Sharing with your med-student friends
+## Step 5 — Take it for a spin
 
-Send each person:
-- the **URL** (same for everyone)
-- **one access key** from your `BETA_ACCESS_KEYS` list
+**As a patient** — open the URL, type `MEDAI-BETA-TRIAL`, and chat: say what's
+bothering you and answer the questions. When it finishes, it hands a summary to
+the doctor side.
 
-To add or revoke keys later: Render dashboard → your service → **Environment** →
-edit `BETA_ACCESS_KEYS` → save (it redeploys in ~1 min).
+**As the doctor** — open `your-url/doctor`, type `MEDAI-DOC-TRIAL`. You'll see the
+consult you just did. Open it → add some examination findings → **Generate
+clinical package** → review the differentials, draft script and sick note →
+tick the box and **sign**.
+
+**Your intern tools** — open `your-url/tools`, type `MEDAI-INTERN-TRIAL`, and try
+a discharge summary, referral letter, or daily ward note (paste some notes,
+pick the specialty, generate).
 
 ---
 
 ## Notes
 
-- **Cost:** the only usage cost is Anthropic API tokens per conversation
-  (roughly a few cents each on Sonnet 4.6 with prompt caching). Render's
-  starter plan is a small fixed monthly fee; a free plan works too but sleeps
-  when idle (first request after a nap takes ~30s to wake).
-- **No database:** sessions live in memory for 3 hours, then clear. Nothing
-  patient-identifiable is stored. (Longitudinal memory across visits is a
-  later phase.)
-- **Region:** set to Frankfurt — the closest Render region to South Africa.
+- **Cost:** only the Anthropic tokens per conversation (a few cents each on
+  Sonnet 4.6 with prompt caching). The free Render plan needs no payment but
+  **sleeps when idle** — the first visit after a nap takes ~30 seconds to wake.
+- **Keys = access + cost.** Anyone with the URL *and* a valid key can use it and
+  spend your Anthropic credits, so don't post the keys publicly. Change them any
+  time: Render dashboard → your service → **Environment** → edit → save.
+- **Saved data:** sessions are encrypted and now survive restarts. On the free
+  plan, a *new build* still clears them (the disk is temporary). For permanent
+  storage, add a Render persistent disk and set `BETA_DATA_DIR` to it plus a
+  strong `BETA_DATA_KEY` — ask me when you want that.
+- **Region:** Frankfurt (closest free Render region to South Africa).
 
 ---
 
-## Alternative host (Railway)
+## Prefer to run it on your own computer instead?
 
-If you prefer Railway: railway.app → **New Project** → **Deploy from GitHub** →
-pick the repo → it reads the `Dockerfile` → add the same two env vars in
-**Variables**. Same result.
+Tell me your computer type (Mac or Windows) and I'll give you the local recipe —
+it's a Node.js install plus about four copy-paste commands.
