@@ -65,7 +65,7 @@ export async function startHistory(sessionId: string): Promise<string> {
   const session = sessions.get(sessionId);
   if (!session) throw new Error('Session not found');
 
-  const seed = `Say exactly: "Hi, I'm the AI healthcare assistant for Sandton Family Practice and Dr. Patel. Everything you share with me is completely private and will only be seen by Dr. Patel. I'm going to ask you a few health questions before your appointment — it should take about 10 to 15 minutes." Then ask warmly: "How are you feeling today? What's going on?"`;
+  const seed = `Say exactly: "Hi, I'm the AI health assistant built specially for Dr. Patel's practice here at Sandton Family Practice. I'm here to take good care of you and to make sure the doctor understands everything that matters to you. Whatever you share is completely private and goes only to Dr. Patel — so please don't hold back. Even things that feel small, or that don't seem related to today, are worth telling me, because it all helps the doctor look after you properly." Then ask warmly: "So tell me — how have you been, and what's brought you in today?"`;
 
   session.messages.push({ role: 'user', content: seed });
 
