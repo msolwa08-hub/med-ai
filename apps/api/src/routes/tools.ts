@@ -9,6 +9,9 @@ import {
   generateDischargeSummary,
   generateReferralLetter,
   generateWardNote,
+  generateAdmissionNote,
+  interpretLabResults,
+  generatePatientPresentation,
 } from '../services/hospital-docs.js';
 
 const DischargeSchema = z.object({
@@ -28,6 +31,44 @@ const ReferralSchema = z.object({
   urgency: z.enum(['ROUTINE', 'URGENT', 'EMERGENCY']).optional(),
   specificQuestion: z.string().optional(),
   notes: z.string().min(1, 'notes are required'),
+});
+
+const AdmissionNoteSchema = z.object({
+  rotation: z.string().optional(),
+  ageSex: z.string().optional(),
+  hospitalNumber: z.string().optional(),
+  ward: z.string().optional(),
+  admissionDate: z.string().optional(),
+  chiefComplaint: z.string().optional(),
+  hpi: z.string().optional(),
+  pmh: z.string().optional(),
+  medications: z.string().optional(),
+  allergies: z.string().optional(),
+  familyHistory: z.string().optional(),
+  socialHistory: z.string().optional(),
+  ros: z.string().optional(),
+  examination: z.string().optional(),
+  investigations: z.string().optional(),
+  workingDiagnosis: z.string().optional(),
+  managementPlan: z.string().optional(),
+});
+
+const LabInterpretSchema = z.object({
+  rotation: z.string().optional(),
+  ageSex: z.string().optional(),
+  workingDiagnosis: z.string().optional(),
+  medications: z.string().optional(),
+  labResults: z.string().min(1, 'labResults is required'),
+});
+
+const PresentPatientSchema = z.object({
+  rotation: z.string().optional(),
+  ageSex: z.string().optional(),
+  hospitalNumber: z.string().optional(),
+  ward: z.string().optional(),
+  presentationPoint: z.enum(['ADMISSION', 'PROGRESS', 'DISCHARGE']),
+  hospitalDay: z.string().optional(),
+  clinicalData: z.string().min(1, 'clinicalData is required'),
 });
 
 const WardNoteSchema = z.object({
@@ -64,6 +105,51 @@ export async function toolsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/tools/validate', async (request, reply) => {
     const body = request.body as { toolsKey?: string } | undefined;
     return reply.send({ success: true, data: { valid: isValidToolsKey(body?.toolsKey) } });
+  });
+
+  fastify.post('/tools/admission-note', async (request, reply) => {
+    if (!requireTools(request, reply)) return;
+    const parsed = AdmissionNoteSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: 'Invalid input', details: parsed.error.flatten() });
+    }
+    try {
+      const doc = await generateAdmissionNote(parsed.data);
+      return reply.send({ success: true, data: { document: doc } });
+    } catch (err) {
+      fastify.log.error(err, 'tools: admission note generation failed');
+      return reply.status(500).send({ success: false, error: 'Failed to generate admission note' });
+    }
+  });
+
+  fastify.post('/tools/interpret-labs', async (request, reply) => {
+    if (!requireTools(request, reply)) return;
+    const parsed = LabInterpretSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: 'Invalid input', details: parsed.error.flatten() });
+    }
+    try {
+      const doc = await interpretLabResults(parsed.data);
+      return reply.send({ success: true, data: { document: doc } });
+    } catch (err) {
+      fastify.log.error(err, 'tools: lab interpretation failed');
+      return reply.status(500).send({ success: false, error: 'Failed to interpret labs' });
+    }
+  });
+
+  fastify.post('/tools/present-patient', async (request, reply) => {
+    if (!requireTools(request, reply)) return;
+    const parsed = PresentPatientSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: 'Invalid input', details: parsed.error.flatten() });
+    }
+    try {
+      const doc = await generatePatientPresentation(parsed.data);
+      return reply.send({ success: true, data: { document: doc } });
+    } catch (err) {
+      fastify.log.error(err, 'tools: patient presentation generation failed');
+      return reply.status(500).send({ success: false, error: 'Failed to generate patient presentation' });
+    }
   });
 
   fastify.post('/tools/discharge', async (request, reply) => {

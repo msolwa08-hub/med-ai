@@ -75,6 +75,52 @@ export interface WardNoteInput {
   ageSex?: string; hospitalNumber?: string; ward?: string; hospitalDay?: string;
   workingDiagnosis?: string; previousNotes: string; labResults?: string; todayStatus?: string;
 }
+export interface AdmissionNoteInput {
+  rotation?: string; ageSex?: string; hospitalNumber?: string; ward?: string; admissionDate?: string;
+  chiefComplaint?: string; hpi?: string; pmh?: string; medications?: string; allergies?: string;
+  familyHistory?: string; socialHistory?: string; ros?: string; examination?: string;
+  investigations?: string; workingDiagnosis?: string; managementPlan?: string;
+}
+export interface LabInterpretInput {
+  rotation?: string; ageSex?: string; workingDiagnosis?: string; medications?: string; labResults: string;
+}
+export interface PresentPatientInput {
+  rotation?: string; ageSex?: string; hospitalNumber?: string; ward?: string;
+  presentationPoint: 'ADMISSION' | 'PROGRESS' | 'DISCHARGE'; hospitalDay?: string; clinicalData: string;
+}
+
+export interface AdmissionDifferential { diagnosis: string; icd10: string; rationale: string; }
+export interface AdmissionNote {
+  generatedAt: string;
+  patient: { ageSex: string; hospitalNumber: string; ward: string };
+  admissionDate: string;
+  presentingComplaint: string;
+  historyOfPresentIllness: string;
+  pastMedicalHistory: string;
+  medications: string;
+  allergies: string;
+  familyHistory: string;
+  socialHistory: string;
+  reviewOfSystems: string;
+  examinationFindings: string;
+  investigations: string[];
+  differentials: AdmissionDifferential[];
+  workingDiagnosis: string;
+  immediateManagement: string[];
+  ongoingManagement: string[];
+  concerns: string[];
+  disclaimer: string;
+}
+export interface LabGroupEntry { group: string; findings: string; significance: string; }
+export interface LabInterpretation {
+  generatedAt: string; summary: string; critical: string[]; trends: string[];
+  groupedInterpretation: LabGroupEntry[]; likelyCauses: string[];
+  suggestedFurther: SuggestedLab[]; concerns: string[]; disclaimer: string;
+}
+export interface PatientPresentation {
+  generatedAt: string; title: string; point: 'ADMISSION' | 'PROGRESS' | 'DISCHARGE';
+  presentation: string; keyPoints: string[]; questionsToExpect: string[]; disclaimer: string;
+}
 
 async function call<T>(path: string, toolsKey: string | null, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -94,6 +140,9 @@ export const toolsApi = {
   discharge: (k: string, input: DischargeInput) => call<{ document: DischargeSummary }>('/discharge', k, input),
   referral: (k: string, input: ReferralInput) => call<{ document: ReferralLetter }>('/referral', k, input),
   wardNote: (k: string, input: WardNoteInput) => call<{ document: WardNote }>('/ward-note', k, input),
+  admissionNote: (k: string, input: AdmissionNoteInput) => call<{ document: AdmissionNote }>('/admission-note', k, input),
+  interpretLabs: (k: string, input: LabInterpretInput) => call<{ document: LabInterpretation }>('/interpret-labs', k, input),
+  presentPatient: (k: string, input: PresentPatientInput) => call<{ document: PatientPresentation }>('/present-patient', k, input),
 };
 
 const TOOLS_KEY_STORAGE = 'medai_tools_key';

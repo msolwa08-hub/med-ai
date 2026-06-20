@@ -15,6 +15,9 @@ import {
   DISCHARGE_SUMMARY_SYSTEM,
   REFERRAL_LETTER_SYSTEM,
   DAILY_WARD_NOTE_SYSTEM,
+  ADMISSION_NOTE_SYSTEM,
+  LAB_INTERPRETATION_SYSTEM,
+  PATIENT_PRESENTATION_SYSTEM,
 } from './medai-prompt.js';
 import { extractJSON, asString, asStringArray } from '../lib/json-extract.js';
 
@@ -262,7 +265,223 @@ export async function generateReferralLetter(input: ReferralInput): Promise<Refe
   };
 }
 
-// ─── Daily ward note ────────────────────────────────────────────────────────
+// ─── Admission note ─────────────────────────────────────────────────────────
+
+export interface AdmissionNoteInput {
+  rotation?: string;
+  ageSex?: string;
+  hospitalNumber?: string;
+  ward?: string;
+  admissionDate?: string;
+  chiefComplaint?: string;
+  hpi?: string;
+  pmh?: string;
+  medications?: string;
+  allergies?: string;
+  familyHistory?: string;
+  socialHistory?: string;
+  ros?: string;
+  examination?: string;
+  investigations?: string;
+  workingDiagnosis?: string;
+  managementPlan?: string;
+}
+
+export interface AdmissionDifferential {
+  diagnosis: string;
+  icd10: string;
+  rationale: string;
+}
+
+export interface AdmissionNote {
+  generatedAt: string;
+  patient: { ageSex: string; hospitalNumber: string; ward: string };
+  admissionDate: string;
+  presentingComplaint: string;
+  historyOfPresentIllness: string;
+  pastMedicalHistory: string;
+  medications: string;
+  allergies: string;
+  familyHistory: string;
+  socialHistory: string;
+  reviewOfSystems: string;
+  examinationFindings: string;
+  investigations: string[];
+  differentials: AdmissionDifferential[];
+  workingDiagnosis: string;
+  immediateManagement: string[];
+  ongoingManagement: string[];
+  concerns: string[];
+  disclaimer: string;
+}
+
+export async function generateAdmissionNote(input: AdmissionNoteInput): Promise<AdmissionNote> {
+  const userContent =
+    `Structure an admission clerking note from the following.\n\n` +
+    field('Rotation / specialty', input.rotation) +
+    field('Patient (age/sex)', input.ageSex) +
+    field('Hospital number', input.hospitalNumber) +
+    field('Ward/unit', input.ward) +
+    field('Admission date', input.admissionDate) +
+    field('Chief complaint', input.chiefComplaint) +
+    field('History of present illness', input.hpi) +
+    field('Past medical history', input.pmh) +
+    field('Current medications', input.medications) +
+    field('Allergies', input.allergies) +
+    field('Family history', input.familyHistory) +
+    field('Social history', input.socialHistory) +
+    field('Review of systems', input.ros) +
+    field('Examination findings', input.examination) +
+    field('Investigations ordered / results', input.investigations) +
+    field('Intern working diagnosis', input.workingDiagnosis) +
+    field('Intern management plan', input.managementPlan) +
+    `\nReturn STRICT JSON per your schema.`;
+
+  const o = await generate(ADMISSION_NOTE_SYSTEM, userContent);
+  const p = objOf(o.patient);
+  return {
+    generatedAt: new Date().toISOString(),
+    patient: {
+      ageSex: asString(p.ageSex, input.ageSex ?? ''),
+      hospitalNumber: asString(p.hospitalNumber, input.hospitalNumber ?? ''),
+      ward: asString(p.ward, input.ward ?? ''),
+    },
+    admissionDate: asString(o.admissionDate, input.admissionDate ?? ''),
+    presentingComplaint: asString(o.presentingComplaint, input.chiefComplaint ?? ''),
+    historyOfPresentIllness: asString(o.historyOfPresentIllness),
+    pastMedicalHistory: asString(o.pastMedicalHistory),
+    medications: asString(o.medications),
+    allergies: asString(o.allergies),
+    familyHistory: asString(o.familyHistory),
+    socialHistory: asString(o.socialHistory),
+    reviewOfSystems: asString(o.reviewOfSystems),
+    examinationFindings: asString(o.examinationFindings),
+    investigations: asStringArray(o.investigations),
+    differentials: arrOf(o.differentials).map((d) => ({
+      diagnosis: asString(d.diagnosis),
+      icd10: asString(d.icd10),
+      rationale: asString(d.rationale),
+    })),
+    workingDiagnosis: asString(o.workingDiagnosis, input.workingDiagnosis ?? ''),
+    immediateManagement: asStringArray(o.immediateManagement),
+    ongoingManagement: asStringArray(o.ongoingManagement),
+    concerns: asStringArray(o.concerns),
+    disclaimer: DISCLAIMER,
+  };
+}
+
+// ─── Lab interpretation ──────────────────────────────────────────────────────
+
+export interface LabInterpretationInput {
+  rotation?: string;
+  ageSex?: string;
+  workingDiagnosis?: string;
+  medications?: string;
+  labResults: string;
+}
+
+export interface LabGroupEntry {
+  group: string;
+  findings: string;
+  significance: string;
+}
+
+export interface LabInterpretation {
+  generatedAt: string;
+  summary: string;
+  critical: string[];
+  trends: string[];
+  groupedInterpretation: LabGroupEntry[];
+  likelyCauses: string[];
+  suggestedFurther: SuggestedLab[];
+  concerns: string[];
+  disclaimer: string;
+}
+
+export async function interpretLabResults(input: LabInterpretationInput): Promise<LabInterpretation> {
+  const userContent =
+    `Interpret the following lab results in clinical context.\n\n` +
+    field('Rotation / specialty', input.rotation) +
+    field('Patient (age/sex)', input.ageSex) +
+    field('Working diagnosis', input.workingDiagnosis) +
+    field('Current medications', input.medications) +
+    `\nLAB RESULTS (one or more dates — interpret trends):\n${input.labResults}\n\nReturn STRICT JSON per your schema.`;
+
+  const o = await generate(LAB_INTERPRETATION_SYSTEM, userContent);
+  return {
+    generatedAt: new Date().toISOString(),
+    summary: asString(o.summary),
+    critical: asStringArray(o.critical),
+    trends: asStringArray(o.trends),
+    groupedInterpretation: arrOf(o.groupedInterpretation).map((g) => ({
+      group: asString(g.group),
+      findings: asString(g.findings),
+      significance: asString(g.significance),
+    })),
+    likelyCauses: asStringArray(o.likelyCauses),
+    suggestedFurther: arrOf(o.suggestedFurther).map((l) => ({
+      test: asString(l.test),
+      rationale: asString(l.rationale),
+      priority: l.priority === 'URGENT' ? 'URGENT' : 'ROUTINE',
+    })),
+    concerns: asStringArray(o.concerns),
+    disclaimer: DISCLAIMER,
+  };
+}
+
+// ─── Patient presentation ────────────────────────────────────────────────────
+
+export type PresentationPoint = 'ADMISSION' | 'PROGRESS' | 'DISCHARGE';
+
+export interface PatientPresentationInput {
+  rotation?: string;
+  ageSex?: string;
+  hospitalNumber?: string;
+  ward?: string;
+  presentationPoint: PresentationPoint;
+  hospitalDay?: string;
+  clinicalData: string;
+}
+
+export interface PatientPresentation {
+  generatedAt: string;
+  title: string;
+  point: PresentationPoint;
+  presentation: string;
+  keyPoints: string[];
+  questionsToExpect: string[];
+  disclaimer: string;
+}
+
+export async function generatePatientPresentation(input: PatientPresentationInput): Promise<PatientPresentation> {
+  const userContent =
+    `Generate an oral case presentation for the following patient.\n\n` +
+    field('Rotation / specialty', input.rotation) +
+    field('Patient (age/sex)', input.ageSex) +
+    field('Hospital number', input.hospitalNumber) +
+    field('Ward', input.ward) +
+    field('Presentation point', input.presentationPoint) +
+    field('Hospital day', input.hospitalDay) +
+    `\nCLINICAL DATA:\n${input.clinicalData}\n\nReturn STRICT JSON per your schema.`;
+
+  const o = await generate(PATIENT_PRESENTATION_SYSTEM, userContent);
+  const pointRaw = asString(o.point);
+  const point: PresentationPoint =
+    pointRaw === 'ADMISSION' || pointRaw === 'PROGRESS' || pointRaw === 'DISCHARGE'
+      ? pointRaw
+      : input.presentationPoint;
+  return {
+    generatedAt: new Date().toISOString(),
+    title: asString(o.title, `${input.presentationPoint} Presentation`),
+    point,
+    presentation: asString(o.presentation),
+    keyPoints: asStringArray(o.keyPoints),
+    questionsToExpect: asStringArray(o.questionsToExpect),
+    disclaimer: DISCLAIMER,
+  };
+}
+
+// ─── Daily ward note ─────────────────────────────────────────────────────────
 
 export async function generateWardNote(input: WardNoteInput): Promise<WardNote> {
   const userContent =
