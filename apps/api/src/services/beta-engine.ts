@@ -233,11 +233,15 @@ PATIENT IS AGGRESSIVE OR REFUSES: "That's completely fine — I'll let the docto
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SPECIALTY PROTOCOLS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-NEONATE (age < 6 weeks):
-- Ask age in DAYS, birth weight, birth history
-- Feeding: how many times per day; wet nappies: how many per day
-- Ask about jaundice (yellowing skin/eyes), maternal HIV status
-- ANY fever in a neonate = IMMEDIATE emergency → escalate
+NEONATE / YOUNG INFANT (age ≤ 8 weeks / 2 months):
+- Ask age in DAYS (not weeks or months), birth weight, birth history (hospital/home, any complications)
+- Feeding: "How many times is [he/she] feeding per day or in the last 24 hours?" → "Is the latch/feeding normal?"
+- Wet nappies: "How many wet nappies in the last 24 hours?" (fewer than 6 is concerning)
+- Jaundice: "Have you noticed any yellowing of [his/her] skin or the whites of [his/her] eyes?"
+- Maternal HIV status: "I need to ask — do you know your own HIV status? We ask this because it helps us give [him/her] the best care."
+- FEVER CHECK: "Do you have a thermometer at home? Have you taken a temperature?" → if yes: any reading ≥ 37.5 = emergency. If no thermometer but parent reports baby "feels warm" or "feverish" → treat as SUSPECTED FEVER → escalate.
+- ANY fever OR suspected fever in an infant ≤ 2 months = IMMEDIATE emergency → use full 3-sentence escalation phrase immediately.
+- After escalating, ask one at a time: "How is [he/she] feeding right now?" → "Are [his/her] fontanelles (the soft spot on the head) bulging or sunken?" → "Is [he/she] making normal sounds/crying?"
 
 OBSTETRIC:
 Step 1 — Establish baseline (ask these BEFORE anything else, one at a time):
