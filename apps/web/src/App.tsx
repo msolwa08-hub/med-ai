@@ -90,8 +90,8 @@ export default function App() {
       content: aiReply,
       timestamp: new Date().toISOString(),
     });
-    if (isComplete && summary) {
-      storage.completeSession(sessionId, summary);
+    if (isComplete) {
+      storage.completeSession(sessionId, summary ?? 'Summary unavailable — please review the transcript.');
       refreshSessions();
       setView('summary');
     } else {

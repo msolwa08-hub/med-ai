@@ -146,7 +146,12 @@ export async function sendMessage(
   if (isComplete) {
     session.isComplete = true;
     session.consultStatus = 'AWAITING_DOCTOR';
-    session.summary = await generateSummary(session.displayMessages);
+    try {
+      session.summary = await generateSummary(session.displayMessages);
+    } catch (err) {
+      console.error('[beta-engine] Summary generation failed:', err);
+      session.summary = 'Summary generation failed — please ask the doctor to review the transcript.';
+    }
   }
   persistSession(session);
 
