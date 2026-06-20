@@ -46,6 +46,9 @@ const configSchema = z.object({
 
   // Expo Push Notifications
   EXPO_ACCESS_TOKEN: z.string().optional(),
+
+  // Beta access keys (comma-separated list of valid keys)
+  BETA_ACCESS_KEYS: z.string().default('MEDAI-BETA-DEV'),
 });
 
 const _config = configSchema.safeParse(process.env);

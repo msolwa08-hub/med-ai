@@ -19,6 +19,7 @@ import { stgRoutes } from './routes/stg.js';
 import { emergencyRoutes } from './routes/emergency.js';
 import { labResultRoutes } from './routes/lab-results.js';
 import { doctorSettingsRoutes } from './routes/doctor-settings.js';
+import { betaRoutes } from './routes/beta.js';
 
 // ─────────────────────────────────────────────────────────
 // Bootstrap
@@ -39,7 +40,7 @@ const fastify = Fastify({
 // ─────────────────────────────────────────────────────────
 
 await fastify.register(cors, {
-  origin: [config.FRONTEND_URL, /exp:\/\//, /localhost/],
+  origin: [config.FRONTEND_URL, /exp:\/\//, /localhost/, /127\.0\.0\.1/],
   credentials: true,
 });
 
@@ -74,6 +75,7 @@ await fastify.register(stgRoutes);
 await fastify.register(emergencyRoutes);
 await fastify.register(labResultRoutes);
 await fastify.register(doctorSettingsRoutes);
+await fastify.register(betaRoutes);
 
 // ─────────────────────────────────────────────────────────
 // Health check (no auth required)

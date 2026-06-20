@@ -12,4 +12,7 @@ export const CLAUDE_MODEL = 'claude-opus-4-5';
 // Medical history taking model (cost-effective for long conversations)
 export const CLAUDE_HISTORY_MODEL = 'claude-sonnet-4-5';
 
+// Validated beta history-taking model
+export const CLAUDE_BETA_MODEL = 'claude-sonnet-4-6';
+
 export default anthropic;
