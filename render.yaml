@@ -1,0 +1,21 @@
+# Render Blueprint for MedAI Beta
+# Deploy from your phone: render.com → New → Blueprint → pick this repo.
+# Render reads this file, builds the Dockerfile, and asks you for the two
+# secret values below.
+
+services:
+  - type: web
+    name: medai-beta
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter # change to "free" if available on your account
+    region: frankfurt # closest Render region to South Africa
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false # you paste this in the Render dashboard (kept secret)
+      - key: BETA_ACCESS_KEYS
+        sync: false # comma-separated list of access keys you hand out
+      - key: NODE_ENV
+        value: production

@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { config } from '../config.js';
+import { betaConfig } from '../lib/beta-config.js';
 
-const client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
+const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
 const BETA_MODEL = 'claude-sonnet-4-6';
 

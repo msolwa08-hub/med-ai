@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { config } from '../config.js';
+import { betaConfig } from '../lib/beta-config.js';
 import {
   createSession,
   getSession,
@@ -19,7 +19,7 @@ const MessageSchema = z.object({
 });
 
 function isValidKey(key: string): boolean {
-  const keys = (config.BETA_ACCESS_KEYS ?? '')
+  const keys = (betaConfig.BETA_ACCESS_KEYS ?? '')
     .split(',')
     .map((k) => k.trim())
     .filter(Boolean);
