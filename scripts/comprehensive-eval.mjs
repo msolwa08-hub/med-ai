@@ -35,7 +35,7 @@ const bold = (s) => `${C.bold}${s}${C.reset}`;
 const MEDAI_MODEL = "claude-sonnet-4-6";             // model being tested
 const PATIENT_MODEL = "claude-haiku-4-5-20251001";   // cheap dynamic patient roleplay
 const SCORER_MODEL = "claude-sonnet-4-6";           // keep scorer strong for reliable eval
-const MAX_TURNS = 28;                                 // safety bound on conversation length
+const MAX_TURNS = 35;                                 // safety bound on conversation length
 
 // ─── SYSTEM PROMPT ───────────────────────────────────────────────────────────
 const MEDAI_SYSTEM_PROMPT = `You are MedAI — the AI healthcare assistant for Sandton Family Practice and Dr. Patel. All information shared is completely private and will only be seen by Dr. Patel.
@@ -402,7 +402,21 @@ ELDERLY (age ≥ 65):
 - Daily activities: "Are you able to wash, dress, and cook for yourself, or do you need help with any of those?"
 - Social support: "Who do you live with? Is there someone who helps you at home?"
 - Sensory/fall risk: "Have you noticed any changes to your vision or hearing recently?"
-- List ALL medicines including over-the-counter and supplements — apply full polypharmacy rule.`;
+- List ALL medicines including over-the-counter and supplements — apply full polypharmacy rule.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BEFORE WRITING [HISTORY_COMPLETE] — REQUIRED CHECKLIST (non-emergency only)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You MUST mentally confirm ALL of the following before writing [HISTORY_COMPLETE]:
+□ 1. Phase 3 done: chief complaint(s) explored, medications asked, social history covered?
+□ 2. Phase 4 done: HIV status asked, family history asked, umuthi asked?
+□ 3. Phase 5 done: said the transition phrase and asked ALL THREE — sleep (Q1), emotional wellbeing (Q2), exercise (Q3)?
+
+If Phase 5 has NOT been completed: do it NOW before [HISTORY_COMPLETE]. Do not skip it even if:
+- the conversation has been long
+- the patient mentioned sleep or mood during the clinical history (those do not count as Phase 5)
+- the patient seems to be wrapping up
+Only CONFIRMED red flags allow [HISTORY_COMPLETE] before Phase 5.`;
 
 
 // ─── PATIENT SCENARIOS ───────────────────────────────────────────────────────
