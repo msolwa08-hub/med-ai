@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { MEDAI_SYSTEM_PROMPT, SUMMARY_SYSTEM } from './medai-prompt.js';
+import { generateClinicalPackage } from './clinical-package.js';
+import type { ExamFindings, ClinicalPackage } from './clinical-package.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
@@ -20,6 +22,8 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export type ConsultStatus = 'TAKING_HISTORY' | 'AWAITING_DOCTOR' | 'IN_REVIEW' | 'SIGNED';
+
 export interface BetaSession {
   sessionId: string;
   accessKey: string;
@@ -27,6 +31,10 @@ export interface BetaSession {
   displayMessages: ChatMessage[];
   isComplete: boolean;
   summary: string | null;
+  examFindings: ExamFindings | null;
+  clinicalPackage: ClinicalPackage | null;
+  consultStatus: ConsultStatus;
+  signedAt: number | null;
   createdAt: number;
   lastActivityAt: number;
 }
@@ -51,6 +59,10 @@ export function createSession(accessKey: string): string {
     displayMessages: [],
     isComplete: false,
     summary: null,
+    examFindings: null,
+    clinicalPackage: null,
+    consultStatus: 'TAKING_HISTORY',
+    signedAt: null,
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
   });
@@ -115,6 +127,7 @@ export async function sendMessage(
 
   if (isComplete) {
     session.isComplete = true;
+    session.consultStatus = 'AWAITING_DOCTOR';
     session.summary = await generateSummary(session.displayMessages);
   }
 
@@ -208,4 +221,98 @@ ${transcript}`,
 
 export function getSummary(sessionId: string): string | null {
   return sessions.get(sessionId)?.summary ?? null;
+}
+
+
+// ─── Doctor cockpit accessors ───────────────────────────────────────────────
+
+export interface ConsultListItem {
+  sessionId: string;
+  chiefComplaint: string;
+  isComplete: boolean;
+  consultStatus: ConsultStatus;
+  hasPackage: boolean;
+  createdAt: number;
+  completedAt: number | null;
+}
+
+function chiefComplaintOf(session: BetaSession): string {
+  const firstPatient = session.displayMessages.find((m) => m.role === 'user');
+  if (!firstPatient) return 'New patient';
+  const text = firstPatient.content.trim();
+  return text.length > 80 ? text.slice(0, 80) + '…' : text;
+}
+
+export function listConsults(): ConsultListItem[] {
+  return [...sessions.values()]
+    .filter((s) => s.displayMessages.some((m) => m.role === 'user'))
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map((s) => ({
+      sessionId: s.sessionId,
+      chiefComplaint: chiefComplaintOf(s),
+      isComplete: s.isComplete,
+      consultStatus: s.consultStatus,
+      hasPackage: s.clinicalPackage !== null,
+      createdAt: s.createdAt,
+      completedAt: s.isComplete ? s.lastActivityAt : null,
+    }));
+}
+
+export interface ConsultDetail {
+  sessionId: string;
+  chiefComplaint: string;
+  consultStatus: ConsultStatus;
+  isComplete: boolean;
+  transcript: ChatMessage[];
+  summary: string | null;
+  examFindings: ExamFindings | null;
+  clinicalPackage: ClinicalPackage | null;
+}
+
+export function getConsultDetail(sessionId: string): ConsultDetail | null {
+  const s = sessions.get(sessionId);
+  if (!s) return null;
+  return {
+    sessionId: s.sessionId,
+    chiefComplaint: chiefComplaintOf(s),
+    consultStatus: s.consultStatus,
+    isComplete: s.isComplete,
+    transcript: s.displayMessages,
+    summary: s.summary,
+    examFindings: s.examFindings,
+    clinicalPackage: s.clinicalPackage,
+  };
+}
+
+export function saveExamFindings(sessionId: string, exam: ExamFindings): boolean {
+  const s = sessions.get(sessionId);
+  if (!s) return false;
+  s.examFindings = exam;
+  s.lastActivityAt = Date.now();
+  return true;
+}
+
+export async function buildClinicalPackage(sessionId: string): Promise<ClinicalPackage | null> {
+  const s = sessions.get(sessionId);
+  if (!s) return null;
+  if (!s.isComplete) throw new Error('History not yet complete');
+  const pkg = await generateClinicalPackage({
+    transcript: s.displayMessages,
+    summary: s.summary,
+    exam: s.examFindings ?? undefined,
+  });
+  s.clinicalPackage = pkg;
+  s.consultStatus = 'IN_REVIEW';
+  s.lastActivityAt = Date.now();
+  return pkg;
+}
+
+export function confirmClinicalPackage(sessionId: string, edited: ClinicalPackage): boolean {
+  const s = sessions.get(sessionId);
+  if (!s) return false;
+  s.clinicalPackage = edited;
+  s.consultStatus = 'SIGNED';
+  s.signedAt = Date.now();
+  s.lastActivityAt = Date.now();
+  return true;
 }
