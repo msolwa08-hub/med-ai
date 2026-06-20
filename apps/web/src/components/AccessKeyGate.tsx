@@ -27,21 +27,25 @@ export function AccessKeyGate({ onValidated }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-gray-50">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4"
+         style={{ background: 'linear-gradient(160deg, #f0fdfa 0%, #ffffff 60%, #f0fdfa 100%)' }}>
       <div className="w-full max-w-sm">
+        {/* Logo / branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
-            <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+          <div className="inline-flex items-center justify-center w-18 h-18 rounded-3xl mb-5 shadow-md"
+               style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', width: 72, height: 72 }}>
+            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">MedAI</h1>
-          <p className="text-sm text-gray-500 mt-1">Clinical History Assistant — Beta</p>
+          <h1 className="text-2xl font-bold text-slate-800">MedAI</h1>
+          <p className="text-sm text-teal-600 mt-1 font-medium">Sandton Family Practice</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-1">Enter your access key</h2>
-          <p className="text-sm text-gray-500 mb-5">Invitation-only beta for Sandton Family Practice.</p>
+        {/* Card */}
+        <div className="bg-white rounded-3xl shadow-sm border border-teal-100 p-6">
+          <h2 className="text-base font-semibold text-slate-800 mb-1">Welcome</h2>
+          <p className="text-sm text-slate-500 mb-5">Enter your practice access key to begin.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
@@ -52,11 +56,11 @@ export function AccessKeyGate({ onValidated }: Props) {
               disabled={loading}
               autoComplete="off"
               spellCheck={false}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-mono text-center tracking-wider placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 transition"
+              className="w-full px-4 py-3 rounded-2xl border border-teal-100 text-sm font-mono text-center tracking-wider placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent disabled:bg-teal-50 transition"
             />
 
             {error && (
-              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
+              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-xl border border-red-100">
                 <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -67,7 +71,8 @@ export function AccessKeyGate({ onValidated }: Props) {
             <button
               type="submit"
               disabled={loading || !key.trim()}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold rounded-xl transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="w-full py-3 text-white text-sm font-semibold rounded-2xl transition focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 disabled:opacity-50 shadow-sm"
+              style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -80,10 +85,20 @@ export function AccessKeyGate({ onValidated }: Props) {
               ) : 'Continue'}
             </button>
           </form>
+
+          {/* Privacy reassurance */}
+          <div className="mt-5 flex items-start gap-2.5 bg-teal-50 rounded-2xl px-4 py-3 border border-teal-100">
+            <svg className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            <p className="text-xs text-teal-700 leading-relaxed">
+              Everything you share is <strong>completely private</strong> and only seen by your doctor. We never share your information.
+            </p>
+          </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Sandton Family Practice · MedAI Beta v1.0
+        <p className="text-center text-xs text-slate-400 mt-6">
+          Sandton Family Practice · MedAI Beta
         </p>
       </div>
     </div>
