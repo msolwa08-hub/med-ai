@@ -25,4 +25,10 @@ export const betaConfig = {
   BETA_TOOLS_KEYS: process.env.BETA_TOOLS_KEYS ?? 'MEDAI-INTERN-DEV',
   PORT: parseInt(process.env.PORT ?? '3000', 10),
   WEB_DIST_PATH: process.env.WEB_DIST_PATH ?? '',
+  // Encrypted session persistence. Set BETA_PERSIST=0 to disable (pure in-memory).
+  // For cross-redeploy durability set BETA_DATA_DIR to a persistent volume, and
+  // always set BETA_DATA_KEY (a strong secret) in production.
+  BETA_PERSIST: process.env.BETA_PERSIST ?? '1',
+  BETA_DATA_DIR: process.env.BETA_DATA_DIR ?? '',
+  BETA_DATA_KEY: process.env.BETA_DATA_KEY ?? '',
 };

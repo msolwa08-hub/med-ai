@@ -3,6 +3,7 @@ import { betaConfig } from '../lib/beta-config.js';
 import { MEDAI_SYSTEM_PROMPT, SUMMARY_SYSTEM } from './medai-prompt.js';
 import { generateClinicalPackage } from './clinical-package.js';
 import type { ExamFindings, ClinicalPackage } from './clinical-package.js';
+import { persistSession, deleteSession, hydrateSessions } from './beta-store.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
@@ -41,18 +42,32 @@ export interface BetaSession {
 
 const sessions = new Map<string, BetaSession>();
 
+// Rehydrate persisted sessions on startup (skipping/cleaning expired ones), so a
+// restart or redeploy preserves in-flight histories and unreviewed consults.
+{
+  const now = Date.now();
+  for (const s of hydrateSessions()) {
+    if (now - s.lastActivityAt > SESSION_TTL_MS) {
+      deleteSession(s.sessionId);
+    } else {
+      sessions.set(s.sessionId, s);
+    }
+  }
+}
+
 setInterval(() => {
   const now = Date.now();
   for (const [id, session] of sessions) {
     if (now - session.lastActivityAt > SESSION_TTL_MS) {
       sessions.delete(id);
+      deleteSession(id);
     }
   }
 }, 10 * 60 * 1000);
 
 export function createSession(accessKey: string): string {
   const sessionId = crypto.randomUUID();
-  sessions.set(sessionId, {
+  const session: BetaSession = {
     sessionId,
     accessKey,
     messages: [],
@@ -65,7 +80,9 @@ export function createSession(accessKey: string): string {
     signedAt: null,
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
-  });
+  };
+  sessions.set(sessionId, session);
+  persistSession(session);
   return sessionId;
 }
 
@@ -94,6 +111,7 @@ export async function startHistory(sessionId: string): Promise<string> {
   session.messages.push({ role: 'assistant', content: text });
   session.displayMessages.push({ role: 'assistant', content: clean, timestamp: new Date().toISOString() });
   session.lastActivityAt = Date.now();
+  persistSession(session);
 
   return clean;
 }
@@ -130,6 +148,7 @@ export async function sendMessage(
     session.consultStatus = 'AWAITING_DOCTOR';
     session.summary = await generateSummary(session.displayMessages);
   }
+  persistSession(session);
 
   return { reply: clean, isComplete, summary: session.summary ?? undefined };
 }
@@ -289,6 +308,7 @@ export function saveExamFindings(sessionId: string, exam: ExamFindings): boolean
   if (!s) return false;
   s.examFindings = exam;
   s.lastActivityAt = Date.now();
+  persistSession(s);
   return true;
 }
 
@@ -304,6 +324,7 @@ export async function buildClinicalPackage(sessionId: string): Promise<ClinicalP
   s.clinicalPackage = pkg;
   s.consultStatus = 'IN_REVIEW';
   s.lastActivityAt = Date.now();
+  persistSession(s);
   return pkg;
 }
 
@@ -314,5 +335,6 @@ export function confirmClinicalPackage(sessionId: string, edited: ClinicalPackag
   s.consultStatus = 'SIGNED';
   s.signedAt = Date.now();
   s.lastActivityAt = Date.now();
+  persistSession(s);
   return true;
 }

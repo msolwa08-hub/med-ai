@@ -16,3 +16,6 @@ coverage/
 prisma/migrations/dev/
 .claude/
 dist-beta
+
+# Beta encrypted session store
+.beta-data/
