@@ -5,6 +5,7 @@ import {
   ProgressBar, Chip,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, FONT_SIZE } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -93,6 +94,7 @@ const TIER_THRESHOLDS: Record<Tier, number> = {
 };
 
 export default function PracticeSettingsScreen() {
+  const navigation = useNavigation<any>();
   const { mode, setMode } = useMode();
   const [settings, setSettings] = useState<DoctorSettings | null>(null);
   const [incentive, setIncentive] = useState<IncentiveScore | null>(null);
@@ -406,21 +408,28 @@ export default function PracticeSettingsScreen() {
 
         {/* ── Home Care & Medical Aid Quick Links ───────────────────────────── */}
         <View style={quickLinkStyles.row}>
-          <Surface
-            style={quickLinkStyles.card}
-            elevation={1}
-            // @ts-ignore navigation is passed via tab navigator
-            onTouchEnd={() => {}}
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => navigation.navigate('HomeCarePlanner')}
+            activeOpacity={0.82}
           >
-            <Text style={quickLinkStyles.icon}>🏠</Text>
-            <Text style={quickLinkStyles.label}>Home Care{'\n'}Planner</Text>
-            <Text style={quickLinkStyles.badge}>Phase 2</Text>
-          </Surface>
-          <Surface style={quickLinkStyles.card} elevation={1}>
-            <Text style={quickLinkStyles.icon}>💳</Text>
-            <Text style={quickLinkStyles.label}>Medical Aid{'\n'}Claims</Text>
-            <Text style={quickLinkStyles.badge}>Phase 2</Text>
-          </Surface>
+            <Surface style={quickLinkStyles.card} elevation={1}>
+              <Text style={quickLinkStyles.icon}>🏠</Text>
+              <Text style={quickLinkStyles.label}>Home Care{'\n'}Planner</Text>
+              <Text style={quickLinkStyles.badge}>Phase 2</Text>
+            </Surface>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => navigation.navigate('MedicalAidClaim')}
+            activeOpacity={0.82}
+          >
+            <Surface style={quickLinkStyles.card} elevation={1}>
+              <Text style={quickLinkStyles.icon}>💳</Text>
+              <Text style={quickLinkStyles.label}>Medical Aid{'\n'}Claims</Text>
+              <Text style={quickLinkStyles.badge}>Phase 2</Text>
+            </Surface>
+          </TouchableOpacity>
         </View>
 
         {/* Incentive Score Card */}
