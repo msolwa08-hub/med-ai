@@ -622,6 +622,7 @@ model Prescription {
   @@index([consultationId])
   @@index([patientId, issueDate])
   @@index([doctorId, issueDate])
+  @@index([consultationId])
   @@map("prescriptions")
 }
 

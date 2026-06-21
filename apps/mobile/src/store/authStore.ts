@@ -126,7 +126,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loadUser: async () => {
     set({ isLoading: true });
     try {
-      const response = await authApi.getMe();
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 8000)
+      );
+      const response = await Promise.race([authApi.getMe(), timeout]);
       const user = response.data;
       set({ user, isAuthenticated: true, role: user.role, isLoading: false });
     } catch {
