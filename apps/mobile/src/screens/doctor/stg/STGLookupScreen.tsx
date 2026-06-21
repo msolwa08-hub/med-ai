@@ -52,6 +52,11 @@ interface ChecklistItem {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   completed: boolean;
 }
+interface Part1PrepPoint {
+  question: string;
+  answer: string;
+}
+
 interface LearningPoints {
   pathophysiology: string;
   classicPresentation: string;
@@ -61,6 +66,10 @@ interface LearningPoints {
   differentialTips: string;
   memorableMnemonic?: string;
   saContext: string;
+  part1PharmacologyPearls: string[];
+  part1ExamTraps: string[];
+  part1MustKnow: Part1PrepPoint[];
+  part1ClassicScenario: string;
 }
 
 interface EMLFormulation {
@@ -424,6 +433,56 @@ export default function STGLookupScreen() {
 
                     <Text style={lpStyles.label}>SA Context</Text>
                     <Text style={lpStyles.body}>{learningPoints.saContext}</Text>
+
+                    {/* Part 1 Exam Prep */}
+                    <View style={p1Styles.divider} />
+                    <Text style={p1Styles.sectionHeader}>📝 Part 1 Exam Prep</Text>
+                    <Text style={p1Styles.sectionSubtitle}>FCP · FC Paeds · FCFP · FC Psych · MMed</Text>
+
+                    {learningPoints.part1PharmacologyPearls?.length > 0 && (
+                      <>
+                        <Text style={p1Styles.label}>Pharmacology Pearls</Text>
+                        {learningPoints.part1PharmacologyPearls.map((pearl, i) => (
+                          <View key={i} style={p1Styles.pharmRow}>
+                            <Text style={p1Styles.pharmDot}>💊</Text>
+                            <Text style={p1Styles.pharmText}>{pearl}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+
+                    {learningPoints.part1ExamTraps?.length > 0 && (
+                      <>
+                        <Text style={p1Styles.label}>Exam Traps</Text>
+                        {learningPoints.part1ExamTraps.map((trap, i) => (
+                          <View key={i} style={p1Styles.trapRow}>
+                            <Text style={p1Styles.trapDot}>⚠️</Text>
+                            <Text style={p1Styles.trapText}>{trap}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+
+                    {learningPoints.part1MustKnow?.length > 0 && (
+                      <>
+                        <Text style={p1Styles.label}>Must-Know Q&A</Text>
+                        {learningPoints.part1MustKnow.map((qa, i) => (
+                          <View key={i} style={p1Styles.qaCard}>
+                            <Text style={p1Styles.qaQuestion}>Q: {qa.question}</Text>
+                            <Text style={p1Styles.qaAnswer}>A: {qa.answer}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+
+                    {learningPoints.part1ClassicScenario ? (
+                      <>
+                        <Text style={p1Styles.label}>Classic Vignette</Text>
+                        <View style={p1Styles.vignette}>
+                          <Text style={p1Styles.vignetteText}>{learningPoints.part1ClassicScenario}</Text>
+                        </View>
+                      </>
+                    ) : null}
                   </Surface>
                 ) : null
               )}
@@ -989,5 +1048,101 @@ const emlStyles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.primary,
     fontWeight: '600',
+  },
+});
+
+const p1Styles = StyleSheet.create({
+  divider: {
+    borderTopWidth: 2,
+    borderTopColor: '#FDE68A',
+    marginVertical: SPACING.md,
+  },
+  sectionHeader: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    color: '#B45309',
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    marginBottom: SPACING.sm,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
+    marginTop: SPACING.sm,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  pharmRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.xs,
+    marginBottom: 4,
+  },
+  pharmDot: {
+    fontSize: 13,
+    marginTop: 1,
+  },
+  pharmText: {
+    fontSize: 13,
+    color: '#78350F',
+    lineHeight: 20,
+    flex: 1,
+  },
+  trapRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.xs,
+    marginBottom: 4,
+  },
+  trapDot: {
+    fontSize: 13,
+    marginTop: 1,
+  },
+  trapText: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 20,
+    flex: 1,
+    fontStyle: 'italic',
+  },
+  qaCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm,
+    marginBottom: SPACING.xs,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F59E0B',
+  },
+  qaQuestion: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#78350F',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  qaAnswer: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 20,
+  },
+  vignette: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginBottom: SPACING.xs,
+  },
+  vignetteText: {
+    fontSize: 13,
+    color: '#78350F',
+    lineHeight: 21,
   },
 });

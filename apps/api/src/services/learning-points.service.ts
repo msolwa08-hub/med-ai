@@ -13,6 +13,11 @@ export interface LearningPointsInput {
   redFlags?: string;
 }
 
+export interface Part1PrepPoint {
+  question: string;
+  answer: string;
+}
+
 export interface LearningPoints {
   pathophysiology: string;
   classicPresentation: string;
@@ -22,6 +27,11 @@ export interface LearningPoints {
   differentialTips: string;
   memorableMnemonic?: string;
   saContext: string;
+  // Part 1 exam prep fields
+  part1PharmacologyPearls: string[];
+  part1ExamTraps: string[];
+  part1MustKnow: Part1PrepPoint[];
+  part1ClassicScenario: string;
   generatedAt: string;
 }
 
@@ -29,23 +39,41 @@ export interface LearningPoints {
 // System prompt
 // ============================================================
 
-const SYSTEM_PROMPT = `You are a clinical educator specialising in South African internal medicine and primary care.
-Your audience is medical interns and junior doctors (MBChB graduates in their intern year).
+const SYSTEM_PROMPT = `You are a dual-role clinical educator for South African doctors:
+1. Ward mentor for interns (practical, SA-relevant clinical content)
+2. Part 1 exam coach targeting FCP(SA), FC Paeds(SA), FC Psych(SA), FCFP(SA), and MMed candidates
 
-Generate concise, high-yield learning content about the given condition. Be memorable, practical, and SA-relevant.
-Focus on what the intern needs to know for the wards and primary care — not exam theory.
+Generate concise, high-yield content about the given condition. Be memorable, practical, and SA-relevant.
 
-Return ONLY valid JSON matching this exact schema:
+Return ONLY valid JSON matching this exact schema (no markdown fences, no extra text):
 {
   "pathophysiology": "2-3 sentence clear mechanistic explanation",
   "classicPresentation": "The typical patient scenario in SA context",
-  "keyExamFindings": ["finding 1", "finding 2", ...],
+  "keyExamFindings": ["finding 1", "finding 2", "..."],
   "clinicalPearls": ["pearl 1", "pearl 2", "pearl 3"],
-  "complications": ["complication 1", ...],
+  "complications": ["complication 1", "..."],
   "differentialTips": "1-2 sentences on how to distinguish from common mimics",
   "memorableMnemonic": "optional helpful mnemonic or null",
-  "saContext": "What makes this condition special in the SA context — prevalence, HIV co-infection, formulary, etc."
-}`;
+  "saContext": "What makes this condition special in the SA context — prevalence, HIV co-infection, formulary, etc.",
+  "part1PharmacologyPearls": [
+    "Drug name: mechanism of action, key side effects, contraindications, and Part 1 exam relevance",
+    "..."
+  ],
+  "part1ExamTraps": [
+    "Common candidate mistake or trick question on this topic",
+    "..."
+  ],
+  "part1MustKnow": [
+    { "question": "Exam-style question", "answer": "Concise model answer" },
+    "..."
+  ],
+  "part1ClassicScenario": "A realistic clinical vignette (2-3 sentences describing patient + presentation) followed by a model answer paragraph covering diagnosis, immediate management, and key decision points"
+}
+
+For part1PharmacologyPearls: include mechanism, major side effects, important contraindications, and why it matters for Part 1 exams (3-5 drugs).
+For part1ExamTraps: classic mistakes candidates make, common trick questions, or easily confused facts (3-5 items).
+For part1MustKnow: 4-6 high-yield Q&A pairs in the style of written/oral Part 1 exam questions.
+For part1ClassicScenario: write a realistic SA patient vignette then give the model answer a Part 1 examiner would expect.`;
 
 // ============================================================
 // Service function
@@ -69,7 +97,7 @@ ${JSON.stringify(input.investigations, null, 2)}`;
 
   const response = await anthropic.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: SYSTEM_PROMPT,
     messages: [
       {
@@ -84,9 +112,12 @@ ${JSON.stringify(input.investigations, null, 2)}`;
     throw new Error('Unexpected response type from AI model');
   }
 
+  // Strip markdown code fences if present
+  const raw = content.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+
   let parsed: Omit<LearningPoints, 'generatedAt'>;
   try {
-    parsed = JSON.parse(content.text.trim()) as Omit<LearningPoints, 'generatedAt'>;
+    parsed = JSON.parse(raw) as Omit<LearningPoints, 'generatedAt'>;
   } catch {
     throw new Error('AI returned invalid JSON for learning points');
   }
