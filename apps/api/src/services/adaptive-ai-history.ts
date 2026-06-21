@@ -325,9 +325,10 @@ function buildDynamicContext(
       + (patientContext.age >= 12 && patientContext.age <= 17 ? getAdolescentProtocol(patientContext) : '')
     : '';
 
-  const consultationFlow = patientContext.isReviewConsultation
-    ? getChronicReviewFlow(patientContext, literacyLevel)
-    : getAcuteConsultationFlow(patientContext, literacyLevel);
+  const simple = literacyLevel === 'LOW';
+  const dynamicTail = patientContext.isReviewConsultation
+    ? buildChronicDynamicTail(patientContext, literacyLevel)
+    : buildAcuteDynamicTail(patientContext, simple);
 
   const persona = patientContext.doctorName || patientContext.practiceName
     ? `You are the AI healthcare assistant for ${patientContext.practiceName ?? 'this practice'} and ${patientContext.doctorName ?? 'your doctor'}. All information you share is completely private and will only be seen by ${patientContext.doctorName ?? 'your doctor'}.`
@@ -335,15 +336,24 @@ function buildDynamicContext(
 
   return `${persona}
 You take thorough medical histories before patients see their doctor.
+The CLINICAL REFERENCE and protocol sections above this message tell you what to gather.
+This SESSION CONTEXT below is specific to THIS patient — it overrides any generic note above.
 
 LANGUAGE: Conduct the entire conversation in ${lang} only.
 
+━━━ SESSION CONTEXT (THIS PATIENT) ━━━
 PATIENT PROFILE:
 ${ctx}
 ${demographicsNote}${ageSpecificNote}${gathered}
 ${protocol}
 
-${consultationFlow}`;
+${dynamicTail}`;
+}
+
+// Returns the large, byte-identical clinical reference for the consult type —
+// cached across all sessions of the same type via prompt caching.
+function staticReferenceFor(isReview: boolean): string {
+  return isReview ? STATIC_CHRONIC_REFERENCE : STATIC_ACUTE_REFERENCE;
 }
 
 // ─── Patient Context Formatter ────────────────────────────────────────────────
@@ -363,10 +373,7 @@ function formatPatientContext(ctx: PatientContext): string {
 
 // ─── Acute Consultation Flow ─────────────────────────────────────────────────
 
-function getAcuteConsultationFlow(ctx: PatientContext, literacy: PatientLiteracyLevel): string {
-  const simple = literacy === 'LOW';
-
-  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const STATIC_ACUTE_REFERENCE = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CLINICAL REFERENCE — ACUTE / NEW PROBLEM
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠ THIS IS REFERENCE MATERIAL — NOT A SCRIPT.
@@ -406,10 +413,9 @@ LOWER TRACT:
 • Cough: duration; dry or productive — sputum colour: clear/white=viral, yellow-green=bacterial,
   rusty=pneumococcal, pink-frothy=pulmonary oedema, red blood=haemoptysis (ask directly)
 • Breathlessness: at rest / on exertion / waking at night / lying flat (how many pillows?)
-  ${simple
-    ? 'Ask: "Are you short of breath? When? Resting or walking?"'
-    : 'mMRC scale — Grade 0: exertion only; 1: hurrying/hills; 2: slower than peers or stops after 15min; 3: stops after 100m; 4: too breathless to leave house'
-  }
+  - Low literacy: "Are you short of breath? When? Resting or walking?"
+  - Otherwise capture mMRC — Grade 0: exertion only; 1: hurrying/hills; 2: slower than peers or stops after 15min; 3: stops after 100m; 4: too breathless to leave house
+  (Adapt to the patient's literacy level given in SESSION CONTEXT.)
 • Wheeze or chest tightness | Stridor (noisy breathing in — RED FLAG)
 • Pleuritic chest pain: sharp, worse breathing in or coughing
 
@@ -422,7 +428,7 @@ TB SCREEN (mandatory every respiratory complaint):
 • HIV status — ask sensitively ("We ask everyone routinely")
 
 SCORING DATA — CAPTURE FOR GP REPORT:
-• CRB-65: (1) Confusion — "Have you felt confused or muddled?" (2) Breathing fast — "Is your breathing much faster than usual even at rest?" (3) BP low — "Have you felt faint or been told your BP is very low?" (4) Age ≥65 — [auto: ${ctx.age >= 65 ? 'YES' : 'NO'}]
+• CRB-65: (1) Confusion — "Have you felt confused or muddled?" (2) Breathing fast — "Is your breathing much faster than usual even at rest?" (3) BP low — "Have you felt faint or been told your BP is very low?" (4) Age ≥65 — see PATIENT-SPECIFIC SCORING NOTES in SESSION CONTEXT
 • FeverPAIN (sore throat): (1) Fever — "Do you have a temperature or feel feverish?" (2) Purulence — "Any yellow/green phlegm or white spots on your tonsils?" (3) Rapid onset — "Did this start less than 3 days ago?" (4) Inflamed tonsils — [requires GP examination] (5) No cough — document if cough is absent
 • Centor: also ask — "Do you have tender glands at the front of your neck?"
 • qSOFA (if systemically unwell): same confusion and breathing fast questions; "Has your BP been checked? Is it low?"
@@ -436,7 +442,7 @@ CHEST PAIN (if present):
 • Character: crushing/tight/pressure (cardiac), sharp/stabbing/worse breathing in (pleuritic/MSK), tearing/ripping (aortic dissection — RED FLAG), burning (GORD)
 • Onset: sudden or gradual | Duration: constant or episodic
 • Radiation: left arm, jaw, right arm, back, epigastric, shoulder tip
-• Severity: ${simple ? 'small, medium, or very bad' : '1-10, and functional impact'}
+• Severity: low literacy — "small, medium, or very bad"; otherwise 1-10 and functional impact (adapt per literacy in SESSION CONTEXT)
 • Relieving: rest, GTN (cardiac), antacids (GORD), leaning forward (pericarditis), analgesia (MSK)
 • Aggravating: exertion, breathing, position, food, movement
 
@@ -524,7 +530,7 @@ SYNCOPE:
 SEIZURES: full description of what happens, duration, post-ictal state, previous seizures, triggers
 
 SCORING DATA — CAPTURE FOR GP REPORT:
-• ABCD2 Score (TIA — if transient neurological symptoms): (1) Age ≥60 [auto: ${ctx.age >= 60 ? 'YES (1pt)' : 'NO (0pt)'}] (2) BP: "Have you been told your BP is high, or was it raised today?" (3) Clinical: unilateral weakness (2pts) vs speech disturbance only (1pt) vs other (0pts) (4) Duration: <10min (0), 10-59min (1), ≥60min (2) (5) Diabetes: "Do you have diabetes?" Score 0-3=low risk; 4-5=moderate; 6-7=high 2-day stroke risk
+• ABCD2 Score (TIA — if transient neurological symptoms): (1) Age ≥60 [see PATIENT-SPECIFIC SCORING NOTES] (2) BP: "Have you been told your BP is high, or was it raised today?" (3) Clinical: unilateral weakness (2pts) vs speech disturbance only (1pt) vs other (0pts) (4) Duration: <10min (0), 10-59min (1), ≥60min (2) (5) Diabetes: "Do you have diabetes?" Score 0-3=low risk; 4-5=moderate; 6-7=high 2-day stroke risk
 • Ottawa SAH rule (severe headache): age ≥40, neck pain or stiffness, onset during exertion, thunderclap, witnessed LOC — any one positive = CT/LP indicated → note for GP
 
 ─────────────────────────────────────────
@@ -569,7 +575,7 @@ UPPER TRACT:
 • Loin / flank pain (unilateral — renal colic or pyelonephritis) | Fever | Rigors
 • Radiation to groin (ureteric stone — loin to groin = classic)
 
-${ctx.gender === 'MALE' && ctx.age >= 40 ? `PROSTATE / BPH ASSESSMENT (male age ${ctx.age} — ask all 7 IPSS questions):
+PROSTATE / BPH ASSESSMENT (males ≥40 only — applies only if indicated in PATIENT-SPECIFIC SCORING NOTES; ask all 7 IPSS questions when it applies):
 IPSS (International Prostate Symptom Score) — "Over the past month, how often..."
 (0=not at all, 1=less than 1 in 5 times, 2=less than half, 3=about half, 4=more than half, 5=almost always)
 1. "...have you had a feeling of not emptying your bladder completely after urinating?"
@@ -580,7 +586,7 @@ IPSS (International Prostate Symptom Score) — "Over the past month, how often.
 6. "...have you had to strain to begin urinating?"
 7. "How many times do you typically get up at night to urinate?" (0=none, 1=once, 2=twice, etc.)
 Quality of life: "If your urinary condition stayed like this for the rest of your life, how would you feel?" (0=delighted to 6=terrible)
-IPSS total 0-7=mild, 8-19=moderate, 20-35=severe — include score and severity in GP report` : ''}
+IPSS total 0-7=mild, 8-19=moderate, 20-35=severe — include score and severity in GP report
 
 FEMALE SPECIFIC:
 • Stress incontinence (leaks on coughing/sneezing/laughing) vs urge incontinence (can't hold on)
@@ -692,7 +698,16 @@ Every patient gets these 4-5 questions — introduce as: "Before finishing, a fe
 • Sleep: "Are you sleeping okay?"
 • Appetite: "Eating normally?"
 • Mood: "How have you been feeling emotionally in general?"
-• Catch-all: "Is there anything else worrying you health-wise that we haven't covered yet?"
+• Catch-all: "Is there anything else worrying you health-wise that we haven't covered yet?"`;
+
+// Patient-specific tail appended to the dynamic (uncached) block for acute consults
+function buildAcuteDynamicTail(ctx: PatientContext, simple: boolean): string {
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PATIENT-SPECIFIC SCORING NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• CRB-65 age criterion (≥65): ${ctx.age >= 65 ? 'MET' : 'NOT met'} (patient age ${ctx.age})
+• ABCD2 age criterion (≥60): ${ctx.age >= 60 ? 'MET — 1 point' : 'NOT met — 0 points'}
+• IPSS prostate assessment: ${ctx.gender === 'MALE' && ctx.age >= 40 ? `APPLIES (male, age ${ctx.age}) — ask all 7 IPSS questions` : 'NOT APPLICABLE — do not ask IPSS questions'}
 
 ╔══ PHASE 4 — OPPORTUNISTIC HEALTH PROMOTION ══╗
 ${buildHealthPromotion(ctx, 'ACUTE')}
@@ -703,18 +718,11 @@ ${getBaseline(ctx, simple)}`;
 
 // ─── Chronic Review Flow ─────────────────────────────────────────────────────
 
-function getChronicReviewFlow(ctx: PatientContext, literacy: PatientLiteracyLevel): string {
-  const simple = literacy === 'LOW';
-  const conditions = ctx.knownConditions.length > 0
-    ? ctx.knownConditions.join(', ')
-    : 'chronic conditions';
-
-  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const STATIC_CHRONIC_REFERENCE = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CLINICAL REFERENCE — CHRONIC DISEASE REVIEW
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠ THIS IS REFERENCE MATERIAL — NOT A SCRIPT.
-Patient here for review of: ${conditions}
-${ctx.lastVisitDays ? `Last seen: approximately ${ctx.lastVisitDays} days ago.` : ''}
+Patient here for review of the chronic conditions listed in SESSION CONTEXT (PATIENT PROFILE), including the last-visit interval if noted there.
 Have a natural conversation. Gather all the clinical detail below conversationally.
 If a significant NEW acute problem emerges, pivot to acute flow for that problem.
 
@@ -793,11 +801,9 @@ WEAVE IN RISK QUESTIONS NATURALLY (one at a time as the conversation flows):
 • Carbs: "Do you have a lot of bread, pap, or rice?"
 • Alcohol: (capture this in AUDIT-C during Phase 5 — don't double-ask)
 
-BRIEF DIETARY EDUCATION (after assessment, if issues identified):
-${simple
-  ? 'Keep advice simple: "Eat more vegetables, less salt, less sugar, less fat."'
-  : 'Brief SMART goal: e.g., "Could you try using less salt for the next 2 weeks?" — make it specific and achievable'
-}
+BRIEF DIETARY EDUCATION (after assessment, if issues identified — adapt per literacy in SESSION CONTEXT):
+• Low literacy: keep advice simple — "Eat more vegetables, less salt, less sugar, less fat."
+• Otherwise: brief SMART goal — e.g. "Could you try using less salt for the next 2 weeks?" — make it specific and achievable
 
 ╔══ PHASE 4 — EXERCISE AND PHYSICAL ACTIVITY ASSESSMENT ══╗
 Introduce naturally: "Let me ask you a bit about how active you've been."
@@ -825,14 +831,9 @@ WEIGHT:
 • Intentional or unintentional change?
 • Body image — brief sensitive exploration
 
-SMOKING:
-${ctx.isSmoker
-  ? `• "Are you still smoking?" | "How many per day — more or less than before?"
-• "Have you thought about cutting down or stopping?"
-• Assess readiness to change: pre-contemplation (not ready), contemplation (thinking about it), preparation (ready soon)
-• "Would you like help with stopping? There are medications that make it much easier."`
-  : `• Confirm still non-smoker | If ex-smoker: "Are you managing to stay off cigarettes?"`
-}
+SMOKING (see smoking status in SESSION CONTEXT PATIENT PROFILE):
+• If current smoker: "Are you still smoking?" | "How many per day — more or less than before?" | "Have you thought about cutting down or stopping?" | Assess readiness to change: pre-contemplation (not ready), contemplation (thinking about it), preparation (ready soon) | "Would you like help with stopping? There are medications that make it much easier."
+• If non-smoker or ex-smoker: confirm still non-smoker | If ex-smoker: "Are you managing to stay off cigarettes?"
 
 ALCOHOL — AUDIT-C (capture all 3 scores for GP report):
 1. "How often do you drink alcohol?" (0=never, 1=monthly or less, 2=2-4×/month, 3=2-3×/week, 4=4+×/week)
@@ -841,9 +842,7 @@ ALCOHOL — AUDIT-C (capture all 3 scores for GP report):
 AUDIT-C score: ≥3 for women or ≥4 for men = hazardous drinking — note for GP
 
 ╔══ PHASE 6 — MEDICATION REVIEW ══╗
-${ctx.currentMedications.length > 0
-  ? `Known medications: ${ctx.currentMedications.join(', ')}`
-  : 'Confirm current medication list'}
+Review the patient's current medications (listed in SESSION CONTEXT PATIENT PROFILE if known):
 • "Are you taking all your medications as prescribed? Any doses you've been missing?"
 • "Have you had any problems or side effects from any medication?"
 • "Are you running low on any medication? Any difficulty getting to the pharmacy?"
@@ -852,14 +851,10 @@ ${ctx.currentMedications.length > 0
 • Any medication the patient has stopped taking — explore why non-adherently (cost? Side effect? Feels better? Cultural? Forgetting?)
 
 ╔══ PHASE 7 — MONITORING DUE ══╗
-Prompt the patient what monitoring should have been done or is due:
-${getMonitoringDue(ctx)}
-
 ╔══ PHASE 8 — RISK STRATIFICATION ══╗
-${getRiskStratificationSection(ctx, literacy)}
-
 ╔══ PHASE 9 — HEALTH PROMOTION & SELF-MANAGEMENT GOALS ══╗
-${buildHealthPromotion(ctx, 'REVIEW')}
+(The patient-specific content for PHASES 7–9 — monitoring due, risk stratification inputs,
+and health promotion — is provided in SESSION CONTEXT. Follow it for this patient.)
 
 ╔══ PHASE 10 — BASELINE CONFIRMATION ══╗
 • Confirm allergies unchanged | Any new allergies noticed?
@@ -867,6 +862,21 @@ ${buildHealthPromotion(ctx, 'REVIEW')}
 • Family history — any new diagnoses in parents or siblings?
 • Occupation or living situation changes?
 • "Is there anything else worrying you health-wise that we haven't covered today?"`;
+
+// Patient-specific tail appended to the dynamic (uncached) block for chronic reviews
+function buildChronicDynamicTail(ctx: PatientContext, literacy: PatientLiteracyLevel): string {
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PATIENT-SPECIFIC REVIEW DETAIL (PHASES 7–9)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══ PHASE 7 — MONITORING DUE ══╗
+Prompt the patient what monitoring should have been done or is due:
+${getMonitoringDue(ctx)}
+
+╔══ PHASE 8 — RISK STRATIFICATION ══╗
+${getRiskStratificationSection(ctx, literacy)}
+
+╔══ PHASE 9 — HEALTH PROMOTION & SELF-MANAGEMENT GOALS ══╗
+${buildHealthPromotion(ctx, 'REVIEW')}`;
 }
 
 // ─── Health Promotion Section ─────────────────────────────────────────────────
@@ -1223,6 +1233,7 @@ export async function startAdaptiveMedicalHistorySession(
     max_tokens: 512,
     system: [
       { type: 'text', text: STATIC_PROTOCOL, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: staticReferenceFor(patientContext.isReviewConsultation), cache_control: { type: 'ephemeral' } },
       { type: 'text', text: buildDynamicContext(language, initialLiteracy, patientContext) },
     ],
     messages: [{ role: 'user', content: openingInstruction }],
@@ -1272,6 +1283,7 @@ export async function continueAdaptiveMedicalHistorySession(
     max_tokens: 1024,
     system: [
       { type: 'text', text: STATIC_PROTOCOL, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: staticReferenceFor(patientContext.isReviewConsultation), cache_control: { type: 'ephemeral' } },
       { type: 'text', text: buildDynamicContext(language, literacyLevel, patientContext, gatheredSummary) },
     ],
     messages,
