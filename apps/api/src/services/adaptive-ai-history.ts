@@ -31,7 +31,7 @@
  *   Infection:     qSOFA, SIRS criteria
  */
 
-import { anthropic, CLAUDE_HAIKU_MODEL, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL, logUsage } from '../lib/claude.js';
+import { anthropic, CLAUDE_HAIKU_MODEL, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL, logUsage, type TokenUsage } from '../lib/claude.js';
 import type {
   SaLanguage,
   ConversationMessage,
@@ -93,54 +93,9 @@ export async function detectLiteracyLevel(
   }
 }
 
-// ─── Master System Prompt Builder ────────────────────────────────────────────
+// ─── Static Protocol (cached — identical across all sessions) ────────────────
 
-function buildAdaptiveSystemPrompt(
-  language: SaLanguage,
-  literacyLevel: PatientLiteracyLevel,
-  patientContext: PatientContext,
-  gatheredSummary?: string
-): string {
-  const lang = SA_LANGUAGE_NAMES[language];
-  const ctx = formatPatientContext(patientContext);
-  const protocol = getInterviewProtocol(literacyLevel);
-  const gathered = gatheredSummary
-    ? `\nCONVERSATION TRACKER (do NOT re-ask anything marked ✓):\n${gatheredSummary}\n`
-    : '';
-
-  const demographicsUnknown = patientContext.age === 0
-    || (patientContext.age === 35 && patientContext.gender === 'OTHER');
-  const demographicsNote = demographicsUnknown
-    ? `\n⚠ DEMOGRAPHICS NOT YET CONFIRMED — Establish these in your FIRST TWO questions, one at a time, before any clinical history:
-  1. "Just so I note it down correctly — roughly how old are you?"
-  2. "And are you male or female? — sorry if it seems obvious, it helps me make sure I ask the right questions."
-  Do not proceed to clinical history until both are established.\n`
-    : '';
-
-  const ageSpecificNote = !demographicsUnknown
-    ? (patientContext.age < 12 ? getPaediatricProtocol(patientContext) : '')
-      + (patientContext.age >= 12 && patientContext.age <= 17 ? getAdolescentProtocol(patientContext) : '')
-    : '';
-
-  const consultationFlow = patientContext.isReviewConsultation
-    ? getChronicReviewFlow(patientContext, literacyLevel)
-    : getAcuteConsultationFlow(patientContext, literacyLevel);
-
-  const persona = patientContext.doctorName || patientContext.practiceName
-    ? `You are the AI healthcare assistant for ${patientContext.practiceName ?? 'this practice'} and ${patientContext.doctorName ?? 'your doctor'}. All information you share is completely private and will only be seen by ${patientContext.doctorName ?? 'your doctor'}.`
-    : 'You are MedAI — a skilled, warm clinical interviewer for South African primary healthcare.';
-
-  return `${persona}
-You take thorough medical histories before patients see their doctor.
-
-LANGUAGE: Conduct the entire conversation in ${lang} only.
-
-PATIENT PROFILE:
-${ctx}
-${demographicsNote}${ageSpecificNote}${gathered}
-${protocol}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const STATIC_PROTOCOL = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CONVERSATION PHILOSOPHY — APPLY TO EVERY MESSAGE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 You are NOT filling in a clinical form. You are having a warm, natural conversation — like a caring healthcare assistant talking to a friend.
@@ -311,8 +266,6 @@ When time is limited, prioritise in this order — complete each before moving t
 If PRIORITIES 1-5 are complete and well-characterised → end with [HISTORY_COMPLETE].
 Do NOT extend unnecessarily once the core history is solid.
 
-${consultationFlow}
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 RED FLAGS — STOP HISTORY AND ADVISE EMERGENCY CARE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -342,6 +295,55 @@ INFORMATION MAXIMISATION:
 • Always end before HISTORY_COMPLETE: "Is there anything else worrying you that we haven't spoken about yet?"
 
 When the consultation is FULLY COMPLETE, end with: [HISTORY_COMPLETE]`;
+
+// ─── Dynamic Context Builder (per-session patient-specific content) ───────────
+
+function buildDynamicContext(
+  language: SaLanguage,
+  literacyLevel: PatientLiteracyLevel,
+  patientContext: PatientContext,
+  gatheredSummary?: string
+): string {
+  const lang = SA_LANGUAGE_NAMES[language];
+  const ctx = formatPatientContext(patientContext);
+  const protocol = getInterviewProtocol(literacyLevel);
+  const gathered = gatheredSummary
+    ? `\nCONVERSATION TRACKER (do NOT re-ask anything marked ✓):\n${gatheredSummary}\n`
+    : '';
+
+  const demographicsUnknown = patientContext.age === 0
+    || (patientContext.age === 35 && patientContext.gender === 'OTHER');
+  const demographicsNote = demographicsUnknown
+    ? `\n⚠ DEMOGRAPHICS NOT YET CONFIRMED — Establish these in your FIRST TWO questions, one at a time, before any clinical history:
+  1. "Just so I note it down correctly — roughly how old are you?"
+  2. "And are you male or female? — sorry if it seems obvious, it helps me make sure I ask the right questions."
+  Do not proceed to clinical history until both are established.\n`
+    : '';
+
+  const ageSpecificNote = !demographicsUnknown
+    ? (patientContext.age < 12 ? getPaediatricProtocol(patientContext) : '')
+      + (patientContext.age >= 12 && patientContext.age <= 17 ? getAdolescentProtocol(patientContext) : '')
+    : '';
+
+  const consultationFlow = patientContext.isReviewConsultation
+    ? getChronicReviewFlow(patientContext, literacyLevel)
+    : getAcuteConsultationFlow(patientContext, literacyLevel);
+
+  const persona = patientContext.doctorName || patientContext.practiceName
+    ? `You are the AI healthcare assistant for ${patientContext.practiceName ?? 'this practice'} and ${patientContext.doctorName ?? 'your doctor'}. All information you share is completely private and will only be seen by ${patientContext.doctorName ?? 'your doctor'}.`
+    : 'You are MedAI — a skilled, warm clinical interviewer for South African primary healthcare.';
+
+  return `${persona}
+You take thorough medical histories before patients see their doctor.
+
+LANGUAGE: Conduct the entire conversation in ${lang} only.
+
+PATIENT PROFILE:
+${ctx}
+${demographicsNote}${ageSpecificNote}${gathered}
+${protocol}
+
+${consultationFlow}`;
 }
 
 // ─── Patient Context Formatter ────────────────────────────────────────────────
@@ -1187,6 +1189,8 @@ function detectRedFlags(text: string): boolean {
 
 // ─── Session Functions ────────────────────────────────────────────────────────
 
+const HISTORY_WINDOW = 8;
+
 function defaultPatientContext(): PatientContext {
   return { age: 0, gender: 'OTHER', knownConditions: [], currentMedications: [], isSmoker: false, isReviewConsultation: false };
 }
@@ -1214,14 +1218,17 @@ export async function startAdaptiveMedicalHistorySession(
 ): Promise<AdaptiveResponse> {
   const openingInstruction = buildOpeningInstruction(language, patientName, initialLiteracy, patientContext);
 
-  const response = await anthropic.messages.create({
+  const response = await anthropic.beta.promptCaching.messages.create({
     model: CLAUDE_HISTORY_MODEL,
     max_tokens: 512,
-    system: buildAdaptiveSystemPrompt(language, initialLiteracy, patientContext),
+    system: [
+      { type: 'text', text: STATIC_PROTOCOL, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: buildDynamicContext(language, initialLiteracy, patientContext) },
+    ],
     messages: [{ role: 'user', content: openingInstruction }],
   });
 
-  logUsage('history-start', CLAUDE_HISTORY_MODEL, response.usage);
+  logUsage('history-start', CLAUDE_HISTORY_MODEL, response.usage as TokenUsage);
 
   const message = extractTextContent(response);
   const isComplete = message.includes('[HISTORY_COMPLETE]');
@@ -1254,19 +1261,23 @@ export async function continueAdaptiveMedicalHistorySession(
 
   const gatheredSummary = buildGatheredSummary(conversationHistory, patientMessage, patientContext);
 
+  const windowedHistory = conversationHistory.slice(-HISTORY_WINDOW);
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-    ...conversationHistory.map(m => ({ role: m.role, content: m.content })),
+    ...windowedHistory.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: patientMessage },
   ];
 
-  const response = await anthropic.messages.create({
+  const response = await anthropic.beta.promptCaching.messages.create({
     model: CLAUDE_HISTORY_MODEL,
     max_tokens: 1024,
-    system: buildAdaptiveSystemPrompt(language, literacyLevel, patientContext, gatheredSummary),
+    system: [
+      { type: 'text', text: STATIC_PROTOCOL, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: buildDynamicContext(language, literacyLevel, patientContext, gatheredSummary) },
+    ],
     messages,
   });
 
-  logUsage('history-continue', CLAUDE_HISTORY_MODEL, response.usage);
+  logUsage('history-continue', CLAUDE_HISTORY_MODEL, response.usage as TokenUsage);
 
   const message = extractTextContent(response);
   const isComplete = message.includes('[HISTORY_COMPLETE]');
