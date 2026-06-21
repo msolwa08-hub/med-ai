@@ -7,6 +7,8 @@ import {
   startHistory,
   sendMessage,
   getSummary,
+  trackError,
+  getAnalytics,
 } from '../services/beta-engine.js';
 
 const ValidateSchema = z.object({
@@ -24,6 +26,14 @@ const MessageSchema = z.object({
 
 function isValidKey(key: string): boolean {
   const keys = (betaConfig.BETA_ACCESS_KEYS ?? '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+  return keys.includes(key);
+}
+
+function isDocKey(key: string): boolean {
+  const keys = (betaConfig.BETA_DOCTOR_KEYS ?? '')
     .split(',')
     .map((k) => k.trim())
     .filter(Boolean);
@@ -61,6 +71,7 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send({ success: true, data: { sessionId, message } });
     } catch (err) {
       fastify.log.error(err, 'beta/session/start: failed to start history');
+      trackError('start_history_failed', err instanceof Error ? err.message : String(err));
       return reply.status(500).send({ success: false, error: 'Failed to start session' });
     }
   });
@@ -92,6 +103,7 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send({ success: true, data: result });
     } catch (err) {
       fastify.log.error(err, 'beta/session/message: failed');
+      trackError('send_message_failed', err instanceof Error ? err.message : String(err));
       return reply.status(500).send({ success: false, error: 'Failed to get AI response' });
     }
   });
@@ -126,5 +138,14 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
 
     const summary = getSummary(sessionId);
     return reply.send({ success: true, data: { summary } });
+  });
+
+  // GET /beta/analytics?key=DOCTOR_KEY
+  fastify.get('/beta/analytics', async (request, reply) => {
+    const { key } = request.query as { key?: string };
+    if (!key || !isDocKey(key)) {
+      return reply.status(401).send({ success: false, error: 'Valid doctor key required' });
+    }
+    return reply.send({ success: true, data: getAnalytics() });
   });
 }

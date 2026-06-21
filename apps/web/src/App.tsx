@@ -4,9 +4,10 @@ import { AccessKeyGate } from './components/AccessKeyGate';
 import { SessionListView } from './components/SessionListView';
 import { ChatView } from './components/ChatView';
 import { SummaryView } from './components/SummaryView';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { api } from './api';
 
-type AppView = 'gate' | 'sessions' | 'chat' | 'summary';
+type AppView = 'gate' | 'sessions' | 'chat' | 'summary' | 'analytics';
 
 export default function App() {
   const [view, setView] = useState<AppView>('gate');
@@ -135,9 +136,13 @@ export default function App() {
           onOpen={handleOpenSession}
           onSignOut={handleSignOut}
           onRename={(id, label) => { storage.renameSession(id, label); refreshSessions(); }}
+          onAnalytics={() => setView('analytics')}
           newSessionLoading={newSessionLoading}
           newSessionError={newSessionError}
         />
+      )}
+      {view === 'analytics' && (
+        <AnalyticsDashboard onBack={() => setView('sessions')} />
       )}
       {view === 'chat' && currentSession && (
         <ChatView

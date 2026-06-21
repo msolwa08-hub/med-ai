@@ -6,6 +6,7 @@ interface Props {
   onOpen: (sessionId: string) => void;
   onSignOut: () => void;
   onRename: (sessionId: string, label: string) => void;
+  onAnalytics: () => void;
   newSessionLoading?: boolean;
   newSessionError?: string;
 }
@@ -22,7 +23,7 @@ function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
 }
 
-export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, newSessionLoading, newSessionError }: Props) {
+export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, onAnalytics, newSessionLoading, newSessionError }: Props) {
   function handleRename(session: StoredSession) {
     const newLabel = window.prompt('Rename session:', session.label);
     if (newLabel && newLabel.trim() && newLabel.trim() !== session.label) {
@@ -183,6 +184,17 @@ export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, 
             ))}
           </div>
         )}
+
+        <div className="text-center pt-4 pb-2">
+          <button
+            onClick={onAnalytics}
+            className="text-xs text-gray-400 hover:text-blue-600 transition underline underline-offset-2"
+          >
+            View Analytics
+          </button>
+          <span className="text-gray-200 mx-2">·</span>
+          <span className="text-xs text-gray-300">MedAI Beta</span>
+        </div>
       </div>
     </div>
   );

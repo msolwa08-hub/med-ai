@@ -18,6 +18,7 @@ type InvestigationThreshold = 'MINIMAL' | 'STANDARD' | 'COMPREHENSIVE';
 type PrescribingStyle = 'CONSERVATIVE' | 'STANDARD' | 'PROACTIVE';
 type ReferralThreshold = 'MANAGE_MOST' | 'REFER_UNCERTAIN' | 'REFER_EARLY';
 type SickNotePolicy = 'LIBERAL' | 'INDICATED' | 'RARE';
+type AiHistoryDepth = 'FOCUSED' | 'STANDARD' | 'COMPREHENSIVE';
 
 interface GPProfile {
   practiceType: PracticeType;
@@ -63,11 +64,18 @@ const PRIORITY_OPTIONS = [
   { id: 'LIFESTYLE', label: 'Lifestyle & behaviour change' },
 ];
 
+const HISTORY_DEPTH_OPTIONS: { id: AiHistoryDepth; label: string; sub: string }[] = [
+  { id: 'FOCUSED', label: '⚡ Focused', sub: '12–18 exchanges · Short chains · Skip health promotion · Less patient fatigue' },
+  { id: 'STANDARD', label: '🩺 Standard (Recommended)', sub: '18–25 exchanges · Full symptom chains · Skip health promotion if time is short' },
+  { id: 'COMPREHENSIVE', label: '🔬 Comprehensive', sub: 'No exchange limit · Every chain fully explored · Full screening & health promotion' },
+];
+
 type PracticeMode = 'OPEN_LOOP' | 'CLOSED_LOOP';
 type Tier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
 
 interface DoctorSettings {
   practiceMode: PracticeMode;
+  aiHistoryDepth: AiHistoryDepth;
   cloudProvider?: string;
   cloudBucket?: string;
 }
@@ -101,6 +109,8 @@ export default function PracticeSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('OPEN_LOOP');
+  const [aiHistoryDepth, setAiHistoryDepth] = useState<AiHistoryDepth>('STANDARD');
+  const [savingDepth, setSavingDepth] = useState(false);
   const [snackbar, setSnackbar] = useState('');
 
   // GP profile questionnaire
@@ -117,6 +127,7 @@ export default function PracticeSettingsScreen() {
         setSettings(settingsRes.data);
         setIncentive(incentiveRes.data);
         setPracticeMode(settingsRes.data.practiceMode);
+        setAiHistoryDepth(settingsRes.data.aiHistoryDepth ?? 'STANDARD');
       } catch {
         setSnackbar('Failed to load settings');
       } finally {
@@ -195,6 +206,19 @@ export default function PracticeSettingsScreen() {
     }
   }
 
+  async function saveAiHistoryDepth() {
+    setSavingDepth(true);
+    try {
+      await apiClient.put('/doctor/settings', { aiHistoryDepth });
+      setSettings((prev) => prev ? { ...prev, aiHistoryDepth } : prev);
+      setSnackbar('AI history preference saved');
+    } catch {
+      setSnackbar('Failed to save preference');
+    } finally {
+      setSavingDepth(false);
+    }
+  }
+
   if (loading) {
     return <View style={styles.center}><ActivityIndicator color={COLORS.primary} /></View>;
   }
@@ -240,6 +264,7 @@ export default function PracticeSettingsScreen() {
 
         {/* ── GP Profile Questionnaire ───────────────────────────────────────── */}
         {mode === 'GP' && (
+          <>
           <Surface style={styles.card} elevation={1}>
             <Text style={styles.cardTitle}>AI Practice Profile</Text>
             <Text style={styles.cardSubtitle}>
@@ -404,6 +429,36 @@ export default function PracticeSettingsScreen() {
               Save Practice Profile
             </Button>
           </Surface>
+          <Surface style={styles.card} elevation={1}>
+            <Text style={styles.cardTitle}>AI History Depth</Text>
+            <Text style={styles.cardSubtitle}>
+              Controls how thorough the AI is when taking patient history. Shorter flows reduce patient fatigue; comprehensive is best for complex or new patients.
+            </Text>
+            {HISTORY_DEPTH_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.id}
+                style={[qStyles.optionRow, aiHistoryDepth === opt.id && qStyles.optionRowSelected]}
+                onPress={() => setAiHistoryDepth(opt.id)}
+              >
+                <View style={[qStyles.radio, aiHistoryDepth === opt.id && qStyles.radioSelected]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={qStyles.optionLabel}>{opt.label}</Text>
+                  <Text style={qStyles.optionSub}>{opt.sub}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+            <Button
+              mode="contained"
+              onPress={saveAiHistoryDepth}
+              loading={savingDepth}
+              disabled={savingDepth || aiHistoryDepth === settings?.aiHistoryDepth}
+              buttonColor={COLORS.primary}
+              style={{ marginTop: SPACING.md, borderRadius: BORDER_RADIUS.md }}
+            >
+              Save History Preference
+            </Button>
+          </Surface>
+          </>
         )}
 
         {/* ── Home Care & Medical Aid Quick Links ───────────────────────────── */}

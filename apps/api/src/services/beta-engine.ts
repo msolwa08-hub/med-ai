@@ -349,3 +349,136 @@ export function confirmClinicalPackage(sessionId: string, edited: ClinicalPackag
   persistSession(s);
   return true;
 }
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export interface ApiError {
+  type: string;
+  message: string;
+  at: number;
+}
+
+const MAX_ERROR_LOG = 200;
+const errorLog: ApiError[] = [];
+
+export function trackError(type: string, message: string): void {
+  errorLog.unshift({ type, message, at: Date.now() });
+  if (errorLog.length > MAX_ERROR_LOG) errorLog.length = MAX_ERROR_LOG;
+}
+
+export interface AnalyticsSummary {
+  summary: {
+    total: number;
+    active: number;
+    completed: number;
+    completionRate: number;
+    avgExchanges: number;
+    today: number;
+    thisWeek: number;
+  };
+  aiHistoryQuality: {
+    avgExchanges: number;
+    medianExchanges: number;
+    exchangeDistribution: Record<string, number>;
+    completionRate: number;
+  };
+  consultationFunnel: {
+    TAKING_HISTORY: number;
+    AWAITING_DOCTOR: number;
+    IN_REVIEW: number;
+    SIGNED: number;
+    abandoned: number;
+  };
+  userGrowth: {
+    dailySessions: { date: string; count: number }[];
+    totalSessions: number;
+    uniqueKeys: number;
+  };
+  errors: {
+    recent: ApiError[];
+    total: number;
+  };
+}
+
+function dayKey(ts: number): string {
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+export function getAnalytics(): AnalyticsSummary {
+  const all = [...sessions.values()];
+  const todayStart = new Date().setHours(0, 0, 0, 0);
+  const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
+
+  const withMessages = all.filter((s) => s.displayMessages.some((m) => m.role === 'user'));
+  const completed = all.filter((s) => s.isComplete);
+
+  const exchangeCounts = completed.map(
+    (s) => s.displayMessages.filter((m) => m.role === 'user').length,
+  );
+  const avgExchanges =
+    exchangeCounts.length
+      ? Math.round((exchangeCounts.reduce((a, b) => a + b, 0) / exchangeCounts.length) * 10) / 10
+      : 0;
+  const sorted = [...exchangeCounts].sort((a, b) => a - b);
+  const medianExchanges = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+
+  const dist: Record<string, number> = { '1-5': 0, '6-10': 0, '11-15': 0, '16-20': 0, '21+': 0 };
+  for (const c of exchangeCounts) {
+    if (c <= 5) dist['1-5']++;
+    else if (c <= 10) dist['6-10']++;
+    else if (c <= 15) dist['11-15']++;
+    else if (c <= 20) dist['16-20']++;
+    else dist['21+']++;
+  }
+
+  const funnel = { TAKING_HISTORY: 0, AWAITING_DOCTOR: 0, IN_REVIEW: 0, SIGNED: 0, abandoned: 0 };
+  for (const s of all) {
+    if (!s.displayMessages.some((m) => m.role === 'user')) {
+      funnel.abandoned++;
+    } else {
+      funnel[s.consultStatus as keyof typeof funnel]++;
+    }
+  }
+
+  const dailyMap: Record<string, number> = {};
+  for (let i = 6; i >= 0; i--) {
+    dailyMap[dayKey(todayStart - i * 24 * 60 * 60 * 1000)] = 0;
+  }
+  for (const s of all) {
+    const d = dayKey(s.createdAt);
+    if (d in dailyMap) dailyMap[d]++;
+  }
+  const dailySessions = Object.entries(dailyMap).map(([date, count]) => ({ date, count }));
+
+  const completionRate = withMessages.length
+    ? Math.round((completed.length / withMessages.length) * 1000) / 10
+    : 0;
+
+  return {
+    summary: {
+      total: all.length,
+      active: withMessages.length - completed.length,
+      completed: completed.length,
+      completionRate,
+      avgExchanges,
+      today: all.filter((s) => s.createdAt >= todayStart).length,
+      thisWeek: all.filter((s) => s.createdAt >= weekStart).length,
+    },
+    aiHistoryQuality: {
+      avgExchanges,
+      medianExchanges,
+      exchangeDistribution: dist,
+      completionRate,
+    },
+    consultationFunnel: funnel,
+    userGrowth: {
+      dailySessions,
+      totalSessions: all.length,
+      uniqueKeys: new Set(all.map((s) => s.accessKey)).size,
+    },
+    errors: {
+      recent: errorLog.slice(0, 10),
+      total: errorLog.length,
+    },
+  };
+}

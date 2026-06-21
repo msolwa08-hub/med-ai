@@ -36,6 +36,40 @@ export interface SummaryResult {
   summary: string;
 }
 
+export interface AnalyticsData {
+  summary: {
+    total: number;
+    active: number;
+    completed: number;
+    completionRate: number;
+    avgExchanges: number;
+    today: number;
+    thisWeek: number;
+  };
+  aiHistoryQuality: {
+    avgExchanges: number;
+    medianExchanges: number;
+    exchangeDistribution: Record<string, number>;
+    completionRate: number;
+  };
+  consultationFunnel: {
+    TAKING_HISTORY: number;
+    AWAITING_DOCTOR: number;
+    IN_REVIEW: number;
+    SIGNED: number;
+    abandoned: number;
+  };
+  userGrowth: {
+    dailySessions: { date: string; count: number }[];
+    totalSessions: number;
+    uniqueKeys: number;
+  };
+  errors: {
+    recent: { type: string; message: string; at: number }[];
+    total: number;
+  };
+}
+
 export const api = {
   validate: (accessKey: string) =>
     apiFetch<ValidateResult>('/validate', {
@@ -60,4 +94,7 @@ export const api = {
 
   getSummary: (sessionId: string) =>
     apiFetch<SummaryResult>(`/session/${sessionId}/summary`),
+
+  getAnalytics: (doctorKey: string) =>
+    apiFetch<AnalyticsData>(`/analytics?key=${encodeURIComponent(doctorKey)}`),
 };
