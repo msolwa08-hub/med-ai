@@ -66,10 +66,10 @@ interface LearningPoints {
   differentialTips: string;
   memorableMnemonic?: string;
   saContext: string;
-  part1PharmacologyPearls: string[];
-  part1ExamTraps: string[];
-  part1MustKnow: Part1PrepPoint[];
-  part1ClassicScenario: string;
+  part1PharmacologyPearls?: string[];
+  part1ExamTraps?: string[];
+  part1MustKnow?: Part1PrepPoint[];
+  part1ClassicScenario?: string;
 }
 
 interface EMLFormulation {
@@ -434,10 +434,16 @@ export default function STGLookupScreen() {
                     <Text style={lpStyles.label}>SA Context</Text>
                     <Text style={lpStyles.body}>{learningPoints.saContext}</Text>
 
-                    {/* Part 1 Exam Prep */}
+                    {/* Part 1 Exam Prep — shown only when the model includes content */}
+                    {(learningPoints.part1PharmacologyPearls?.length ||
+                      learningPoints.part1ExamTraps?.length ||
+                      learningPoints.part1MustKnow?.length ||
+                      learningPoints.part1ClassicScenario) ? (
+                      <>
                     <View style={p1Styles.divider} />
                     <Text style={p1Styles.sectionHeader}>📝 Part 1 Exam Prep</Text>
                     <Text style={p1Styles.sectionSubtitle}>FCP · FC Paeds · FCFP · FC Psych · MMed</Text>
+                    </>) : null}
 
                     {learningPoints.part1PharmacologyPearls?.length > 0 && (
                       <>

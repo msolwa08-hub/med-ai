@@ -1,4 +1,4 @@
-import { anthropic, CLAUDE_MODEL } from '../lib/claude.js';
+import { anthropic, CLAUDE_HAIKU_MODEL, logUsage } from '../lib/claude.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -83,11 +83,13 @@ levelOfCare must be one of: "PHC", "District", "Regional", "Tertiary", "All"
 costTier must be one of: "Free (public sector)", "Low-cost generic", "Moderate", "Expensive", "Specialist only"`;
 
   const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
+    model: CLAUDE_HAIKU_MODEL,
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userPrompt }],
   });
+
+  logUsage('eml-lookup', CLAUDE_HAIKU_MODEL, response.usage);
 
   const raw = response.content[0].type === 'text' ? response.content[0].text : '';
   const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();

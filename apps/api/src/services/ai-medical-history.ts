@@ -11,7 +11,7 @@
  *   4. generateDifferentialDiagnosis — produce differential with ICD codes
  */
 
-import { anthropic, CLAUDE_MODEL, CLAUDE_HISTORY_MODEL } from '../lib/claude.js';
+import { anthropic, CLAUDE_MODEL, CLAUDE_HISTORY_MODEL, logUsage } from '../lib/claude.js';
 import type {
   SaLanguage,
   ConversationMessage,
@@ -146,6 +146,8 @@ export async function startMedicalHistorySession(
     ],
   });
 
+  logUsage('ai-history-start', CLAUDE_HISTORY_MODEL, response.usage);
+
   const message = extractTextContent(response);
   const isComplete = message.includes('[HISTORY_COMPLETE]');
 
@@ -183,6 +185,8 @@ export async function continueMedicalHistorySession(
     messages,
   });
 
+  logUsage('ai-history-continue', CLAUDE_HISTORY_MODEL, response.usage);
+
   const message = extractTextContent(response);
   const isComplete = message.includes('[HISTORY_COMPLETE]');
 
@@ -214,6 +218,8 @@ export async function extractStructuredHistory(
       },
     ],
   });
+
+  logUsage('ai-history-extract', CLAUDE_MODEL, response.usage);
 
   const text = extractTextContent(response);
 
@@ -261,6 +267,8 @@ export async function generateDifferentialDiagnosis(
       },
     ],
   });
+
+  logUsage('ai-diagnosis', CLAUDE_MODEL, response.usage);
 
   const text = extractTextContent(response);
 

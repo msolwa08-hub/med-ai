@@ -9,7 +9,7 @@
  * All AI-generated clinical advice is for HPCSA-registered doctors only.
  */
 
-import { anthropic, CLAUDE_MODEL } from '../lib/claude.js';
+import { anthropic, CLAUDE_SONNET_MODEL, logUsage } from '../lib/claude.js';
 import { STG_ENTRIES } from '../data/stg-entries.js';
 import { searchICD10Codes, getICD10ByCode, ICD10_COMMON_CODES } from '../data/icd10-common.js';
 import type { STGSeedEntry, STGMedication, STGInvestigation } from '../data/stg-entries.js';
@@ -245,11 +245,13 @@ Please provide a concise, adapted management plan for this specific patient, hig
 Keep the response under 500 words. Flag any URGENT actions prominently.`;
 
   const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
+    model: CLAUDE_SONNET_MODEL,
     max_tokens: 1024,
     system: systemPrompt,
     messages: [{ role: 'user', content: userMessage }],
   });
+
+  logUsage('stg-management-plan', CLAUDE_SONNET_MODEL, response.usage);
 
   return extractText(response);
 }

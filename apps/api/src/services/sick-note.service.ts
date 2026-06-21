@@ -1,4 +1,4 @@
-import { anthropic, CLAUDE_MODEL } from '../lib/claude.js';
+import { anthropic, CLAUDE_HAIKU_MODEL, logUsage } from '../lib/claude.js';
 
 // ============================================================
 // Types
@@ -74,7 +74,7 @@ ${input.fitnessStatement ? `Fitness Statement: ${input.fitnessStatement}` : ''}
 ${input.additionalNotes ? `Additional Notes: ${input.additionalNotes}` : ''}`;
 
   const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
+    model: CLAUDE_HAIKU_MODEL,
     max_tokens: 512,
     system: SYSTEM_PROMPT,
     messages: [
@@ -84,6 +84,8 @@ ${input.additionalNotes ? `Additional Notes: ${input.additionalNotes}` : ''}`;
       },
     ],
   });
+
+  logUsage('sick-note', CLAUDE_HAIKU_MODEL, response.usage);
 
   const content = response.content[0];
   if (content.type !== 'text') {

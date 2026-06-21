@@ -1,4 +1,4 @@
-import { anthropic, CLAUDE_MODEL } from '../lib/claude.js';
+import { anthropic, CLAUDE_SONNET_MODEL, logUsage } from '../lib/claude.js';
 
 // ============================================================
 // Types
@@ -27,11 +27,11 @@ export interface LearningPoints {
   differentialTips: string;
   memorableMnemonic?: string;
   saContext: string;
-  // Part 1 exam prep fields
-  part1PharmacologyPearls: string[];
-  part1ExamTraps: string[];
-  part1MustKnow: Part1PrepPoint[];
-  part1ClassicScenario: string;
+  // Part 1 exam prep fields — all optional
+  part1PharmacologyPearls?: string[];
+  part1ExamTraps?: string[];
+  part1MustKnow?: Part1PrepPoint[];
+  part1ClassicScenario?: string;
   generatedAt: string;
 }
 
@@ -56,24 +56,22 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no extra 
   "memorableMnemonic": "optional helpful mnemonic or null",
   "saContext": "What makes this condition special in the SA context — prevalence, HIV co-infection, formulary, etc.",
   "part1PharmacologyPearls": [
-    "Drug name: mechanism of action, key side effects, contraindications, and Part 1 exam relevance",
-    "..."
+    "Drug name: mechanism of action, key side effects, contraindications, and Part 1 exam relevance"
   ],
   "part1ExamTraps": [
-    "Common candidate mistake or trick question on this topic",
-    "..."
+    "Common candidate mistake or trick question on this topic"
   ],
   "part1MustKnow": [
-    { "question": "Exam-style question", "answer": "Concise model answer" },
-    "..."
+    { "question": "Exam-style question", "answer": "Concise model answer" }
   ],
-  "part1ClassicScenario": "A realistic clinical vignette (2-3 sentences describing patient + presentation) followed by a model answer paragraph covering diagnosis, immediate management, and key decision points"
+  "part1ClassicScenario": "A realistic clinical vignette followed by model answer"
 }
 
-For part1PharmacologyPearls: include mechanism, major side effects, important contraindications, and why it matters for Part 1 exams (3-5 drugs).
-For part1ExamTraps: classic mistakes candidates make, common trick questions, or easily confused facts (3-5 items).
-For part1MustKnow: 4-6 high-yield Q&A pairs in the style of written/oral Part 1 exam questions.
-For part1ClassicScenario: write a realistic SA patient vignette then give the model answer a Part 1 examiner would expect.`;
+The part1* fields are OPTIONAL. Include them only when the condition has meaningful pharmacology or exam relevance. Omit them (or set to empty array / null) for very simple conditions.
+For part1PharmacologyPearls: include mechanism, major side effects, contraindications (3-5 drugs).
+For part1ExamTraps: classic candidate mistakes, trick questions, easily confused facts (3-5 items).
+For part1MustKnow: 4-6 high-yield Q&A pairs in Part 1 exam style.
+For part1ClassicScenario: realistic SA patient vignette + model answer a Part 1 examiner expects.`;
 
 // ============================================================
 // Service function
@@ -96,7 +94,7 @@ Investigations:
 ${JSON.stringify(input.investigations, null, 2)}`;
 
   const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
+    model: CLAUDE_SONNET_MODEL,
     max_tokens: 2048,
     system: SYSTEM_PROMPT,
     messages: [
@@ -106,6 +104,8 @@ ${JSON.stringify(input.investigations, null, 2)}`;
       },
     ],
   });
+
+  logUsage('learning-points', CLAUDE_SONNET_MODEL, response.usage);
 
   const content = response.content[0];
   if (content.type !== 'text') {

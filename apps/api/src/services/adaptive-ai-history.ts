@@ -31,7 +31,7 @@
  *   Infection:     qSOFA, SIRS criteria
  */
 
-import { anthropic, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL } from '../lib/claude.js';
+import { anthropic, CLAUDE_HAIKU_MODEL, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL, logUsage } from '../lib/claude.js';
 import type {
   SaLanguage,
   ConversationMessage,
@@ -79,11 +79,12 @@ export async function detectLiteracyLevel(
   if (patientMessages.length === 0) return 'UNKNOWN';
   try {
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: CLAUDE_HAIKU_MODEL,
       max_tokens: 10,
       system: LITERACY_DETECTION_PROMPT,
       messages: [{ role: 'user', content: patientMessages.join('\n') }],
     });
+    logUsage('literacy-detect', CLAUDE_HAIKU_MODEL, response.usage);
     const text = extractTextContent(response).trim().toUpperCase();
     if (text === 'LOW' || text === 'MEDIUM' || text === 'HIGH') return text;
     return 'MEDIUM';
@@ -1220,6 +1221,8 @@ export async function startAdaptiveMedicalHistorySession(
     messages: [{ role: 'user', content: openingInstruction }],
   });
 
+  logUsage('history-start', CLAUDE_HISTORY_MODEL, response.usage);
+
   const message = extractTextContent(response);
   const isComplete = message.includes('[HISTORY_COMPLETE]');
 
@@ -1262,6 +1265,8 @@ export async function continueAdaptiveMedicalHistorySession(
     system: buildAdaptiveSystemPrompt(language, literacyLevel, patientContext, gatheredSummary),
     messages,
   });
+
+  logUsage('history-continue', CLAUDE_HISTORY_MODEL, response.usage);
 
   const message = extractTextContent(response);
   const isComplete = message.includes('[HISTORY_COMPLETE]');
@@ -1345,6 +1350,8 @@ Use 'Not asked' or 'Not reported' for sections not covered. Return ONLY the JSON
     messages: [{ role: 'user', content: `Extract structured history from this consultation:\n\n${transcript}` }],
   });
 
+  logUsage('history-extract', CLAUDE_MODEL, response.usage);
+
   const text = extractTextContent(response);
   try {
     return normaliseStructuredHistory(JSON.parse(text) as Partial<StructuredMedicalHistory>);
@@ -1385,6 +1392,8 @@ Medications: ${structuredHistory.medications}`;
     system: `Write a brief, friendly patient summary in ${languageName} they will read before seeing their doctor. ${style}`,
     messages: [{ role: 'user', content: summary }],
   });
+
+  logUsage('patient-summary', CLAUDE_HISTORY_MODEL, response.usage);
 
   return extractTextContent(response);
 }
