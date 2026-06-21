@@ -10,6 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { apiClient } from '../../api/client';
+import { documentsApi } from '../../api/endpoints';
+import { useMode } from '../../context/ModeContext';
 
 interface STGMedication {
   medication: string;
@@ -50,6 +52,16 @@ interface ChecklistItem {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   completed: boolean;
 }
+interface LearningPoints {
+  pathophysiology: string;
+  classicPresentation: string;
+  keyExamFindings: string[];
+  clinicalPearls: string[];
+  complications: string[];
+  differentialTips: string;
+  memorableMnemonic?: string;
+  saContext: string;
+}
 
 const URGENCY_COLORS = {
   STAT: COLORS.error,
@@ -61,6 +73,7 @@ export default function STGLookupScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { consultationId, onSelect } = route.params ?? {};
+  const { mode: appMode } = useMode();
 
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<'name' | 'icd10'>('name');
@@ -71,6 +84,8 @@ export default function STGLookupScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingAdapted, setLoadingAdapted] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [learningPoints, setLearningPoints] = useState<LearningPoints | null>(null);
+  const [loadingLP, setLoadingLP] = useState(false);
 
   const search = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); setIcd10Results([]); return; }
@@ -104,11 +119,36 @@ export default function STGLookupScreen() {
     }
   }
 
+  async function loadLearningPoints(stg: STGEntry) {
+    setLearningPoints(null);
+    setLoadingLP(true);
+    try {
+      const res = await documentsApi.getLearningPoints({
+        conditionName: stg.conditionName,
+        icd10Code: stg.icd10Code,
+        category: stg.category,
+        firstLineTreatment: stg.firstLineTreatment,
+        investigations: stg.investigations,
+        redFlags: stg.redFlags,
+      });
+      setLearningPoints(res.data?.data?.learningPoints ?? null);
+    } catch {
+      // silent — LP is a bonus for interns, not blocking
+    } finally {
+      setLoadingLP(false);
+    }
+  }
+
   async function selectSTG(stg: STGEntry) {
     setSelectedSTG(stg);
     setResults([]);
     setIcd10Results([]);
     setQuery(stg.conditionName);
+    setLearningPoints(null);
+
+    if (appMode === 'INTERN') {
+      loadLearningPoints(stg);
+    }
 
     if (consultationId) {
       setLoadingAdapted(true);
@@ -247,6 +287,68 @@ export default function STGLookupScreen() {
                   {selectedSTG.category} · {selectedSTG.levelOfCare} · {selectedSTG.saPrevalence}
                 </Text>
               </Surface>
+
+              {/* Intern Mode: Learning Points */}
+              {appMode === 'INTERN' && (
+                loadingLP ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                    <Text style={styles.loadingText}>Loading clinical insights...</Text>
+                  </View>
+                ) : learningPoints ? (
+                  <Surface style={lpStyles.card} elevation={1}>
+                    <Text style={lpStyles.cardTitle}>🎓 Clinical Learning Points</Text>
+
+                    <Text style={lpStyles.label}>Pathophysiology</Text>
+                    <Text style={lpStyles.body}>{learningPoints.pathophysiology}</Text>
+
+                    <Text style={lpStyles.label}>Classic Presentation</Text>
+                    <Text style={lpStyles.body}>{learningPoints.classicPresentation}</Text>
+
+                    {learningPoints.keyExamFindings.length > 0 && (
+                      <>
+                        <Text style={lpStyles.label}>Key Examination Findings</Text>
+                        {learningPoints.keyExamFindings.map((f, i) => (
+                          <Text key={i} style={lpStyles.bullet}>• {f}</Text>
+                        ))}
+                      </>
+                    )}
+
+                    {learningPoints.clinicalPearls.length > 0 && (
+                      <>
+                        <Text style={lpStyles.label}>Clinical Pearls</Text>
+                        {learningPoints.clinicalPearls.map((p, i) => (
+                          <Text key={i} style={[lpStyles.bullet, { color: COLORS.secondary }]}>💡 {p}</Text>
+                        ))}
+                      </>
+                    )}
+
+                    {learningPoints.complications.length > 0 && (
+                      <>
+                        <Text style={lpStyles.label}>Complications to Watch</Text>
+                        {learningPoints.complications.map((c, i) => (
+                          <Text key={i} style={lpStyles.bullet}>⚠️ {c}</Text>
+                        ))}
+                      </>
+                    )}
+
+                    <Text style={lpStyles.label}>Differential Diagnosis Tips</Text>
+                    <Text style={lpStyles.body}>{learningPoints.differentialTips}</Text>
+
+                    {learningPoints.memorableMnemonic ? (
+                      <>
+                        <Text style={lpStyles.label}>Mnemonic</Text>
+                        <View style={lpStyles.mnemonicBox}>
+                          <Text style={lpStyles.mnemonicText}>{learningPoints.memorableMnemonic}</Text>
+                        </View>
+                      </>
+                    ) : null}
+
+                    <Text style={lpStyles.label}>SA Context</Text>
+                    <Text style={lpStyles.body}>{learningPoints.saContext}</Text>
+                  </Surface>
+                ) : null
+              )}
 
               {/* Red Flags */}
               {selectedSTG.redFlags && (
@@ -483,4 +585,56 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: SPACING.md },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.primary, marginBottom: SPACING.sm, textAlign: 'center' },
   emptyText: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 22 },
+});
+
+const lpStyles = StyleSheet.create({
+  card: {
+    margin: SPACING.md,
+    marginTop: 0,
+    marginBottom: SPACING.sm,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    ...SHADOWS.sm,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0369A1',
+    marginBottom: SPACING.md,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0369A1',
+    marginTop: SPACING.sm,
+    marginBottom: 4,
+  },
+  body: {
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  bullet: {
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 20,
+    paddingLeft: SPACING.sm,
+    marginBottom: 2,
+  },
+  mnemonicBox: {
+    backgroundColor: '#E0F2FE',
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm,
+    marginTop: 4,
+  },
+  mnemonicText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0C4A6E',
+    fontStyle: 'italic',
+    lineHeight: 22,
+  },
 });

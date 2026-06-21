@@ -18,12 +18,16 @@ import ManagementPlanScreen from '../screens/doctor/ManagementPlanScreen';
 import PrescriptionScreen from '../screens/doctor/PrescriptionScreen';
 import STGLookupScreen from '../screens/doctor/stg/STGLookupScreen';
 import PracticeSettingsScreen from '../screens/settings/PracticeSettingsScreen';
+import ReferralLetterScreen from '../screens/doctor/ReferralLetterScreen';
+import HomeCarePlannerScreen from '../screens/doctor/HomeCarePlannerScreen';
+import MedicalAidClaimScreen from '../screens/doctor/MedicalAidClaimScreen';
 
 // ─── Param Lists ───────────────────────────────────────────────
 
 export type DoctorTabParamList = {
   Dashboard: undefined;
   Queue: undefined;
+  Guidelines: undefined;
   Records: undefined;
   Settings: undefined;
 };
@@ -42,6 +46,15 @@ export type DoctorStackParamList = {
   };
   STGLookup: { consultationId?: string; applyIcd10?: string };
   DoctorAvailability: undefined;
+  ReferralLetter: {
+    consultationId: string;
+    specialty: string;
+    urgency: 'ROUTINE' | 'URGENT' | 'EMERGENCY';
+    reasonForReferral: string;
+    patientName?: string;
+  };
+  HomeCarePlanner: undefined;
+  MedicalAidClaim: undefined;
 };
 
 const Tab = createBottomTabNavigator<DoctorTabParamList>();
@@ -49,11 +62,12 @@ const Stack = createNativeStackNavigator<DoctorStackParamList>();
 
 // ─── Bottom Tabs ───────────────────────────────────────────────
 
-type TabIconName = 'view-dashboard' | 'account-group' | 'folder-open' | 'cog';
+type TabIconName = 'view-dashboard' | 'account-group' | 'book-open-variant' | 'folder-open' | 'cog';
 
 const TAB_META: Record<keyof DoctorTabParamList, { icon: TabIconName; label: string }> = {
   Dashboard: { icon: 'view-dashboard', label: 'Dashboard' },
   Queue: { icon: 'account-group', label: 'Queue' },
+  Guidelines: { icon: 'book-open-variant', label: 'STG' },
   Records: { icon: 'folder-open', label: 'Records' },
   Settings: { icon: 'cog', label: 'Settings' },
 };
@@ -84,6 +98,7 @@ function DoctorTabs() {
     >
       <Tab.Screen name="Dashboard" component={DoctorHomeScreen} />
       <Tab.Screen name="Queue" component={PatientQueueScreen} />
+      <Tab.Screen name="Guidelines" component={STGLookupScreen} />
       <Tab.Screen name="Records" component={DoctorPatientRecordsScreen} />
       <Tab.Screen name="Settings" component={PracticeSettingsScreen} />
     </Tab.Navigator>
@@ -109,6 +124,9 @@ export default function DoctorNavigator() {
       <Stack.Screen name="Prescription" component={PrescriptionScreen} />
       <Stack.Screen name="STGLookup" component={STGLookupScreen} />
       <Stack.Screen name="DoctorAvailability" component={DoctorAvailabilityScreen} />
+      <Stack.Screen name="ReferralLetter" component={ReferralLetterScreen} />
+      <Stack.Screen name="HomeCarePlanner" component={HomeCarePlannerScreen} />
+      <Stack.Screen name="MedicalAidClaim" component={MedicalAidClaimScreen} />
     </Stack.Navigator>
   );
 }

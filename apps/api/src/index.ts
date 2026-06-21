@@ -20,6 +20,7 @@ import { emergencyRoutes } from './routes/emergency.js';
 import { labResultRoutes } from './routes/lab-results.js';
 import { doctorSettingsRoutes } from './routes/doctor-settings.js';
 import { betaRoutes } from './routes/beta.js';
+import { documentsRoutes } from './routes/documents.js';
 
 // ─────────────────────────────────────────────────────────
 // Bootstrap
@@ -76,6 +77,7 @@ await fastify.register(emergencyRoutes);
 await fastify.register(labResultRoutes);
 await fastify.register(doctorSettingsRoutes);
 await fastify.register(betaRoutes);
+await fastify.register(documentsRoutes);
 
 // ─────────────────────────────────────────────────────────
 // Health check (no auth required)

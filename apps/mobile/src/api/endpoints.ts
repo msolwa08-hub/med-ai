@@ -228,3 +228,66 @@ export const aiApi = {
   getDifferentialDiagnoses: (consultationId: string) =>
     apiClient.get(`/ai/differential-diagnoses/${consultationId}`),
 };
+
+// --- Documents Endpoints (referral letters, sick notes) ---
+
+export interface ReferralLetterPayload {
+  patientName: string;
+  patientAge: string;
+  patientGender: string;
+  patientIdNumber?: string;
+  patientMedicalAid?: string;
+  referringDoctorName: string;
+  referringDoctorHpcsa: string;
+  referringPracticeName: string;
+  referringPracticeAddress?: string;
+  referringPracticePhone?: string;
+  specialty: string;
+  urgency: 'ROUTINE' | 'URGENT' | 'EMERGENCY';
+  clinicalSummary: string;
+  diagnosis: string;
+  icd10Code?: string;
+  reasonForReferral: string;
+  currentMedications?: string;
+  relevantInvestigations?: string;
+  additionalNotes?: string;
+}
+
+export interface SickNotePayload {
+  patientName: string;
+  patientIdNumber?: string;
+  patientDateOfBirth?: string;
+  patientOccupation?: string;
+  doctorName: string;
+  doctorHpcsa: string;
+  practiceName: string;
+  practiceAddress?: string;
+  diagnosisText: string;
+  icd10Code?: string;
+  dateOfConsultation: string;
+  unfitFromDate: string;
+  unfitToDate: string;
+  daysOff: number;
+  fitnessStatement?: string;
+  additionalNotes?: string;
+}
+
+export interface LearningPointsPayload {
+  conditionName: string;
+  icd10Code: string;
+  category: string;
+  firstLineTreatment: unknown[];
+  investigations: unknown[];
+  redFlags?: string;
+}
+
+export const documentsApi = {
+  generateReferralLetter: (payload: ReferralLetterPayload) =>
+    apiClient.post('/doctor/documents/referral-letter', payload),
+
+  generateSickNote: (payload: SickNotePayload) =>
+    apiClient.post('/doctor/documents/sick-note', payload),
+
+  getLearningPoints: (payload: LearningPointsPayload) =>
+    apiClient.post('/stg/learning-points', payload),
+};

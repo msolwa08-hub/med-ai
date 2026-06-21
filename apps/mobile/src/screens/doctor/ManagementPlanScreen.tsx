@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { consultationApi, aiApi } from '../../api/endpoints';
+import { consultationApi, aiApi, documentsApi } from '../../api/endpoints';
 import { useAuthStore } from '../../store/authStore';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SHADOWS, SPACING } from '../../constants/theme';
 
@@ -55,6 +55,16 @@ interface ReferralForm {
   specialty: string;
   reason: string;
   urgency: ReferralUrgency;
+}
+
+interface SickNoteForm {
+  diagnosisText: string;
+  icd10Code: string;
+  dateOfConsultation: string;
+  unfitFromDate: string;
+  unfitToDate: string;
+  daysOff: string;
+  fitnessStatement: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -161,6 +171,24 @@ export const ManagementPlanScreen: React.FC = () => {
   const [patientLanguage, setPatientLanguage] = useState('en');
   const [isTranslating, setIsTranslating] = useState(false);
 
+  // Consultation data (patient info, diagnosis)
+  const [consultation, setConsultation] = useState<any>(null);
+
+  // Sick note
+  const today = new Date().toISOString().split('T')[0];
+  const [showSickNoteModal, setShowSickNoteModal] = useState(false);
+  const [sickNoteForm, setSickNoteForm] = useState<SickNoteForm>({
+    diagnosisText: '',
+    icd10Code: '',
+    dateOfConsultation: today,
+    unfitFromDate: today,
+    unfitToDate: '',
+    daysOff: '',
+    fitnessStatement: '',
+  });
+  const [generatingSickNote, setGeneratingSickNote] = useState(false);
+  const [generatedSickNote, setGeneratedSickNote] = useState<string | null>(null);
+
   // Save / complete
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -170,6 +198,7 @@ export const ManagementPlanScreen: React.FC = () => {
     const load = async () => {
       try {
         const resp = await consultationApi.getById(consultationId);
+        setConsultation(resp.data);
         const lang = resp.data?.patient?.preferredLanguage || 'en';
         setPatientLanguage(lang);
       } catch {
@@ -293,6 +322,44 @@ export const ManagementPlanScreen: React.FC = () => {
   const referralUrgencyColor = (u: ReferralUrgency) =>
     REFERRAL_URGENCIES.find((r) => r.code === u)?.color ?? COLORS.textSecondary;
 
+  async function handleGenerateSickNote() {
+    if (!sickNoteForm.diagnosisText.trim()) {
+      Alert.alert('Missing diagnosis', 'Please enter a diagnosis.');
+      return;
+    }
+    if (!sickNoteForm.unfitToDate.trim()) {
+      Alert.alert('Missing date', 'Please enter the unfit-to date.');
+      return;
+    }
+    setGeneratingSickNote(true);
+    try {
+      const patientName = consultation?.patient
+        ? `${consultation.patient.firstName} ${consultation.patient.lastName}`
+        : '';
+      const resp = await documentsApi.generateSickNote({
+        patientName,
+        patientIdNumber: consultation?.patient?.idNumber,
+        patientDateOfBirth: consultation?.patient?.dateOfBirth,
+        doctorName: user ? `${user.firstName} ${user.lastName}` : '',
+        doctorHpcsa: (user as any)?.hpcsaNumber ?? '',
+        practiceName: (user as any)?.practiceName ?? 'MedAI Practice',
+        practiceAddress: (user as any)?.practiceAddress,
+        diagnosisText: sickNoteForm.diagnosisText,
+        icd10Code: sickNoteForm.icd10Code || undefined,
+        dateOfConsultation: sickNoteForm.dateOfConsultation,
+        unfitFromDate: sickNoteForm.unfitFromDate,
+        unfitToDate: sickNoteForm.unfitToDate,
+        daysOff: parseInt(sickNoteForm.daysOff, 10) || 1,
+        fitnessStatement: sickNoteForm.fitnessStatement || undefined,
+      });
+      setGeneratedSickNote(resp.data?.data?.sickNote?.certificateText ?? '');
+    } catch {
+      Alert.alert('Error', 'Failed to generate sick note. Please try again.');
+    } finally {
+      setGeneratingSickNote(false);
+    }
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <View style={styles.root}>
@@ -384,6 +451,23 @@ export const ManagementPlanScreen: React.FC = () => {
                 <Text style={styles.referralReason} numberOfLines={2}>
                   {ref.reason}
                 </Text>
+                <TouchableOpacity
+                  style={styles.referralLetterBtn}
+                  onPress={() =>
+                    navigation.navigate('ReferralLetter', {
+                      consultationId,
+                      specialty: ref.specialty,
+                      urgency: ref.urgency,
+                      reasonForReferral: ref.reason,
+                      patientName: consultation?.patient
+                        ? `${consultation.patient.firstName} ${consultation.patient.lastName}`
+                        : undefined,
+                    })
+                  }
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.referralLetterBtnText}>📄 Generate Referral Letter</Text>
+                </TouchableOpacity>
               </View>
               <TouchableOpacity
                 style={styles.removeBtn}
@@ -457,6 +541,15 @@ export const ManagementPlanScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* ── Sick Note ───────────────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.sickNoteBtn}
+          onPress={() => setShowSickNoteModal(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.sickNoteBtnText}>🩺 Generate Sick Note</Text>
+        </TouchableOpacity>
 
         {/* ── Complete Consultation ────────────────────────────────────────────── */}
         <TouchableOpacity
@@ -714,6 +807,143 @@ export const ManagementPlanScreen: React.FC = () => {
                 <Text style={styles.saveBtnText}>Save</Text>
               </TouchableOpacity>
             </View>
+            <View style={{ height: SPACING.xl }} />
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ── Sick Note Modal ─────────────────────────────────────────────────── */}
+      <Modal
+        visible={showSickNoteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
+      >
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
+        />
+        <View style={[styles.bottomSheet, { maxHeight: '90%' }]}>
+          <View style={styles.bottomSheetHandle} />
+          <Text style={styles.modalTitle}>
+            {generatedSickNote ? 'Sick Note Generated' : 'Generate Sick Note'}
+          </Text>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {generatedSickNote ? (
+              <>
+                <View style={snStyles.resultBox}>
+                  <Text style={snStyles.resultText}>{generatedSickNote}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setGeneratedSickNote(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.cancelBtnText}>Edit Details</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { marginTop: SPACING.sm }]}
+                  onPress={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.saveBtnText}>Done</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.fieldLabel}>Diagnosis</Text>
+                <TextInput
+                  style={[styles.fieldInput, { minHeight: 60 }]}
+                  placeholder="e.g. Acute viral upper respiratory tract infection"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={sickNoteForm.diagnosisText}
+                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, diagnosisText: v }))}
+                  multiline
+                  textAlignVertical="top"
+                />
+
+                <Text style={styles.fieldLabel}>ICD-10 Code (optional)</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="e.g. J06.9"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={sickNoteForm.icd10Code}
+                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, icd10Code: v }))}
+                  autoCapitalize="characters"
+                />
+
+                <Text style={styles.fieldLabel}>Date of Consultation (YYYY-MM-DD)</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder={today}
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={sickNoteForm.dateOfConsultation}
+                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, dateOfConsultation: v }))}
+                />
+
+                <Text style={styles.fieldLabel}>Unfit From (YYYY-MM-DD)</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder={today}
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={sickNoteForm.unfitFromDate}
+                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, unfitFromDate: v }))}
+                />
+
+                <Text style={styles.fieldLabel}>Unfit Until (YYYY-MM-DD)</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="e.g. 2026-06-24"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={sickNoteForm.unfitToDate}
+                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, unfitToDate: v }))}
+                />
+
+                <Text style={styles.fieldLabel}>Days Off Work</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="e.g. 3"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={sickNoteForm.daysOff}
+                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, daysOff: v }))}
+                  keyboardType="number-pad"
+                />
+
+                <Text style={styles.fieldLabel}>Fitness Statement (optional)</Text>
+                <TextInput
+                  style={[styles.fieldInput, { minHeight: 60 }]}
+                  placeholder="e.g. Patient may return to light duties on..."
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={sickNoteForm.fitnessStatement}
+                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, fitnessStatement: v }))}
+                  multiline
+                  textAlignVertical="top"
+                />
+
+                <View style={styles.modalBtnRow}>
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => setShowSickNoteModal(false)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveBtn, generatingSickNote && { opacity: 0.6 }]}
+                    onPress={handleGenerateSickNote}
+                    disabled={generatingSickNote}
+                    activeOpacity={0.85}
+                  >
+                    {generatingSickNote ? (
+                      <ActivityIndicator color={COLORS.white} size="small" />
+                    ) : (
+                      <Text style={styles.saveBtnText}>Generate</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
             <View style={{ height: SPACING.xl }} />
           </ScrollView>
         </View>
@@ -1140,6 +1370,50 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '800',
     fontSize: FONT_SIZE.lg,
+  },
+  referralLetterBtn: {
+    marginTop: SPACING.xs,
+    paddingVertical: 4,
+    paddingHorizontal: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    alignSelf: 'flex-start',
+  },
+  referralLetterBtnText: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  sickNoteBtn: {
+    borderWidth: 1.5,
+    borderColor: COLORS.secondary,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  sickNoteBtnText: {
+    color: COLORS.secondary,
+    fontWeight: '700',
+    fontSize: FONT_SIZE.md,
+  },
+});
+
+const snStyles = StyleSheet.create({
+  resultBox: {
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.md,
+  },
+  resultText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.text,
+    lineHeight: 22,
+    fontFamily: 'monospace',
   },
 });
 
