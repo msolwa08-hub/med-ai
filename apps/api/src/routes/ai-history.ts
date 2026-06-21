@@ -4,6 +4,7 @@ import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { auditLog } from '../services/audit.service.js';
+import { checkAiProcessingConsent, AI_CONSENT_ERROR } from '../lib/ai-consent.js';
 import {
   encryptJSON,
   decryptJSON,
@@ -127,7 +128,7 @@ async function runCompletionFlow(
   const consultation = await prisma.consultation.findUnique({
     where: { id: consultationId },
     include: {
-      patient: { select: { dateOfBirth: true, gender: true } },
+      patient: { select: { firstName: true, lastName: true, dateOfBirth: true, gender: true } },
     },
   });
 
@@ -135,10 +136,12 @@ async function runCompletionFlow(
 
   const patientAge = calculateAge(consultation.patient.dateOfBirth);
   const patientGender = consultation.patient.gender;
+  const knownNames = [`${consultation.patient.firstName} ${consultation.patient.lastName}`];
 
   const structuredHistory = await extractAdaptiveStructuredHistory(
     conversationHistory,
-    literacyLevel
+    literacyLevel,
+    knownNames
   );
 
   const diagnoses = await generateDifferentialDiagnosis(
@@ -245,6 +248,16 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
+      // POPIA: cross-border AI processing requires DATA_PROCESSING consent.
+      const consentCheck = await checkAiProcessingConsent(consultation.patient.id, {
+        userId,
+        ip: request.ip,
+        userAgent: request.headers['user-agent'],
+      });
+      if (!consentCheck.ok) {
+        return reply.status(403).send(AI_CONSENT_ERROR);
+      }
+
       const patientName = `${consultation.patient.firstName} ${consultation.patient.lastName}`;
       const initialLiteracy = (consultation.patient.literacy?.level ?? 'UNKNOWN') as PatientLiteracyLevel;
 
@@ -256,6 +269,7 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         consultation.doctorId
       );
       if (practiceName) patientContext.practiceName = practiceName;
+      patientContext.patientName = patientName; // for free-text redaction only — never sent
 
       const aiResponse = await startAdaptiveMedicalHistorySession(
         consultationId,
@@ -356,6 +370,8 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
             select: {
               id: true,
               userId: true,
+              firstName: true,
+              lastName: true,
               dateOfBirth: true,
               gender: true,
             },
@@ -385,6 +401,16 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
+      // POPIA: cross-border AI processing requires DATA_PROCESSING consent.
+      const consentCheck = await checkAiProcessingConsent(consultation.patient.id, {
+        userId,
+        ip: request.ip,
+        userAgent: request.headers['user-agent'],
+      });
+      if (!consentCheck.ok) {
+        return reply.status(403).send(AI_CONSENT_ERROR);
+      }
+
       const dataKey = decryptDataKey(consultation.encryptedDataKey);
       const conversationHistory = decryptJSON(
         consultation.medicalHistory.aiConversationLog,
@@ -401,6 +427,7 @@ export async function aiHistoryRoutes(fastify: FastifyInstance): Promise<void> {
         consultation.patient.gender,
         consultation.doctorId
       );
+      patientContext.patientName = `${consultation.patient.firstName} ${consultation.patient.lastName}`;
 
       const patientEntry: ConversationMessage = {
         role: 'user',

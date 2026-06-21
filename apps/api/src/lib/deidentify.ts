@@ -44,17 +44,33 @@ const PHONE_RE = /(?:\+?27|0)(?:[\s-]?\d){9}\b/g;
 // Other long numeric identifiers (medical-aid / member / passport numbers).
 const LONG_NUM_RE = /\b\d{9,12}\b/g;
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Irreversibly redact identifying tokens from free text before it is sent to
  * the model. Returns a scrubbed copy; the input is never mutated.
+ *
+ * @param knownNames Optional names (e.g. the patient's own full name) to scrub
+ *   if the patient free-types them mid-conversation. Each whitespace-separated
+ *   part ≥3 chars is matched case-insensitively on word boundaries.
  */
-export function redactFreeText(text: string): string {
+export function redactFreeText(text: string, knownNames: string[] = []): string {
   if (!text) return text;
-  return text
+  let out = text
     .replace(EMAIL_RE, '[REDACTED_EMAIL]')
     .replace(SA_ID_RE, '[REDACTED_ID]')
     .replace(PHONE_RE, '[REDACTED_PHONE]')
     .replace(LONG_NUM_RE, '[REDACTED_NUMBER]');
+
+  for (const fullName of knownNames) {
+    for (const part of fullName.trim().split(/\s+/)) {
+      if (part.length < 3) continue; // skip initials / very short tokens
+      out = out.replace(new RegExp(`\\b${escapeRegExp(part)}\\b`, 'gi'), '[REDACTED_NAME]');
+    }
+  }
+  return out;
 }
 
 /**

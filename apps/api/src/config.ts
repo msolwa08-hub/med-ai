@@ -49,6 +49,15 @@ const configSchema = z.object({
 
   // Beta access keys (comma-separated list of valid keys)
   BETA_ACCESS_KEYS: z.string().default('MEDAI-BETA-DEV'),
+
+  // POPIA — when 'true', AI processing of patient data requires a granted,
+  // non-expired DATA_PROCESSING consent record (cross-border AI processing).
+  // Default off so existing flows keep working until patient onboarding
+  // captures this consent; enable once that is in place.
+  ENFORCE_AI_PROCESSING_CONSENT: z
+    .string()
+    .default('false')
+    .transform((v) => v.toLowerCase() === 'true'),
 });
 
 const _config = configSchema.safeParse(process.env);

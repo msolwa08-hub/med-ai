@@ -56,6 +56,7 @@ export interface PatientContext {
   lastVisitDays?: number;
   doctorName?: string;    // e.g. "Dr. Patel" — used in AI persona greeting
   practiceName?: string;  // e.g. "Sandton Medical Centre" — used in AI persona greeting
+  patientName?: string;   // full name — used ONLY to scrub it from free text; never sent to the model
 }
 
 export interface AdaptiveResponse {
@@ -75,7 +76,8 @@ MEDIUM: everyday sentences, some detail, may misuse medical terms ("chest pain f
 HIGH: medical vocabulary, precise descriptions, dates, medication names ("throbbing right temporal headache, 72h, photophobia, 7/10 NRS")`;
 
 export async function detectLiteracyLevel(
-  patientMessages: string[]
+  patientMessages: string[],
+  knownNames: string[] = []
 ): Promise<PatientLiteracyLevel> {
   if (patientMessages.length === 0) return 'UNKNOWN';
   try {
@@ -83,7 +85,7 @@ export async function detectLiteracyLevel(
       model: CLAUDE_HAIKU_MODEL,
       max_tokens: 10,
       system: LITERACY_DETECTION_PROMPT,
-      messages: [{ role: 'user', content: redactFreeText(patientMessages.join('\n')) }],
+      messages: [{ role: 'user', content: redactFreeText(patientMessages.join('\n'), knownNames) }],
     });
     logUsage('literacy-detect', CLAUDE_HAIKU_MODEL, response.usage);
     const text = extractTextContent(response).trim().toUpperCase();
@@ -1264,6 +1266,8 @@ export async function continueAdaptiveMedicalHistorySession(
   currentLiteracy: PatientLiteracyLevel,
   patientContext: PatientContext = defaultPatientContext()
 ): Promise<AdaptiveResponse> {
+  const knownNames = patientContext.patientName ? [patientContext.patientName] : [];
+
   let literacyLevel = currentLiteracy;
   if (currentLiteracy === 'UNKNOWN') {
     const patientMsgs = conversationHistory
@@ -1271,7 +1275,7 @@ export async function continueAdaptiveMedicalHistorySession(
       .map(m => m.content)
       .concat(patientMessage);
     if (patientMsgs.length >= 1) {
-      literacyLevel = await detectLiteracyLevel(patientMsgs);
+      literacyLevel = await detectLiteracyLevel(patientMsgs, knownNames);
     }
   }
 
@@ -1284,9 +1288,9 @@ export async function continueAdaptiveMedicalHistorySession(
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
     ...windowedHistory.map(m => ({
       role: m.role,
-      content: m.role === 'user' ? redactFreeText(m.content) : m.content,
+      content: m.role === 'user' ? redactFreeText(m.content, knownNames) : m.content,
     })),
-    { role: 'user', content: redactFreeText(patientMessage) },
+    { role: 'user', content: redactFreeText(patientMessage, knownNames) },
   ];
 
   const response = await anthropic.beta.promptCaching.messages.create({
@@ -1319,10 +1323,11 @@ export async function continueAdaptiveMedicalHistorySession(
 
 export async function extractAdaptiveStructuredHistory(
   conversationHistory: ConversationMessage[],
-  literacyLevel: PatientLiteracyLevel
+  literacyLevel: PatientLiteracyLevel,
+  knownNames: string[] = []
 ): Promise<StructuredMedicalHistory> {
   const transcript = conversationHistory
-    .map(m => `${m.role === 'user' ? 'PATIENT' : 'ASSISTANT'}: ${redactFreeText(m.content)}`)
+    .map(m => `${m.role === 'user' ? 'PATIENT' : 'ASSISTANT'}: ${redactFreeText(m.content, knownNames)}`)
     .join('\n\n');
 
   const literacyHint = literacyLevel === 'LOW'
