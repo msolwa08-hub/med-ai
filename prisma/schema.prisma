@@ -119,6 +119,12 @@ enum PrescriptionStatus {
   EXPIRED
 }
 
+enum AiHistoryDepth {
+  FOCUSED        // 12–18 exchanges, short symptom chains
+  STANDARD       // 18–25 exchanges, full chains, skip health promotion if short on time
+  COMPREHENSIVE  // No exchange limit, every symptom chain fully explored, all priorities
+}
+
 enum PatientLiteracyLevel {
   LOW       // Simple yes/no questions
   MEDIUM    // Everyday language
@@ -427,17 +433,18 @@ model OTP {
 // ─────────────────────────────────────────────────────────
 
 model DoctorSettings {
-  id              String      @id @default(cuid())
-  doctorId        String      @unique
-  doctor          Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  practiceMode    PracticeMode @default(OPEN_LOOP)
+  id              String         @id @default(cuid())
+  doctorId        String         @unique
+  doctor          Doctor         @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  practiceMode    PracticeMode   @default(OPEN_LOOP)
+  aiHistoryDepth  AiHistoryDepth @default(STANDARD)
   // Closed-loop: doctor's own cloud storage
-  cloudProvider   String?     // 'aws' | 'azure' | 'gcp'
+  cloudProvider   String?        // 'aws' | 'azure' | 'gcp'
   cloudBucket     String?
   cloudRegion     String?
-  cloudAccessKey  String?     // encrypted
-  cloudSecretKey  String?     // encrypted
-  updatedAt       DateTime    @updatedAt
+  cloudAccessKey  String?        // encrypted
+  cloudSecretKey  String?        // encrypted
+  updatedAt       DateTime       @updatedAt
 
   @@map("doctor_settings")
 }

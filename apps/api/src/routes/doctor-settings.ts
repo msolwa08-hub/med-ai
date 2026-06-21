@@ -12,6 +12,7 @@ import { encryptField, decryptField } from '../lib/encryption.js';
 
 const UpdateSettingsSchema = z.object({
   practiceMode: z.enum(['OPEN_LOOP', 'CLOSED_LOOP']).optional(),
+  aiHistoryDepth: z.enum(['FOCUSED', 'STANDARD', 'COMPREHENSIVE']).optional(),
   cloudProvider: z.enum(['aws', 'azure', 'gcp']).nullable().optional(),
   cloudBucket: z.string().max(500).nullable().optional(),
   cloudRegion: z.string().max(100).nullable().optional(),
@@ -45,6 +46,7 @@ export async function doctorSettingsRoutes(fastify: FastifyInstance): Promise<vo
               select: {
                 id: true,
                 practiceMode: true,
+                aiHistoryDepth: true,
                 cloudProvider: true,
                 cloudBucket: true,
                 cloudRegion: true,
@@ -82,6 +84,7 @@ export async function doctorSettingsRoutes(fastify: FastifyInstance): Promise<vo
           settings = {
             id: s.id,
             practiceMode: s.practiceMode,
+            aiHistoryDepth: s.aiHistoryDepth,
             cloudProvider: s.cloudProvider,
             cloudBucket: s.cloudBucket,
             cloudRegion: s.cloudRegion,
@@ -93,6 +96,7 @@ export async function doctorSettingsRoutes(fastify: FastifyInstance): Promise<vo
           // Return sensible defaults when no settings record exists yet
           settings = {
             practiceMode: 'OPEN_LOOP',
+            aiHistoryDepth: 'STANDARD',
             cloudProvider: null,
             cloudBucket: null,
             cloudRegion: null,
@@ -165,6 +169,9 @@ export async function doctorSettingsRoutes(fastify: FastifyInstance): Promise<vo
         if (data.practiceMode !== undefined) {
           updateData.practiceMode = data.practiceMode;
         }
+        if (data.aiHistoryDepth !== undefined) {
+          updateData.aiHistoryDepth = data.aiHistoryDepth;
+        }
         if (data.cloudProvider !== undefined) {
           updateData.cloudProvider = data.cloudProvider;
         }
@@ -217,7 +224,8 @@ export async function doctorSettingsRoutes(fastify: FastifyInstance): Promise<vo
             practiceMode: settings.practiceMode,
             updatedAt: settings.updatedAt,
           },
-          message: `Practice mode set to ${settings.practiceMode}. Settings saved successfully.`,
+          aiHistoryDepth: settings.aiHistoryDepth,
+          message: `Settings saved successfully.`,
         });
       } catch (err) {
         fastify.log.error(err, 'PUT /doctor/settings error');

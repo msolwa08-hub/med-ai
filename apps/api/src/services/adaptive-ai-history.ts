@@ -46,6 +46,8 @@ import type Anthropic from '@anthropic-ai/sdk';
 export type PatientLiteracyLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'UNKNOWN';
 export type ConsultationType = 'ACUTE' | 'SUBACUTE' | 'CHRONIC_REVIEW' | 'WELLNESS' | 'UNKNOWN';
 
+export type AiHistoryDepth = 'FOCUSED' | 'STANDARD' | 'COMPREHENSIVE';
+
 export interface PatientContext {
   age: number;
   gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
@@ -57,6 +59,7 @@ export interface PatientContext {
   doctorName?: string;    // e.g. "Dr. Patel" — used in AI persona greeting
   practiceName?: string;  // e.g. "Sandton Medical Centre" — used in AI persona greeting
   patientName?: string;   // full name — used ONLY to scrub it from free text; never sent to the model
+  historyDepth?: AiHistoryDepth; // doctor's preference, defaults to STANDARD
 }
 
 export interface AdaptiveResponse {
@@ -282,6 +285,48 @@ INFORMATION MAXIMISATION:
 
 When the consultation is FULLY COMPLETE, end with: [HISTORY_COMPLETE]`;
 
+// ─── History Depth Override ───────────────────────────────────────────────────
+
+function buildDepthOverride(depth: AiHistoryDepth): string {
+  if (depth === 'FOCUSED') {
+    return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HISTORY DEPTH: FOCUSED (doctor preference — override protocol targets)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The GP for this session prefers a concise, efficient history.
+• Target 12–18 exchanges total — be efficient, not exhaustive
+• Symptom chains: maximum 5–6 questions per symptom; combine short paired questions where natural
+• End at [HISTORY_COMPLETE] as soon as Priorities 1–5 are well-characterised
+• Skip health promotion (Priority 7) entirely unless exchange count is very low
+• Smoking + alcohol: one combined question only if under 15 exchanges`;
+  }
+
+  if (depth === 'COMPREHENSIVE') {
+    return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HISTORY DEPTH: COMPREHENSIVE (doctor preference — override protocol targets)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The doctor for this session prefers a thorough, complete clinical history.
+• No exchange limit — completeness takes priority over brevity
+• Use FULL symptom chains — one question per message, every question in the chain
+  COUGH: duration, character, phlegm colour, haemoptysis, night cough, breathlessness, sick contacts (7 questions)
+  PAIN: location, character, onset, duration, radiation, severity, aggravating, relieving, associated (9 questions)
+  FEVER: duration, measured/feeling, night sweats, rigors, weight loss, sick contacts (6 questions)
+  BREATHLESSNESS: at rest/exertion, duration, sudden/gradual, wheeze, cough, orthopnoea, ankle swelling (7 questions)
+  HEADACHE: location, thunderclap check, character, duration, new/known, nausea, photophobia, neck stiffness (8 questions)
+  VOMITING: appearance, frequency, timing, nausea/sudden, last intake (5 questions)
+  DIARRHOEA: duration, frequency, consistency, blood/mucus, fever, sick contacts (6 questions)
+  MOOD: duration, sleep, appetite, energy, enjoyment, concentration, suicidal ideation (7 questions)
+• Cover ALL priorities including social history, alcohol, smoking (Priority 6)
+• Include opportunistic health promotion where relevant (Priority 7)
+• Full system review for all related systems — do not skip any section
+• End with [HISTORY_COMPLETE] only when ALL priorities are covered`;
+  }
+
+  // STANDARD — no override, let the protocol guide naturally
+  return '';
+}
+
 // ─── Dynamic Context Builder (per-session patient-specific content) ───────────
 
 function buildDynamicContext(
@@ -316,6 +361,8 @@ function buildDynamicContext(
     ? buildChronicDynamicTail(patientContext, literacyLevel)
     : buildAcuteDynamicTail(patientContext, simple);
 
+  const depthOverride = buildDepthOverride(patientContext.historyDepth ?? 'STANDARD');
+
   const persona = patientContext.doctorName || patientContext.practiceName
     ? `You are the AI healthcare assistant for ${patientContext.practiceName ?? 'this practice'} and ${patientContext.doctorName ?? 'your doctor'}. All information you share is completely private and will only be seen by ${patientContext.doctorName ?? 'your doctor'}.`
     : 'You are MedAI — a skilled, warm clinical interviewer for South African primary healthcare.';
@@ -332,7 +379,7 @@ PATIENT PROFILE:
 ${ctx}
 ${demographicsNote}${ageSpecificNote}${gathered}
 ${protocol}
-
+${depthOverride}
 ${dynamicTail}`;
 }
 

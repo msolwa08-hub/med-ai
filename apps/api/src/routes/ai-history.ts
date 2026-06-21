@@ -85,7 +85,12 @@ async function buildPatientContext(
     doctorId
       ? prisma.doctor.findUnique({
           where: { id: doctorId },
-          select: { firstName: true, lastName: true, specialization: true },
+          select: {
+            firstName: true,
+            lastName: true,
+            specialization: true,
+            settings: { select: { aiHistoryDepth: true } },
+          },
         })
       : null,
   ]);
@@ -99,6 +104,8 @@ async function buildPatientContext(
     ? `Dr. ${doctor.firstName} ${doctor.lastName}`
     : undefined;
 
+  const historyDepth = (doctor?.settings?.aiHistoryDepth ?? 'STANDARD') as import('../services/adaptive-ai-history.js').AiHistoryDepth;
+
   return {
     age: calculateAge(dateOfBirth),
     gender,
@@ -108,6 +115,7 @@ async function buildPatientContext(
     isReviewConsultation,
     lastVisitDays,
     doctorName,
+    historyDepth,
   };
 }
 
