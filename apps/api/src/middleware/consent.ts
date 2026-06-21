@@ -48,8 +48,10 @@ export async function requireConsent(
   }
 
   // Resolve the patientId via consultation if needed
+  // Support both :consultationId and :id param names (different routes use different names)
   const consultationId =
     (request.params as Record<string, string>).consultationId ??
+    (request.params as Record<string, string>).id ??
     (request.query as Record<string, string>).consultationId;
 
   const patientId = (request.params as Record<string, string>).patientId;

@@ -1,7 +1,6 @@
 import type { SALanguageCode } from './language.types.js';
 
 export type ConsultationStatus =
-  | 'PENDING'
   | 'HISTORY_TAKING'
   | 'DOCTOR_REVIEW'
   | 'EXAMINATION'

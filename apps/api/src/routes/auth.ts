@@ -389,8 +389,19 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
-  // POST /auth/send-otp
-  fastify.post('/auth/send-otp', async (request, reply) => {
+  // POST /auth/send-otp — strict rate limit: 5 per phone per 5 minutes
+  fastify.post('/auth/send-otp', {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: '5 minutes',
+        keyGenerator: (req) => {
+          const body = req.body as Record<string, string> | undefined;
+          return body?.phone ?? req.ip;
+        },
+      },
+    },
+  }, async (request, reply) => {
     const parsed = SendOtpSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({
@@ -446,8 +457,19 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
     });
   });
 
-  // POST /auth/verify-otp
-  fastify.post('/auth/verify-otp', async (request, reply) => {
+  // POST /auth/verify-otp — strict rate limit: 10 per phone per 10 minutes
+  fastify.post('/auth/verify-otp', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '10 minutes',
+        keyGenerator: (req) => {
+          const body = req.body as Record<string, string> | undefined;
+          return body?.phone ?? req.ip;
+        },
+      },
+    },
+  }, async (request, reply) => {
     const parsed = VerifyOtpSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({

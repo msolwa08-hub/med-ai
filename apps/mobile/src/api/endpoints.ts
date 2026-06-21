@@ -160,8 +160,8 @@ export const doctorApi = {
       params: { latitude, longitude, type, radius: radius || 10 },
     }),
 
-  getPatientQueue: (doctorId: string) =>
-    apiClient.get(`/doctors/${doctorId}/patient-queue`),
+  getPatientQueue: (_doctorId: string) =>
+    apiClient.get('/doctors/me/patient-queue'),
 
   acceptPatient: (doctorId: string, consultationId: string) =>
     apiClient.post(`/doctors/${doctorId}/accept-patient`, { consultationId }),

@@ -31,6 +31,12 @@ export async function verifyHpcsaNumber(
     };
   }
 
+  if (config.NODE_ENV === 'production' && !config.HPCSA_API_KEY) {
+    throw new Error(
+      'HPCSA_API_KEY is required in production. Doctor verification cannot proceed without it.'
+    );
+  }
+
   if (!config.HPCSA_API_KEY || config.NODE_ENV === 'development') {
     return mockHpcsaVerification(normalized);
   }

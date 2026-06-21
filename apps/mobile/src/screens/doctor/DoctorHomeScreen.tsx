@@ -11,7 +11,6 @@ import {
   Animated,
   StatusBar,
   SafeAreaView,
-  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
@@ -22,48 +21,16 @@ import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../const
 
 type Props = { navigation: any };
 
-interface StatCard {
-  label: string;
-  value: string;
-  subLabel?: string;
-}
-
-interface WaitingPatient {
-  id: string;
-  name: string;
-  distance: string;
-  type: 'TELECONSULT' | 'IN-PERSON' | 'HOME VISIT';
-}
-
-interface RecentConsultation {
-  id: string;
+interface QueueEntry {
+  consultationId: string;
   patientName: string;
-  date: string;
-  status: 'completed' | 'cancelled' | 'ongoing';
+  consultationType: 'IN_PERSON' | 'TELECONSULT' | 'HOME_VISIT';
+  status: string;
+  waitTimeMinutes: number;
+  distanceKm: number | null;
 }
 
-// ─── Mock data (unchanged from original) ─────────────────────────────────────
-
-const MOCK_WAITING_PATIENTS: WaitingPatient[] = [
-  { id: '1', name: 'Sipho M.', distance: '1.2 km', type: 'TELECONSULT' },
-  { id: '2', name: 'Zanele D.', distance: '3.4 km', type: 'IN-PERSON' },
-  { id: '3', name: 'Themba K.', distance: '5.7 km', type: 'HOME VISIT' },
-];
-
-const MOCK_RECENT_CONSULTATIONS: RecentConsultation[] = [
-  { id: 'c1', patientName: 'Nomsa B.', date: 'Today, 09:15', status: 'completed' },
-  { id: 'c2', patientName: 'Lebo P.', date: 'Today, 08:30', status: 'completed' },
-  { id: 'c3', patientName: 'Ravi N.', date: 'Yesterday, 16:45', status: 'cancelled' },
-  { id: 'c4', patientName: 'Fatima A.', date: 'Yesterday, 14:00', status: 'completed' },
-];
-
-const MOCK_STATS: StatCard[] = [
-  { label: "Today's Patients", value: '7', subLabel: 'consultations' },
-  { label: 'Rating', value: '4.8', subLabel: '★★★★★' },
-  { label: 'Earnings Today', value: 'R 2 100', subLabel: 'incl. 7 consults' },
-];
-
-// ─── Utility helpers (unchanged from original) ────────────────────────────────
+// ─── Utility helpers ──────────────────────────────────────────────────────────
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -72,39 +39,35 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-function getConsultationTypeColor(type: WaitingPatient['type']): string {
+function getConsultationTypeColor(type: QueueEntry['consultationType']): string {
   switch (type) {
     case 'TELECONSULT':
       return COLORS.info;
-    case 'IN-PERSON':
+    case 'IN_PERSON':
       return COLORS.secondary;
-    case 'HOME VISIT':
+    case 'HOME_VISIT':
       return COLORS.accent;
     default:
       return COLORS.secondaryLabel;
   }
 }
 
-function getStatusColor(status: RecentConsultation['status']): string {
-  switch (status) {
-    case 'completed':
-      return COLORS.success;
-    case 'cancelled':
-      return COLORS.error;
-    case 'ongoing':
-      return COLORS.warning;
-    default:
-      return COLORS.secondaryLabel;
+function getConsultationTypeLabel(type: QueueEntry['consultationType']): string {
+  switch (type) {
+    case 'TELECONSULT': return 'TELECONSULT';
+    case 'IN_PERSON': return 'IN-PERSON';
+    case 'HOME_VISIT': return 'HOME VISIT';
+    default: return type;
   }
 }
 
-function getConsultationTypeIcon(type: WaitingPatient['type']): keyof typeof Ionicons.glyphMap {
+function getConsultationTypeIcon(type: QueueEntry['consultationType']): keyof typeof Ionicons.glyphMap {
   switch (type) {
     case 'TELECONSULT':
       return 'videocam-outline';
-    case 'IN-PERSON':
+    case 'IN_PERSON':
       return 'person-outline';
-    case 'HOME VISIT':
+    case 'HOME_VISIT':
       return 'home-outline';
     default:
       return 'medical-outline';
@@ -117,8 +80,27 @@ export default function DoctorHomeScreen({ navigation }: Props) {
   const { user } = useAuthStore();
   const [isOnline, setIsOnline] = useState<boolean>(user?.isOnline ?? false);
   const [isToggling, setIsToggling] = useState(false);
-  const [waitingPatients] = useState<WaitingPatient[]>(MOCK_WAITING_PATIENTS);
-  const [recentConsultations] = useState<RecentConsultation[]>(MOCK_RECENT_CONSULTATIONS);
+  const [queue, setQueue] = useState<QueueEntry[]>([]);
+  const [queueLoading, setQueueLoading] = useState(false);
+
+  useEffect(() => {
+    loadQueue();
+  }, []);
+
+  async function loadQueue() {
+    setQueueLoading(true);
+    try {
+      const res = await doctorApi.getPatientQueue(user?.id ?? '');
+      const data = res.data as { success: boolean; data?: { queue: QueueEntry[] } };
+      if (data.success && data.data) {
+        setQueue(data.data.queue);
+      }
+    } catch {
+      // Queue load failure is non-fatal
+    } finally {
+      setQueueLoading(false);
+    }
+  }
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(1)).current;
@@ -179,29 +161,33 @@ export default function DoctorHomeScreen({ navigation }: Props) {
     );
   }
 
-  function renderWaitingPatient({ item }: { item: WaitingPatient }) {
-    const typeColor = getConsultationTypeColor(item.type);
+  function renderQueueEntry({ item }: { item: QueueEntry }) {
+    const typeColor = getConsultationTypeColor(item.consultationType);
+    const waitLabel = item.waitTimeMinutes < 1
+      ? 'Just now'
+      : item.waitTimeMinutes < 60
+        ? `${item.waitTimeMinutes}m wait`
+        : `${Math.floor(item.waitTimeMinutes / 60)}h wait`;
     return (
       <TouchableOpacity
         style={styles.waitingCard}
         onPress={() => navigation.navigate('PatientQueue')}
         activeOpacity={0.85}
       >
-        {/* Patient avatar */}
         <View style={styles.waitingAvatar}>
-          <Text style={styles.waitingAvatarText}>{item.name.charAt(0)}</Text>
+          <Text style={styles.waitingAvatarText}>{item.patientName.charAt(0)}</Text>
         </View>
-        <Text style={styles.waitingPatientName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.waitingPatientName} numberOfLines={1}>{item.patientName}</Text>
         <View style={styles.waitingDistanceRow}>
-          <Ionicons name="location-outline" size={12} color={COLORS.secondaryLabel} />
-          <Text style={styles.waitingDistance}>{item.distance}</Text>
+          <Ionicons name="time-outline" size={12} color={COLORS.secondaryLabel} />
+          <Text style={styles.waitingDistance}>{waitLabel}</Text>
         </View>
-        {/* Type badge */}
         <View style={[styles.typeBadge, { backgroundColor: typeColor + '18' }]}>
-          <Ionicons name={getConsultationTypeIcon(item.type)} size={10} color={typeColor} />
-          <Text style={[styles.typeBadgeText, { color: typeColor }]}>{item.type}</Text>
+          <Ionicons name={getConsultationTypeIcon(item.consultationType)} size={10} color={typeColor} />
+          <Text style={[styles.typeBadgeText, { color: typeColor }]}>
+            {getConsultationTypeLabel(item.consultationType)}
+          </Text>
         </View>
-        {/* View button */}
         <TouchableOpacity
           style={[styles.viewBtn, { borderColor: COLORS.primary }]}
           onPress={() => navigation.navigate('PatientQueue')}
@@ -210,28 +196,6 @@ export default function DoctorHomeScreen({ navigation }: Props) {
           <Text style={styles.viewBtnText}>View</Text>
         </TouchableOpacity>
       </TouchableOpacity>
-    );
-  }
-
-  function renderRecentConsultation({ item }: { item: RecentConsultation }) {
-    const statusColor = getStatusColor(item.status);
-    return (
-      <View style={styles.recentCard}>
-        <View style={styles.recentCardLeft}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarInitial}>{item.patientName.charAt(0)}</Text>
-          </View>
-          <View style={styles.recentCardInfo}>
-            <Text style={styles.recentPatientName}>{item.patientName}</Text>
-            <Text style={styles.recentDate}>{item.date}</Text>
-          </View>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusColor + '18' }]}>
-          <Text style={[styles.statusBadgeText, { color: statusColor }]}>
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-          </Text>
-        </View>
-      </View>
     );
   }
 
@@ -304,79 +268,43 @@ export default function DoctorHomeScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* ── Stats Row ── */}
-        <View style={styles.statsRow}>
-          {MOCK_STATS.map((stat, index) => (
-            <View key={index} style={styles.statCard}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-              {stat.subLabel && (
-                <Text style={styles.statSubLabel}>{stat.subLabel}</Text>
-              )}
-            </View>
-          ))}
-        </View>
-
         {/* ── Waiting Patients ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>WAITING PATIENTS</Text>
-          {waitingPatients.length > 0 && (
+          {queue.length > 0 && (
             <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{waitingPatients.length}</Text>
+              <Text style={styles.countBadgeText}>{queue.length}</Text>
             </View>
           )}
+          <TouchableOpacity
+            onPress={loadQueue}
+            style={{ marginLeft: 'auto' }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="refresh-outline" size={18} color={COLORS.secondaryLabel} />
+          </TouchableOpacity>
         </View>
 
-        {waitingPatients.length === 0 ? (
+        {queueLoading ? (
+          <View style={styles.emptySection}>
+            <ActivityIndicator color={COLORS.primary} />
+          </View>
+        ) : queue.length === 0 ? (
           <View style={styles.emptySection}>
             <Ionicons name="checkmark-circle-outline" size={32} color={COLORS.systemGray3} />
             <Text style={styles.emptySectionText}>No patients waiting</Text>
           </View>
         ) : (
           <FlatList
-            data={waitingPatients}
-            keyExtractor={(item) => item.id}
-            renderItem={renderWaitingPatient}
+            data={queue}
+            keyExtractor={(item) => item.consultationId}
+            renderItem={renderQueueEntry}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.waitingList}
             scrollEnabled
           />
         )}
-
-        {/* ── Recent Consultations ── */}
-        <View style={[styles.sectionHeader, { marginTop: SPACING.lg }]}>
-          <Text style={styles.sectionTitle}>RECENT CONSULTATIONS</Text>
-        </View>
-
-        <View style={styles.recentList}>
-          {recentConsultations.map((item) => (
-            <View key={item.id}>
-              {renderRecentConsultation({ item })}
-            </View>
-          ))}
-        </View>
-
-        {/* ── This Week Earnings Card ── */}
-        <View style={[styles.sectionHeader, { marginTop: SPACING.lg }]}>
-          <Text style={styles.sectionTitle}>THIS WEEK</Text>
-        </View>
-        <View style={styles.earningsCard}>
-          <Text style={styles.earningsBigNumber}>R 9 450</Text>
-          <Text style={styles.earningsSubtitle}>Earned this week</Text>
-          <View style={styles.earningsDivider} />
-          <View style={styles.earningsRow}>
-            <View style={styles.earningsItem}>
-              <Text style={styles.earningsItemValue}>38</Text>
-              <Text style={styles.earningsItemLabel}>Consultations</Text>
-            </View>
-            <View style={styles.earningsVerticalDivider} />
-            <View style={styles.earningsItem}>
-              <Text style={styles.earningsItemValue}>R 248</Text>
-              <Text style={styles.earningsItemLabel}>Avg per Visit</Text>
-            </View>
-          </View>
-        </View>
 
         <View style={{ height: SPACING.xxl }} />
       </ScrollView>

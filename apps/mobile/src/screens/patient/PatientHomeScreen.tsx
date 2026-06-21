@@ -8,6 +8,7 @@ import {
   FlatList,
   RefreshControl,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -100,7 +101,7 @@ export const PatientHomeScreen: React.FC = () => {
           </View>
           <TouchableOpacity
             style={styles.notificationBtn}
-            onPress={() => navigation.navigate('Notifications')}
+            onPress={() => Alert.alert('Notifications', 'Push notifications coming soon.')}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -175,7 +176,7 @@ export const PatientHomeScreen: React.FC = () => {
                 <ConsultationCard
                   consultation={item}
                   onPress={() =>
-                    navigation.navigate('ConsultationDetail', { consultationId: item.id })
+                    navigation.navigate('ConsultationStatus', { consultationId: item.id })
                   }
                 />
               </View>
@@ -203,8 +204,8 @@ export const PatientHomeScreen: React.FC = () => {
                 >
                   <View style={styles.doctorAvatar}>
                     <Text style={styles.doctorInitials}>
-                      {doc.firstName[0]}
-                      {doc.lastName[0]}
+                      {doc.firstName?.[0] ?? '?'}
+                      {doc.lastName?.[0] ?? ''}
                     </Text>
                   </View>
                   <Text style={styles.doctorName} numberOfLines={1}>

@@ -60,7 +60,7 @@ export const DOCTOR_TYPE_INFO: Record<DoctorType, DoctorTypeInfo> = {
       'Psychologist',
       'Social Worker',
       'Radiographer',
-      'Biokinetcist',
+      'Biokineticist',
     ],
   },
   TRAVELLING: {

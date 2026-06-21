@@ -4,7 +4,7 @@ export interface ICD10Code {
   chapter?: string;
 }
 
-export type InvestigationType = 'LAB' | 'RADIOLOGY' | 'ECG' | 'BIOPSY' | 'OTHER';
+export type InvestigationType = 'LAB' | 'RADIOLOGY' | 'ECG' | 'OTHER';
 
 export interface Investigation {
   id: string;
@@ -31,7 +31,7 @@ export interface AuditLogEntry {
   userId?: string;
   action: string;
   resource: string;
-  resourceId: string;
+  resourceId?: string;
   metadata?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;

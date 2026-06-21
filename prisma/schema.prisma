@@ -2,7 +2,8 @@
 // All patient medical data is encrypted at the application layer before storage
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -539,6 +540,7 @@ model LabResult {
 
   @@unique([provider, externalResultId])
   @@index([patientId, collectedAt])
+  @@index([consultationId])
   @@map("lab_results")
 }
 
@@ -617,6 +619,7 @@ model Prescription {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
+  @@index([consultationId])
   @@index([patientId, issueDate])
   @@index([doctorId, issueDate])
   @@map("prescriptions")

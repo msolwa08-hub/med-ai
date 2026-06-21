@@ -330,9 +330,19 @@ export async function emergencyRoutes(fastify: FastifyInstance): Promise<void> {
   // ----------------------------------------------------------
   // GET /emergency/access/:token — PUBLIC endpoint (no auth)
   // Returns minimal emergency data for first responders
+  // Rate limited per IP to prevent token enumeration
   // ----------------------------------------------------------
   fastify.get(
     '/emergency/access/:token',
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 minute',
+          keyGenerator: (req) => req.ip,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { token } = request.params as { token: string };

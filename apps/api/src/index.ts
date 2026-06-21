@@ -83,13 +83,34 @@ await fastify.register(documentsRoutes);
 // Health check (no auth required)
 // ─────────────────────────────────────────────────────────
 
-fastify.get('/health', async () => {
-  return {
-    status: 'ok',
+fastify.get('/health', async (request, reply) => {
+  const checks: Record<string, 'ok' | 'error'> = {};
+  let overall = true;
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = 'ok';
+  } catch {
+    checks.database = 'error';
+    overall = false;
+  }
+
+  try {
+    const { getRedisClient } = await import('./lib/redis.js');
+    await getRedisClient().ping();
+    checks.redis = 'ok';
+  } catch {
+    checks.redis = 'error';
+    // Redis failure is non-fatal — app can still serve without caching
+  }
+
+  return reply.status(overall ? 200 : 503).send({
+    status: overall ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     environment: config.NODE_ENV,
     version: process.env.npm_package_version ?? '0.0.0',
-  };
+    checks,
+  });
 });
 
 // ─────────────────────────────────────────────────────────
