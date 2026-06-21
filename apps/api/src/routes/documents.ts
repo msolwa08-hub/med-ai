@@ -5,6 +5,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { generateReferralLetter } from '../services/referral-letter.service.js';
 import { generateSickNote } from '../services/sick-note.service.js';
 import { generateLearningPoints } from '../services/learning-points.service.js';
+import { emlLookup } from '../services/eml.service.js';
 
 // ============================================================
 // Schemas
@@ -159,6 +160,39 @@ export async function documentsRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.status(500).send({
           success: false,
           error: 'Failed to generate learning points.',
+        });
+      }
+    }
+  );
+
+  // ── POST /eml/lookup ────────────────────────────────────────────────────────
+  fastify.post(
+    '/eml/lookup',
+    {
+      preHandler: [authenticate],
+      schema: {
+        body: z.object({
+          medicineName: z.string().min(1).max(200),
+          formulation: z.string().max(100).optional(),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const { medicineName, formulation } = request.body as {
+        medicineName: string;
+        formulation?: string;
+      };
+      try {
+        const emlEntry = await emlLookup({ medicineName, formulation });
+        return reply.send({
+          success: true,
+          data: { emlEntry },
+        });
+      } catch (err) {
+        fastify.log.error(err, 'POST /eml/lookup error');
+        return reply.status(500).send({
+          success: false,
+          error: 'Failed to look up EML entry.',
         });
       }
     }

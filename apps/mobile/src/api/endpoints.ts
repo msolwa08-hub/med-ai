@@ -281,6 +281,11 @@ export interface LearningPointsPayload {
   redFlags?: string;
 }
 
+export interface EMLLookupPayload {
+  medicineName: string;
+  formulation?: string;
+}
+
 export const documentsApi = {
   generateReferralLetter: (payload: ReferralLetterPayload) =>
     apiClient.post('/doctor/documents/referral-letter', payload),
@@ -290,4 +295,7 @@ export const documentsApi = {
 
   getLearningPoints: (payload: LearningPointsPayload) =>
     apiClient.post('/stg/learning-points', payload),
+
+  emlLookup: (payload: EMLLookupPayload) =>
+    apiClient.post('/eml/lookup', payload),
 };

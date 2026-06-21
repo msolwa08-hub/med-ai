@@ -63,6 +63,29 @@ interface LearningPoints {
   saContext: string;
 }
 
+interface EMLFormulation {
+  form: string;
+  strength: string;
+  levelOfCare: 'PHC' | 'District' | 'Regional' | 'Tertiary' | 'All';
+  notes?: string;
+}
+
+interface EMLEntry {
+  genericName: string;
+  brandExamples: string[];
+  schedule: string;
+  atcCode?: string;
+  formulations: EMLFormulation[];
+  isOnEML: boolean;
+  emlCategory: 'Core' | 'Complementary' | 'Not Listed';
+  therapeuticCategory: string;
+  costTier: string;
+  publicSectorAvailability: string;
+  prescribingRestrictions?: string;
+  saContext: string;
+  alternatives?: string[];
+}
+
 const URGENCY_COLORS = {
   STAT: COLORS.error,
   URGENT: '#FF9500',
@@ -76,7 +99,10 @@ export default function STGLookupScreen() {
   const { mode: appMode } = useMode();
 
   const [query, setQuery] = useState('');
-  const [mode, setMode] = useState<'name' | 'icd10'>('name');
+  const [mode, setMode] = useState<'name' | 'icd10' | 'eml'>('name');
+  const [emlQuery, setEmlQuery] = useState('');
+  const [emlEntry, setEmlEntry] = useState<EMLEntry | null>(null);
+  const [loadingEML, setLoadingEML] = useState(false);
   const [results, setResults] = useState<STGEntry[]>([]);
   const [icd10Results, setIcd10Results] = useState<ICD10Result[]>([]);
   const [selectedSTG, setSelectedSTG] = useState<STGEntry | null>(null);
@@ -187,6 +213,20 @@ export default function STGLookupScreen() {
     navigation.goBack();
   }
 
+  async function lookupEML(name: string) {
+    if (!name.trim()) return;
+    setEmlEntry(null);
+    setLoadingEML(true);
+    try {
+      const res = await documentsApi.emlLookup({ medicineName: name.trim() });
+      setEmlEntry(res.data?.data?.emlEntry ?? null);
+    } catch {
+      // silent fail
+    } finally {
+      setLoadingEML(false);
+    }
+  }
+
   const getPriorityColor = (p: string) =>
     p === 'HIGH' ? COLORS.error : p === 'MEDIUM' ? '#FF9500' : COLORS.textSecondary;
 
@@ -197,36 +237,74 @@ export default function STGLookupScreen() {
         <View style={styles.modeToggle}>
           <TouchableOpacity
             style={[styles.modeBtn, mode === 'name' && styles.modeBtnActive]}
-            onPress={() => { setMode('name'); setQuery(''); setResults([]); setIcd10Results([]); }}
+            onPress={() => { setMode('name'); setQuery(''); setResults([]); setIcd10Results([]); setEmlEntry(null); }}
           >
             <Text style={[styles.modeBtnText, mode === 'name' && styles.modeBtnTextActive]}>
-              Condition Name
+              Condition
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.modeBtn, mode === 'icd10' && styles.modeBtnActive]}
-            onPress={() => { setMode('icd10'); setQuery(''); setResults([]); setIcd10Results([]); }}
+            onPress={() => { setMode('icd10'); setQuery(''); setResults([]); setIcd10Results([]); setEmlEntry(null); }}
           >
             <Text style={[styles.modeBtnText, mode === 'icd10' && styles.modeBtnTextActive]}>
-              ICD-10 Code
+              ICD-10
             </Text>
           </TouchableOpacity>
+          {appMode === 'INTERN' && (
+            <TouchableOpacity
+              style={[styles.modeBtn, mode === 'eml' && styles.modeBtnActive]}
+              onPress={() => { setMode('eml'); setQuery(''); setResults([]); setIcd10Results([]); setSelectedSTG(null); setEmlEntry(null); }}
+            >
+              <Text style={[styles.modeBtnText, mode === 'eml' && styles.modeBtnTextActive]}>
+                EML 💊
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
-        <TextInput
-          mode="outlined"
-          placeholder={mode === 'name' ? 'e.g. Pneumonia, Hypertension, Asthma' : 'e.g. J18.9, I10, E11'}
-          value={query}
-          onChangeText={(q) => {
-            setQuery(q);
-            search(q);
-            if (selectedSTG && q !== selectedSTG.conditionName) setSelectedSTG(null);
-          }}
-          left={<TextInput.Icon icon="magnify" color={COLORS.primary} />}
-          right={query ? <TextInput.Icon icon="close" onPress={() => { setQuery(''); setResults([]); setIcd10Results([]); setSelectedSTG(null); }} /> : undefined}
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.primary}
-          style={styles.searchInput}
-        />
+        {mode === 'eml' ? (
+          <View style={emlStyles.searchRow}>
+            <TextInput
+              mode="outlined"
+              placeholder="e.g. Amoxicillin, Metformin, Atenolol..."
+              value={emlQuery}
+              onChangeText={setEmlQuery}
+              left={<TextInput.Icon icon="pill" color={COLORS.secondary} />}
+              right={emlQuery ? <TextInput.Icon icon="close" onPress={() => { setEmlQuery(''); setEmlEntry(null); }} /> : undefined}
+              outlineColor={COLORS.border}
+              activeOutlineColor={COLORS.secondary}
+              style={[styles.searchInput, { flex: 1 }]}
+            />
+            <TouchableOpacity
+              style={[emlStyles.lookupBtn, loadingEML && { opacity: 0.6 }]}
+              onPress={() => lookupEML(emlQuery)}
+              disabled={loadingEML || !emlQuery.trim()}
+              activeOpacity={0.8}
+            >
+              {loadingEML ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={emlStyles.lookupBtnText}>Look up</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TextInput
+            mode="outlined"
+            placeholder={mode === 'name' ? 'e.g. Pneumonia, Hypertension, Asthma' : 'e.g. J18.9, I10, E11'}
+            value={query}
+            onChangeText={(q) => {
+              setQuery(q);
+              search(q);
+              if (selectedSTG && q !== selectedSTG.conditionName) setSelectedSTG(null);
+            }}
+            left={<TextInput.Icon icon="magnify" color={COLORS.primary} />}
+            right={query ? <TextInput.Icon icon="close" onPress={() => { setQuery(''); setResults([]); setIcd10Results([]); setSelectedSTG(null); }} /> : undefined}
+            outlineColor={COLORS.border}
+            activeOutlineColor={COLORS.primary}
+            style={styles.searchInput}
+          />
+        )}
       </View>
 
       {/* Loading */}
@@ -476,8 +554,131 @@ export default function STGLookupScreen() {
         />
       )}
 
+      {/* EML Result */}
+      {mode === 'eml' && emlEntry && (
+        <FlatList
+          data={[emlEntry]}
+          keyExtractor={() => 'eml'}
+          renderItem={() => (
+            <View style={emlStyles.resultContainer}>
+              {/* Header */}
+              <Surface style={emlStyles.headerCard} elevation={1}>
+                <View style={emlStyles.headerRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={emlStyles.genericName}>{emlEntry.genericName}</Text>
+                    <Text style={emlStyles.therapCat}>{emlEntry.therapeuticCategory}</Text>
+                    {emlEntry.atcCode && <Text style={emlStyles.atcCode}>ATC: {emlEntry.atcCode}</Text>}
+                  </View>
+                  <View style={[emlStyles.emlBadge, {
+                    backgroundColor: emlEntry.emlCategory === 'Core'
+                      ? COLORS.secondary
+                      : emlEntry.emlCategory === 'Complementary'
+                        ? COLORS.warning
+                        : COLORS.error,
+                  }]}>
+                    <Text style={emlStyles.emlBadgeText}>{emlEntry.emlCategory}</Text>
+                  </View>
+                </View>
+
+                <View style={emlStyles.tagRow}>
+                  <View style={emlStyles.tag}>
+                    <Text style={emlStyles.tagLabel}>Schedule</Text>
+                    <Text style={emlStyles.tagValue}>{emlEntry.schedule}</Text>
+                  </View>
+                  <View style={emlStyles.tag}>
+                    <Text style={emlStyles.tagLabel}>Cost</Text>
+                    <Text style={emlStyles.tagValue} numberOfLines={2}>{emlEntry.costTier}</Text>
+                  </View>
+                </View>
+
+                {emlEntry.brandExamples.length > 0 && (
+                  <Text style={emlStyles.brands}>Brands: {emlEntry.brandExamples.join(', ')}</Text>
+                )}
+              </Surface>
+
+              {/* Public sector availability */}
+              <Surface style={emlStyles.section} elevation={1}>
+                <Text style={emlStyles.sectionTitle}>Public Sector Availability</Text>
+                <Text style={emlStyles.bodyText}>{emlEntry.publicSectorAvailability}</Text>
+              </Surface>
+
+              {/* Formulations */}
+              {emlEntry.formulations.length > 0 && (
+                <Surface style={emlStyles.section} elevation={1}>
+                  <Text style={emlStyles.sectionTitle}>SA Formulations</Text>
+                  {emlEntry.formulations.map((f, i) => (
+                    <View key={i} style={emlStyles.formulationRow}>
+                      <View style={[emlStyles.locBadge, {
+                        backgroundColor: f.levelOfCare === 'PHC' ? COLORS.secondary + '20'
+                          : f.levelOfCare === 'All' ? COLORS.primary + '20'
+                            : COLORS.warning + '20',
+                      }]}>
+                        <Text style={[emlStyles.locText, {
+                          color: f.levelOfCare === 'PHC' ? COLORS.secondary
+                            : f.levelOfCare === 'All' ? COLORS.primary
+                              : COLORS.warning,
+                        }]}>{f.levelOfCare}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={emlStyles.formulationText}>{f.form} {f.strength}</Text>
+                        {f.notes && <Text style={emlStyles.formulationNotes}>{f.notes}</Text>}
+                      </View>
+                    </View>
+                  ))}
+                </Surface>
+              )}
+
+              {/* Prescribing restrictions */}
+              {emlEntry.prescribingRestrictions && emlEntry.prescribingRestrictions !== 'null' && (
+                <Surface style={[emlStyles.section, { backgroundColor: '#FFF8E0', borderColor: '#FFD700', borderWidth: 1 }]} elevation={0}>
+                  <Text style={[emlStyles.sectionTitle, { color: '#856404' }]}>⚠️ Prescribing Restrictions</Text>
+                  <Text style={[emlStyles.bodyText, { color: '#856404' }]}>{emlEntry.prescribingRestrictions}</Text>
+                </Surface>
+              )}
+
+              {/* SA Context */}
+              <Surface style={emlStyles.section} elevation={1}>
+                <Text style={emlStyles.sectionTitle}>SA Context</Text>
+                <Text style={emlStyles.bodyText}>{emlEntry.saContext}</Text>
+              </Surface>
+
+              {/* Alternatives */}
+              {emlEntry.alternatives && emlEntry.alternatives.length > 0 && (
+                <Surface style={emlStyles.section} elevation={1}>
+                  <Text style={emlStyles.sectionTitle}>Alternatives</Text>
+                  {emlEntry.alternatives.map((alt, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={emlStyles.altRow}
+                      onPress={() => { setEmlQuery(alt); lookupEML(alt); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={emlStyles.altText}>→ {alt}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </Surface>
+              )}
+
+              <View style={{ height: SPACING.xxl }} />
+            </View>
+          )}
+          contentContainerStyle={{ paddingBottom: SPACING.xxl }}
+        />
+      )}
+
+      {/* EML empty / prompt state */}
+      {mode === 'eml' && !emlEntry && !loadingEML && (
+        <View style={styles.empty}>
+          <Text style={styles.emptyIcon}>💊</Text>
+          <Text style={styles.emptyTitle}>SA Essential Medicines List</Text>
+          <Text style={styles.emptyText}>
+            Search any medicine by generic name to check if it's on the SA EML, its schedule, available formulations, and public sector availability.
+          </Text>
+        </View>
+      )}
+
       {/* Empty state */}
-      {!loading && !selectedSTG && results.length === 0 && icd10Results.length === 0 && query.length === 0 && (
+      {mode !== 'eml' && !loading && !selectedSTG && results.length === 0 && icd10Results.length === 0 && (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📋</Text>
           <Text style={styles.emptyTitle}>SA Standard Treatment Guidelines</Text>
@@ -636,5 +837,157 @@ const lpStyles = StyleSheet.create({
     color: '#0C4A6E',
     fontStyle: 'italic',
     lineHeight: 22,
+  },
+});
+
+const emlStyles = StyleSheet.create({
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  lookupBtn: {
+    backgroundColor: COLORS.secondary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 72,
+  },
+  lookupBtnText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  resultContainer: {
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xxl,
+  },
+  headerCard: {
+    margin: SPACING.md,
+    marginBottom: SPACING.sm,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.surface,
+    ...SHADOWS.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  genericName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  therapCat: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  atcCode: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  emlBadge: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emlBadgeText: {
+    color: COLORS.white,
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  tag: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.sm,
+    padding: SPACING.sm,
+  },
+  tagLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tagValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  brands: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+  },
+  section: {
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.surface,
+    ...SHADOWS.xs,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+  },
+  bodyText: {
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  formulationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.divider,
+  },
+  locBadge: {
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.xs,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  locText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  formulationText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  formulationNotes: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  altRow: {
+    paddingVertical: SPACING.xs,
+  },
+  altText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });
