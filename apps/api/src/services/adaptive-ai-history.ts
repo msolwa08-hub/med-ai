@@ -32,6 +32,7 @@
  */
 
 import { anthropic, CLAUDE_HAIKU_MODEL, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL, logUsage, type TokenUsage } from '../lib/claude.js';
+import { PII_TOKENS, redactFreeText, restorePII, firstNameOf } from '../lib/deidentify.js';
 import type {
   SaLanguage,
   ConversationMessage,
@@ -82,7 +83,7 @@ export async function detectLiteracyLevel(
       model: CLAUDE_HAIKU_MODEL,
       max_tokens: 10,
       system: LITERACY_DETECTION_PROMPT,
-      messages: [{ role: 'user', content: patientMessages.join('\n') }],
+      messages: [{ role: 'user', content: redactFreeText(patientMessages.join('\n')) }],
     });
     logUsage('literacy-detect', CLAUDE_HAIKU_MODEL, response.usage);
     const text = extractTextContent(response).trim().toUpperCase();
@@ -1205,16 +1206,19 @@ function defaultPatientContext(): PatientContext {
   return { age: 0, gender: 'OTHER', knownConditions: [], currentMedications: [], isSmoker: false, isReviewConsultation: false };
 }
 
-function buildOpeningInstruction(language: SaLanguage, patientName: string, literacy: PatientLiteracyLevel, ctx: PatientContext): string {
+function buildOpeningInstruction(language: SaLanguage, literacy: PatientLiteracyLevel, ctx: PatientContext): string {
   const openingQuestion = ctx.isReviewConsultation
     ? 'Great to see you again — how have you been since your last visit?'
     : "What's brought you in today?";
 
+  // The model only sees a placeholder for the patient's name; the real first
+  // name is substituted into its reply locally so it never crosses the boundary.
+  const nameToken = PII_TOKENS.firstName;
   const persona = ctx.doctorName && ctx.practiceName
-    ? `Say exactly: "Hi ${patientName}! I'm ${ctx.practiceName}'s AI health assistant. Everything you share is completely private. ${openingQuestion}"`
+    ? `Say exactly: "Hi ${nameToken}! I'm ${ctx.practiceName}'s AI health assistant. Everything you share is completely private. ${openingQuestion}"`
     : ctx.doctorName
-      ? `Say exactly: "Hi ${patientName}! I'm ${ctx.doctorName}'s AI health assistant. Everything you share is private. ${openingQuestion}"`
-      : `Greet ${patientName} warmly in ${SA_LANGUAGE_NAMES[language]}. Say everything they share is private, then ask: "${openingQuestion}"`;
+      ? `Say exactly: "Hi ${nameToken}! I'm ${ctx.doctorName}'s AI health assistant. Everything you share is private. ${openingQuestion}"`
+      : `Greet ${nameToken} warmly in ${SA_LANGUAGE_NAMES[language]}. Say everything they share is private, then ask: "${openingQuestion}"`;
 
   return persona;
 }
@@ -1226,7 +1230,7 @@ export async function startAdaptiveMedicalHistorySession(
   initialLiteracy: PatientLiteracyLevel = 'UNKNOWN',
   patientContext: PatientContext = defaultPatientContext()
 ): Promise<AdaptiveResponse> {
-  const openingInstruction = buildOpeningInstruction(language, patientName, initialLiteracy, patientContext);
+  const openingInstruction = buildOpeningInstruction(language, initialLiteracy, patientContext);
 
   const response = await anthropic.beta.promptCaching.messages.create({
     model: CLAUDE_HISTORY_MODEL,
@@ -1241,7 +1245,8 @@ export async function startAdaptiveMedicalHistorySession(
 
   logUsage('history-start', CLAUDE_HISTORY_MODEL, response.usage as TokenUsage);
 
-  const message = extractTextContent(response);
+  // Re-attach the real first name locally — it was never sent to the model.
+  const message = restorePII(extractTextContent(response), { [PII_TOKENS.firstName]: firstNameOf(patientName) });
   const isComplete = message.includes('[HISTORY_COMPLETE]');
 
   return {
@@ -1272,10 +1277,16 @@ export async function continueAdaptiveMedicalHistorySession(
 
   const gatheredSummary = buildGatheredSummary(conversationHistory, patientMessage, patientContext);
 
+  // Redact identifiers from the copy sent to the model. Only patient (user)
+  // turns are scrubbed — assistant turns are model-authored and carry no raw
+  // identifiers. The caller's stored transcript is untouched (full fidelity).
   const windowedHistory = conversationHistory.slice(-HISTORY_WINDOW);
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-    ...windowedHistory.map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: patientMessage },
+    ...windowedHistory.map(m => ({
+      role: m.role,
+      content: m.role === 'user' ? redactFreeText(m.content) : m.content,
+    })),
+    { role: 'user', content: redactFreeText(patientMessage) },
   ];
 
   const response = await anthropic.beta.promptCaching.messages.create({
@@ -1311,7 +1322,7 @@ export async function extractAdaptiveStructuredHistory(
   literacyLevel: PatientLiteracyLevel
 ): Promise<StructuredMedicalHistory> {
   const transcript = conversationHistory
-    .map(m => `${m.role === 'user' ? 'PATIENT' : 'ASSISTANT'}: ${m.content}`)
+    .map(m => `${m.role === 'user' ? 'PATIENT' : 'ASSISTANT'}: ${redactFreeText(m.content)}`)
     .join('\n\n');
 
   const literacyHint = literacyLevel === 'LOW'

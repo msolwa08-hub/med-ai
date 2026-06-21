@@ -1,4 +1,5 @@
 import { anthropic, CLAUDE_HAIKU_MODEL, logUsage } from '../lib/claude.js';
+import { PII_TOKENS, restorePII } from '../lib/deidentify.js';
 
 // ============================================================
 // Types
@@ -56,11 +57,11 @@ export async function generateReferralLetter(
 ): Promise<ReferralLetter> {
   const userMessage = `Generate a referral letter with the following details:
 
-Patient Name: ${input.patientName}
+Patient Name: ${PII_TOKENS.name}
 Patient Age: ${input.patientAge}
 Patient Gender: ${input.patientGender}
-${input.patientIdNumber ? `Patient ID Number: ${input.patientIdNumber}` : ''}
-${input.patientMedicalAid ? `Medical Aid: ${input.patientMedicalAid}` : ''}
+${input.patientIdNumber ? `Patient ID Number: ${PII_TOKENS.idNumber}` : ''}
+${input.patientMedicalAid ? `Medical Aid: ${PII_TOKENS.medicalAid}` : ''}
 
 Referring Doctor: ${input.referringDoctorName}
 HPCSA Number: ${input.referringDoctorHpcsa}
@@ -103,8 +104,15 @@ ${input.additionalNotes ? `Additional Notes:\n${input.additionalNotes}` : ''}`;
     throw new Error('Unexpected response type from AI model');
   }
 
+  // Re-attach the real identifiers locally — the model only saw placeholders.
+  const letterText = restorePII(content.text.trim(), {
+    [PII_TOKENS.name]: input.patientName,
+    [PII_TOKENS.idNumber]: input.patientIdNumber,
+    [PII_TOKENS.medicalAid]: input.patientMedicalAid,
+  });
+
   return {
-    letterText: content.text.trim(),
+    letterText,
     generatedAt: new Date().toISOString(),
   };
 }

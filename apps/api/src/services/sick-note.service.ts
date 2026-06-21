@@ -1,4 +1,5 @@
 import { anthropic, CLAUDE_HAIKU_MODEL, logUsage } from '../lib/claude.js';
+import { PII_TOKENS, restorePII } from '../lib/deidentify.js';
 
 // ============================================================
 // Types
@@ -52,9 +53,9 @@ Return ONLY the certificate text. No JSON, no preamble.`;
 export async function generateSickNote(input: SickNoteInput): Promise<SickNote> {
   const userMessage = `Generate a Medical Certificate / Sick Note with the following details:
 
-Patient Name: ${input.patientName}
-${input.patientIdNumber ? `Patient ID Number: ${input.patientIdNumber}` : ''}
-${input.patientDateOfBirth ? `Date of Birth: ${input.patientDateOfBirth}` : ''}
+Patient Name: ${PII_TOKENS.name}
+${input.patientIdNumber ? `Patient ID Number: ${PII_TOKENS.idNumber}` : ''}
+${input.patientDateOfBirth ? `Date of Birth: ${PII_TOKENS.dateOfBirth}` : ''}
 ${input.patientOccupation ? `Occupation: ${input.patientOccupation}` : ''}
 
 Certifying Doctor: ${input.doctorName}
@@ -92,8 +93,15 @@ ${input.additionalNotes ? `Additional Notes: ${input.additionalNotes}` : ''}`;
     throw new Error('Unexpected response type from AI model');
   }
 
+  // Re-attach the real identifiers locally — the model only saw placeholders.
+  const certificateText = restorePII(content.text.trim(), {
+    [PII_TOKENS.name]: input.patientName,
+    [PII_TOKENS.idNumber]: input.patientIdNumber,
+    [PII_TOKENS.dateOfBirth]: input.patientDateOfBirth,
+  });
+
   return {
-    certificateText: content.text.trim(),
+    certificateText,
     generatedAt: new Date().toISOString(),
   };
 }
