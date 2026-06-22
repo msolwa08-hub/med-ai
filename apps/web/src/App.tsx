@@ -79,7 +79,6 @@ export default function App() {
     patientMsg: string,
     aiReply: string,
     isComplete: boolean,
-    summary?: string,
   ) {
     storage.addMessage(sessionId, {
       role: 'patient',
@@ -92,12 +91,18 @@ export default function App() {
       timestamp: new Date().toISOString(),
     });
     if (isComplete) {
-      storage.completeSession(sessionId, summary ?? 'Summary unavailable — please review the transcript.');
+      // Summary is generated async on the server — complete with null, SummaryView polls for it
+      storage.completeSession(sessionId, null);
       refreshSessions();
       setView('summary');
     } else {
       refreshSessions();
     }
+  }
+
+  function handleSummaryReady(sessionId: string, summary: string) {
+    storage.updateSummary(sessionId, summary);
+    refreshSessions();
   }
 
   function handleBackToList() {
@@ -160,6 +165,7 @@ export default function App() {
           onApprove={() => { storage.approveSession(currentSession.sessionId); refreshSessions(); }}
           onSaveNotes={(notes) => { storage.saveNotes(currentSession.sessionId, notes); refreshSessions(); }}
           onNewPatient={handleNewSession}
+          onSummaryReady={(summary) => handleSummaryReady(currentSession.sessionId, summary)}
         />
       )}
     </div>

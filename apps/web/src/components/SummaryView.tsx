@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { StoredSession } from '../storage';
+import { api } from '../api';
 
 interface Props {
   session: StoredSession;
@@ -8,6 +9,7 @@ interface Props {
   onApprove: () => void;
   onSaveNotes: (notes: string) => void;
   onNewPatient: () => void;
+  onSummaryReady: (summary: string) => void;
 }
 
 type Tab = 'summary' | 'transcript';
@@ -35,11 +37,32 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function SummaryView({ session, onBack, onBackToList, onApprove, onSaveNotes, onNewPatient }: Props) {
+export function SummaryView({ session, onBack, onBackToList, onApprove, onSaveNotes, onNewPatient, onSummaryReady }: Props) {
   const [tab, setTab] = useState<Tab>('summary');
   const [notes, setNotes] = useState(session.notes ?? '');
   const [notesSaved, setNotesSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll for summary while it's being generated in the background
+  useEffect(() => {
+    if (session.summary) return; // already have it
+    pollRef.current = setInterval(async () => {
+      try {
+        const result = await api.getSummary(session.sessionId);
+        if (result.summary) {
+          clearInterval(pollRef.current!);
+          pollRef.current = null;
+          onSummaryReady(result.summary);
+        }
+      } catch {
+        // session may not exist yet on the server — keep polling
+      }
+    }, 3000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [session.sessionId, session.summary]);
 
   const summary = session.summary;
   const sessionDate = new Date(session.completedAt ?? session.createdAt).toLocaleDateString('en-ZA', {
@@ -185,7 +208,21 @@ export function SummaryView({ session, onBack, onBackToList, onApprove, onSaveNo
                     dangerouslySetInnerHTML={{ __html: renderMarkdown(summary) }}
                   />
                 ) : (
-                  <p className="text-sm text-slate-400 text-center py-8">No summary available.</p>
+                  <div className="flex flex-col items-center py-10 gap-4">
+                    <div className="flex gap-1.5">
+                      {[0, 150, 300].map((delay) => (
+                        <span
+                          key={delay}
+                          className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-bounce"
+                          style={{ animationDelay: `${delay}ms` }}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-sm font-medium text-slate-600">Generating clinical summary…</p>
+                    <p className="text-xs text-slate-400 text-center max-w-xs">
+                      This takes 30–60 seconds. The summary will appear automatically when ready.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

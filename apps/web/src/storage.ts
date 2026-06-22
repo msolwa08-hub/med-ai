@@ -100,13 +100,21 @@ export const storage = {
     save(data);
   },
 
-  completeSession(sessionId: string, summary: string): void {
+  completeSession(sessionId: string, summary: string | null): void {
     const data = load();
     const session = data.sessions.find((s) => s.sessionId === sessionId);
     if (!session) return;
     session.isComplete = true;
     session.summary = summary;
     session.completedAt = new Date().toISOString();
+    save(data);
+  },
+
+  updateSummary(sessionId: string, summary: string): void {
+    const data = load();
+    const session = data.sessions.find((s) => s.sessionId === sessionId);
+    if (!session) return;
+    session.summary = summary;
     save(data);
   },
 

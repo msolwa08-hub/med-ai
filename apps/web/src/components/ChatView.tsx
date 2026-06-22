@@ -4,7 +4,7 @@ import type { StoredSession } from '../storage';
 
 interface Props {
   session: StoredSession;
-  onMessage: (sessionId: string, patientMsg: string, aiReply: string, isComplete: boolean, summary?: string) => void;
+  onMessage: (sessionId: string, patientMsg: string, aiReply: string, isComplete: boolean) => void;
   onViewSummary: () => void;
   onBackToList: () => void;
 }
@@ -34,7 +34,7 @@ export function ChatView({ session, onMessage, onViewSummary, onBackToList }: Pr
     setLoading(true);
     try {
       const result = await api.sendMessage(session.sessionId, text);
-      onMessage(session.sessionId, text, result.reply, result.isComplete, result.summary);
+      onMessage(session.sessionId, text, result.reply, result.isComplete);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('expired')) {

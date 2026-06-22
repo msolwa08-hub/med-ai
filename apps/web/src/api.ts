@@ -33,7 +33,7 @@ export interface StatusResult {
 }
 
 export interface SummaryResult {
-  summary: string;
+  summary: string | null;
 }
 
 export interface AnalyticsData {

@@ -146,16 +146,22 @@ export async function sendMessage(
   if (isComplete) {
     session.isComplete = true;
     session.consultStatus = 'AWAITING_DOCTOR';
-    try {
-      session.summary = await generateSummary(session.displayMessages);
-    } catch (err) {
-      console.error('[beta-engine] Summary generation failed:', err);
-      session.summary = 'Summary generation failed — please ask the doctor to review the transcript.';
-    }
+    // Generate summary in the background — don't block the HTTP response.
+    // The client will poll GET /beta/session/:id/summary until it's ready.
+    generateSummary(session.displayMessages)
+      .then((s) => {
+        session.summary = s;
+        persistSession(session);
+      })
+      .catch((err) => {
+        console.error('[beta-engine] Summary generation failed:', err);
+        session.summary = 'Summary generation failed — please ask the doctor to review the transcript.';
+        persistSession(session);
+      });
   }
   persistSession(session);
 
-  return { reply: clean, isComplete, summary: session.summary ?? undefined };
+  return { reply: clean, isComplete };
 }
 
 async function generateSummary(messages: ChatMessage[]): Promise<string> {
