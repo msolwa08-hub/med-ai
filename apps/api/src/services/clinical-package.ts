@@ -122,9 +122,10 @@ export interface ClinicalPackage {
   disclaimer: string;
 }
 
+const _DOCTOR_NAME = process.env.BETA_DOCTOR_NAME ?? 'Dr. Patel';
 const DISCLAIMER =
-  'AI-generated DRAFT decision support. Not a diagnosis or prescription. ' +
-  'Dr. Patel must independently review, edit, and confirm every item before acting.';
+  `AI-generated DRAFT decision support. Not a diagnosis or prescription. ` +
+  `${_DOCTOR_NAME} must independently review, edit, and confirm every item before acting.`;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 

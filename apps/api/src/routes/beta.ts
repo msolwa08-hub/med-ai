@@ -148,4 +148,15 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
     }
     return reply.send({ success: true, data: getAnalytics() });
   });
+
+  // GET /beta/config — public, returns practice branding for the web app
+  fastify.get('/beta/config', async (_request, reply) => {
+    return reply.send({
+      success: true,
+      data: {
+        practiceName: betaConfig.BETA_PRACTICE_NAME,
+        doctorName: betaConfig.BETA_DOCTOR_NAME,
+      },
+    });
+  });
 }

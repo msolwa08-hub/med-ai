@@ -3,9 +3,10 @@ import { api } from '../api';
 
 interface Props {
   onValidated: (key: string) => void;
+  practiceName?: string;
 }
 
-export function AccessKeyGate({ onValidated }: Props) {
+export function AccessKeyGate({ onValidated, practiceName = 'MedAI' }: Props) {
   const [key, setKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,7 +40,7 @@ export function AccessKeyGate({ onValidated }: Props) {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-slate-800">MedAI</h1>
-          <p className="text-sm text-teal-600 mt-1 font-medium">Sandton Family Practice</p>
+          <p className="text-sm text-teal-600 mt-1 font-medium">{practiceName}</p>
         </div>
 
         {/* Card */}
@@ -98,7 +99,7 @@ export function AccessKeyGate({ onValidated }: Props) {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Sandton Family Practice · MedAI Beta
+          {practiceName} · MedAI Beta
         </p>
       </div>
     </div>

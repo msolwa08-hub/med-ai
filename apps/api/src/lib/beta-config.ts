@@ -25,6 +25,9 @@ export const betaConfig = {
   BETA_TOOLS_KEYS: process.env.BETA_TOOLS_KEYS ?? 'MEDAI-INTERN-DEV',
   PORT: parseInt(process.env.PORT ?? '3000', 10),
   WEB_DIST_PATH: process.env.WEB_DIST_PATH ?? '',
+  // Practice branding — shown in the AI greeting and all summaries.
+  BETA_DOCTOR_NAME: process.env.BETA_DOCTOR_NAME ?? 'Dr. Patel',
+  BETA_PRACTICE_NAME: process.env.BETA_PRACTICE_NAME ?? 'Sandton Family Practice',
   // Encrypted session persistence. Set BETA_PERSIST=0 to disable (pure in-memory).
   // For cross-redeploy durability set BETA_DATA_DIR to a persistent volume, and
   // always set BETA_DATA_KEY (a strong secret) in production.

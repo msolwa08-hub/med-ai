@@ -17,8 +17,18 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [newSessionLoading, setNewSessionLoading] = useState(false);
   const [newSessionError, setNewSessionError] = useState('');
+  const [practiceName, setPracticeName] = useState('MedAI');
+  const [doctorName, setDoctorName] = useState('Your Doctor');
 
   useEffect(() => {
+    // Fetch practice branding from server
+    api.getConfig().then((cfg) => {
+      setPracticeName(cfg.practiceName);
+      setDoctorName(cfg.doctorName);
+    }).catch(() => {
+      // Keep defaults if config fetch fails
+    });
+
     const key = storage.getAccessKey();
     if (key) {
       setAccessKey(key);
@@ -132,7 +142,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {view === 'gate' && (
-        <AccessKeyGate onValidated={handleKeyValidated} />
+        <AccessKeyGate onValidated={handleKeyValidated} practiceName={practiceName} />
       )}
       {view === 'sessions' && (
         <SessionListView
@@ -144,6 +154,7 @@ export default function App() {
           onAnalytics={() => setView('analytics')}
           newSessionLoading={newSessionLoading}
           newSessionError={newSessionError}
+          practiceName={practiceName}
         />
       )}
       {view === 'analytics' && (
@@ -155,6 +166,7 @@ export default function App() {
           onMessage={handleMessage}
           onViewSummary={() => setView('summary')}
           onBackToList={handleBackToList}
+          practiceName={practiceName}
         />
       )}
       {view === 'summary' && currentSession && (
@@ -166,6 +178,8 @@ export default function App() {
           onSaveNotes={(notes) => { storage.saveNotes(currentSession.sessionId, notes); refreshSessions(); }}
           onNewPatient={handleNewSession}
           onSummaryReady={(summary) => handleSummaryReady(currentSession.sessionId, summary)}
+          practiceName={practiceName}
+          doctorName={doctorName}
         />
       )}
     </div>

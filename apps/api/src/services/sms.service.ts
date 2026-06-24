@@ -26,12 +26,15 @@ export async function sendOtpSms(
 
   const message = purposeMessages[purpose] ?? `Your MedAI code is: ${otp}. Valid for 10 minutes.`;
 
-  // Development fallback
   if (
     !config.TWILIO_ACCOUNT_SID ||
     !config.TWILIO_AUTH_TOKEN ||
     !config.TWILIO_PHONE_NUMBER
   ) {
+    if (config.NODE_ENV === 'production') {
+      console.error('[SMS] TWILIO credentials missing in production — OTP will not be delivered');
+      return { success: false, error: 'SMS service not configured' };
+    }
     console.log(`[SMS] [DEV] To: ${phoneNumber} | Message: ${message}`);
     return { success: true, messageId: `dev-${Date.now()}` };
   }

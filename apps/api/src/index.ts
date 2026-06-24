@@ -41,7 +41,11 @@ const fastify = Fastify({
 // ─────────────────────────────────────────────────────────
 
 await fastify.register(cors, {
-  origin: [config.FRONTEND_URL, /exp:\/\//, /localhost/, /127\.0\.0\.1/],
+  origin: [
+    config.FRONTEND_URL,
+    /exp:\/\//,
+    ...(config.NODE_ENV !== 'production' ? [/localhost/, /127\.0\.0\.1/] : []),
+  ],
   credentials: true,
 });
 
@@ -128,9 +132,15 @@ fastify.setErrorHandler((error, _request, reply) => {
   fastify.log.error(error);
 
   const statusCode = error.statusCode ?? 500;
+  const isServerError = statusCode >= 500;
+  const errorMessage =
+    isServerError && config.NODE_ENV === 'production'
+      ? 'An internal error occurred. Please try again or contact support.'
+      : (error.message ?? 'Internal server error');
+
   reply.status(statusCode).send({
     success: false,
-    error: error.message ?? 'Internal server error',
+    error: errorMessage,
   });
 });
 
@@ -157,6 +167,16 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 // ─────────────────────────────────────────────────────────
 // Start server
 // ─────────────────────────────────────────────────────────
+
+// Verify database connectivity before accepting traffic
+try {
+  await prisma.$queryRaw`SELECT 1`;
+  fastify.log.info('Database connection verified.');
+} catch (err) {
+  fastify.log.error(err, 'Database connectivity check failed — cannot start server');
+  await prisma.$disconnect();
+  process.exit(1);
+}
 
 try {
   await fastify.listen({ port: config.PORT, host: '0.0.0.0' });

@@ -98,8 +98,23 @@ export default function DoctorApp() {
       setDoctorKey(key);
       setView('list');
     }
-    setSettings(practiceSettingsStore.get());
+    const saved = practiceSettingsStore.get();
+    setSettings(saved);
     setLoading(false);
+
+    // Seed practice name from server config if the user hasn't overridden it yet
+    if (saved.practiceName === DEFAULT_SETTINGS.practiceName) {
+      fetch('/beta/config')
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.success && json.data?.practiceName) {
+            const updated = { ...practiceSettingsStore.get(), practiceName: json.data.practiceName };
+            setSettings(updated);
+            practiceSettingsStore.set(updated);
+          }
+        })
+        .catch(() => {});
+    }
   }, []);
 
   function saveSettings(s: PracticeSettings) {
@@ -130,6 +145,7 @@ export default function DoctorApp() {
         doctorKey={doctorKey}
         consultId={selectedId}
         practiceMode={settings.focusMode}
+        signerLabel={settings.practiceName}
         onBack={() => {
           setSelectedId(null);
           setView('list');

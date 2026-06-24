@@ -24,3 +24,7 @@ services:
         sync: false # personal intern-tools keys for /tools (e.g. MEDAI-INTERN-TRIAL)
       - key: NODE_ENV
         value: production
+      - key: BETA_DOCTOR_NAME
+        sync: false # Your name, e.g. "Dr. Smith" — shown in AI greeting and summaries
+      - key: BETA_PRACTICE_NAME
+        sync: false # Your practice name, e.g. "Cape Town City Practice"

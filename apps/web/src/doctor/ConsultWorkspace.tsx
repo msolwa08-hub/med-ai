@@ -11,6 +11,7 @@ interface Props {
   doctorKey: string;
   consultId: string;
   practiceMode?: string;
+  signerLabel?: string;
   onBack: () => void;
 }
 
@@ -49,7 +50,7 @@ const priorityColor: Record<string, string> = {
   ROUTINE: 'bg-gray-100 text-gray-600',
 };
 
-export function ConsultWorkspace({ doctorKey, consultId, practiceMode, onBack }: Props) {
+export function ConsultWorkspace({ doctorKey, consultId, practiceMode, signerLabel, onBack }: Props) {
   const [detail, setDetail] = useState<ConsultDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -274,7 +275,7 @@ export function ConsultWorkspace({ doctorKey, consultId, practiceMode, onBack }:
                 <div className={`rounded-xl px-4 py-3 flex items-start gap-3 border ${signed ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
                   <div className="flex-1">
                     {signed ? (
-                      <p className="text-sm font-semibold text-green-800">Confirmed &amp; signed by Dr. Patel</p>
+                      <p className="text-sm font-semibold text-green-800">Confirmed &amp; signed by {signerLabel ?? 'the doctor'}</p>
                     ) : (
                       <p className="text-sm font-semibold text-amber-800">Draft — review every item before signing</p>
                     )}

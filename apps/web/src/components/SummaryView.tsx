@@ -10,6 +10,8 @@ interface Props {
   onSaveNotes: (notes: string) => void;
   onNewPatient: () => void;
   onSummaryReady: (summary: string) => void;
+  practiceName?: string;
+  doctorName?: string;
 }
 
 type Tab = 'summary' | 'transcript';
@@ -37,7 +39,7 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function SummaryView({ session, onBack, onBackToList, onApprove, onSaveNotes, onNewPatient, onSummaryReady }: Props) {
+export function SummaryView({ session, onBack, onBackToList, onApprove, onSaveNotes, onNewPatient, onSummaryReady, practiceName = 'MedAI', doctorName = 'the doctor' }: Props) {
   const [tab, setTab] = useState<Tab>('summary');
   const [notes, setNotes] = useState(session.notes ?? '');
   const [notesSaved, setNotesSaved] = useState(false);
@@ -163,7 +165,7 @@ export function SummaryView({ session, onBack, onBackToList, onApprove, onSaveNo
             </svg>
             <div className="flex-1">
               <p className="text-sm font-semibold text-amber-800">Pending clinical review</p>
-              <p className="text-xs text-amber-700 mt-0.5">AI-generated — must be reviewed by Dr. Patel before acting on any recommendations.</p>
+              <p className="text-xs text-amber-700 mt-0.5">AI-generated — must be reviewed by {doctorName} before acting on any recommendations.</p>
             </div>
             <button
               onClick={onApprove}
@@ -179,7 +181,7 @@ export function SummaryView({ session, onBack, onBackToList, onApprove, onSaveNo
             <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-emerald-700 font-medium">Approved by Dr. Patel</p>
+            <p className="text-sm text-emerald-700 font-medium">Approved by {doctorName}</p>
           </div>
         )}
 
@@ -189,7 +191,7 @@ export function SummaryView({ session, onBack, onBackToList, onApprove, onSaveNo
             {/* Print header */}
             <div className="hidden print:block mb-6">
               <h1 className="text-xl font-bold">GP Clinical Summary — MedAI</h1>
-              <p className="text-sm text-slate-600">Sandton Family Practice · {sessionDate}</p>
+              <p className="text-sm text-slate-600">{practiceName} · {sessionDate}</p>
               <p className="text-sm text-slate-600">Patient: {session.label}</p>
               <hr className="mt-3" />
             </div>

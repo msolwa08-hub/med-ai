@@ -36,6 +36,11 @@ export interface SummaryResult {
   summary: string | null;
 }
 
+export interface BetaConfig {
+  practiceName: string;
+  doctorName: string;
+}
+
 export interface AnalyticsData {
   summary: {
     total: number;
@@ -97,4 +102,7 @@ export const api = {
 
   getAnalytics: (doctorKey: string) =>
     apiFetch<AnalyticsData>(`/analytics?key=${encodeURIComponent(doctorKey)}`),
+
+  getConfig: () =>
+    apiFetch<BetaConfig>('/config'),
 };

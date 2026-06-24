@@ -7,9 +7,10 @@ interface Props {
   onMessage: (sessionId: string, patientMsg: string, aiReply: string, isComplete: boolean) => void;
   onViewSummary: () => void;
   onBackToList: () => void;
+  practiceName?: string;
 }
 
-export function ChatView({ session, onMessage, onViewSummary, onBackToList }: Props) {
+export function ChatView({ session, onMessage, onViewSummary, onBackToList, practiceName = 'MedAI' }: Props) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -77,7 +78,7 @@ export function ChatView({ session, onMessage, onViewSummary, onBackToList }: Pr
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-slate-800 truncate">{session.label}</div>
-            <div className="text-xs text-teal-600">Sandton Family Practice</div>
+            <div className="text-xs text-teal-600">{practiceName}</div>
           </div>
         </div>
         {session.isComplete && (

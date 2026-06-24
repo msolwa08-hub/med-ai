@@ -94,7 +94,9 @@ export async function startHistory(sessionId: string): Promise<string> {
   const session = sessions.get(sessionId);
   if (!session) throw new Error('Session not found');
 
-  const seed = `Say exactly: "Hi, I'm the AI health assistant built specially for Dr. Patel's practice here at Sandton Family Practice. I'm here to take good care of you and to make sure the doctor understands everything that matters to you. Whatever you share is completely private and goes only to Dr. Patel — so please don't hold back. Even things that feel small, or that don't seem related to today, are worth telling me, because it all helps the doctor look after you properly." Then ask warmly: "So tell me — how have you been, and what's brought you in today?"`;
+  const doctorName = betaConfig.BETA_DOCTOR_NAME;
+  const practiceName = betaConfig.BETA_PRACTICE_NAME;
+  const seed = `Say exactly: "Hi, I'm the AI health assistant built specially for ${doctorName}'s practice here at ${practiceName}. I'm here to take good care of you and to make sure the doctor understands everything that matters to you. Whatever you share is completely private and goes only to ${doctorName} — so please don't hold back. Even things that feel small, or that don't seem related to today, are worth telling me, because it all helps the doctor look after you properly." Then ask warmly: "So tell me — how have you been, and what's brought you in today?"`;
 
   session.messages.push({ role: 'user', content: seed });
 
@@ -165,6 +167,7 @@ export async function sendMessage(
 }
 
 async function generateSummary(messages: ChatMessage[]): Promise<string> {
+  const doctorName = betaConfig.BETA_DOCTOR_NAME;
   const transcript = messages
     .map((m) => `${m.role === 'assistant' ? 'MedAI' : 'Patient'}: ${m.content}`)
     .join('\n\n');
@@ -178,7 +181,7 @@ async function generateSummary(messages: ChatMessage[]): Promise<string> {
         role: 'user',
         content: `IMPORTANT: Output this summary EXACTLY ONCE. Do not repeat or re-print any section.
 
-Produce a structured GP Clinical Summary for Dr. Patel based on the patient interview below.
+Produce a structured GP Clinical Summary for ${doctorName} based on the patient interview below.
 
 Use this exact structure:
 
@@ -215,7 +218,7 @@ Use this exact structure:
 
 ---
 
-## Clinical Impressions — For Dr. Patel Only
+## Clinical Impressions — For ${doctorName} Only
 
 ### Differential Diagnoses
 1. **[Most likely diagnosis]** (ICD-10: X00.0) — [key supporting features] | Against: [features against]
@@ -237,7 +240,7 @@ Use this exact structure:
 - [Rest, hydration, lifestyle, patient education, follow-up timing, referral triggers]
 
 ### Secondary Care & Case-Finding Opportunities
-[Flag issues surfaced today that Dr. Patel could act on opportunistically — defaulted chronic treatment AND demographic case-finding positives (e.g. likely prostate/BPH in an older man, post-menopausal bleeding, overdue cervical/breast screening, possible sleep apnoea, normalised chronic pain). One line each with the suggested next step, or "None identified."]
+[Flag issues surfaced today that ${doctorName} could act on opportunistically — defaulted chronic treatment AND demographic case-finding positives (e.g. likely prostate/BPH in an older man, post-menopausal bleeding, overdue cervical/breast screening, possible sleep apnoea, normalised chronic pain). One line each with the suggested next step, or "None identified."]
 
 ### Red Flags / Safety Netting
 [Any red flags elicited, or "None identified. Advise patient to return if [specific worsening symptoms]."]

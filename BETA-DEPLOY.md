@@ -37,16 +37,18 @@ When you're done you'll have:
 
 ## Step 3 — Fill in 4 values (2 min)
 
-Render will ask you for the four values below. The first is your secret key; the
-other three you can copy exactly as written (they're the "passwords" people type
-to get into each part of the app — change them later if you like).
+Render will ask you for the values below. The first is your secret key; the
+access keys are the "passwords" people type to get into each part of the app —
+change them later if you like.
 
-| Variable | What to paste |
-|---|---|
-| `ANTHROPIC_API_KEY` | your `sk-ant-...` key from Step 1 |
-| `BETA_ACCESS_KEYS` | `MEDAI-BETA-TRIAL` |
-| `BETA_DOCTOR_KEYS` | `MEDAI-DOC-TRIAL` |
-| `BETA_TOOLS_KEYS` | `MEDAI-INTERN-TRIAL` |
+| Variable | What to paste | Notes |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | your `sk-ant-...` key from Step 1 | Required |
+| `BETA_ACCESS_KEYS` | `MEDAI-BETA-TRIAL` | Patient / history-taker access |
+| `BETA_DOCTOR_KEYS` | `MEDAI-DOC-TRIAL` | Doctor cockpit + analytics |
+| `BETA_TOOLS_KEYS` | `MEDAI-INTERN-TRIAL` | Intern tools |
+| `BETA_DOCTOR_NAME` | e.g. `Dr. Smith` | Your name — shown in the AI greeting and summaries |
+| `BETA_PRACTICE_NAME` | e.g. `Cape Town City Practice` | Your practice name — shown throughout the app |
 
 Tap **Save** / **Deploy**.
 

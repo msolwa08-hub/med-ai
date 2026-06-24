@@ -9,6 +9,7 @@ interface Props {
   onAnalytics: () => void;
   newSessionLoading?: boolean;
   newSessionError?: string;
+  practiceName?: string;
 }
 
 function formatRelativeTime(iso: string): string {
@@ -23,7 +24,7 @@ function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
 }
 
-export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, onAnalytics, newSessionLoading, newSessionError }: Props) {
+export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, onAnalytics, newSessionLoading, newSessionError, practiceName = 'MedAI' }: Props) {
   function handleRename(session: StoredSession) {
     const newLabel = window.prompt('Rename session:', session.label);
     if (newLabel && newLabel.trim() && newLabel.trim() !== session.label) {
@@ -43,7 +44,7 @@ export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, 
             </div>
             <div>
               <div className="text-sm font-bold text-gray-900">MedAI</div>
-              <div className="text-xs text-gray-500">Sandton Family Practice</div>
+              <div className="text-xs text-gray-500">{practiceName}</div>
             </div>
           </div>
           <button
