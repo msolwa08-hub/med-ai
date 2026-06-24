@@ -20,9 +20,9 @@ if (!ANTHROPIC_API_KEY) {
 
 export const betaConfig = {
   ANTHROPIC_API_KEY: ANTHROPIC_API_KEY ?? '',
-  BETA_ACCESS_KEYS: process.env.BETA_ACCESS_KEYS ?? 'MEDAI-BETA-DEV',
-  BETA_DOCTOR_KEYS: process.env.BETA_DOCTOR_KEYS ?? 'MEDAI-DOC-DEV',
-  BETA_TOOLS_KEYS: process.env.BETA_TOOLS_KEYS ?? 'MEDAI-INTERN-DEV',
+  BETA_ACCESS_KEYS: process.env.BETA_ACCESS_KEYS || 'MEDAI-BETA-DEV',
+  BETA_DOCTOR_KEYS: process.env.BETA_DOCTOR_KEYS || 'MEDAI-DOC-DEV',
+  BETA_TOOLS_KEYS: process.env.BETA_TOOLS_KEYS || 'MEDAI-INTERN-DEV',
   PORT: parseInt(process.env.PORT ?? '3000', 10),
   WEB_DIST_PATH: process.env.WEB_DIST_PATH ?? '',
   // Practice branding — shown in the AI greeting and all summaries.
