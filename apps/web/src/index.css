@@ -19,7 +19,8 @@
   }
 
   .chat-bubble-patient {
-    @apply bg-blue-600 rounded-2xl rounded-tr-sm shadow-sm px-4 py-3 max-w-[80%] text-sm leading-relaxed text-white;
+    @apply rounded-2xl rounded-tr-sm shadow-sm px-4 py-3 max-w-[80%] text-sm leading-relaxed text-white;
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
   }
 }
 

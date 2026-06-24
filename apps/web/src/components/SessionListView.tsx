@@ -37,9 +37,10 @@ export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, 
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                 style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }}>
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
               </svg>
             </div>
             <div>
@@ -70,7 +71,8 @@ export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, 
           <button
             onClick={onNew}
             disabled={newSessionLoading}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold rounded-xl transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded-xl transition focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 disabled:opacity-50 shadow-sm"
+            style={{ background: newSessionLoading ? '#99f6e4' : 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }}
           >
             {newSessionLoading ? (
               <>
@@ -92,18 +94,20 @@ export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, 
         </div>
 
         {sessions.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="bg-white rounded-2xl border border-teal-50 shadow-sm p-10 text-center">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                 style={{ background: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)' }}>
+              <svg className="w-7 h-7 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-700 mb-1">No sessions yet</p>
-            <p className="text-xs text-gray-400 mb-5">Start a new session to begin taking a patient history.</p>
+            <p className="text-sm font-medium text-slate-700 mb-1">No sessions yet</p>
+            <p className="text-xs text-slate-400 mb-5">Start a new session to begin taking a patient history.</p>
             <button
               onClick={onNew}
               disabled={newSessionLoading}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold rounded-xl transition"
+              className="px-5 py-2.5 text-white text-sm font-semibold rounded-xl transition disabled:opacity-50 shadow-sm"
+              style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }}
             >
               {newSessionLoading ? 'Starting…' : 'Start first session'}
             </button>
@@ -136,8 +140,8 @@ export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, 
                         </span>
                       )
                     ) : (
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-teal-100">
+                        <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                         </svg>
                       </span>
@@ -155,7 +159,7 @@ export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, 
                           ? session.approved
                             ? 'text-green-600'
                             : 'text-amber-600'
-                          : 'text-blue-600'
+                          : 'text-teal-600'
                       }`}>
                         {session.isComplete
                           ? session.approved
@@ -189,7 +193,7 @@ export function SessionListView({ sessions, onNew, onOpen, onSignOut, onRename, 
         <div className="text-center pt-4 pb-2">
           <button
             onClick={onAnalytics}
-            className="text-xs text-gray-400 hover:text-blue-600 transition underline underline-offset-2"
+            className="text-xs text-slate-400 hover:text-teal-600 transition underline underline-offset-2"
           >
             View Analytics
           </button>
