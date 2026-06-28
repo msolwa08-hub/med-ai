@@ -6,7 +6,7 @@ import {
   getSession,
   startHistory,
   sendMessage,
-  getSummary,
+  ensureSummary,
   trackError,
   getAnalytics,
 } from '../services/beta-engine.js';
@@ -64,7 +64,7 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.status(401).send({ success: false, error: 'Invalid access key' });
     }
 
-    const sessionId = createSession(accessKey);
+    const sessionId = await createSession(accessKey);
 
     try {
       const message = await startHistory(sessionId);
@@ -88,7 +88,7 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     const { sessionId, message } = parsed.data;
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
 
     if (!session) {
       return reply.status(404).send({ success: false, error: 'Session not found or expired' });
@@ -111,7 +111,7 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /beta/session/:sessionId/status
   fastify.get('/beta/session/:sessionId/status', async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string };
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
 
     if (!session) {
       return reply.send({ success: true, data: { isValid: false, isComplete: false } });
@@ -126,7 +126,7 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /beta/session/:sessionId/summary
   fastify.get('/beta/session/:sessionId/summary', async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string };
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
 
     if (!session) {
       return reply.status(404).send({ success: false, error: 'Session not found or expired' });
@@ -136,8 +136,16 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.status(400).send({ success: false, error: 'History not yet complete' });
     }
 
-    const summary = getSummary(sessionId);
-    return reply.send({ success: true, data: { summary } });
+    // Generate the summary on first request (serverless-safe); subsequent polls
+    // return the persisted value. May take a few seconds the very first time.
+    try {
+      const summary = await ensureSummary(sessionId);
+      return reply.send({ success: true, data: { summary } });
+    } catch (err) {
+      fastify.log.error(err, 'beta/session/summary: generation failed');
+      trackError('summary_failed', err instanceof Error ? err.message : String(err));
+      return reply.status(500).send({ success: false, error: 'Failed to generate summary' });
+    }
   });
 
   // GET /beta/analytics?key=DOCTOR_KEY
@@ -146,7 +154,7 @@ export async function betaRoutes(fastify: FastifyInstance): Promise<void> {
     if (!key || !isDocKey(key)) {
       return reply.status(401).send({ success: false, error: 'Valid doctor key required' });
     }
-    return reply.send({ success: true, data: getAnalytics() });
+    return reply.send({ success: true, data: await getAnalytics() });
   });
 
   // GET /beta/config — public, returns practice branding for the web app

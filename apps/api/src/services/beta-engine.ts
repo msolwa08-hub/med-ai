@@ -3,7 +3,7 @@ import { betaConfig } from '../lib/beta-config.js';
 import { MEDAI_SYSTEM_PROMPT, SUMMARY_SYSTEM } from './medai-prompt.js';
 import { generateClinicalPackage } from './clinical-package.js';
 import type { ExamFindings, ClinicalPackage } from './clinical-package.js';
-import { persistSession, deleteSession, hydrateSessions } from './beta-store.js';
+import { loadSession, saveSession, removeSession, loadAllSessions } from './session-store.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
@@ -14,8 +14,6 @@ const BETA_MODEL = 'claude-sonnet-4-6';
 const CACHED_SYSTEM = [
   { type: 'text' as const, text: MEDAI_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' as const } },
 ];
-
-const SESSION_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -40,32 +38,11 @@ export interface BetaSession {
   lastActivityAt: number;
 }
 
-const sessions = new Map<string, BetaSession>();
+// Session persistence lives entirely in session-store.ts (memory+disk, or
+// Vercel KV when configured). The engine is stateless across requests so it
+// works correctly on serverless, where each invocation may be a fresh instance.
 
-// Rehydrate persisted sessions on startup (skipping/cleaning expired ones), so a
-// restart or redeploy preserves in-flight histories and unreviewed consults.
-{
-  const now = Date.now();
-  for (const s of hydrateSessions()) {
-    if (now - s.lastActivityAt > SESSION_TTL_MS) {
-      deleteSession(s.sessionId);
-    } else {
-      sessions.set(s.sessionId, s);
-    }
-  }
-}
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, session] of sessions) {
-    if (now - session.lastActivityAt > SESSION_TTL_MS) {
-      sessions.delete(id);
-      deleteSession(id);
-    }
-  }
-}, 10 * 60 * 1000);
-
-export function createSession(accessKey: string): string {
+export async function createSession(accessKey: string): Promise<string> {
   const sessionId = crypto.randomUUID();
   const session: BetaSession = {
     sessionId,
@@ -81,17 +58,16 @@ export function createSession(accessKey: string): string {
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
   };
-  sessions.set(sessionId, session);
-  persistSession(session);
+  await saveSession(session);
   return sessionId;
 }
 
-export function getSession(sessionId: string): BetaSession | null {
-  return sessions.get(sessionId) ?? null;
+export async function getSession(sessionId: string): Promise<BetaSession | null> {
+  return loadSession(sessionId);
 }
 
 export async function startHistory(sessionId: string): Promise<string> {
-  const session = sessions.get(sessionId);
+  const session = await loadSession(sessionId);
   if (!session) throw new Error('Session not found');
 
   const doctorName = betaConfig.BETA_DOCTOR_NAME;
@@ -113,7 +89,7 @@ export async function startHistory(sessionId: string): Promise<string> {
   session.messages.push({ role: 'assistant', content: text });
   session.displayMessages.push({ role: 'assistant', content: clean, timestamp: new Date().toISOString() });
   session.lastActivityAt = Date.now();
-  persistSession(session);
+  await saveSession(session);
 
   return clean;
 }
@@ -122,7 +98,7 @@ export async function sendMessage(
   sessionId: string,
   patientMessage: string
 ): Promise<{ reply: string; isComplete: boolean; summary?: string }> {
-  const session = sessions.get(sessionId);
+  const session = await loadSession(sessionId);
   if (!session) throw new Error('Session not found');
   if (session.isComplete) throw new Error('Session already complete');
 
@@ -148,22 +124,54 @@ export async function sendMessage(
   if (isComplete) {
     session.isComplete = true;
     session.consultStatus = 'AWAITING_DOCTOR';
-    // Generate summary in the background — don't block the HTTP response.
-    // The client will poll GET /beta/session/:id/summary until it's ready.
-    generateSummary(session.displayMessages)
-      .then((s) => {
-        session.summary = s;
-        persistSession(session);
-      })
-      .catch((err) => {
-        console.error('[beta-engine] Summary generation failed:', err);
-        session.summary = 'Summary generation failed — please ask the doctor to review the transcript.';
-        persistSession(session);
-      });
+    // The summary is generated lazily on the first GET /beta/session/:id/summary
+    // poll (see ensureSummary). On serverless a fire-and-forget background job
+    // never runs — the function freezes once the HTTP response is sent — so we
+    // defer generation to a real request instead. The client already polls.
   }
-  persistSession(session);
+  await saveSession(session);
 
   return { reply: clean, isComplete };
+}
+
+// In-flight summary generations, keyed by sessionId, to dedupe concurrent polls
+// within a single instance. Cross-instance duplication is harmless (last write
+// wins) and rare, since polls hit the same warm instance in practice.
+const summaryInFlight = new Map<string, Promise<string | null>>();
+
+/**
+ * Returns the session summary, generating and persisting it on first request if
+ * the history is complete but no summary exists yet. Serverless-safe: the work
+ * happens inside this request, not a detached background task.
+ */
+export async function ensureSummary(sessionId: string): Promise<string | null> {
+  const session = await loadSession(sessionId);
+  if (!session || !session.isComplete) return null;
+  if (session.summary) return session.summary;
+
+  const existing = summaryInFlight.get(sessionId);
+  if (existing) return existing;
+
+  const work = (async (): Promise<string | null> => {
+    try {
+      const summary = await generateSummary(session.displayMessages);
+      session.summary = summary;
+      session.lastActivityAt = Date.now();
+      await saveSession(session);
+      return summary;
+    } catch (err) {
+      console.error('[beta-engine] Summary generation failed:', err);
+      const fallback = 'Summary generation failed — please ask the doctor to review the transcript.';
+      session.summary = fallback;
+      await saveSession(session);
+      return fallback;
+    } finally {
+      summaryInFlight.delete(sessionId);
+    }
+  })();
+
+  summaryInFlight.set(sessionId, work);
+  return work;
 }
 
 async function generateSummary(messages: ChatMessage[]): Promise<string> {
@@ -257,8 +265,9 @@ ${transcript}`,
   return resp.content[0].type === 'text' ? resp.content[0].text : '';
 }
 
-export function getSummary(sessionId: string): string | null {
-  return sessions.get(sessionId)?.summary ?? null;
+export async function getSummary(sessionId: string): Promise<string | null> {
+  const session = await loadSession(sessionId);
+  return session?.summary ?? null;
 }
 
 
@@ -281,8 +290,9 @@ function chiefComplaintOf(session: BetaSession): string {
   return text.length > 80 ? text.slice(0, 80) + '…' : text;
 }
 
-export function listConsults(): ConsultListItem[] {
-  return [...sessions.values()]
+export async function listConsults(): Promise<ConsultListItem[]> {
+  const all = await loadAllSessions();
+  return all
     .filter((s) => s.displayMessages.some((m) => m.role === 'user'))
     .sort((a, b) => b.createdAt - a.createdAt)
     .map((s) => ({
@@ -307,8 +317,8 @@ export interface ConsultDetail {
   clinicalPackage: ClinicalPackage | null;
 }
 
-export function getConsultDetail(sessionId: string): ConsultDetail | null {
-  const s = sessions.get(sessionId);
+export async function getConsultDetail(sessionId: string): Promise<ConsultDetail | null> {
+  const s = await loadSession(sessionId);
   if (!s) return null;
   return {
     sessionId: s.sessionId,
@@ -322,17 +332,17 @@ export function getConsultDetail(sessionId: string): ConsultDetail | null {
   };
 }
 
-export function saveExamFindings(sessionId: string, exam: ExamFindings): boolean {
-  const s = sessions.get(sessionId);
+export async function saveExamFindings(sessionId: string, exam: ExamFindings): Promise<boolean> {
+  const s = await loadSession(sessionId);
   if (!s) return false;
   s.examFindings = exam;
   s.lastActivityAt = Date.now();
-  persistSession(s);
+  await saveSession(s);
   return true;
 }
 
 export async function buildClinicalPackage(sessionId: string, practiceMode?: import('./clinical-package.js').PracticeMode): Promise<ClinicalPackage | null> {
-  const s = sessions.get(sessionId);
+  const s = await loadSession(sessionId);
   if (!s) return null;
   if (!s.isComplete) throw new Error('History not yet complete');
   const pkg = await generateClinicalPackage({
@@ -344,18 +354,18 @@ export async function buildClinicalPackage(sessionId: string, practiceMode?: imp
   s.clinicalPackage = pkg;
   s.consultStatus = 'IN_REVIEW';
   s.lastActivityAt = Date.now();
-  persistSession(s);
+  await saveSession(s);
   return pkg;
 }
 
-export function confirmClinicalPackage(sessionId: string, edited: ClinicalPackage): boolean {
-  const s = sessions.get(sessionId);
+export async function confirmClinicalPackage(sessionId: string, edited: ClinicalPackage): Promise<boolean> {
+  const s = await loadSession(sessionId);
   if (!s) return false;
   s.clinicalPackage = edited;
   s.consultStatus = 'SIGNED';
   s.signedAt = Date.now();
   s.lastActivityAt = Date.now();
-  persistSession(s);
+  await saveSession(s);
   return true;
 }
 
@@ -413,8 +423,8 @@ function dayKey(ts: number): string {
   return new Date(ts).toISOString().slice(0, 10);
 }
 
-export function getAnalytics(): AnalyticsSummary {
-  const all = [...sessions.values()];
+export async function getAnalytics(): Promise<AnalyticsSummary> {
+  const all = await loadAllSessions();
   const todayStart = new Date().setHours(0, 0, 0, 0);
   const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
 

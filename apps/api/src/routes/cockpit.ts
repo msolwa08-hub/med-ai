@@ -67,14 +67,14 @@ export async function cockpitRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /cockpit/consults — list consults for the practice
   fastify.get('/cockpit/consults', async (request, reply) => {
     if (!requireDoctor(request, reply)) return;
-    return reply.send({ success: true, data: { consults: listConsults() } });
+    return reply.send({ success: true, data: { consults: await listConsults() } });
   });
 
   // GET /cockpit/consults/:id — full detail (transcript, summary, exam, package)
   fastify.get('/cockpit/consults/:id', async (request, reply) => {
     if (!requireDoctor(request, reply)) return;
     const { id } = request.params as { id: string };
-    const detail = getConsultDetail(id);
+    const detail = await getConsultDetail(id);
     if (!detail) {
       return reply.status(404).send({ success: false, error: 'Consult not found or expired' });
     }
@@ -91,9 +91,9 @@ export async function cockpitRoutes(fastify: FastifyInstance): Promise<void> {
         .status(400)
         .send({ success: false, error: 'Invalid exam findings', details: parsed.error.flatten() });
     }
-    const ok = saveExamFindings(id, parsed.data as ExamFindings);
+    const ok = await saveExamFindings(id, parsed.data as ExamFindings);
     if (!ok) return reply.status(404).send({ success: false, error: 'Consult not found or expired' });
-    return reply.send({ success: true, data: getConsultDetail(id) });
+    return reply.send({ success: true, data: await getConsultDetail(id) });
   });
 
   // POST /cockpit/consults/:id/package — generate the DRAFT clinical package
@@ -104,7 +104,7 @@ export async function cockpitRoutes(fastify: FastifyInstance): Promise<void> {
     const practiceMode = (['ACUTE_VOLUME', 'FAMILY_PRACTICE', 'HOLISTIC'] as PracticeMode[]).find(
       (m) => m === body?.practiceMode
     );
-    const detail = getConsultDetail(id);
+    const detail = await getConsultDetail(id);
     if (!detail) {
       return reply.status(404).send({ success: false, error: 'Consult not found or expired' });
     }
@@ -130,8 +130,8 @@ export async function cockpitRoutes(fastify: FastifyInstance): Promise<void> {
     if (!body || typeof body.package !== 'object' || body.package === null) {
       return reply.status(400).send({ success: false, error: 'A reviewed package is required' });
     }
-    const ok = confirmClinicalPackage(id, body.package as ClinicalPackage);
+    const ok = await confirmClinicalPackage(id, body.package as ClinicalPackage);
     if (!ok) return reply.status(404).send({ success: false, error: 'Consult not found or expired' });
-    return reply.send({ success: true, data: getConsultDetail(id) });
+    return reply.send({ success: true, data: await getConsultDetail(id) });
   });
 }

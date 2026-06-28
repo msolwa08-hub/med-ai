@@ -1,0 +1,7 @@
+# Keep the Vercel deploy lean — exclude things the web app + API function don't need.
+apps/mobile
+scripts/eval-results-round*.json
+scripts/spot-check-results.json
+huggingface
+*.md
+!VERCEL-DEPLOY.md

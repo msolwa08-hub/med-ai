@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "npm run build:web",
+  "outputDirectory": "apps/web/dist",
+  "functions": {
+    "api/[...path].ts": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/beta/:path+", "destination": "/api/beta/:path+" },
+    { "source": "/cockpit/:path+", "destination": "/api/cockpit/:path+" },
+    { "source": "/tools/:path+", "destination": "/api/tools/:path+" },
+    { "source": "/health", "destination": "/api/health" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
