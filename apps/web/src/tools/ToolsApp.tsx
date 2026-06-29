@@ -1220,7 +1220,7 @@ function PresentTab({ toolsKey, patient, onUpdate }: {
 
 // ─── Formulas tab ─────────────────────────────────────────────────────────────
 
-type FormulaId = 'gcs' | 'qsofa' | 'heart' | 'wells_pe' | 'wells_dvt' | 'crb65' | 'phq9' | 'auditc' | 'ipss' | 'abcd2' | 'centor' | 'mmrc' | 'bishop' | 'apgar' | 'edd_ga' | 'meows' | 'epds' | 'rmi' | 'pcos';
+type FormulaId = 'gcs' | 'qsofa' | 'heart' | 'wells_pe' | 'wells_dvt' | 'crb65' | 'phq9' | 'auditc' | 'ipss' | 'abcd2' | 'centor' | 'mmrc' | 'bishop' | 'apgar' | 'edd_ga' | 'meows' | 'epds' | 'rmi' | 'pcos' | 'fertility' | 'pcos_hormones' | 'ectopic';
 
 const FORMULA_LIST: { id: FormulaId; label: string; category: string }[] = [
   { id: 'gcs', label: 'GCS', category: 'Neuro' },
@@ -1242,6 +1242,9 @@ const FORMULA_LIST: { id: FormulaId; label: string; category: string }[] = [
   { id: 'epds', label: 'EPDS', category: 'O&G' },
   { id: 'rmi', label: 'RMI (Ovarian)', category: 'O&G' },
   { id: 'pcos', label: 'PCOS Rotterdam', category: 'O&G' },
+  { id: 'pcos_hormones', label: 'PCOS Hormones', category: 'O&G' },
+  { id: 'ectopic', label: 'Ectopic Assessment', category: 'O&G' },
+  { id: 'fertility', label: 'Fertility Workup', category: 'O&G' },
 ];
 
 function FormulasTab({ rotation }: { rotation?: string }) {
@@ -1279,6 +1282,9 @@ function FormulasTab({ rotation }: { rotation?: string }) {
         {active === 'epds' && <EPDSCalc />}
         {active === 'rmi' && <RMICalc />}
         {active === 'pcos' && <PCOSCalc />}
+        {active === 'pcos_hormones' && <PCOSHormonesCalc />}
+        {active === 'ectopic' && <EctopicCalc />}
+        {active === 'fertility' && <FertilityWorkup />}
       </div>
     </div>
   );
@@ -2083,6 +2089,349 @@ function APGARCalc() {
             <SelectRow label="R — Respiration" value={r5} onChange={setR5} options={respOpts} />
           </div>
           <ScoreBox score={`${score5}/10`} label={label5} color={color5} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function PCOSHormonesCalc() {
+  const [lh, setLh] = useState('');
+  const [fsh, setFsh] = useState('');
+  const [totalT, setTotalT] = useState('');
+  const [shbg, setShbg] = useState('');
+  const [fastGluc, setFastGluc] = useState('');
+  const [fastIns, setFastIns] = useState('');
+
+  const lhVal = parseFloat(lh);
+  const fshVal = parseFloat(fsh);
+  const ratio = (!isNaN(lhVal) && !isNaN(fshVal) && fshVal > 0) ? lhVal / fshVal : null;
+
+  const tVal = parseFloat(totalT);
+  const shbgVal = parseFloat(shbg);
+  const fai = (!isNaN(tVal) && !isNaN(shbgVal) && shbgVal > 0) ? (tVal / shbgVal) * 100 : null;
+
+  const gVal = parseFloat(fastGluc);
+  const iVal = parseFloat(fastIns);
+  const homa = (!isNaN(gVal) && !isNaN(iVal)) ? (gVal * iVal) / 22.5 : null;
+
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="mb-5">
+      <div className="text-sm font-bold text-gray-700 mb-2 border-b border-gray-100 pb-1">{title}</div>
+      {children}
+    </div>
+  );
+
+  const Row = ({ label, children }: { label: string; children?: React.ReactNode }) => (
+    <div className="flex items-center gap-2 mb-2">
+      <label className="text-xs text-gray-600 w-32 flex-shrink-0">{label}</label>
+      {children}
+    </div>
+  );
+
+  const inp = (val: string, set: (v: string) => void, ph: string) => (
+    <input type="number" value={val} onChange={e => set(e.target.value)} placeholder={ph}
+      className="w-24 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" />
+  );
+
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">PCOS Hormonal Panel</h3>
+      <p className="text-xs text-gray-500 mb-4">Calculate LH:FSH ratio, Free Androgen Index, and HOMA-IR from fasting bloods.</p>
+
+      <Section title="LH : FSH Ratio">
+        <Row label="LH (IU/L)"><>{inp(lh, setLh, '0.0')}</></Row>
+        <Row label="FSH (IU/L)"><>{inp(fsh, setFsh, '0.0')}</></Row>
+        {ratio !== null && (
+          <div className={`mt-2 rounded-lg px-3 py-2 text-sm font-semibold ${ratio > 2 ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-teal-50 text-teal-800 border border-teal-200'}`}>
+            LH:FSH = {ratio.toFixed(2)} — {ratio > 3 ? 'Elevated (>3:1) — strongly suggestive of PCOS' : ratio > 2 ? 'Elevated (>2:1) — suggestive but not diagnostic of PCOS' : 'Normal (<2:1) — does not exclude PCOS'}
+          </div>
+        )}
+        <div className="mt-2 text-xs text-gray-400">Normal: LH 2–15 IU/L · FSH 2–10 IU/L (follicular phase). LH:FSH ratio elevated in ~60% of PCOS.</div>
+      </Section>
+
+      <Section title="Free Androgen Index (FAI)">
+        <Row label="Total T (nmol/L)"><>{inp(totalT, setTotalT, '0.0')}</></Row>
+        <Row label="SHBG (nmol/L)"><>{inp(shbg, setShbg, '0.0')}</></Row>
+        {fai !== null && (
+          <div className={`mt-2 rounded-lg px-3 py-2 text-sm font-semibold ${fai > 4.5 ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-teal-50 text-teal-800 border border-teal-200'}`}>
+            FAI = {fai.toFixed(1)} — {fai > 4.5 ? 'Elevated — biochemical hyperandrogenism (normal <4.5)' : 'Normal (<4.5)'}
+          </div>
+        )}
+        <div className="mt-2 text-xs text-gray-400">FAI = (Total T / SHBG) × 100. Normal female total T: 0.3–1.7 nmol/L. SHBG low in PCOS/obesity/hyperinsulinaemia.</div>
+      </Section>
+
+      <Section title="HOMA-IR (Insulin Resistance)">
+        <Row label="Fasting glucose"><>{inp(fastGluc, setFastGluc, '0.0')}<span className="text-xs text-gray-400">mmol/L</span></></Row>
+        <Row label="Fasting insulin"><>{inp(fastIns, setFastIns, '0.0')}<span className="text-xs text-gray-400">mIU/L</span></></Row>
+        {homa !== null && (
+          <div className={`mt-2 rounded-lg px-3 py-2 text-sm font-semibold ${homa > 2.5 ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-teal-50 text-teal-800 border border-teal-200'}`}>
+            HOMA-IR = {homa.toFixed(2)} — {homa > 3.5 ? 'Significant insulin resistance (>3.5)' : homa > 2.5 ? 'Insulin resistance likely (>2.5) — consider metformin/lifestyle' : 'Normal (<2.5) — insulin resistance less likely'}
+          </div>
+        )}
+        <div className="mt-2 text-xs text-gray-400">HOMA-IR = (glucose × insulin) / 22.5. IR present in ~50–70% of PCOS regardless of BMI.</div>
+      </Section>
+
+      <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 px-3 py-3">
+        <div className="text-xs font-bold text-gray-700 mb-2">Full PCOS hormonal screen (to exclude differentials)</div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+          <div>• LH, FSH (Day 2–5)</div>
+          <div>• Oestradiol (Day 2–5)</div>
+          <div>• Total testosterone + SHBG</div>
+          <div>• DHEAS</div>
+          <div>• Prolactin</div>
+          <div>• TSH</div>
+          <div>• 17-OHP (exclude CAH)</div>
+          <div>• Fasting glucose + insulin</div>
+          <div>• AMH (elevated in PCOS)</div>
+          <div>• Fasting lipid profile</div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function EctopicCalc() {
+  const [hcg1, setHcg1] = useState('');
+  const [hcg2, setHcg2] = useState('');
+  const [hours, setHours] = useState('48');
+  const [prog, setProg] = useState('');
+
+  const h1 = parseFloat(hcg1);
+  const h2 = parseFloat(hcg2);
+  const hrsVal = parseFloat(hours) || 48;
+
+  const pctChange = (!isNaN(h1) && !isNaN(h2) && h1 > 0) ? ((h2 - h1) / h1) * 100 : null;
+  const normalisedRise = pctChange !== null ? pctChange * (48 / hrsVal) : null;
+
+  const progVal = parseFloat(prog);
+
+  const hcgColor = normalisedRise === null ? 'gray'
+    : normalisedRise >= 66 ? 'teal'
+    : normalisedRise >= 50 ? 'amber'
+    : normalisedRise < 0 ? 'red'
+    : 'red';
+
+  const hcgLabel = normalisedRise === null ? ''
+    : normalisedRise >= 66 ? `+${normalisedRise.toFixed(0)}% rise (normalised to 48 h) — consistent with viable IUP`
+    : normalisedRise >= 50 ? `+${normalisedRise.toFixed(0)}% rise — suboptimal; indeterminate (viable IUP, ectopic, or failing pregnancy)`
+    : normalisedRise >= 0 ? `+${normalisedRise.toFixed(0)}% rise — inadequate rise; ectopic or non-viable IUP likely`
+    : `${normalisedRise.toFixed(0)}% (falling) — non-viable (ectopic or miscarriage)`;;
+
+  const progColor = isNaN(progVal) ? 'gray' : progVal >= 60 ? 'teal' : progVal >= 20 ? 'amber' : 'red';
+  const progLabel = isNaN(progVal) ? ''
+    : progVal >= 60 ? 'Likely viable IUP (≥60 nmol/L)'
+    : progVal >= 20 ? 'Indeterminate (20–60 nmol/L) — repeat hCG + USS'
+    : 'Non-viable pregnancy (<20 nmol/L) — ectopic or miscarriage';
+
+  const discZone = !isNaN(h2) && h2 >= 1500;
+  const colorMap: Record<string, string> = { teal: 'bg-teal-50 text-teal-800 border-teal-200', amber: 'bg-amber-50 text-amber-800 border-amber-200', red: 'bg-red-50 text-red-800 border-red-200', gray: '' };
+
+  const [risk, setRisk] = useState({ prevEctopic: false, tubalSx: false, pid: false, ivf: false, iud: false, smoking: false, subfertility: false });
+
+  const riskCount = Object.values(risk).filter(Boolean).length;
+  const riskLevel = riskCount >= 3 ? 'High' : riskCount >= 1 ? 'Moderate' : 'Low';
+  const riskColor = riskLevel === 'High' ? 'text-red-700' : riskLevel === 'Moderate' ? 'text-amber-700' : 'text-teal-700';
+
+  const [mtx, setMtx] = useState({ hcgOk: false, noFhb: false, smallAdnexal: false, noRupture: false, renalOk: false, lftOk: false, noContra: false });
+  const mtxCount = Object.values(mtx).filter(Boolean).length;
+  const mtxEligible = mtxCount === Object.keys(mtx).length;
+
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">Ectopic Pregnancy Assessment</h3>
+      <p className="text-xs text-gray-500 mb-4">Serial hCG rise, progesterone, discriminatory zone, and methotrexate eligibility.</p>
+
+      <div className="mb-5">
+        <div className="text-sm font-bold text-gray-700 mb-2 border-b border-gray-100 pb-1">Serial β-hCG</div>
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">hCG #1 (IU/L)</label>
+            <input type="number" value={hcg1} onChange={e => setHcg1(e.target.value)} placeholder="e.g. 500"
+              className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">hCG #2 (IU/L)</label>
+            <input type="number" value={hcg2} onChange={e => setHcg2(e.target.value)} placeholder="e.g. 830"
+              className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Interval (hours)</label>
+            <input type="number" value={hours} onChange={e => setHours(e.target.value)} placeholder="48"
+              className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          </div>
+        </div>
+        {pctChange !== null && (
+          <div className={`rounded-lg px-3 py-2 text-xs font-semibold border ${colorMap[hcgColor]}`}>
+            Actual rise: {pctChange > 0 ? '+' : ''}{pctChange.toFixed(1)}% in {hrsVal}h → {hcgLabel}
+          </div>
+        )}
+        <div className={`mt-2 rounded-lg px-3 py-2 text-xs border ${discZone ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+          <span className="font-semibold">Discriminatory zone:</span> hCG ≥1,500 IU/L → IUP should be visible on TVS.
+          {!isNaN(h2) && h2 > 0 && <> Current hCG #{2}: {h2} IU/L — {discZone ? 'at or above discriminatory zone; empty uterus on TVS = strong evidence of ectopic' : 'below discriminatory zone; TVS may not yet show IUP'}.</>}
+        </div>
+      </div>
+
+      <div className="mb-5">
+        <div className="text-sm font-bold text-gray-700 mb-2 border-b border-gray-100 pb-1">Serum Progesterone</div>
+        <div className="flex items-center gap-2 mb-2">
+          <input type="number" value={prog} onChange={e => setProg(e.target.value)} placeholder="e.g. 25"
+            className="w-24 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          <span className="text-xs text-gray-400">nmol/L</span>
+        </div>
+        {!isNaN(progVal) && progVal > 0 && (
+          <div className={`rounded-lg px-3 py-2 text-xs font-semibold border ${colorMap[progColor]}`}>{progLabel}</div>
+        )}
+        <div className="mt-2 text-xs text-gray-400">Progesterone alone cannot localise pregnancy but helps assess viability. Sensitivity ~85% at &lt;20 nmol/L for non-viability.</div>
+      </div>
+
+      <div className="mb-5">
+        <div className="text-sm font-bold text-gray-700 mb-2 border-b border-gray-100 pb-1">Risk Factors</div>
+        <div className="grid grid-cols-2 gap-1">
+          {([
+            ['prevEctopic', 'Previous ectopic pregnancy'],
+            ['tubalSx', 'Previous tubal surgery / damage'],
+            ['pid', 'Previous PID / salpingitis'],
+            ['ivf', 'IVF / ART conception'],
+            ['iud', 'IUCD in situ'],
+            ['smoking', 'Current smoker'],
+            ['subfertility', 'Subfertility / infertility'],
+          ] as [keyof typeof risk, string][]).map(([k, label]) => (
+            <label key={k} className={`flex items-center gap-2 cursor-pointer rounded-lg border px-2 py-1.5 text-xs transition ${risk[k] ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-gray-200 text-gray-600'}`}>
+              <input type="checkbox" checked={risk[k]} onChange={e => setRisk(r => ({ ...r, [k]: e.target.checked }))} className="accent-amber-500" />
+              {label}
+            </label>
+          ))}
+        </div>
+        <div className={`mt-2 text-xs font-semibold ${riskColor}`}>{riskCount} risk factor{riskCount !== 1 ? 's' : ''} — {riskLevel} background risk</div>
+      </div>
+
+      <div>
+        <div className="text-sm font-bold text-gray-700 mb-2 border-b border-gray-100 pb-1">Methotrexate Eligibility (RCOG criteria)</div>
+        <div className="space-y-1 mb-2">
+          {([
+            ['hcgOk', 'hCG < 5,000 IU/L (some centres ≤3,000)'],
+            ['noFhb', 'No fetal cardiac activity on USS'],
+            ['smallAdnexal', 'Adnexal mass < 35 mm (no yolk sac/embryo)'],
+            ['noRupture', 'No signs of haemoperitoneum / rupture'],
+            ['renalOk', 'Normal renal function (creatinine + eGFR)'],
+            ['lftOk', 'Normal LFTs (ALT, bilirubin)'],
+            ['noContra', 'No contraindications (immunodeficiency, active pulmonary disease, bone marrow suppression, breastfeeding)'],
+          ] as [keyof typeof mtx, string][]).map(([k, label]) => (
+            <label key={k} className={`flex items-start gap-2 cursor-pointer rounded-lg border px-2 py-1.5 text-xs transition ${mtx[k] ? 'border-teal-400 bg-teal-50 text-teal-800' : 'border-gray-200 text-gray-600'}`}>
+              <input type="checkbox" checked={mtx[k]} onChange={e => setMtx(m => ({ ...m, [k]: e.target.checked }))} className="mt-0.5 accent-teal-600" />
+              {label}
+            </label>
+          ))}
+        </div>
+        <div className={`rounded-lg px-3 py-2 text-xs font-semibold border ${mtxEligible ? 'bg-teal-50 border-teal-200 text-teal-800' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+          {mtxEligible ? 'All criteria met — patient appears eligible for methotrexate. Confirm with senior and obtain consent.' : `${mtxCount}/${Object.keys(mtx).length} criteria met — review unmet criteria before offering methotrexate.`}
+        </div>
+        <div className="mt-2 text-xs text-gray-400">Single-dose IM methotrexate 50 mg/m². Success ~85–90% if hCG &lt;1,500; falls to ~68% at 1,500–5,000. Serial hCG days 4 and 7; &gt;15% fall from day 4→7 = success.</div>
+      </div>
+    </Card>
+  );
+}
+
+function FertilityWorkup() {
+  const [midLutealP, setMidLutealP] = useState('');
+  const [amh, setAmh] = useState('');
+  const [d3Fsh, setD3Fsh] = useState('');
+
+  const pVal = parseFloat(midLutealP);
+  const pColor = isNaN(pVal) ? '' : pVal >= 30 ? 'teal' : pVal >= 16 ? 'amber' : 'red';
+  const pLabel = isNaN(pVal) ? '' : pVal >= 30 ? 'Adequate ovulation confirmed (≥30 nmol/L)' : pVal >= 16 ? 'Probable ovulation (16–30 nmol/L) — borderline' : 'Anovulation likely (<16 nmol/L)';
+
+  const amhVal = parseFloat(amh);
+  const amhColor = isNaN(amhVal) ? '' : amhVal >= 14 ? 'teal' : amhVal >= 5 ? 'amber' : 'red';
+  const amhLabel = isNaN(amhVal) ? '' : amhVal >= 25 ? `${amhVal} pmol/L — High ovarian reserve (also consider PCOS if >40)` : amhVal >= 14 ? `${amhVal} pmol/L — Normal ovarian reserve` : amhVal >= 5 ? `${amhVal} pmol/L — Low-normal reserve — counsel re: time sensitivity` : `${amhVal} pmol/L — Low ovarian reserve — refer urgently if fertility desired`;
+
+  const fshVal = parseFloat(d3Fsh);
+  const fshColor = isNaN(fshVal) ? '' : fshVal < 10 ? 'teal' : fshVal < 15 ? 'amber' : 'red';
+  const fshLabel = isNaN(fshVal) ? '' : fshVal < 10 ? `Day 3 FSH ${fshVal} IU/L — Normal ovarian reserve` : fshVal < 15 ? `Day 3 FSH ${fshVal} IU/L — Diminished reserve (10–15 IU/L) — consider early referral` : `Day 3 FSH ${fshVal} IU/L — Poor reserve (>15 IU/L) — urgent fertility referral`;
+
+  const colorMap: Record<string, string> = { teal: 'bg-teal-50 text-teal-800 border-teal-200', amber: 'bg-amber-50 text-amber-800 border-amber-200', red: 'bg-red-50 text-red-800 border-red-200' };
+
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">Fertility Workup</h3>
+      <p className="text-xs text-gray-500 mb-4">Ovulation confirmation, ovarian reserve, and investigation checklists.</p>
+
+      <div className="mb-5">
+        <div className="text-sm font-bold text-gray-700 mb-2 border-b border-gray-100 pb-1">Mid-Luteal Progesterone (Day 21)</div>
+        <div className="flex items-center gap-2 mb-2">
+          <input type="number" value={midLutealP} onChange={e => setMidLutealP(e.target.value)} placeholder="e.g. 32"
+            className="w-24 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          <span className="text-xs text-gray-400">nmol/L</span>
+        </div>
+        {pColor && <div className={`rounded-lg px-3 py-2 text-xs font-semibold border ${colorMap[pColor]}`}>{pLabel}</div>}
+        <div className="mt-2 text-xs text-gray-400">Sample Day 21 of a 28-day cycle; adjust for cycle length (e.g. Day 28 for 35-day cycle, 7 days before expected next period). Repeat if borderline.</div>
+      </div>
+
+      <div className="mb-5">
+        <div className="text-sm font-bold text-gray-700 mb-2 border-b border-gray-100 pb-1">Anti-Müllerian Hormone (AMH)</div>
+        <div className="flex items-center gap-2 mb-2">
+          <input type="number" value={amh} onChange={e => setAmh(e.target.value)} placeholder="e.g. 18"
+            className="w-24 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          <span className="text-xs text-gray-400">pmol/L</span>
+        </div>
+        {amhColor && <div className={`rounded-lg px-3 py-2 text-xs font-semibold border ${colorMap[amhColor]}`}>{amhLabel}</div>}
+        <div className="mt-2 text-xs text-gray-400">Can be measured any cycle day. Normal reproductive-age range: ~14–48 pmol/L. Decline with age; very high (&gt;40) raises PCOS. Units vary by lab — confirm pmol/L vs ng/mL (÷0.141 to convert).</div>
+      </div>
+
+      <div className="mb-5">
+        <div className="text-sm font-bold text-gray-700 mb-2 border-b border-gray-100 pb-1">Day 2–5 FSH (Ovarian Reserve)</div>
+        <div className="flex items-center gap-2 mb-2">
+          <input type="number" value={d3Fsh} onChange={e => setD3Fsh(e.target.value)} placeholder="e.g. 8"
+            className="w-24 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          <span className="text-xs text-gray-400">IU/L</span>
+        </div>
+        {fshColor && <div className={`rounded-lg px-3 py-2 text-xs font-semibold border ${colorMap[fshColor]}`}>{fshLabel}</div>}
+        <div className="mt-2 text-xs text-gray-400">Interpret with oestradiol — high E2 (&gt;200 pmol/L) can suppress FSH falsely, masking poor reserve.</div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 mt-4">
+        <div className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-3">
+          <div className="text-xs font-bold text-gray-700 mb-2">Female fertility investigations</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+            <div>• Mid-luteal progesterone</div>
+            <div>• AMH (ovarian reserve)</div>
+            <div>• Day 2–5 FSH, LH, E2</div>
+            <div>• Prolactin + TSH</div>
+            <div>• Rubella immunity</div>
+            <div>• Pelvic USS (follicle count, fibroids)</div>
+            <div>• Hysterosalpingography (tubal patency)</div>
+            <div>• Endometrial biopsy (if indicated)</div>
+            <div>• Thrombophilia screen (if RPL)</div>
+            <div>• Antiphospholipid antibodies (if RPL)</div>
+          </div>
+        </div>
+        <div className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-3">
+          <div className="text-xs font-bold text-gray-700 mb-2">Semen analysis — WHO 2021 reference limits</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+            <div>• Volume: ≥1.4 mL</div>
+            <div>• Concentration: ≥16 million/mL</div>
+            <div>• Total motility: ≥42%</div>
+            <div>• Progressive motility: ≥30%</div>
+            <div>• Normal morphology: ≥4% (Kruger)</div>
+            <div>• Total sperm: ≥39 million</div>
+            <div>• pH: ≥7.2</div>
+            <div>• Vitality: ≥54% live</div>
+          </div>
+          <div className="mt-2 text-xs text-gray-400">Repeat abnormal SA after 3 months. Refer to andrology if 2 abnormal results.</div>
+        </div>
+        <div className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-3">
+          <div className="text-xs font-bold text-gray-700 mb-2">Recurrent pregnancy loss (RPL) — ≥2 losses</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+            <div>• Antiphospholipid antibodies</div>
+            <div>• Anticardiolipin IgG/IgM</div>
+            <div>• Lupus anticoagulant</div>
+            <div>• β2-glycoprotein I antibodies</div>
+            <div>• Parental karyotyping</div>
+            <div>• USS (uterine anatomy)</div>
+            <div>• TSH + thyroid antibodies</div>
+            <div>• Factor V Leiden / prothrombin mutation</div>
+          </div>
         </div>
       </div>
     </Card>
