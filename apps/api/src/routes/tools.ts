@@ -12,6 +12,8 @@ import {
   generateAdmissionNote,
   interpretLabResults,
   generatePatientPresentation,
+  generateObsNote,
+  generateGynaeNote,
 } from '../services/hospital-docs.js';
 
 const DischargeSchema = z.object({
@@ -80,6 +82,41 @@ const WardNoteSchema = z.object({
   previousNotes: z.string().min(1, 'previousNotes are required'),
   labResults: z.string().optional(),
   todayStatus: z.string().optional(),
+});
+
+const ObsNoteSchema = z.object({
+  ageSex: z.string().optional(),
+  hospitalNumber: z.string().optional(),
+  ward: z.string().optional(),
+  gravidaPara: z.string().optional(),
+  lmp: z.string().optional(),
+  edd: z.string().optional(),
+  gestationalAge: z.string().optional(),
+  ancHistory: z.string().optional(),
+  presentingComplaint: z.string().optional(),
+  fetalMovements: z.string().optional(),
+  contractions: z.string().optional(),
+  fhr: z.string().optional(),
+  cervicalExam: z.string().optional(),
+  membranesLiquor: z.string().optional(),
+  examination: z.string().optional(),
+  investigations: z.string().optional(),
+});
+
+const GynaeNoteSchema = z.object({
+  ageSex: z.string().optional(),
+  hospitalNumber: z.string().optional(),
+  ward: z.string().optional(),
+  gravidaPara: z.string().optional(),
+  lmp: z.string().optional(),
+  menstrualHistory: z.string().optional(),
+  contraception: z.string().optional(),
+  smearHistory: z.string().optional(),
+  presentingComplaint: z.string().optional(),
+  relevantHistory: z.string().optional(),
+  examination: z.string().optional(),
+  investigations: z.string().optional(),
+  workingDiagnosis: z.string().optional(),
 });
 
 function toolsKeys(): string[] {
@@ -194,6 +231,36 @@ export async function toolsRoutes(fastify: FastifyInstance): Promise<void> {
     } catch (err) {
       fastify.log.error(err, 'tools: ward-note generation failed');
       return reply.status(500).send({ success: false, error: 'Failed to generate ward note' });
+    }
+  });
+
+  fastify.post('/tools/obs-note', async (request, reply) => {
+    if (!requireTools(request, reply)) return;
+    const parsed = ObsNoteSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: 'Invalid input', details: parsed.error.flatten() });
+    }
+    try {
+      const doc = await generateObsNote(parsed.data);
+      return reply.send({ success: true, data: { document: doc } });
+    } catch (err) {
+      fastify.log.error(err, 'tools: obs-note generation failed');
+      return reply.status(500).send({ success: false, error: 'Failed to generate obstetric note' });
+    }
+  });
+
+  fastify.post('/tools/gynae-note', async (request, reply) => {
+    if (!requireTools(request, reply)) return;
+    const parsed = GynaeNoteSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: 'Invalid input', details: parsed.error.flatten() });
+    }
+    try {
+      const doc = await generateGynaeNote(parsed.data);
+      return reply.send({ success: true, data: { document: doc } });
+    } catch (err) {
+      fastify.log.error(err, 'tools: gynae-note generation failed');
+      return reply.status(500).send({ success: false, error: 'Failed to generate gynaecology note' });
     }
   });
 }

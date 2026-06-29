@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import {
   toolsApi, toolsKeyStore,
   type AdmissionNote, type LabInterpretation, type PatientPresentation,
-  type WardNote, type DischargeSummary,
+  type WardNote, type DischargeSummary, type ObsNote, type GynaeNote,
 } from './toolsApi';
 import { formatDischarge, formatWardNote } from './formatDocs';
 
 // ─── Data model ──────────────────────────────────────────────────────────────
 
 const ROTATIONS = [
-  'General Medicine', 'Surgery', 'Paediatrics', 'Obs/Gyn',
+  'General Medicine', 'Surgery', 'Paediatrics', 'Obstetrics', 'Gynaecology',
   'Psychiatry', 'ICU', 'Emergency', 'Family Medicine', 'Orthopaedics', 'Other',
 ] as const;
 type Rotation = typeof ROTATIONS[number];
@@ -40,6 +40,21 @@ interface ManagementItem {
   id: string; problem: string; plan: string; status: 'ACTIVE' | 'RESOLVED';
 }
 
+interface ObsData {
+  gravidaPara: string; lmp: string; edd: string; gestationalAge: string;
+  ancHistory: string; presentingComplaint: string; fetalMovements: string;
+  contractions: string; fhr: string; cervicalExam: string;
+  membranesLiquor: string; examination: string; investigations: string;
+  aiNote: ObsNote | null;
+}
+
+interface GynaeData {
+  gravidaPara: string; lmp: string; menstrualHistory: string;
+  contraception: string; smearHistory: string; presentingComplaint: string;
+  relevantHistory: string; examination: string; investigations: string;
+  workingDiagnosis: string; aiNote: GynaeNote | null;
+}
+
 interface Patient {
   id: string; name: string; ageSex: string; hospitalNumber: string;
   ward: string; admissionDate: string; dischargeDate: string; status: 'ADMITTED' | 'DISCHARGED';
@@ -47,9 +62,10 @@ interface Patient {
   progressNotes: ProgressNote[]; labs: LabEntry[];
   diagnoses: DiagnosisItem[]; management: ManagementItem[];
   dischargeSummary: DischargeSummary | null; presentation: PatientPresentation | null;
+  obsData?: ObsData; gynaeData?: GynaeData;
 }
 
-type Tab = 'admission' | 'notes' | 'labs' | 'diagnosis' | 'formulas' | 'present';
+type Tab = 'admission' | 'notes' | 'labs' | 'diagnosis' | 'formulas' | 'present' | 'og';
 
 // ─── Storage ─────────────────────────────────────────────────────────────────
 
@@ -70,10 +86,21 @@ function emptyAdmission(): AdmissionData {
     familyHistory: '', socialHistory: '', ros: '', examination: '', investigations: '',
     workingDiagnosis: '', managementPlan: '', aiNote: null };
 }
+function emptyObsData(): ObsData {
+  return { gravidaPara: '', lmp: '', edd: '', gestationalAge: '', ancHistory: '',
+    presentingComplaint: '', fetalMovements: '', contractions: '', fhr: '',
+    cervicalExam: '', membranesLiquor: '', examination: '', investigations: '', aiNote: null };
+}
+function emptyGynaeData(): GynaeData {
+  return { gravidaPara: '', lmp: '', menstrualHistory: '', contraception: '',
+    smearHistory: '', presentingComplaint: '', relevantHistory: '',
+    examination: '', investigations: '', workingDiagnosis: '', aiNote: null };
+}
 function newPatient(rotation: string): Patient {
   return { id: uid(), name: '', ageSex: '', hospitalNumber: '', ward: '', admissionDate: today(), dischargeDate: '',
     status: 'ADMITTED', rotation, admission: emptyAdmission(),
-    progressNotes: [], labs: [], diagnoses: [], management: [], dischargeSummary: null, presentation: null };
+    progressNotes: [], labs: [], diagnoses: [], management: [], dischargeSummary: null, presentation: null,
+    obsData: emptyObsData(), gynaeData: emptyGynaeData() };
 }
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -318,7 +345,7 @@ function PatientSection({ title, patients, onSelect, onRemove, dim }: {
 
 // ─── Patient workspace ────────────────────────────────────────────────────────
 
-const TABS: { id: Tab; label: string }[] = [
+const BASE_TABS: { id: Tab; label: string }[] = [
   { id: 'admission', label: 'Admission' },
   { id: 'notes', label: 'Progress' },
   { id: 'labs', label: 'Labs' },
@@ -327,11 +354,16 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'present', label: 'Present' },
 ];
 
+const IS_OG = (rotation: string) => rotation === 'Obstetrics' || rotation === 'Gynaecology';
+
 function PatientWorkspace({ toolsKey, patient, rotation, onBack, onUpdate }: {
   toolsKey: string; patient: Patient; rotation: string;
   onBack: () => void; onUpdate: (p: Patient) => void;
 }) {
   const [tab, setTab] = useState<Tab>('admission');
+  const tabs = IS_OG(patient.rotation)
+    ? [...BASE_TABS, { id: 'og' as Tab, label: patient.rotation === 'Obstetrics' ? 'Obstetrics' : 'Gynae' }]
+    : BASE_TABS;
   const [editingName, setEditingName] = useState(!patient.name);
   const [nameInput, setNameInput] = useState(patient.name);
 
@@ -367,7 +399,7 @@ function PatientWorkspace({ toolsKey, patient, rotation, onBack, onUpdate }: {
             </button>
           </div>
           <div className="mt-3 flex gap-1 overflow-x-auto scrollbar-hide">
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition ${tab === t.id ? 'bg-teal-600 text-white' : 'text-gray-500 hover:text-teal-700 hover:bg-teal-50'}`}>
                 {t.label}
@@ -382,8 +414,9 @@ function PatientWorkspace({ toolsKey, patient, rotation, onBack, onUpdate }: {
         {tab === 'notes' && <ProgressNotesTab toolsKey={toolsKey} patient={patient} onUpdate={onUpdate} />}
         {tab === 'labs' && <LabsTab toolsKey={toolsKey} patient={patient} onUpdate={onUpdate} />}
         {tab === 'diagnosis' && <DiagnosisMgmtTab patient={patient} onUpdate={onUpdate} />}
-        {tab === 'formulas' && <FormulasTab />}
+        {tab === 'formulas' && <FormulasTab rotation={patient.rotation} />}
         {tab === 'present' && <PresentTab toolsKey={toolsKey} patient={patient} onUpdate={onUpdate} />}
+        {tab === 'og' && <OGTab toolsKey={toolsKey} patient={patient} onUpdate={onUpdate} />}
       </div>
     </div>
   );
@@ -1187,7 +1220,7 @@ function PresentTab({ toolsKey, patient, onUpdate }: {
 
 // ─── Formulas tab ─────────────────────────────────────────────────────────────
 
-type FormulaId = 'gcs' | 'qsofa' | 'heart' | 'wells_pe' | 'wells_dvt' | 'crb65' | 'phq9' | 'auditc' | 'ipss' | 'abcd2' | 'centor' | 'mmrc';
+type FormulaId = 'gcs' | 'qsofa' | 'heart' | 'wells_pe' | 'wells_dvt' | 'crb65' | 'phq9' | 'auditc' | 'ipss' | 'abcd2' | 'centor' | 'mmrc' | 'bishop' | 'apgar';
 
 const FORMULA_LIST: { id: FormulaId; label: string; category: string }[] = [
   { id: 'gcs', label: 'GCS', category: 'Neuro' },
@@ -1202,10 +1235,13 @@ const FORMULA_LIST: { id: FormulaId; label: string; category: string }[] = [
   { id: 'auditc', label: 'AUDIT-C', category: 'Mental' },
   { id: 'ipss', label: 'IPSS', category: 'Urology' },
   { id: 'centor', label: 'Centor / McIsaac', category: 'ENT' },
+  { id: 'bishop', label: 'Bishop Score', category: 'O&G' },
+  { id: 'apgar', label: 'APGAR Score', category: 'O&G' },
 ];
 
-function FormulasTab() {
-  const [active, setActive] = useState<FormulaId>('gcs');
+function FormulasTab({ rotation }: { rotation?: string }) {
+  const defaultFormula: FormulaId = IS_OG(rotation ?? '') ? 'bishop' : 'gcs';
+  const [active, setActive] = useState<FormulaId>(defaultFormula);
 
   return (
     <div className="flex gap-4">
@@ -1231,6 +1267,8 @@ function FormulasTab() {
         {active === 'auditc' && <AUDITCCalc />}
         {active === 'ipss' && <IPSSCalc />}
         {active === 'centor' && <CentorCalc />}
+        {active === 'bishop' && <BishopCalc />}
+        {active === 'apgar' && <APGARCalc />}
       </div>
     </div>
   );
@@ -1614,5 +1652,405 @@ function CentorCalc() {
       </div>
       <ScoreBox score={`${score} — GAS risk: ${risk}`} label={action} color={color} />
     </Card>
+  );
+}
+
+// ─── O&G Calculators ──────────────────────────────────────────────────────────
+
+function BishopCalc() {
+  const [dilation, setDilation] = useState(0);
+  const [effacement, setEffacement] = useState(0);
+  const [station, setStation] = useState(0);
+  const [consistency, setConsistency] = useState(0);
+  const [position, setPosition] = useState(0);
+  const score = dilation + effacement + station + consistency + position;
+  const interp = score >= 9
+    ? { l: 'Favourable (≥9) — induction likely to succeed; labour may start spontaneously', c: 'green' as const }
+    : score >= 6
+    ? { l: 'Borderline (6–8) — induction possible; consider cervical ripening', c: 'amber' as const }
+    : { l: 'Unfavourable (≤5) — cervical ripening recommended before induction', c: 'red' as const };
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">Bishop Score</h3>
+      <p className="text-xs text-gray-500 mb-4">Cervical favourability for induction of labour. ≤5 unfavourable, 6–8 borderline, ≥9 favourable.</p>
+      <div className="space-y-4">
+        <SelectRow label="Dilation (cm)" value={dilation} onChange={setDilation}
+          options={[{ v: 0, l: 'Closed (0)' }, { v: 1, l: '1–2 cm' }, { v: 2, l: '3–4 cm' }, { v: 3, l: '≥5 cm' }]} />
+        <SelectRow label="Effacement (%)" value={effacement} onChange={setEffacement}
+          options={[{ v: 0, l: '0–30%' }, { v: 1, l: '40–50%' }, { v: 2, l: '60–70%' }, { v: 3, l: '≥80%' }]} />
+        <SelectRow label="Station" value={station} onChange={setStation}
+          options={[{ v: 0, l: '-3 (high)' }, { v: 1, l: '-2' }, { v: 2, l: '-1 / 0' }, { v: 3, l: '+1 / +2 (engaged)' }]} />
+        <SelectRow label="Consistency" value={consistency} onChange={setConsistency}
+          options={[{ v: 0, l: 'Firm' }, { v: 1, l: 'Medium' }, { v: 2, l: 'Soft' }]} />
+        <SelectRow label="Position" value={position} onChange={setPosition}
+          options={[{ v: 0, l: 'Posterior' }, { v: 1, l: 'Mid' }, { v: 2, l: 'Anterior' }]} />
+      </div>
+      <ScoreBox score={`${score}/13`} label={interp.l} color={interp.c} />
+    </Card>
+  );
+}
+
+function APGARCalc() {
+  const [a1, setA1] = useState(2); const [p1, setP1] = useState(2); const [g1, setG1] = useState(2);
+  const [ac1, setAc1] = useState(2); const [r1, setR1] = useState(2);
+  const [a5, setA5] = useState(2); const [p5, setP5] = useState(2); const [g5, setG5] = useState(2);
+  const [ac5, setAc5] = useState(2); const [r5, setR5] = useState(2);
+  const score1 = a1 + p1 + g1 + ac1 + r1;
+  const score5 = a5 + p5 + g5 + ac5 + r5;
+  const color1 = score1 >= 7 ? 'green' as const : score1 >= 4 ? 'amber' as const : 'red' as const;
+  const color5 = score5 >= 7 ? 'green' as const : score5 >= 4 ? 'amber' as const : 'red' as const;
+  const label1 = score1 >= 7 ? 'Normal — routine care' : score1 >= 4 ? 'Moderate concern — stimulation, O₂' : 'Severe — immediate resuscitation';
+  const label5 = score5 >= 7 ? 'Normal' : score5 >= 4 ? 'Moderate — continue resuscitation' : 'Severe — ongoing resuscitation, NICU';
+  const colorOpts = [{ v: 0, l: 'Cyanotic / pale (0)' }, { v: 1, l: 'Body pink, extremities blue (1)' }, { v: 2, l: 'Completely pink (2)' }];
+  const pulseOpts = [{ v: 0, l: 'Absent (0)' }, { v: 1, l: '<100 bpm (1)' }, { v: 2, l: '≥100 bpm (2)' }];
+  const grimaceOpts = [{ v: 0, l: 'No response (0)' }, { v: 1, l: 'Grimace / minimal (1)' }, { v: 2, l: 'Cough / sneeze / cry (2)' }];
+  const activityOpts = [{ v: 0, l: 'Limp (0)' }, { v: 1, l: 'Some flexion (1)' }, { v: 2, l: 'Active motion (2)' }];
+  const respOpts = [{ v: 0, l: 'Absent (0)' }, { v: 1, l: 'Weak / irregular (1)' }, { v: 2, l: 'Strong cry (2)' }];
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">APGAR Score</h3>
+      <p className="text-xs text-gray-500 mb-4">Neonatal assessment at 1 and 5 minutes. 0–3 severe, 4–6 moderate, 7–10 normal.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <div className="text-sm font-bold text-teal-700 mb-3">1-minute APGAR</div>
+          <div className="space-y-4">
+            <SelectRow label="A — Appearance (colour)" value={a1} onChange={setA1} options={colorOpts} />
+            <SelectRow label="P — Pulse (heart rate)" value={p1} onChange={setP1} options={pulseOpts} />
+            <SelectRow label="G — Grimace (reflex)" value={g1} onChange={setG1} options={grimaceOpts} />
+            <SelectRow label="A — Activity (muscle tone)" value={ac1} onChange={setAc1} options={activityOpts} />
+            <SelectRow label="R — Respiration" value={r1} onChange={setR1} options={respOpts} />
+          </div>
+          <ScoreBox score={`${score1}/10`} label={label1} color={color1} />
+        </div>
+        <div>
+          <div className="text-sm font-bold text-teal-700 mb-3">5-minute APGAR</div>
+          <div className="space-y-4">
+            <SelectRow label="A — Appearance" value={a5} onChange={setA5} options={colorOpts} />
+            <SelectRow label="P — Pulse" value={p5} onChange={setP5} options={pulseOpts} />
+            <SelectRow label="G — Grimace" value={g5} onChange={setG5} options={grimaceOpts} />
+            <SelectRow label="A — Activity" value={ac5} onChange={setAc5} options={activityOpts} />
+            <SelectRow label="R — Respiration" value={r5} onChange={setR5} options={respOpts} />
+          </div>
+          <ScoreBox score={`${score5}/10`} label={label5} color={color5} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── O&G Tab ──────────────────────────────────────────────────────────────────
+
+function OGTab({ toolsKey, patient, onUpdate }: {
+  toolsKey: string; patient: Patient; onUpdate: (p: Patient) => void;
+}) {
+  if (patient.rotation === 'Obstetrics') {
+    return <ObsSection toolsKey={toolsKey} patient={patient} onUpdate={onUpdate} />;
+  }
+  if (patient.rotation === 'Gynaecology') {
+    return <GynaeSection toolsKey={toolsKey} patient={patient} onUpdate={onUpdate} />;
+  }
+  return (
+    <div className="text-center py-12 text-sm text-gray-400">
+      O&amp;G tab available for Obstetrics and Gynaecology rotations only.
+    </div>
+  );
+}
+
+// ─── Obstetrics section ───────────────────────────────────────────────────────
+
+function ObsSection({ toolsKey, patient, onUpdate }: {
+  toolsKey: string; patient: Patient; onUpdate: (p: Patient) => void;
+}) {
+  const obs = patient.obsData ?? emptyObsData();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showNote, setShowNote] = useState(!!obs.aiNote);
+
+  function set(patch: Partial<ObsData>) {
+    onUpdate({ ...patient, obsData: { ...obs, ...patch } });
+  }
+  function fld(key: keyof ObsData) { return (v: string) => set({ [key]: v } as Partial<ObsData>); }
+
+  async function generate() {
+    setError(''); setLoading(true);
+    try {
+      const { document } = await toolsApi.obsNote(toolsKey, {
+        ageSex: patient.ageSex, hospitalNumber: patient.hospitalNumber, ward: patient.ward,
+        gravidaPara: obs.gravidaPara, lmp: obs.lmp, edd: obs.edd, gestationalAge: obs.gestationalAge,
+        ancHistory: obs.ancHistory, presentingComplaint: obs.presentingComplaint,
+        fetalMovements: obs.fetalMovements, contractions: obs.contractions, fhr: obs.fhr,
+        cervicalExam: obs.cervicalExam, membranesLiquor: obs.membranesLiquor,
+        examination: obs.examination, investigations: obs.investigations,
+      });
+      set({ aiNote: document }); setShowNote(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Generation failed');
+    } finally { setLoading(false); }
+  }
+
+  async function copyNote() {
+    if (!obs.aiNote) return;
+    const n = obs.aiNote;
+    let out = `OBSTETRIC ASSESSMENT NOTE\n${'='.repeat(40)}\n`;
+    out += `Patient: ${n.ageSex}  G/P: ${n.gravidaPara}  GA: ${n.gestationalAge}\n`;
+    out += `LMP: ${n.lmp}  EDD: ${n.edd}\n\n`;
+    [['ANC SUMMARY', n.ancSummary], ['CURRENT PRESENTATION', n.currentPresentation],
+     ['EXAMINATION', n.examinationFindings], ['FETAL ASSESSMENT', n.fetalAssessment],
+     ['CERVICAL FINDINGS', n.cervicalFindings], ['IMPRESSION & RISK', n.impressionAndRisk]
+    ].forEach(([l, v]) => { if (v) out += `${l}:\n${v}\n\n`; });
+    if (n.plan.length) out += `PLAN:\n${n.plan.map((p) => `  - ${p}`).join('\n')}\n\n`;
+    if (n.concerns.length) out += `CONCERNS:\n${n.concerns.map((c) => `  ⚠ ${c}`).join('\n')}\n\n`;
+    out += `---\n${n.disclaimer}`;
+    await navigator.clipboard.writeText(out);
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <h3 className="text-sm font-bold text-teal-800 mb-4">Obstetric History</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Gravida / Para (TPAL)" value={obs.gravidaPara} onChange={fld('gravidaPara')} placeholder="e.g. G3P2 T2P0A1L2" />
+          <Field label="LMP" value={obs.lmp} onChange={fld('lmp')} placeholder="e.g. 2026-01-15" />
+          <Field label="EDD" value={obs.edd} onChange={fld('edd')} placeholder="e.g. 2026-10-22" />
+          <Field label="Gestational age" value={obs.gestationalAge} onChange={fld('gestationalAge')} placeholder="e.g. 36+2 weeks" />
+          <div className="sm:col-span-2">
+            <Field label="ANC history / booking status" value={obs.ancHistory} onChange={fld('ancHistory')} type="textarea" rows={2} placeholder="Booking status, ANC visits, problems noted antenatally, serology (HIV, syphilis/RPR, blood group), GDM screening…" />
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <h3 className="text-sm font-bold text-teal-800 mb-4">Current Assessment</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2">
+            <Field label="Presenting complaint" value={obs.presentingComplaint} onChange={fld('presentingComplaint')} placeholder="e.g. Regular contractions since 02:00, decreased fetal movements…" />
+          </div>
+          <Field label="Fetal movements" value={obs.fetalMovements} onChange={fld('fetalMovements')} placeholder="e.g. Reduced since yesterday, previously good" />
+          <Field label="Contractions" value={obs.contractions} onChange={fld('contractions')} placeholder="e.g. 3 in 10 min, 40 sec, moderate" />
+          <Field label="FHR / CTG" value={obs.fhr} onChange={fld('fhr')} placeholder="e.g. FHR 145 bpm, reactive CTG, no decelerations" />
+          <Field label="Cervical examination" value={obs.cervicalExam} onChange={fld('cervicalExam')} placeholder="e.g. 4 cm dilated, 80% effaced, station -1, cephalic, position anterior" />
+          <div className="sm:col-span-2">
+            <Field label="Membranes / liquor" value={obs.membranesLiquor} onChange={fld('membranesLiquor')} placeholder="e.g. Membranes intact / ruptured at 06:00, clear liquor draining" />
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Examination findings" value={obs.examination} onChange={fld('examination')} type="textarea" rows={3} placeholder="Vitals, fundal height, lie, presentation, engagement, abdominal palpation, oedema…" />
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Investigations" value={obs.investigations} onChange={fld('investigations')} type="textarea" rows={2} placeholder="Urine dip, glucose, FBC, U&E, coagulation, USS findings…" />
+          </div>
+        </div>
+        {error && <div className="mt-3 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl">{error}</div>}
+        <div className="mt-4 flex gap-2">
+          <GenBtn loading={loading} onClick={generate} label="Generate obstetric note with AI" />
+          {obs.aiNote && (
+            <button onClick={() => setShowNote((s) => !s)}
+              className="text-xs px-4 py-2 border border-teal-200 text-teal-700 font-semibold rounded-xl hover:bg-teal-50 transition">
+              {showNote ? 'Hide note' : 'Show AI note'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showNote && obs.aiNote && (
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-teal-800">AI Obstetric Assessment Note</h3>
+            <button onClick={copyNote} className="text-xs px-3 py-1.5 border border-teal-200 text-teal-600 rounded-lg hover:bg-teal-50 transition">Copy</button>
+          </div>
+          <AiDisclaimer />
+          <ObsNoteDisplay note={obs.aiNote} />
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function ObsNoteDisplay({ note }: { note: ObsNote }) {
+  const rows: [string, string][] = [
+    ['ANC Summary', note.ancSummary],
+    ['Current Presentation', note.currentPresentation],
+    ['Examination Findings', note.examinationFindings],
+    ['Fetal Assessment', note.fetalAssessment],
+    ['Cervical Findings', note.cervicalFindings],
+    ['Impression & Risk Stratification', note.impressionAndRisk],
+  ];
+  return (
+    <div className="mt-4 space-y-4 text-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[['G/P', note.gravidaPara], ['GA', note.gestationalAge], ['LMP', note.lmp], ['EDD', note.edd]].map(([l, v]) => v && (
+          <div key={l} className="bg-teal-50 rounded-xl px-3 py-2">
+            <div className="text-xs font-bold text-teal-600">{l}</div>
+            <div className="text-sm font-semibold text-gray-800 mt-0.5">{v}</div>
+          </div>
+        ))}
+      </div>
+      {rows.map(([label, val]) => val && val !== 'Not documented' && (
+        <div key={label}>
+          <div className="text-xs font-bold uppercase tracking-wider text-teal-700 mb-1">{label}</div>
+          <div className="text-gray-700 whitespace-pre-wrap">{val}</div>
+        </div>
+      ))}
+      {note.plan.length > 0 && (
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wider text-teal-700 mb-1">Management Plan</div>
+          <ul className="space-y-0.5">{note.plan.map((p, k) => <li key={k} className="text-gray-700">• {p}</li>)}</ul>
+        </div>
+      )}
+      {note.concerns.length > 0 && (
+        <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-red-700 mb-1">Concerns / Red flags</div>
+          <ul className="space-y-0.5">{note.concerns.map((c, k) => <li key={k} className="text-red-700">⚠ {c}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Gynaecology section ──────────────────────────────────────────────────────
+
+function GynaeSection({ toolsKey, patient, onUpdate }: {
+  toolsKey: string; patient: Patient; onUpdate: (p: Patient) => void;
+}) {
+  const gyn = patient.gynaeData ?? emptyGynaeData();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showNote, setShowNote] = useState(!!gyn.aiNote);
+
+  function set(patch: Partial<GynaeData>) {
+    onUpdate({ ...patient, gynaeData: { ...gyn, ...patch } });
+  }
+  function fld(key: keyof GynaeData) { return (v: string) => set({ [key]: v } as Partial<GynaeData>); }
+
+  async function generate() {
+    setError(''); setLoading(true);
+    try {
+      const { document } = await toolsApi.gynaeNote(toolsKey, {
+        ageSex: patient.ageSex, hospitalNumber: patient.hospitalNumber, ward: patient.ward,
+        gravidaPara: gyn.gravidaPara, lmp: gyn.lmp, menstrualHistory: gyn.menstrualHistory,
+        contraception: gyn.contraception, smearHistory: gyn.smearHistory,
+        presentingComplaint: gyn.presentingComplaint, relevantHistory: gyn.relevantHistory,
+        examination: gyn.examination, investigations: gyn.investigations,
+        workingDiagnosis: gyn.workingDiagnosis,
+      });
+      set({ aiNote: document }); setShowNote(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Generation failed');
+    } finally { setLoading(false); }
+  }
+
+  async function copyNote() {
+    if (!gyn.aiNote) return;
+    const n = gyn.aiNote;
+    let out = `GYNAECOLOGY CLERKING NOTE\n${'='.repeat(40)}\n`;
+    out += `Patient: ${n.ageSex}  G/P: ${n.gravidaPara}\n\n`;
+    [['MENSTRUAL HISTORY', n.menstrualHistory], ['CONTRACEPTIVE HISTORY', n.contraceptiveHistory],
+     ['SMEAR HISTORY', n.smearHistory], ['PRESENTING COMPLAINT', n.presentingComplaint],
+     ['RELEVANT HISTORY', n.relevantHistory], ['EXAMINATION', n.examinationFindings],
+     ['WORKING DIAGNOSIS', n.workingDiagnosis]
+    ].forEach(([l, v]) => { if (v) out += `${l}:\n${v}\n\n`; });
+    if (n.differentials.length) out += `DIFFERENTIALS:\n${n.differentials.map((d) => `  - ${d}`).join('\n')}\n\n`;
+    if (n.plan.length) out += `PLAN:\n${n.plan.map((p) => `  - ${p}`).join('\n')}\n\n`;
+    if (n.concerns.length) out += `CONCERNS:\n${n.concerns.map((c) => `  ⚠ ${c}`).join('\n')}\n\n`;
+    out += `---\n${n.disclaimer}`;
+    await navigator.clipboard.writeText(out);
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <h3 className="text-sm font-bold text-teal-800 mb-4">Gynaecological History</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Gravida / Para" value={gyn.gravidaPara} onChange={fld('gravidaPara')} placeholder="e.g. G2P1+0" />
+          <Field label="LMP" value={gyn.lmp} onChange={fld('lmp')} placeholder="e.g. 2026-06-10" />
+          <div className="sm:col-span-2">
+            <Field label="Menstrual history" value={gyn.menstrualHistory} onChange={fld('menstrualHistory')} type="textarea" rows={3} placeholder="Menarche age, cycle length, flow duration & amount, dysmenorrhoea, IMB (intermenstrual bleeding), PCB (post-coital bleeding), amenorrhoea…" />
+          </div>
+          <Field label="Contraception" value={gyn.contraception} onChange={fld('contraception')} placeholder="e.g. DMPA 150 mg IM q3/12, last dose Jan 2026" />
+          <Field label="Smear history" value={gyn.smearHistory} onChange={fld('smearHistory')} placeholder="e.g. Last smear Mar 2025 — normal; LEEP 2022 for CIN2" />
+        </div>
+      </Card>
+
+      <Card>
+        <h3 className="text-sm font-bold text-teal-800 mb-4">Presenting Complaint & Examination</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2">
+            <Field label="Presenting complaint" value={gyn.presentingComplaint} onChange={fld('presentingComplaint')} placeholder="e.g. Abnormal vaginal bleeding × 3 months, pelvic pain, vaginal discharge…" />
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Relevant history" value={gyn.relevantHistory} onChange={fld('relevantHistory')} type="textarea" rows={3} placeholder="PMH, sexual history, HIV status, STI history, previous gynaecological procedures, family history of gynaecological cancers…" />
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Examination findings" value={gyn.examination} onChange={fld('examination')} type="textarea" rows={4} placeholder="Abdominal: masses, tenderness, guarding. Speculum: cervix appearance, discharge, bleeding, lesions. Bimanual: uterine size/mobility/tenderness, adnexal masses/tenderness…" />
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Investigations" value={gyn.investigations} onChange={fld('investigations')} type="textarea" rows={2} placeholder="HCG, FBC, USS (uterus, ovaries, endometrium), swabs, biopsy, smear, colposcopy, CT/MRI…" />
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Working diagnosis" value={gyn.workingDiagnosis} onChange={fld('workingDiagnosis')} placeholder="Your working diagnosis" />
+          </div>
+        </div>
+        {error && <div className="mt-3 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl">{error}</div>}
+        <div className="mt-4 flex gap-2">
+          <GenBtn loading={loading} onClick={generate} label="Generate gynae clerking note with AI" />
+          {gyn.aiNote && (
+            <button onClick={() => setShowNote((s) => !s)}
+              className="text-xs px-4 py-2 border border-teal-200 text-teal-700 font-semibold rounded-xl hover:bg-teal-50 transition">
+              {showNote ? 'Hide note' : 'Show AI note'}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {showNote && gyn.aiNote && (
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-teal-800">AI Gynaecology Clerking Note</h3>
+            <button onClick={copyNote} className="text-xs px-3 py-1.5 border border-teal-200 text-teal-600 rounded-lg hover:bg-teal-50 transition">Copy</button>
+          </div>
+          <AiDisclaimer />
+          <GynaeNoteDisplay note={gyn.aiNote} />
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function GynaeNoteDisplay({ note }: { note: GynaeNote }) {
+  const rows: [string, string][] = [
+    ['Menstrual History', note.menstrualHistory],
+    ['Contraceptive History', note.contraceptiveHistory],
+    ['Smear History', note.smearHistory],
+    ['Presenting Complaint', note.presentingComplaint],
+    ['Relevant History', note.relevantHistory],
+    ['Examination Findings', note.examinationFindings],
+    ['Working Diagnosis', note.workingDiagnosis],
+  ];
+  return (
+    <div className="mt-4 space-y-4 text-sm">
+      {rows.map(([label, val]) => val && val !== 'Not documented' && (
+        <div key={label}>
+          <div className="text-xs font-bold uppercase tracking-wider text-teal-700 mb-1">{label}</div>
+          <div className="text-gray-700 whitespace-pre-wrap">{val}</div>
+        </div>
+      ))}
+      {note.differentials.length > 0 && (
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wider text-teal-700 mb-1">Differentials</div>
+          <ul className="space-y-0.5">{note.differentials.map((d, k) => <li key={k} className="text-gray-700">• {d}</li>)}</ul>
+        </div>
+      )}
+      {note.plan.length > 0 && (
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wider text-teal-700 mb-1">Management Plan</div>
+          <ul className="space-y-0.5">{note.plan.map((p, k) => <li key={k} className="text-gray-700">• {p}</li>)}</ul>
+        </div>
+      )}
+      {note.concerns.length > 0 && (
+        <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-red-700 mb-1">Concerns / Red flags</div>
+          <ul className="space-y-0.5">{note.concerns.map((c, k) => <li key={k} className="text-red-700">⚠ {c}</li>)}</ul>
+        </div>
+      )}
+    </div>
   );
 }

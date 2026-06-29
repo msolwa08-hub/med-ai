@@ -88,6 +88,19 @@ export interface PresentPatientInput {
   rotation?: string; ageSex?: string; hospitalNumber?: string; ward?: string;
   presentationPoint: 'ADMISSION' | 'PROGRESS' | 'DISCHARGE'; hospitalDay?: string; clinicalData: string;
 }
+export interface ObsNoteInput {
+  ageSex?: string; hospitalNumber?: string; ward?: string;
+  gravidaPara?: string; lmp?: string; edd?: string; gestationalAge?: string;
+  ancHistory?: string; presentingComplaint?: string; fetalMovements?: string;
+  contractions?: string; fhr?: string; cervicalExam?: string;
+  membranesLiquor?: string; examination?: string; investigations?: string;
+}
+export interface GynaeNoteInput {
+  ageSex?: string; hospitalNumber?: string; ward?: string;
+  gravidaPara?: string; lmp?: string; menstrualHistory?: string;
+  contraception?: string; smearHistory?: string; presentingComplaint?: string;
+  relevantHistory?: string; examination?: string; investigations?: string; workingDiagnosis?: string;
+}
 
 export interface AdmissionDifferential { diagnosis: string; icd10: string; rationale: string; }
 export interface AdmissionNote {
@@ -110,6 +123,22 @@ export interface AdmissionNote {
   ongoingManagement: string[];
   concerns: string[];
   disclaimer: string;
+}
+export interface ObsNote {
+  generatedAt: string;
+  ageSex: string; gravidaPara: string; gestationalAge: string;
+  lmp: string; edd: string; ancSummary: string;
+  currentPresentation: string; examinationFindings: string;
+  fetalAssessment: string; cervicalFindings: string;
+  impressionAndRisk: string; plan: string[]; concerns: string[]; disclaimer: string;
+}
+export interface GynaeNote {
+  generatedAt: string;
+  ageSex: string; gravidaPara: string; menstrualHistory: string;
+  contraceptiveHistory: string; smearHistory: string;
+  presentingComplaint: string; relevantHistory: string;
+  examinationFindings: string; workingDiagnosis: string;
+  differentials: string[]; plan: string[]; concerns: string[]; disclaimer: string;
 }
 export interface LabGroupEntry { group: string; findings: string; significance: string; }
 export interface LabInterpretation {
@@ -143,6 +172,8 @@ export const toolsApi = {
   admissionNote: (k: string, input: AdmissionNoteInput) => call<{ document: AdmissionNote }>('/admission-note', k, input),
   interpretLabs: (k: string, input: LabInterpretInput) => call<{ document: LabInterpretation }>('/interpret-labs', k, input),
   presentPatient: (k: string, input: PresentPatientInput) => call<{ document: PatientPresentation }>('/present-patient', k, input),
+  obsNote: (k: string, input: ObsNoteInput) => call<{ document: ObsNote }>('/obs-note', k, input),
+  gynaeNote: (k: string, input: GynaeNoteInput) => call<{ document: GynaeNote }>('/gynae-note', k, input),
 };
 
 const TOOLS_KEY_STORAGE = 'medai_tools_key';

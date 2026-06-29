@@ -18,6 +18,8 @@ import {
   ADMISSION_NOTE_SYSTEM,
   LAB_INTERPRETATION_SYSTEM,
   PATIENT_PRESENTATION_SYSTEM,
+  OBS_NOTE_SYSTEM,
+  GYNAE_NOTE_SYSTEM,
 } from './medai-prompt.js';
 import { extractJSON, asString, asStringArray } from '../lib/json-extract.js';
 
@@ -138,6 +140,80 @@ export interface WardNote {
   plan: string[];
   suggestedLabs: SuggestedLab[];
   tasks: string[];
+  concerns: string[];
+  disclaimer: string;
+}
+
+// ─── O&G inputs ─────────────────────────────────────────────────────────────
+
+export interface ObsNoteInput {
+  ageSex?: string;
+  hospitalNumber?: string;
+  ward?: string;
+  gravidaPara?: string;
+  lmp?: string;
+  edd?: string;
+  gestationalAge?: string;
+  ancHistory?: string;
+  presentingComplaint?: string;
+  fetalMovements?: string;
+  contractions?: string;
+  fhr?: string;
+  cervicalExam?: string;
+  membranesLiquor?: string;
+  examination?: string;
+  investigations?: string;
+}
+
+export interface GynaeNoteInput {
+  ageSex?: string;
+  hospitalNumber?: string;
+  ward?: string;
+  gravidaPara?: string;
+  lmp?: string;
+  menstrualHistory?: string;
+  contraception?: string;
+  smearHistory?: string;
+  presentingComplaint?: string;
+  relevantHistory?: string;
+  examination?: string;
+  investigations?: string;
+  workingDiagnosis?: string;
+}
+
+// ─── O&G outputs ─────────────────────────────────────────────────────────────
+
+export interface ObsNote {
+  generatedAt: string;
+  ageSex: string;
+  gravidaPara: string;
+  gestationalAge: string;
+  lmp: string;
+  edd: string;
+  ancSummary: string;
+  currentPresentation: string;
+  examinationFindings: string;
+  fetalAssessment: string;
+  cervicalFindings: string;
+  impressionAndRisk: string;
+  plan: string[];
+  concerns: string[];
+  disclaimer: string;
+}
+
+export interface GynaeNote {
+  generatedAt: string;
+  ageSex: string;
+  gravidaPara: string;
+  menstrualHistory: string;
+  contraceptiveHistory: string;
+  smearHistory: string;
+  presentingComplaint: string;
+  relevantHistory: string;
+  examinationFindings: string;
+  workingDiagnosis: string;
+  differentials: string[];
+  plan: string[];
   concerns: string[];
   disclaimer: string;
 }
@@ -529,6 +605,88 @@ export async function generateWardNote(input: WardNoteInput): Promise<WardNote> 
       priority: l.priority === 'URGENT' ? 'URGENT' : 'ROUTINE',
     })),
     tasks: asStringArray(o.tasks),
+    concerns: asStringArray(o.concerns),
+    disclaimer: DISCLAIMER,
+  };
+}
+
+// ─── Obstetric assessment note ───────────────────────────────────────────────
+
+export async function generateObsNote(input: ObsNoteInput): Promise<ObsNote> {
+  const userContent =
+    `Structure an obstetric assessment note from the following clinical details.\n\n` +
+    field('Patient (age/sex)', input.ageSex) +
+    field('Hospital number', input.hospitalNumber) +
+    field('Ward/unit', input.ward) +
+    field('Gravida/Para (TPAL)', input.gravidaPara) +
+    field('LMP', input.lmp) +
+    field('EDD', input.edd) +
+    field('Gestational age', input.gestationalAge) +
+    field('ANC history / booking status', input.ancHistory) +
+    field('Presenting complaint', input.presentingComplaint) +
+    field('Fetal movements', input.fetalMovements) +
+    field('Contractions', input.contractions) +
+    field('Fetal heart rate / CTG', input.fhr) +
+    field('Cervical examination', input.cervicalExam) +
+    field('Membranes / liquor', input.membranesLiquor) +
+    field('Examination findings', input.examination) +
+    field('Investigations / results', input.investigations) +
+    `\nReturn STRICT JSON per your schema.`;
+
+  const o = await generate(OBS_NOTE_SYSTEM, userContent);
+  return {
+    generatedAt: new Date().toISOString(),
+    ageSex: asString(o.ageSex, input.ageSex ?? ''),
+    gravidaPara: asString(o.gravidaPara, input.gravidaPara ?? ''),
+    gestationalAge: asString(o.gestationalAge, input.gestationalAge ?? ''),
+    lmp: asString(o.lmp, input.lmp ?? ''),
+    edd: asString(o.edd, input.edd ?? ''),
+    ancSummary: asString(o.ancSummary),
+    currentPresentation: asString(o.currentPresentation),
+    examinationFindings: asString(o.examinationFindings),
+    fetalAssessment: asString(o.fetalAssessment),
+    cervicalFindings: asString(o.cervicalFindings),
+    impressionAndRisk: asString(o.impressionAndRisk),
+    plan: asStringArray(o.plan),
+    concerns: asStringArray(o.concerns),
+    disclaimer: DISCLAIMER,
+  };
+}
+
+// ─── Gynaecology clerking note ───────────────────────────────────────────────
+
+export async function generateGynaeNote(input: GynaeNoteInput): Promise<GynaeNote> {
+  const userContent =
+    `Structure a gynaecology clerking note from the following clinical details.\n\n` +
+    field('Patient (age/sex)', input.ageSex) +
+    field('Hospital number', input.hospitalNumber) +
+    field('Ward/unit', input.ward) +
+    field('Gravida/Para', input.gravidaPara) +
+    field('LMP', input.lmp) +
+    field('Menstrual history', input.menstrualHistory) +
+    field('Contraception', input.contraception) +
+    field('Smear history', input.smearHistory) +
+    field('Presenting complaint', input.presentingComplaint) +
+    field('Relevant history', input.relevantHistory) +
+    field('Examination findings', input.examination) +
+    field('Investigations / results', input.investigations) +
+    field('Working diagnosis', input.workingDiagnosis) +
+    `\nReturn STRICT JSON per your schema.`;
+
+  const o = await generate(GYNAE_NOTE_SYSTEM, userContent);
+  return {
+    generatedAt: new Date().toISOString(),
+    ageSex: asString(o.ageSex, input.ageSex ?? ''),
+    gravidaPara: asString(o.gravidaPara, input.gravidaPara ?? ''),
+    menstrualHistory: asString(o.menstrualHistory),
+    contraceptiveHistory: asString(o.contraceptiveHistory),
+    smearHistory: asString(o.smearHistory),
+    presentingComplaint: asString(o.presentingComplaint),
+    relevantHistory: asString(o.relevantHistory),
+    examinationFindings: asString(o.examinationFindings),
+    workingDiagnosis: asString(o.workingDiagnosis, input.workingDiagnosis ?? ''),
+    differentials: asStringArray(o.differentials),
+    plan: asStringArray(o.plan),
     concerns: asStringArray(o.concerns),
     disclaimer: DISCLAIMER,
   };
