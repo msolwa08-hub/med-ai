@@ -21,6 +21,7 @@
     "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
+    "playwright": "^1.61.1",
     "typescript": "^5.4.5"
   }
 }
