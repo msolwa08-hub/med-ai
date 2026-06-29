@@ -1220,7 +1220,7 @@ function PresentTab({ toolsKey, patient, onUpdate }: {
 
 // ─── Formulas tab ─────────────────────────────────────────────────────────────
 
-type FormulaId = 'gcs' | 'qsofa' | 'heart' | 'wells_pe' | 'wells_dvt' | 'crb65' | 'phq9' | 'auditc' | 'ipss' | 'abcd2' | 'centor' | 'mmrc' | 'bishop' | 'apgar';
+type FormulaId = 'gcs' | 'qsofa' | 'heart' | 'wells_pe' | 'wells_dvt' | 'crb65' | 'phq9' | 'auditc' | 'ipss' | 'abcd2' | 'centor' | 'mmrc' | 'bishop' | 'apgar' | 'edd_ga' | 'meows' | 'epds' | 'rmi' | 'pcos';
 
 const FORMULA_LIST: { id: FormulaId; label: string; category: string }[] = [
   { id: 'gcs', label: 'GCS', category: 'Neuro' },
@@ -1235,12 +1235,17 @@ const FORMULA_LIST: { id: FormulaId; label: string; category: string }[] = [
   { id: 'auditc', label: 'AUDIT-C', category: 'Mental' },
   { id: 'ipss', label: 'IPSS', category: 'Urology' },
   { id: 'centor', label: 'Centor / McIsaac', category: 'ENT' },
+  { id: 'edd_ga', label: 'EDD / GA Calc', category: 'O&G' },
   { id: 'bishop', label: 'Bishop Score', category: 'O&G' },
   { id: 'apgar', label: 'APGAR Score', category: 'O&G' },
+  { id: 'meows', label: 'MEOWS', category: 'O&G' },
+  { id: 'epds', label: 'EPDS', category: 'O&G' },
+  { id: 'rmi', label: 'RMI (Ovarian)', category: 'O&G' },
+  { id: 'pcos', label: 'PCOS Rotterdam', category: 'O&G' },
 ];
 
 function FormulasTab({ rotation }: { rotation?: string }) {
-  const defaultFormula: FormulaId = IS_OG(rotation ?? '') ? 'bishop' : 'gcs';
+  const defaultFormula: FormulaId = IS_OG(rotation ?? '') ? 'edd_ga' : 'gcs';
   const [active, setActive] = useState<FormulaId>(defaultFormula);
 
   return (
@@ -1267,8 +1272,13 @@ function FormulasTab({ rotation }: { rotation?: string }) {
         {active === 'auditc' && <AUDITCCalc />}
         {active === 'ipss' && <IPSSCalc />}
         {active === 'centor' && <CentorCalc />}
+        {active === 'edd_ga' && <EddGaCalc />}
         {active === 'bishop' && <BishopCalc />}
         {active === 'apgar' && <APGARCalc />}
+        {active === 'meows' && <MEOWSCalc />}
+        {active === 'epds' && <EPDSCalc />}
+        {active === 'rmi' && <RMICalc />}
+        {active === 'pcos' && <PCOSCalc />}
       </div>
     </div>
   );
@@ -1656,6 +1666,347 @@ function CentorCalc() {
 }
 
 // ─── O&G Calculators ──────────────────────────────────────────────────────────
+
+function EddGaCalc() {
+  const [lmp, setLmp] = useState('');
+  const [refDate, setRefDate] = useState('');
+
+  function parseDate(s: string): Date | null {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const lmpDate = parseDate(lmp);
+  const ref = parseDate(refDate) || (lmpDate ? new Date() : null);
+
+  let edd = '';
+  let gaWeeks = 0;
+  let gaDays = 0;
+  let gaStr = '';
+  let eddColor: 'teal' | 'amber' | 'red' = 'teal';
+  let label = '';
+
+  if (lmpDate) {
+    const eddDate = new Date(lmpDate);
+    eddDate.setDate(eddDate.getDate() + 280);
+    edd = eddDate.toISOString().split('T')[0];
+
+    if (ref) {
+      const diffMs = ref.getTime() - lmpDate.getTime();
+      const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      gaWeeks = Math.floor(totalDays / 7);
+      gaDays = totalDays % 7;
+      gaStr = `${gaWeeks}+${gaDays} weeks`;
+
+      if (gaWeeks < 37) { eddColor = 'amber'; label = 'Preterm (<37 weeks)'; }
+      else if (gaWeeks < 42) { eddColor = 'green' as 'teal'; label = 'Term (37–41 weeks)'; eddColor = 'teal'; }
+      else { eddColor = 'red'; label = 'Post-dates (≥42 weeks)'; }
+    }
+  }
+
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">EDD &amp; Gestational Age</h3>
+      <p className="text-xs text-gray-500 mb-4">Enter LMP to calculate EDD (Naegele's Rule: LMP + 280 days) and current gestational age.</p>
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">Last Menstrual Period (LMP)</label>
+          <input type="date" value={lmp} onChange={(e) => setLmp(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-teal-100 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">Reference date for GA calculation (defaults to today)</label>
+          <input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-teal-100 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400" />
+        </div>
+      </div>
+      {lmpDate && (
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 text-center">
+              <div className="text-xs font-semibold text-teal-600 uppercase tracking-wider mb-1">EDD</div>
+              <div className="text-2xl font-bold text-teal-800">{edd}</div>
+              <div className="text-xs text-teal-600 mt-1">LMP + 280 days</div>
+            </div>
+            {gaStr && (
+              <div className={`rounded-2xl border p-4 text-center ${eddColor === 'red' ? 'bg-red-50 border-red-200' : eddColor === 'amber' ? 'bg-amber-50 border-amber-200' : 'bg-teal-50 border-teal-200'}`}>
+                <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${eddColor === 'red' ? 'text-red-600' : eddColor === 'amber' ? 'text-amber-600' : 'text-teal-600'}`}>GA</div>
+                <div className={`text-2xl font-bold ${eddColor === 'red' ? 'text-red-800' : eddColor === 'amber' ? 'text-amber-800' : 'text-teal-800'}`}>{gaStr}</div>
+                <div className={`text-xs mt-1 ${eddColor === 'red' ? 'text-red-600' : eddColor === 'amber' ? 'text-amber-600' : 'text-teal-600'}`}>{label}</div>
+              </div>
+            )}
+          </div>
+          <div className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
+            Note: Naegele's Rule assumes regular 28-day cycles. Confirm with first-trimester USS dating when available. Adjust EDD if USS discrepancy &gt;7 days (T1) or &gt;14 days (T2).
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function MEOWSCalc() {
+  const [sbp, setSbp] = useState(1);
+  const [dbp, setDbp] = useState(1);
+  const [hr, setHr] = useState(1);
+  const [rr, setRr] = useState(1);
+  const [temp, setTemp] = useState(1);
+  const [o2, setO2] = useState(1);
+  const [neuro, setNeuro] = useState(1);
+  const [urine, setUrine] = useState(1);
+  const [pain, setPain] = useState(0);
+
+  type Traffic = 'green' | 'yellow' | 'red';
+  const vals: Traffic[] = [sbp, dbp, hr, rr, temp, o2, neuro, urine, pain].map((v) => v === 0 ? 'green' : v === 1 ? 'yellow' : 'red') as Traffic[];
+  const reds = vals.filter((v) => v === 'red').length;
+  const yellows = vals.filter((v) => v === 'yellow').length;
+  const action = reds >= 1 ? { l: 'RED trigger — immediate obstetric review', c: 'red' as const }
+    : yellows >= 2 ? { l: '2+ YELLOW triggers — review within 30 minutes', c: 'amber' as const }
+    : yellows === 1 ? { l: '1 YELLOW trigger — monitor closely, repeat obs in 1 hour', c: 'amber' as const }
+    : { l: 'All parameters normal — routine monitoring', c: 'green' as const };
+
+  const Param = ({ label, value, onChange, opts }: { label: string; value: number; onChange: (v: number) => void; opts: { v: number; l: string; t: Traffic }[] }) => (
+    <div className="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0">
+      <div className="flex-1">
+        <div className="text-xs font-semibold text-gray-700 mb-1">{label}</div>
+        <div className="flex flex-wrap gap-1">
+          {opts.map((o) => (
+            <label key={o.v} className={`cursor-pointer text-xs px-2.5 py-1 rounded-lg border transition font-medium ${value === o.v
+              ? o.t === 'red' ? 'bg-red-500 text-white border-red-500' : o.t === 'yellow' ? 'bg-amber-400 text-white border-amber-400' : 'bg-green-500 text-white border-green-500'
+              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
+              <input type="radio" className="sr-only" checked={value === o.v} onChange={() => onChange(o.v)} />
+              {o.l}
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">MEOWS</h3>
+      <p className="text-xs text-gray-500 mb-4">Modified Early Obstetric Warning Score. 1 RED = immediate review. 2+ YELLOW = review within 30 min.</p>
+      <div className="space-y-0">
+        <Param label="Systolic BP (mmHg)" value={sbp} onChange={setSbp} opts={[
+          { v: 2, l: '<70 or ≥160', t: 'red' }, { v: 1, l: '70–89 or 140–159', t: 'yellow' }, { v: 0, l: '90–139', t: 'green' }]} />
+        <Param label="Diastolic BP (mmHg)" value={dbp} onChange={setDbp} opts={[
+          { v: 2, l: '≥100', t: 'red' }, { v: 1, l: '<40 or 90–99', t: 'yellow' }, { v: 0, l: '40–89', t: 'green' }]} />
+        <Param label="Heart rate (bpm)" value={hr} onChange={setHr} opts={[
+          { v: 2, l: '<40 or ≥120', t: 'red' }, { v: 1, l: '40–50 or 100–119', t: 'yellow' }, { v: 0, l: '51–99', t: 'green' }]} />
+        <Param label="Respiratory rate (/min)" value={rr} onChange={setRr} opts={[
+          { v: 2, l: '>30', t: 'red' }, { v: 1, l: '<10 or 21–30', t: 'yellow' }, { v: 0, l: '10–20', t: 'green' }]} />
+        <Param label="Temperature (°C)" value={temp} onChange={setTemp} opts={[
+          { v: 2, l: '≥39', t: 'red' }, { v: 1, l: '<36 or 38–38.9', t: 'yellow' }, { v: 0, l: '36–37.9', t: 'green' }]} />
+        <Param label="O₂ saturation (%)" value={o2} onChange={setO2} opts={[
+          { v: 2, l: '<95', t: 'red' }, { v: 1, l: '95–96', t: 'yellow' }, { v: 0, l: '≥97', t: 'green' }]} />
+        <Param label="Neurological" value={neuro} onChange={setNeuro} opts={[
+          { v: 2, l: 'Reacts to pain / Unresponsive', t: 'red' }, { v: 1, l: 'Reacts to voice / Confused', t: 'yellow' }, { v: 0, l: 'Alert', t: 'green' }]} />
+        <Param label="Urine output" value={urine} onChange={setUrine} opts={[
+          { v: 2, l: '<30 mL/hr or nil', t: 'red' }, { v: 1, l: '30–60 mL/hr', t: 'yellow' }, { v: 0, l: '>60 mL/hr', t: 'green' }]} />
+        <Param label="Pain score" value={pain} onChange={setPain} opts={[
+          { v: 2, l: '7–10', t: 'red' }, { v: 1, l: '2–6', t: 'yellow' }, { v: 0, l: '0–1', t: 'green' }]} />
+      </div>
+      <div className={`mt-4 rounded-2xl border p-4 text-center ${action.c === 'red' ? 'bg-red-50 border-red-200' : action.c === 'amber' ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+        <div className={`text-base font-bold ${action.c === 'red' ? 'text-red-700' : action.c === 'amber' ? 'text-amber-700' : 'text-green-700'}`}>
+          {reds} RED · {yellows} YELLOW
+        </div>
+        <div className={`text-sm font-medium mt-1 ${action.c === 'red' ? 'text-red-600' : action.c === 'amber' ? 'text-amber-600' : 'text-green-600'}`}>{action.l}</div>
+      </div>
+    </Card>
+  );
+}
+
+const EPDS_QUESTIONS = [
+  { q: 'I have been able to laugh and see the funny side of things', opts: ['As much as I always could', 'Not quite so much now', 'Definitely not so much now', 'Not at all'] },
+  { q: 'I have looked forward with enjoyment to things', opts: ['As much as I ever did', 'Rather less than I used to', 'Definitely less than I used to', 'Hardly at all'] },
+  { q: 'I have blamed myself unnecessarily when things went wrong', opts: ['No, never', 'Not very often', 'Yes, some of the time', 'Yes, most of the time'], reverse: true },
+  { q: 'I have been anxious or worried for no good reason', opts: ['No, not at all', 'Hardly ever', 'Yes, sometimes', 'Yes, very often'], reverse: true },
+  { q: 'I have felt scared or panicky for no very good reason', opts: ['No, not at all', 'No, not much', 'Yes, sometimes', 'Yes, quite a lot'], reverse: true },
+  { q: 'Things have been getting on top of me', opts: ['No, I have been coping as well as ever', 'No, most of the time I have coped quite well', 'Yes, sometimes I haven\'t been coping as well as usual', 'Yes, most of the time I haven\'t been able to cope at all'], reverse: true },
+  { q: 'I have been so unhappy that I have had difficulty sleeping', opts: ['No, not at all', 'Not very often', 'Yes, sometimes', 'Yes, most of the time'], reverse: true },
+  { q: 'I have felt sad or miserable', opts: ['No, not at all', 'Not very often', 'Yes, quite often', 'Yes, most of the time'], reverse: true },
+  { q: 'I have been so unhappy that I have been crying', opts: ['No, never', 'Only occasionally', 'Yes, quite often', 'Yes, most of the time'], reverse: true },
+  { q: 'The thought of harming myself has occurred to me', opts: ['Never', 'Hardly ever', 'Sometimes', 'Yes, quite often'], reverse: true, safety: true },
+];
+
+function EPDSCalc() {
+  const [scores, setScores] = useState<number[]>(Array(10).fill(0));
+  const total = scores.reduce((s, v, i) => {
+    const q = EPDS_QUESTIONS[i];
+    return s + (q.reverse ? 3 - v : v);
+  }, 0);
+  const positive = total >= 10;
+  const q10Score = EPDS_QUESTIONS[9].reverse ? 3 - scores[9] : scores[9];
+  const color = total >= 13 ? 'red' as const : total >= 10 ? 'amber' as const : 'green' as const;
+  const label = total >= 13 ? 'Probable depression — refer for assessment and support'
+    : total >= 10 ? 'Possible depression — repeat in 2 weeks or refer'
+    : 'Below threshold — continue routine support';
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">EPDS (Edinburgh Postnatal Depression Scale)</h3>
+      <p className="text-xs text-gray-500 mb-4">10-question screen for perinatal depression. Score ≥10 positive. Q10 (self-harm) requires safety assessment regardless of total.</p>
+      <div className="space-y-5">
+        {EPDS_QUESTIONS.map((q, i) => (
+          <div key={i} className={q.safety && (EPDS_QUESTIONS[9].reverse ? 3 - scores[9] : scores[9]) > 0 ? 'bg-red-50 rounded-xl px-3 py-3 -mx-1' : ''}>
+            <div className="text-sm text-gray-700 mb-2 font-medium">{i + 1}. {q.q}</div>
+            <div className="space-y-1">
+              {q.opts.map((opt, v) => (
+                <label key={v} className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" checked={scores[i] === v} onChange={() => setScores((s) => s.map((x, j) => j === i ? v : x))} className="accent-teal-600" />
+                  <span className="text-sm text-gray-600">{opt}</span>
+                  <span className="text-xs text-teal-600 font-mono ml-auto">{q.reverse ? 3 - v : v}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {q10Score > 0 && (
+        <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-3 py-3">
+          <div className="text-sm font-bold text-red-700">⚠ Q10 positive — safety assessment required immediately regardless of total score.</div>
+          <div className="text-xs text-red-600 mt-1">Ask directly about intent and plans. Refer to appropriate support.</div>
+        </div>
+      )}
+      <ScoreBox score={`${total}/30`} label={`${label} ${positive ? '— Score ≥10' : ''}`} color={color} />
+    </Card>
+  );
+}
+
+function RMICalc() {
+  const [multilocular, setMultilocular] = useState(false);
+  const [solidAreas, setSolidAreas] = useState(false);
+  const [metastases, setMetastases] = useState(false);
+  const [bilateral, setBilateral] = useState(false);
+  const [ascites, setAscites] = useState(false);
+  const [menopausal, setMenopausal] = useState(false);
+  const [ca125, setCa125] = useState('');
+
+  const features = [multilocular, solidAreas, metastases, bilateral, ascites].filter(Boolean).length;
+  const U = features === 0 ? 0 : features === 1 ? 1 : 3;
+  const M = menopausal ? 3 : 1;
+  const ca125Val = parseFloat(ca125);
+  const rmi = U * M * (isNaN(ca125Val) ? 0 : ca125Val);
+  const hasResult = !isNaN(ca125Val) && ca125.trim() !== '';
+  const color = rmi > 250 ? 'red' as const : rmi > 25 ? 'amber' as const : 'teal' as const;
+  const label = rmi > 250 ? 'HIGH risk (>250) — urgent gynaecology-oncology referral'
+    : rmi > 25 ? 'MODERATE risk (25–250) — urgent gynaecology review'
+    : rmi > 0 ? 'LOW risk (≤25) — reassurance, consider interval USS'
+    : '';
+
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">RMI — Risk of Malignancy Index</h3>
+      <p className="text-xs text-gray-500 mb-4">For adnexal/ovarian masses. RMI = U × M × CA-125. &lt;25 low, 25–250 moderate, &gt;250 high risk.</p>
+      <div className="space-y-4">
+        <div>
+          <div className="text-xs font-bold text-gray-700 mb-2">USS features (U score: 0 features=0, 1 feature=1, 2–5 features=3)</div>
+          <div className="space-y-2">
+            {[
+              ['Multilocular cyst', multilocular, setMultilocular],
+              ['Solid areas', solidAreas, setSolidAreas],
+              ['Metastases / peritoneal deposits', metastases, setMetastases],
+              ['Bilateral masses', bilateral, setBilateral],
+              ['Ascites', ascites, setAscites],
+            ].map(([label, val, setter]) => (
+              <label key={label as string} className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={val as boolean} onChange={(e) => (setter as (v: boolean) => void)(e.target.checked)} className="accent-teal-600 w-4 h-4" />
+                <span className="text-sm text-gray-700">{label as string}</span>
+              </label>
+            ))}
+          </div>
+          <div className="mt-2 text-xs text-teal-700 font-semibold">U = {U} ({features} feature{features !== 1 ? 's' : ''})</div>
+        </div>
+        <div>
+          <div className="text-xs font-bold text-gray-700 mb-2">Menopausal status (M score)</div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+              <input type="radio" checked={!menopausal} onChange={() => setMenopausal(false)} className="accent-teal-600" /> Premenopausal (M=1)
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+              <input type="radio" checked={menopausal} onChange={() => setMenopausal(true)} className="accent-teal-600" /> Postmenopausal (M=3)
+            </label>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1">CA-125 (U/mL)</label>
+          <input type="number" value={ca125} onChange={(e) => setCa125(e.target.value)} placeholder="e.g. 85"
+            className="w-full px-3 py-2 rounded-xl border border-teal-100 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400" />
+        </div>
+      </div>
+      {hasResult && (
+        <ScoreBox score={`RMI = ${rmi.toFixed(0)}`} label={label} color={color} />
+      )}
+      {!hasResult && (
+        <div className="mt-4 text-xs text-gray-400 text-center">Enter CA-125 to calculate RMI</div>
+      )}
+    </Card>
+  );
+}
+
+function PCOSCalc() {
+  const [oligo, setOligo] = useState(false);
+  const [hyperandrogen, setHyperandrogen] = useState(false);
+  const [pcov, setPcov] = useState(false);
+  const [excluded, setExcluded] = useState(false);
+
+  const criteria = [oligo, hyperandrogen, pcov].filter(Boolean).length;
+  const met = criteria >= 2 && excluded;
+  const partial = criteria >= 2 && !excluded;
+  const color = met ? 'amber' as const : criteria >= 2 ? 'amber' as const : 'teal' as const;
+  const label = met ? 'PCOS criteria met — 2/3 Rotterdam criteria + exclusions confirmed'
+    : partial ? 'Criteria count met — confirm exclusions before diagnosing PCOS'
+    : criteria === 1 ? 'Only 1 criterion — PCOS unlikely; consider alternative diagnoses'
+    : 'No criteria met';
+
+  return (
+    <Card>
+      <h3 className="text-base font-bold text-gray-800 mb-1">PCOS — Rotterdam Criteria</h3>
+      <p className="text-xs text-gray-500 mb-4">Diagnosis requires 2 of 3 criteria AND exclusion of other causes.</p>
+      <div className="space-y-5">
+        <div>
+          <div className="text-sm font-bold text-gray-800 mb-3">Rotterdam criteria (need ≥2 of 3)</div>
+          <div className="space-y-3">
+            <label className={`flex items-start gap-3 cursor-pointer rounded-xl border px-3 py-3 transition ${oligo ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}>
+              <input type="checkbox" checked={oligo} onChange={(e) => setOligo(e.target.checked)} className="mt-0.5 accent-teal-600 w-4 h-4" />
+              <div>
+                <div className="text-sm font-semibold text-gray-800">1. Oligo/anovulation</div>
+                <div className="text-xs text-gray-500 mt-0.5">Irregular cycles (&gt;35 days), &lt;8 cycles/year, or amenorrhoea</div>
+              </div>
+            </label>
+            <label className={`flex items-start gap-3 cursor-pointer rounded-xl border px-3 py-3 transition ${hyperandrogen ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}>
+              <input type="checkbox" checked={hyperandrogen} onChange={(e) => setHyperandrogen(e.target.checked)} className="mt-0.5 accent-teal-600 w-4 h-4" />
+              <div>
+                <div className="text-sm font-semibold text-gray-800">2. Clinical or biochemical hyperandrogenism</div>
+                <div className="text-xs text-gray-500 mt-0.5">Hirsutism (Ferriman-Gallwey ≥6), acne, alopecia OR elevated total/free testosterone, DHEAS</div>
+              </div>
+            </label>
+            <label className={`flex items-start gap-3 cursor-pointer rounded-xl border px-3 py-3 transition ${pcov ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}>
+              <input type="checkbox" checked={pcov} onChange={(e) => setPcov(e.target.checked)} className="mt-0.5 accent-teal-600 w-4 h-4" />
+              <div>
+                <div className="text-sm font-semibold text-gray-800">3. Polycystic ovaries on USS</div>
+                <div className="text-xs text-gray-500 mt-0.5">≥20 follicles (2–9 mm) in one ovary OR ovarian volume &gt;10 mL (either ovary); FNPO threshold ≥25 if using new-generation USS</div>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div>
+          <div className="text-sm font-bold text-gray-800 mb-2">Exclusions confirmed?</div>
+          <div className="text-xs text-gray-500 mb-2">Must exclude: congenital adrenal hyperplasia, Cushing's syndrome, androgen-secreting tumour, hyperprolactinaemia, thyroid disease, premature ovarian insufficiency</div>
+          <label className={`flex items-start gap-3 cursor-pointer rounded-xl border px-3 py-3 transition ${excluded ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}>
+            <input type="checkbox" checked={excluded} onChange={(e) => setExcluded(e.target.checked)} className="mt-0.5 accent-teal-600 w-4 h-4" />
+            <span className="text-sm text-gray-700">Other causes excluded (clinically ± investigations)</span>
+          </label>
+        </div>
+      </div>
+      <ScoreBox
+        score={`${criteria}/3 criteria`}
+        label={label}
+        color={color}
+      />
+    </Card>
+  );
+}
 
 function BishopCalc() {
   const [dilation, setDilation] = useState(0);
