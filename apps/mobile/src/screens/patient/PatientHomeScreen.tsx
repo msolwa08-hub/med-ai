@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { useConsultationStore, Consultation } from '../../store/consultationStore';
+import { apiClient } from '../../api/client';
 import { ConsultationCard } from '../../components/ConsultationCard';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 
@@ -60,12 +61,27 @@ export const PatientHomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const { consultations, isLoading, loadConsultations } = useConsultationStore();
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
       loadConsultations(user.id);
     }
+    checkProfileCompletion();
   }, [user?.id]);
+
+  async function checkProfileCompletion() {
+    try {
+      const res = await apiClient.get('/patients/me');
+      const data = res.data as { data?: { emergencyContact?: unknown } };
+      const hasEmergencyContact = data.data?.emergencyContact != null;
+      if (!hasEmergencyContact) {
+        setProfileIncomplete(true);
+      }
+    } catch {
+      // Non-fatal — don't show banner if check fails
+    }
+  }
 
   const onRefresh = useCallback(() => {
     if (user?.id) {
@@ -118,6 +134,29 @@ export const PatientHomeScreen: React.FC = () => {
           <Ionicons name="alert-circle-outline" size={20} color={COLORS.white} style={{ marginRight: 8 }} />
           <Text style={styles.emergencyBannerText}>Emergency — tap to share QR</Text>
         </TouchableOpacity>
+
+        {/* ── Profile Incomplete Banner ── */}
+        {profileIncomplete && (
+          <View style={styles.profileBanner}>
+            <View style={styles.profileBannerAccent} />
+            <View style={styles.profileBannerBody}>
+              <Ionicons name="medkit-outline" size={20} color={COLORS.secondary} />
+              <View style={styles.profileBannerText}>
+                <Text style={styles.profileBannerTitle}>Set up your health profile</Text>
+                <Text style={styles.profileBannerSubtitle}>
+                  Doctors will be better prepared for your consultations
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.profileBannerBtn}
+                onPress={() => navigation.navigate('PatientProfileSetup', { language: user?.preferredLanguage || 'en' })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.profileBannerBtnText}>Set Up</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* ── Stats Row ── */}
         <View style={styles.statsRow}>
@@ -284,6 +323,55 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.subheadline,
     color: COLORS.white,
     fontWeight: '600',
+  },
+
+  // Profile incomplete banner
+  profileBanner: {
+    flexDirection: 'row',
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.secondary + '40',
+    ...SHADOWS.sm,
+  },
+  profileBannerAccent: {
+    width: 4,
+    backgroundColor: COLORS.secondary,
+  },
+  profileBannerBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  profileBannerText: {
+    flex: 1,
+  },
+  profileBannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.label,
+  },
+  profileBannerSubtitle: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+  profileBannerBtn: {
+    backgroundColor: COLORS.secondary,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+  },
+  profileBannerBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
   },
 
   // Stats

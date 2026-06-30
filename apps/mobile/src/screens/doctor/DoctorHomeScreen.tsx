@@ -428,6 +428,55 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryLabel,
   },
 
+  // Profile incomplete banner
+  profileBanner: {
+    flexDirection: 'row',
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.warning + '40',
+    ...SHADOWS.sm,
+  },
+  profileBannerAccent: {
+    width: 4,
+    backgroundColor: COLORS.warning,
+  },
+  profileBannerBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  profileBannerText: {
+    flex: 1,
+  },
+  profileBannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.label,
+  },
+  profileBannerSubtitle: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+  profileBannerBtn: {
+    backgroundColor: COLORS.warning,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+  },
+  profileBannerBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+
   // Status card
   statusCard: {
     flexDirection: 'row',
