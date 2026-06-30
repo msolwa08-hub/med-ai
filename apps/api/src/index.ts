@@ -28,10 +28,6 @@ import { notificationRoutes } from './routes/notifications.js';
 import { uploadRoutes } from './routes/upload.js';
 import { paymentRoutes } from './routes/payments.js';
 
-// ─────────────────────────────────────────────────────────
-// Bootstrap
-// ─────────────────────────────────────────────────────────
-
 const fastify = Fastify({
   logger: {
     level: config.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -42,10 +38,6 @@ const fastify = Fastify({
   },
 });
 
-// ─────────────────────────────────────────────────────────
-// Plugins
-// ─────────────────────────────────────────────────────────
-
 await fastify.register(cors, {
   origin: [
     config.FRONTEND_URL,
@@ -55,22 +47,9 @@ await fastify.register(cors, {
   credentials: true,
 });
 
-await fastify.register(helmet, {
-  contentSecurityPolicy: false,
-});
-
-await fastify.register(jwt, {
-  secret: config.JWT_SECRET,
-});
-
-await fastify.register(rateLimit, {
-  max: 100,
-  timeWindow: '1 minute',
-});
-
-// ─────────────────────────────────────────────────────────
-// Routes
-// ─────────────────────────────────────────────────────────
+await fastify.register(helmet, { contentSecurityPolicy: false });
+await fastify.register(jwt, { secret: config.JWT_SECRET });
+await fastify.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
 await fastify.register(authRoutes);
 await fastify.register(patientRoutes);
@@ -95,11 +74,7 @@ await fastify.register(notificationRoutes);
 await fastify.register(uploadRoutes);
 await fastify.register(paymentRoutes);
 
-// ─────────────────────────────────────────────────────────
-// Health check (no auth required)
-// ─────────────────────────────────────────────────────────
-
-fastify.get('/health', async (request, reply) => {
+fastify.get('/health', async (_request, reply) => {
   const checks: Record<string, 'ok' | 'error'> = {};
   let overall = true;
 
@@ -117,7 +92,6 @@ fastify.get('/health', async (request, reply) => {
     checks.redis = 'ok';
   } catch {
     checks.redis = 'error';
-    // Redis failure is non-fatal — app can still serve without caching
   }
 
   return reply.status(overall ? 200 : 503).send({
@@ -129,36 +103,20 @@ fastify.get('/health', async (request, reply) => {
   });
 });
 
-// ─────────────────────────────────────────────────────────
-// Error handlers
-// ─────────────────────────────────────────────────────────
-
 fastify.setNotFoundHandler((_request, reply) => {
-  reply.status(404).send({
-    success: false,
-    error: 'Route not found',
-  });
+  reply.status(404).send({ success: false, error: 'Route not found' });
 });
 
 fastify.setErrorHandler((error, _request, reply) => {
   fastify.log.error(error);
-
   const statusCode = error.statusCode ?? 500;
   const isServerError = statusCode >= 500;
   const errorMessage =
     isServerError && config.NODE_ENV === 'production'
       ? 'An internal error occurred. Please try again or contact support.'
       : (error.message ?? 'Internal server error');
-
-  reply.status(statusCode).send({
-    success: false,
-    error: errorMessage,
-  });
+  reply.status(statusCode).send({ success: false, error: errorMessage });
 });
-
-// ─────────────────────────────────────────────────────────
-// Graceful shutdown
-// ─────────────────────────────────────────────────────────
 
 async function shutdown(signal: string): Promise<void> {
   fastify.log.info(`Received ${signal}. Shutting down gracefully...`);
@@ -176,11 +134,6 @@ async function shutdown(signal: string): Promise<void> {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-// ─────────────────────────────────────────────────────────
-// Start server
-// ─────────────────────────────────────────────────────────
-
-// Verify database connectivity before accepting traffic
 try {
   await prisma.$queryRaw`SELECT 1`;
   fastify.log.info('Database connection verified.');

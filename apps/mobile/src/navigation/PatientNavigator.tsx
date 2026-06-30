@@ -15,9 +15,10 @@ import ConsultationStatusScreen from '../screens/patient/ConsultationStatusScree
 import AIHistoryScreen from '../screens/patient/AIHistoryScreen';
 import LanguageSelectScreen from '../screens/patient/LanguageSelectScreen';
 import EmergencyProfileScreen from '../screens/patient/emergency/EmergencyProfileScreen';
+import EditPatientProfileScreen from '../screens/patient/EditPatientProfileScreen';
 import OGHistoryScreen from '../screens/patient/OGHistoryScreen';
-import PatientProfileSetupScreen from '../screens/patient/PatientProfileSetupScreen';
 import PaymentScreen from '../screens/patient/PaymentScreen';
+import PatientProfileSetupScreen from '../screens/patient/PatientProfileSetupScreen';
 
 // ─── Param Lists ───────────────────────────────────────────────
 
@@ -43,8 +44,9 @@ export type PatientStackParamList = {
   };
   LanguageSelect: { consultationId: string };
   LabResults: undefined;
+  EditPatientProfile: undefined;
   PatientProfileSetup: { language?: string };
-  Payment: { consultationId: string; paymentUrl: string; amount: number };
+  Payment: { consultationId: string; doctorName?: string };
 };
 
 const Tab = createBottomTabNavigator<PatientTabParamList>();
@@ -120,6 +122,7 @@ export default function PatientNavigator() {
       <Stack.Screen name="OGHistory" component={OGHistoryScreen} />
       <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
       <Stack.Screen name="LabResults" component={LabResultsScreen} />
+      <Stack.Screen name="EditPatientProfile" component={EditPatientProfileScreen} />
       <Stack.Screen name="PatientProfileSetup" component={PatientProfileSetupScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />
     </Stack.Navigator>

@@ -498,6 +498,13 @@ export default function LoginScreen() {
                 <Text style={styles.registerLink}>Register as Doctor</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ForgotPassword')}
+              activeOpacity={0.7}
+              style={{ alignSelf: 'center', marginTop: 8 }}
+            >
+              <Text style={styles.registerLink}>Forgot password?</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
 
