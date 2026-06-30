@@ -1,108 +1,30 @@
-const API_BASE = '/beta';
+const BASE = '';
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  const json = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error ?? `HTTP ${res.status}`);
-  }
-  return json.data as T;
+async function post<T>(url: string, body: unknown, key?: string): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (key) headers['x-beta-key'] = key;
+  const res = await fetch(`${BASE}${url}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json() as Promise<T>;
 }
 
-export interface StartResult {
-  sessionId: string;
-  message: string;
-}
-
-export interface MessageResult {
-  reply: string;
-  isComplete: boolean;
-  summary?: string;
-}
-
-export interface ValidateResult {
-  valid: boolean;
-}
-
-export interface StatusResult {
-  isValid: boolean;
-  isComplete: boolean;
-}
-
-export interface SummaryResult {
-  summary: string | null;
-}
-
-export interface BetaConfig {
-  practiceName: string;
-  doctorName: string;
-}
-
-export interface AnalyticsData {
-  summary: {
-    total: number;
-    active: number;
-    completed: number;
-    completionRate: number;
-    avgExchanges: number;
-    today: number;
-    thisWeek: number;
-  };
-  aiHistoryQuality: {
-    avgExchanges: number;
-    medianExchanges: number;
-    exchangeDistribution: Record<string, number>;
-    completionRate: number;
-  };
-  consultationFunnel: {
-    TAKING_HISTORY: number;
-    AWAITING_DOCTOR: number;
-    IN_REVIEW: number;
-    SIGNED: number;
-    abandoned: number;
-  };
-  userGrowth: {
-    dailySessions: { date: string; count: number }[];
-    totalSessions: number;
-    uniqueKeys: number;
-  };
-  errors: {
-    recent: { type: string; message: string; at: number }[];
-    total: number;
-  };
+async function get<T>(url: string, key?: string): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (key) headers['x-beta-key'] = key;
+  const res = await fetch(`${BASE}${url}`, { headers });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json() as Promise<T>;
 }
 
 export const api = {
-  validate: (accessKey: string) =>
-    apiFetch<ValidateResult>('/validate', {
-      method: 'POST',
-      body: JSON.stringify({ accessKey }),
-    }),
+  startSession: (key: string, opts?: { department?: string; ageSex?: string; chiefComplaintHint?: string }) =>
+    post<{ sessionId: string; message: string }>('/beta/start', opts ?? {}, key),
 
-  startSession: (accessKey: string) =>
-    apiFetch<StartResult>('/session/start', {
-      method: 'POST',
-      body: JSON.stringify({ accessKey }),
-    }),
+  chat: (key: string, sessionId: string, message: string) =>
+    post<{ message: string; completed: boolean }>('/beta/chat', { sessionId, message }, key),
 
-  sendMessage: (sessionId: string, message: string) =>
-    apiFetch<MessageResult>('/session/message', {
-      method: 'POST',
-      body: JSON.stringify({ sessionId, message }),
-    }),
-
-  checkStatus: (sessionId: string) =>
-    apiFetch<StatusResult>(`/session/${sessionId}/status`),
-
-  getSummary: (sessionId: string) =>
-    apiFetch<SummaryResult>(`/session/${sessionId}/summary`),
-
-  getAnalytics: (doctorKey: string) =>
-    apiFetch<AnalyticsData>(`/analytics?key=${encodeURIComponent(doctorKey)}`),
-
-  getConfig: () =>
-    apiFetch<BetaConfig>('/config'),
+  getSession: (sessionId: string) =>
+    get<{ id: string; status: string; messages: { role: string; content: string }[]; department?: string }>(
+      `/beta/session/${sessionId}`
+    ),
 };

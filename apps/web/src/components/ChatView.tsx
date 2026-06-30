@@ -1,201 +1,136 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import type { StoredSession } from '../storage';
+import { storage } from '../storage';
 
-interface Props {
-  session: StoredSession;
-  onMessage: (sessionId: string, patientMsg: string, aiReply: string, isComplete: boolean) => void;
-  onViewSummary: () => void;
-  onBackToList: () => void;
-  practiceName?: string;
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
-export function ChatView({ session, onMessage, onViewSummary, onBackToList, practiceName = 'MedAI' }: Props) {
+interface Props {
+  sessionId: string;
+}
+
+export default function ChatView({ sessionId }: Props) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [error, setError] = useState('');
+  const [betaKey, setBetaKey] = useState(storage.getBetaKey() || 'MEDAI-BETA-DEV');
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    loadSession();
+  }, [sessionId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [session.messages, loading]);
+  }, [messages]);
 
-  useEffect(() => {
-    if (!loading && !session.isComplete) {
-      inputRef.current?.focus();
+  async function loadSession() {
+    try {
+      const session = await api.getSession(sessionId);
+      setMessages(session.messages as Message[]);
+      if (session.status === 'completed') setCompleted(true);
+    } catch {
+      // New session — start with a greeting message
+      try {
+        const result = await api.startSession(betaKey, {});
+        setMessages([{ role: 'assistant', content: result.message }]);
+      } catch (e) {
+        setError('Could not connect to MedAI server.');
+      }
     }
-  }, [loading, session.isComplete]);
+  }
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text || loading || session.isComplete) return;
+  async function send() {
+    if (!input.trim() || loading || completed) return;
+    const userMsg = input.trim();
     setInput('');
-    setError('');
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setLoading(true);
     try {
-      const result = await api.sendMessage(session.sessionId, text);
-      onMessage(session.sessionId, text, result.reply, result.isComplete);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('expired')) {
-        setError('This session has expired (server restarted). Please go back and start a new patient session.');
-      } else {
-        setError(msg || 'Connection error. Please try again.');
-      }
-      setInput(text);
+      const result = await api.chat(betaKey, sessionId, userMsg);
+      setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
+      if (result.completed) setCompleted(true);
+    } catch {
+      setError('Failed to send message. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }
-
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto">
-      {/* Header */}
-      <header className="flex-shrink-0 bg-white border-b border-teal-100 px-4 py-3 flex items-center gap-3 shadow-sm">
-        <button
-          onClick={onBackToList}
-          className="text-slate-400 hover:text-teal-600 transition p-1 -ml-1 rounded-xl"
-          aria-label="Back to sessions"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
-        </button>
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div className="w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm"
-               style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }}>
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-slate-800 truncate">{session.label}</div>
-            <div className="text-xs text-teal-600">{practiceName}</div>
-          </div>
+    <div className="min-h-screen bg-slate-900 flex flex-col">
+      <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center gap-3">
+        <img src="/medai-icon.svg" alt="MedAI" className="w-8 h-8" />
+        <div>
+          <h1 className="text-white font-semibold text-sm">MedAI Patient History</h1>
+          <p className="text-slate-400 text-xs">AI-assisted medical history taking</p>
         </div>
-        {session.isComplete && (
-          <button
-            onClick={onViewSummary}
-            className="text-xs text-teal-600 hover:text-teal-700 font-semibold transition px-2 py-1 rounded-xl flex-shrink-0"
-          >
-            Summary →
-          </button>
+        {completed && (
+          <span className="ml-auto bg-green-600 text-white text-xs px-2 py-1 rounded-full">
+            Completed
+          </span>
         )}
       </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-3 bg-teal-50/30">
-        {session.messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'patient' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'assistant' && (
-              <div className="w-7 h-7 rounded-full flex items-center justify-center mr-2 flex-shrink-0 mt-1 shadow-sm"
-                   style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }}>
-                <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                </svg>
-              </div>
-            )}
-            <div className={msg.role === 'assistant' ? 'chat-bubble-ai' : 'chat-bubble-patient'}>
-              {msg.content}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-2xl mx-auto w-full">
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div
+              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                m.role === 'user'
+                  ? 'bg-blue-600 text-white rounded-br-sm'
+                  : 'bg-slate-700 text-slate-100 rounded-bl-sm'
+              }`}
+            >
+              {m.content.replace(/```json[\s\S]*?```/g, '').trim()}
             </div>
           </div>
         ))}
-
-        {/* Typing indicator */}
         {loading && (
           <div className="flex justify-start">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center mr-2 flex-shrink-0 mt-1 shadow-sm"
-                 style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }}>
-              <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-              </svg>
-            </div>
-            <div className="chat-bubble-ai">
-              <span className="flex gap-1 items-center h-4">
-                <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Complete banner */}
-        {session.isComplete && !loading && (
-          <div className="flex justify-center py-2">
-            <div className="rounded-2xl px-4 py-3 text-center max-w-sm shadow-sm border border-emerald-100"
-                 style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)' }}>
-              <div className="flex items-center justify-center gap-2 text-emerald-700 text-sm font-semibold mb-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                History complete
+            <div className="bg-slate-700 rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <p className="text-xs text-emerald-600 mb-3">GP Clinical Summary has been generated.</p>
-              <button
-                onClick={onViewSummary}
-                className="w-full py-2 px-4 text-white text-sm font-semibold rounded-xl transition shadow-sm"
-                style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-              >
-                View Clinical Summary →
-              </button>
             </div>
           </div>
         )}
-
+        {completed && (
+          <div className="bg-green-900/40 border border-green-700 rounded-xl p-4 text-center">
+            <p className="text-green-300 text-sm font-medium">History taking complete</p>
+            <p className="text-green-400/70 text-xs mt-1">Your doctor can now review your history.</p>
+          </div>
+        )}
+        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
         <div ref={bottomRef} />
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="flex-shrink-0 px-4 py-2 bg-red-50 border-t border-red-100">
-          <p className="text-xs text-red-600">{error}</p>
-        </div>
-      )}
-
-      {/* Input */}
-      {!session.isComplete && (
-        <div className="flex-shrink-0 bg-white border-t border-teal-100 px-4 py-3">
-          <div className="flex gap-2 items-end">
-            <textarea
-              ref={inputRef}
+      {!completed && (
+        <div className="bg-slate-800 border-t border-slate-700 p-4">
+          <div className="max-w-2xl mx-auto flex gap-3">
+            <input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={loading}
-              placeholder="Type your reply…"
-              rows={1}
-              className="flex-1 resize-none px-4 py-2.5 rounded-2xl border border-teal-100 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent disabled:bg-teal-50 disabled:text-slate-400 transition max-h-32 overflow-y-auto"
-              style={{ minHeight: '42px' }}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+              placeholder="Type your response..."
+              className="flex-1 bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
-              onClick={handleSend}
+              onClick={send}
               disabled={loading || !input.trim()}
-              className="flex-shrink-0 w-10 h-10 text-white rounded-2xl flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 disabled:opacity-40 shadow-sm"
-              style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }}
+              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-5 py-3 rounded-xl font-medium text-sm transition-colors"
             >
-              {loading ? (
-                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                </svg>
-              )}
+              Send
             </button>
           </div>
-          <p className="text-center text-xs text-slate-400 mt-2">
-            Enter to send · Shift+Enter for new line
+          <p className="text-slate-600 text-xs text-center mt-2">
+            This is an AI assistant. Provide accurate information for the best care.
           </p>
         </div>
       )}

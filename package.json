@@ -8,12 +8,12 @@
     "packages/*"
   ],
   "scripts": {
-    "trial": "npm install && npm run build:web && npm run build:beta -w apps/api && node apps/api/dist-beta/server.js",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:mobile": "npm run start --workspace=apps/mobile",
-    "build:api": "npm run build --workspace=apps/api",
     "build:web": "npm run build --workspace=apps/web",
+    "build:api": "npm run build --workspace=apps/api",
+    "beta": "npm run build --workspace=apps/web && npx tsx apps/api/src/beta-server.ts",
     "db:generate": "npm run db:generate --workspace=apps/api",
     "db:migrate": "npm run db:migrate --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api",
@@ -21,7 +21,9 @@
     "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
-    "playwright": "^1.61.1",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@fastify/static": "^9.1.3"
   }
 }
