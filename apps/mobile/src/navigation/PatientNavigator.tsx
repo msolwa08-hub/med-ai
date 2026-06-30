@@ -15,6 +15,7 @@ import ConsultationStatusScreen from '../screens/patient/ConsultationStatusScree
 import AIHistoryScreen from '../screens/patient/AIHistoryScreen';
 import LanguageSelectScreen from '../screens/patient/LanguageSelectScreen';
 import EmergencyProfileScreen from '../screens/patient/emergency/EmergencyProfileScreen';
+import OGHistoryScreen from '../screens/patient/OGHistoryScreen';
 
 // ─── Param Lists ───────────────────────────────────────────────
 
@@ -30,6 +31,14 @@ export type PatientStackParamList = {
   DoctorProfile: { doctorId: string };
   ConsultationStatus: { consultationId: string };
   AIHistory: { consultationId: string; language?: string };
+  OGHistory: {
+    consultationId: string;
+    language?: string;
+    isPregnant?: boolean;
+    chiefComplaint?: string;
+    gravida?: number;
+    para?: number;
+  };
   LanguageSelect: { consultationId: string };
   LabResults: undefined;
 };
@@ -104,6 +113,7 @@ export default function PatientNavigator() {
       <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
       <Stack.Screen name="ConsultationStatus" component={ConsultationStatusScreen} />
       <Stack.Screen name="AIHistory" component={AIHistoryScreen} />
+      <Stack.Screen name="OGHistory" component={OGHistoryScreen} />
       <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
       <Stack.Screen name="LabResults" component={LabResultsScreen} />
     </Stack.Navigator>

@@ -21,6 +21,7 @@ import PracticeSettingsScreen from '../screens/settings/PracticeSettingsScreen';
 import ReferralLetterScreen from '../screens/doctor/ReferralLetterScreen';
 import HomeCarePlannerScreen from '../screens/doctor/HomeCarePlannerScreen';
 import MedicalAidClaimScreen from '../screens/doctor/MedicalAidClaimScreen';
+import UltrasoundInterpretScreen from '../screens/doctor/UltrasoundInterpretScreen';
 
 // ─── Param Lists ───────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export type DoctorStackParamList = {
   };
   HomeCarePlanner: undefined;
   MedicalAidClaim: undefined;
+  UltrasoundInterpret: { consultationId: string };
 };
 
 const Tab = createBottomTabNavigator<DoctorTabParamList>();
@@ -127,6 +129,7 @@ export default function DoctorNavigator() {
       <Stack.Screen name="ReferralLetter" component={ReferralLetterScreen} />
       <Stack.Screen name="HomeCarePlanner" component={HomeCarePlannerScreen} />
       <Stack.Screen name="MedicalAidClaim" component={MedicalAidClaimScreen} />
+      <Stack.Screen name="UltrasoundInterpret" component={UltrasoundInterpretScreen} />
     </Stack.Navigator>
   );
 }

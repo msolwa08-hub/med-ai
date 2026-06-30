@@ -299,3 +299,40 @@ export const documentsApi = {
   emlLookup: (payload: EMLLookupPayload) =>
     apiClient.post('/eml/lookup', payload),
 };
+
+// --- Ultrasound Endpoints ---
+export const ultrasoundApi = {
+  interpret: (payload: {
+    consultationId: string;
+    reportText: string;
+    clinicalContext?: string;
+    gestationalAge?: string;
+    isPregnant?: boolean;
+  }) => apiClient.post('/ultrasound/interpret', payload),
+
+  getResults: (consultationId: string) =>
+    apiClient.get(`/ultrasound/results/${consultationId}`),
+};
+
+// --- O&G History Endpoints ---
+export const ogHistoryApi = {
+  start: (payload: {
+    consultationId: string;
+    mode?: 'OBSTETRIC' | 'GYNAECOLOGICAL' | 'UNKNOWN';
+    language?: string;
+    chiefComplaint?: string;
+    isPregnant?: boolean;
+    gestationalAge?: string;
+    gravida?: number;
+    para?: number;
+  }) => apiClient.post('/og-history/start', payload),
+
+  continue: (consultationId: string, patientMessage: string) =>
+    apiClient.post('/og-history/continue', { consultationId, patientMessage }),
+
+  complete: (consultationId: string) =>
+    apiClient.post('/og-history/complete', { consultationId }),
+
+  getHistory: (consultationId: string) =>
+    apiClient.get(`/og-history/${consultationId}`),
+};

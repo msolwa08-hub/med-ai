@@ -307,7 +307,13 @@ export const InvestigationsScreen: React.FC = () => {
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Investigations</Text>
-        <View style={styles.headerRight} />
+        <TouchableOpacity
+          style={styles.ussBtn}
+          onPress={() => navigation.navigate('UltrasoundInterpret', { consultationId })}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.ussBtnText}>AI USS</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tab bar */}
@@ -550,6 +556,17 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     width: 36,
+  },
+  ussBtn: {
+    backgroundColor: COLORS.systemPurple,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  ussBtnText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
   },
   tabBar: {
     flexDirection: 'row',

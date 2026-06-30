@@ -228,10 +228,62 @@ export const DoctorProfileScreen: React.FC = () => {
             </Text>
           </View>
 
-          {/* Fee */}
-          <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>Consultation Fee</Text>
-            <Text style={styles.feeValue}>R {doctor.consultationFee ?? '—'}</Text>
+          {/* Fee + Commission breakdown */}
+          <View style={styles.feeCard}>
+            <View style={styles.feeMainRow}>
+              <Text style={styles.feeLabel}>Consultation Fee</Text>
+              <Text style={styles.feeValue}>R {doctor.consultationFee ?? '—'}</Text>
+            </View>
+            {doctor.consultationFee != null && (
+              <View style={styles.feeBreakdown}>
+                <View style={styles.feeBreakdownRow}>
+                  <Text style={styles.feeBreakdownLabel}>🏥 Platform service fee (15%)</Text>
+                  <Text style={styles.feeBreakdownValue}>
+                    −R {(doctor.consultationFee * 0.15).toFixed(0)}
+                  </Text>
+                </View>
+                <View style={styles.feeBreakdownRow}>
+                  <Text style={[styles.feeBreakdownLabel, { fontWeight: '700' }]}>
+                    👨‍⚕️ Goes to your doctor (85%)
+                  </Text>
+                  <Text style={[styles.feeBreakdownValue, { color: COLORS.success, fontWeight: '700' }]}>
+                    R {(doctor.consultationFee * 0.85).toFixed(0)}
+                  </Text>
+                </View>
+                <Text style={styles.feeNote}>
+                  Secure payment · Funds held until consultation complete
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Wait time info */}
+          <View style={styles.waitCard}>
+            <View style={styles.waitItem}>
+              <Text style={styles.waitIcon}>⏱</Text>
+              <View>
+                <Text style={styles.waitValue}>
+                  {doctor.isOnline ? `~${doctor.etaMinutes ?? '—'} min` : 'Unavailable'}
+                </Text>
+                <Text style={styles.waitLabel}>Estimated wait</Text>
+              </View>
+            </View>
+            <View style={styles.waitDivider} />
+            <View style={styles.waitItem}>
+              <Text style={styles.waitIcon}>📍</Text>
+              <View>
+                <Text style={styles.waitValue}>{doctor.distanceKm?.toFixed(1) ?? '—'} km</Text>
+                <Text style={styles.waitLabel}>Distance</Text>
+              </View>
+            </View>
+            <View style={styles.waitDivider} />
+            <View style={styles.waitItem}>
+              <Text style={styles.waitIcon}>⭐</Text>
+              <View>
+                <Text style={styles.waitValue}>{(doctor.rating ?? 0).toFixed(1)}</Text>
+                <Text style={styles.waitLabel}>{doctor.reviewCount ?? 0} reviews</Text>
+              </View>
+            </View>
           </View>
 
           {/* About */}
@@ -451,14 +503,41 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
   },
-  feeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  feeCard: {
     backgroundColor: COLORS.surfaceVariant,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.md,
+  },
+  feeMainRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  feeBreakdown: {
+    marginTop: SPACING.sm,
+    paddingTop: SPACING.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.border,
+  },
+  feeBreakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  feeBreakdownLabel: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+  },
+  feeBreakdownValue: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+  },
+  feeNote: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textLight,
+    marginTop: SPACING.xs,
+    fontStyle: 'italic',
   },
   feeLabel: {
     fontSize: FONT_SIZE.md,
@@ -470,6 +549,29 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.primary,
   },
+  waitCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginTop: SPACING.sm,
+    alignItems: 'center',
+  },
+  waitItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    justifyContent: 'center',
+  },
+  waitDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: COLORS.border,
+  },
+  waitIcon: { fontSize: 18 },
+  waitValue: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.text },
+  waitLabel: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary },
   section: {
     marginTop: SPACING.lg,
     borderTopWidth: 1,
