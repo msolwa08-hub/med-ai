@@ -82,10 +82,25 @@ export default function DoctorHomeScreen({ navigation }: Props) {
   const [isToggling, setIsToggling] = useState(false);
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [queueLoading, setQueueLoading] = useState(false);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   useEffect(() => {
     loadQueue();
+    checkProfileCompletion();
   }, []);
+
+  async function checkProfileCompletion() {
+    try {
+      const res = await doctorApi.getProfile(user?.id ?? '');
+      const data = res.data as { data?: { bio?: string | null } };
+      const bio = data.data?.bio;
+      if (!bio || bio.trim() === '') {
+        setProfileIncomplete(true);
+      }
+    } catch {
+      // Non-fatal — don't show banner if check fails
+    }
+  }
 
   async function loadQueue() {
     setQueueLoading(true);
@@ -235,6 +250,29 @@ export default function DoctorHomeScreen({ navigation }: Props) {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* ── Profile Incomplete Banner ── */}
+        {profileIncomplete && (
+          <View style={styles.profileBanner}>
+            <View style={styles.profileBannerAccent} />
+            <View style={styles.profileBannerBody}>
+              <Ionicons name="person-circle-outline" size={20} color={COLORS.warning} />
+              <View style={styles.profileBannerText}>
+                <Text style={styles.profileBannerTitle}>Complete your profile</Text>
+                <Text style={styles.profileBannerSubtitle}>
+                  Patients can see your profile better when it's filled in
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.profileBannerBtn}
+                onPress={() => navigation.navigate('DoctorProfileSetup', { language: 'en' })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.profileBannerBtnText}>Set Up</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* ── Status Card ── */}
         <View style={[styles.statusCard, isOnline ? styles.statusCardOnline : styles.statusCardOffline]}>

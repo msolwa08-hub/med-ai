@@ -23,6 +23,7 @@ import { betaRoutes } from './routes/beta.js';
 import { documentsRoutes } from './routes/documents.js';
 import { ultrasoundRoutes } from './routes/ultrasound.js';
 import { ogHistoryRoutes } from './routes/og-history.js';
+import { profileSetupRoutes } from './routes/profile-setup.js';
 
 // ─────────────────────────────────────────────────────────
 // Bootstrap
@@ -86,6 +87,7 @@ await fastify.register(betaRoutes);
 await fastify.register(documentsRoutes);
 await fastify.register(ultrasoundRoutes);
 await fastify.register(ogHistoryRoutes);
+await fastify.register(profileSetupRoutes);
 
 // ─────────────────────────────────────────────────────────
 // Health check (no auth required)

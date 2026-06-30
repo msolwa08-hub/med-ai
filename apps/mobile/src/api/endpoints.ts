@@ -336,3 +336,15 @@ export const ogHistoryApi = {
   getHistory: (consultationId: string) =>
     apiClient.get(`/og-history/${consultationId}`),
 };
+
+// --- Profile Setup Endpoints ---
+export const profileSetupApi = {
+  start: (language?: string) =>
+    apiClient.post('/profile-setup/start', { language: language || 'en' }),
+
+  continue: (userMessage: string) =>
+    apiClient.post('/profile-setup/continue', { userMessage }),
+
+  complete: () =>
+    apiClient.post('/profile-setup/complete'),
+};

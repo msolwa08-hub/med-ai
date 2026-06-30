@@ -20,6 +20,12 @@ const UpdateDoctorSchema = z.object({
   languages: z.array(z.string()).optional(),
   specialization: z.string().optional(),
   availabilityRadius: z.number().positive().optional(),
+  qualifications: z.array(z.object({
+    degree: z.string(),
+    institution: z.string(),
+    year: z.number().int(),
+  })).optional(),
+  practiceNumber: z.string().max(100).optional(),
 });
 
 const AvailabilitySchema = z.object({
@@ -127,6 +133,8 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
           languages,
           specialization,
           availabilityRadius,
+          qualifications,
+          practiceNumber,
         } = parsed.data;
 
         const updateData: Record<string, unknown> = {};
@@ -137,6 +145,8 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
         if (languages !== undefined) updateData.languages = languages;
         if (specialization !== undefined) updateData.specialization = specialization;
         if (availabilityRadius !== undefined) updateData.availabilityRadius = availabilityRadius;
+        if (qualifications !== undefined) updateData.qualifications = qualifications;
+        if (practiceNumber !== undefined) updateData.practiceNumber = practiceNumber;
 
         const updated = await prisma.doctor.update({
           where: { userId },
