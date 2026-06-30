@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { doctorApi } from '../../api/endpoints';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { registerForPushNotifications } from '../../services/notifications';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,6 +88,11 @@ export default function DoctorHomeScreen({ navigation }: Props) {
   useEffect(() => {
     loadQueue();
     checkProfileCompletion();
+  }, []);
+
+  // Register for push notifications once on mount
+  useEffect(() => {
+    registerForPushNotifications();
   }, []);
 
   async function checkProfileCompletion() {

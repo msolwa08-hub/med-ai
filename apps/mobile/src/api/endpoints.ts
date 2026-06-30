@@ -354,3 +354,12 @@ export const profileSetupApi = {
   complete: () =>
     apiClient.post('/profile-setup/complete'),
 };
+
+// --- Notifications Endpoints ---
+export const notificationsApi = {
+  registerToken: (token: string) =>
+    apiClient.post('/notifications/register-token', { token }),
+
+  clearToken: () =>
+    apiClient.delete('/notifications/token'),
+};

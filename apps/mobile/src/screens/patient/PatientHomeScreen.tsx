@@ -17,6 +17,7 @@ import { useConsultationStore, Consultation } from '../../store/consultationStor
 import { apiClient } from '../../api/client';
 import { ConsultationCard } from '../../components/ConsultationCard';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { registerForPushNotifications } from '../../services/notifications';
 
 // ─── Greeting helpers ────────────────────────────────────────────────────────
 
@@ -69,6 +70,11 @@ export const PatientHomeScreen: React.FC = () => {
     }
     checkProfileCompletion();
   }, [user?.id]);
+
+  // Register for push notifications once on mount
+  useEffect(() => {
+    registerForPushNotifications();
+  }, []);
 
   async function checkProfileCompletion() {
     try {
