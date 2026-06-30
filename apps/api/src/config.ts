@@ -47,6 +47,12 @@ const configSchema = z.object({
   // Expo Push Notifications
   EXPO_ACCESS_TOKEN: z.string().optional(),
 
+  // PayFast payment gateway
+  PAYFAST_MERCHANT_ID: z.string().default('10000100'),      // sandbox default
+  PAYFAST_MERCHANT_KEY: z.string().default('46f0cd694581a'), // sandbox default
+  PAYFAST_PASSPHRASE: z.string().optional(),
+  APP_URL: z.string().default('exp://localhost:8081'),
+
   // Beta access keys (comma-separated list of valid keys)
   BETA_ACCESS_KEYS: z.string().default('MEDAI-BETA-DEV'),
 

@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, FONT_SIZE } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { useMode, type AppMode } from '../../context/ModeContext';
+import { ProfilePhotoUpload } from '../../components/ProfilePhotoUpload';
 
 // ─── GP Profile types ─────────────────────────────────────────────────────────
 
@@ -112,6 +113,8 @@ export default function PracticeSettingsScreen() {
   const [aiHistoryDepth, setAiHistoryDepth] = useState<AiHistoryDepth>('STANDARD');
   const [savingDepth, setSavingDepth] = useState(false);
   const [snackbar, setSnackbar] = useState('');
+  const [doctorPhotoUrl, setDoctorPhotoUrl] = useState<string | undefined>(undefined);
+  const [doctorName, setDoctorName] = useState<string>('D');
 
   // GP profile questionnaire
   const [gpProfile, setGpProfile] = useState<GPProfile>({ ...DEFAULT_GP_PROFILE });
@@ -120,14 +123,20 @@ export default function PracticeSettingsScreen() {
   useEffect(() => {
     async function load() {
       try {
-        const [settingsRes, incentiveRes] = await Promise.all([
+        const [settingsRes, incentiveRes, profileRes] = await Promise.all([
           apiClient.get('/doctor/settings'),
           apiClient.get('/doctor/incentive'),
+          apiClient.get('/doctors/me'),
         ]);
         setSettings(settingsRes.data);
         setIncentive(incentiveRes.data);
         setPracticeMode(settingsRes.data.practiceMode);
         setAiHistoryDepth(settingsRes.data.aiHistoryDepth ?? 'STANDARD');
+
+        // Hydrate photo and name from doctor profile
+        const profile = (profileRes.data as { data?: { photoUrl?: string; firstName?: string } }).data;
+        if (profile?.photoUrl) setDoctorPhotoUrl(profile.photoUrl);
+        if (profile?.firstName) setDoctorName(profile.firstName);
       } catch {
         setSnackbar('Failed to load settings');
       } finally {
@@ -234,6 +243,31 @@ export default function PracticeSettingsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.pageTitle}>Practice Settings</Text>
+
+        {/* ── Profile Photo ──────────────────────────────────────────────────── */}
+        <Surface style={styles.card} elevation={1}>
+          <Text style={styles.cardTitle}>Profile Photo</Text>
+          <Text style={styles.cardSubtitle}>
+            Your photo is shown to patients when they browse doctors on the marketplace.
+          </Text>
+          <View style={photoStyles.row}>
+            <ProfilePhotoUpload
+              currentPhotoUrl={doctorPhotoUrl}
+              displayName={doctorName}
+              size={88}
+              onUploadSuccess={(url) => {
+                setDoctorPhotoUrl(url);
+                setSnackbar('Profile photo updated');
+              }}
+            />
+            <View style={photoStyles.hint}>
+              <Text style={photoStyles.hintTitle}>Add a professional photo</Text>
+              <Text style={photoStyles.hintSub}>
+                Tap the circle to pick an image from your library. Doctors with photos receive more bookings.
+              </Text>
+            </View>
+          </View>
+        </Surface>
 
         {/* ── App Mode ───────────────────────────────────────────────────────── */}
         <Surface style={styles.card} elevation={1}>
@@ -659,6 +693,29 @@ function getPriorityDesc(boost: number): string {
   if (boost >= 1.1) return 'slightly higher';
   return 'standard';
 }
+
+const photoStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginTop: SPACING.sm,
+  },
+  hint: {
+    flex: 1,
+  },
+  hintTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.label,
+    marginBottom: 4,
+  },
+  hintSub: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },

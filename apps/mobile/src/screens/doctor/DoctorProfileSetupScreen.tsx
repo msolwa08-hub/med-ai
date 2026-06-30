@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { apiClient } from '../../api/client';
+import { ProfilePhotoUpload } from '../../components/ProfilePhotoUpload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ export const DoctorProfileSetupScreen: React.FC = () => {
   const [isComplete, setIsComplete] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [doctorPhotoUrl, setDoctorPhotoUrl] = useState<string | undefined>(undefined);
 
   const flatListRef = useRef<FlatList>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -221,6 +223,29 @@ export const DoctorProfileSetupScreen: React.FC = () => {
         </View>
       )}
 
+      {/* ── Profile Photo ── */}
+      <View style={styles.photoUploadRow}>
+        <ProfilePhotoUpload
+          currentPhotoUrl={doctorPhotoUrl}
+          displayName="D"
+          size={72}
+          onUploadSuccess={(url) => {
+            setDoctorPhotoUrl(url);
+            // Inject a chat message so the conversation acknowledges the upload
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: 'photo-' + Date.now().toString(),
+                role: 'assistant',
+                content: 'Photo uploaded! Your profile photo has been saved.',
+              },
+            ]);
+            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 150);
+          }}
+        />
+        <Text style={styles.photoUploadHint}>Tap to add a profile photo</Text>
+      </View>
+
       {/* ── Chat + Input ── */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -350,6 +375,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.healingTeal,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Photo upload strip
+  photoUploadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.systemBackground,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.separator,
+  },
+  photoUploadHint: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
   },
 
   // Progress

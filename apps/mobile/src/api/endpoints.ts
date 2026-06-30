@@ -355,6 +355,15 @@ export const profileSetupApi = {
     apiClient.post('/profile-setup/complete'),
 };
 
+// --- Payments Endpoints ---
+export const paymentsApi = {
+  initiate: (consultationId: string) =>
+    apiClient.post('/payments/initiate', { consultationId }),
+
+  getStatus: (consultationId: string) =>
+    apiClient.get(`/payments/status/${consultationId}`),
+};
+
 // --- Notifications Endpoints ---
 export const notificationsApi = {
   registerToken: (token: string) =>

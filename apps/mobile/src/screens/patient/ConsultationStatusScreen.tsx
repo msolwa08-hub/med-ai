@@ -11,7 +11,7 @@ import {
   AppState,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { consultationApi } from '../../api/endpoints';
+import { consultationApi, paymentsApi } from '../../api/endpoints';
 import { StatusStepper } from '../../components/StatusStepper';
 import { Consultation } from '../../store/consultationStore';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
@@ -99,8 +99,26 @@ export const ConsultationStatusScreen: React.FC = () => {
   const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
+  const [paymentPaidAt, setPaymentPaidAt] = useState<string | null>(null);
+  const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateRef = useRef(AppState.currentState);
+
+  const fetchPaymentStatus = useCallback(async () => {
+    try {
+      const res = await paymentsApi.getStatus(consultationId);
+      const data = res.data?.data;
+      if (data) {
+        setPaymentStatus(data.status ?? 'NOT_INITIATED');
+        setPaymentAmount(data.amount ?? null);
+        setPaymentPaidAt(data.paidAt ?? null);
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [consultationId]);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -121,11 +139,13 @@ export const ConsultationStatusScreen: React.FC = () => {
 
   useEffect(() => {
     fetchStatus();
+    fetchPaymentStatus();
     intervalRef.current = setInterval(fetchStatus, 30000);
 
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
         fetchStatus();
+        fetchPaymentStatus();
       }
       appStateRef.current = nextState;
     });
@@ -134,7 +154,33 @@ export const ConsultationStatusScreen: React.FC = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       subscription.remove();
     };
-  }, [fetchStatus]);
+  }, [fetchStatus, fetchPaymentStatus]);
+
+  const handlePayNow = async () => {
+    setIsInitiatingPayment(true);
+    try {
+      const res = await paymentsApi.initiate(consultationId);
+      const data = res.data?.data;
+      if (!data?.paymentUrl) {
+        Alert.alert('Error', 'Could not initiate payment. Please try again.');
+        return;
+      }
+      navigation.navigate('Payment', {
+        consultationId,
+        paymentUrl: data.paymentUrl,
+        amount: data.amount,
+      });
+      // Refresh payment status when we come back
+      fetchPaymentStatus();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+        'Failed to initiate payment. Please try again.';
+      Alert.alert('Payment Error', message);
+    } finally {
+      setIsInitiatingPayment(false);
+    }
+  };
 
   const handleCancel = () => {
     Alert.alert(
@@ -180,6 +226,12 @@ export const ConsultationStatusScreen: React.FC = () => {
   const steps = buildSteps(status);
   const description = STATUS_DESCRIPTIONS[status] ?? 'Processing your consultation...';
   const doctor = consultation?.doctor;
+  const doctorFee = (doctor as unknown as { consultationFee?: number } | undefined)?.consultationFee;
+
+  // Show the payment card when a doctor is assigned and the consultation is in progress or complete
+  const showPaymentCard =
+    !!doctor &&
+    ['doctor_reviewing', 'examination', 'diagnosis', 'completed'].includes(status);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -228,6 +280,62 @@ export const ConsultationStatusScreen: React.FC = () => {
           <Text style={styles.stepperTitle}>Consultation Progress</Text>
           <StatusStepper steps={steps} />
         </View>
+
+        {/* Payment card */}
+        {showPaymentCard && (
+          <View style={styles.paymentCard}>
+            <Text style={styles.paymentCardTitle}>Payment</Text>
+
+            {paymentStatus === 'COMPLETE' ? (
+              <View style={styles.paymentConfirmed}>
+                <Text style={styles.paymentConfirmedIcon}>✓</Text>
+                <View>
+                  <Text style={styles.paymentConfirmedLabel}>Payment Confirmed</Text>
+                  {paymentAmount !== null && (
+                    <Text style={styles.paymentConfirmedAmount}>R{paymentAmount.toFixed(2)}</Text>
+                  )}
+                  {paymentPaidAt && (
+                    <Text style={styles.paymentConfirmedDate}>
+                      {new Date(paymentPaidAt).toLocaleDateString('en-ZA', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ) : paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED' ? (
+              <TouchableOpacity
+                style={styles.paymentRetryButton}
+                onPress={handlePayNow}
+                disabled={isInitiatingPayment}
+              >
+                {isInitiatingPayment ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <Text style={styles.paymentRetryButtonText}>
+                    Retry Payment{doctorFee ? ` — R${doctorFee.toFixed(2)}` : ''}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.paymentButton}
+                onPress={handlePayNow}
+                disabled={isInitiatingPayment}
+              >
+                {isInitiatingPayment ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <Text style={styles.paymentButtonText}>
+                    Pay Now{doctorFee ? ` — R${doctorFee.toFixed(2)}` : ''}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Wait time */}
         <View style={styles.waitCard}>
@@ -447,6 +555,76 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '700',
     fontSize: FONT_SIZE.md,
+  },
+  paymentCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    ...SHADOWS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  paymentCardTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: SPACING.md,
+  },
+  paymentButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    minHeight: 50,
+    justifyContent: 'center',
+    ...SHADOWS.sm,
+  },
+  paymentButtonText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: FONT_SIZE.md,
+  },
+  paymentRetryButton: {
+    backgroundColor: COLORS.warning,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    minHeight: 50,
+    justifyContent: 'center',
+  },
+  paymentRetryButtonText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: FONT_SIZE.md,
+  },
+  paymentConfirmed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    backgroundColor: '#E8F8EF',
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+  },
+  paymentConfirmedIcon: {
+    fontSize: 28,
+    color: COLORS.success,
+    fontWeight: '700',
+  },
+  paymentConfirmedLabel: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.success,
+  },
+  paymentConfirmedAmount: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  paymentConfirmedDate: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
 });
 

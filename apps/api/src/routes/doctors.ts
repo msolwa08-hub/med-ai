@@ -7,6 +7,7 @@ import { auditLog } from '../services/audit.service.js';
 import { decryptField } from '../lib/encryption.js';
 import { findNearbyDoctors, updateDoctorLocation } from '../services/geolocation.service.js';
 import { Notifications } from '../services/notification.service.js';
+import { getProfilePhotoUrl } from '../services/upload.service.js';
 import type { DoctorType } from '@prisma/client';
 
 // ============================================================
@@ -88,6 +89,8 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
             currentLat: doctor.currentLat,
             currentLng: doctor.currentLng,
             availabilityRadius: doctor.availabilityRadius,
+            profilePhoto: doctor.profilePhoto,
+            photoUrl: doctor.profilePhoto ? getProfilePhotoUrl(doctor.profilePhoto) : null,
           },
         });
       } catch (err) {
@@ -365,6 +368,8 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
             bio: doctor.bio,
             languages: doctor.languages,
             isAvailable: doctor.isAvailable,
+            profilePhoto: doctor.profilePhoto,
+            photoUrl: doctor.profilePhoto ? getProfilePhotoUrl(doctor.profilePhoto) : null,
           },
         });
       } catch (err) {

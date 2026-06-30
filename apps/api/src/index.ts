@@ -25,6 +25,8 @@ import { ultrasoundRoutes } from './routes/ultrasound.js';
 import { ogHistoryRoutes } from './routes/og-history.js';
 import { profileSetupRoutes } from './routes/profile-setup.js';
 import { notificationRoutes } from './routes/notifications.js';
+import { uploadRoutes } from './routes/upload.js';
+import { paymentRoutes } from './routes/payments.js';
 
 // ─────────────────────────────────────────────────────────
 // Bootstrap
@@ -90,6 +92,8 @@ await fastify.register(ultrasoundRoutes);
 await fastify.register(ogHistoryRoutes);
 await fastify.register(profileSetupRoutes);
 await fastify.register(notificationRoutes);
+await fastify.register(uploadRoutes);
+await fastify.register(paymentRoutes);
 
 // ─────────────────────────────────────────────────────────
 // Health check (no auth required)
