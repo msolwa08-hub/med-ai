@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { auditLog } from '../services/audit.service.js';
 import { decryptField } from '../lib/encryption.js';
 import { findNearbyDoctors, updateDoctorLocation } from '../services/geolocation.service.js';
+import { Notifications } from '../services/notification.service.js';
 import type { DoctorType } from '@prisma/client';
 
 // ============================================================
@@ -541,6 +542,19 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
           ipAddress: request.ip,
           userAgent: request.headers['user-agent'],
         });
+
+        // Notify the patient that the doctor accepted their consultation (non-blocking)
+        const acceptedConsultation = await prisma.consultation.findUnique({
+          where: { id: consultationId },
+          select: { patient: { select: { userId: true } } },
+        });
+        if (acceptedConsultation?.patient?.userId) {
+          Notifications.doctorAccepted(
+            acceptedConsultation.patient.userId,
+            `${doctor.firstName} ${doctor.lastName}`,
+            consultationId
+          ).catch(() => {});
+        }
 
         return reply.send({
           success: true,
