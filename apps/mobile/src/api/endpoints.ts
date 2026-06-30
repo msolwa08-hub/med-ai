@@ -115,6 +115,12 @@ export const authApi = {
   logout: () => apiClient.post('/auth/logout'),
 
   getMe: () => apiClient.get('/auth/me'),
+
+  forgotPassword: (phone: string) =>
+    apiClient.post('/auth/forgot-password', { phone }),
+
+  resetPassword: (phone: string, otp: string, newPassword: string) =>
+    apiClient.post('/auth/reset-password', { phone, otp, newPassword }),
 };
 
 // --- Patient Endpoints ---

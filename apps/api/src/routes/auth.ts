@@ -9,6 +9,7 @@ import { auditLog } from '../services/audit.service.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { SA_LANGUAGES } from '../types/index.js';
 import type { JwtPayload, AuthTokens } from '../types/index.js';
+import { config } from '../config.js';
 
 const BCRYPT_ROUNDS = 12;
 const OTP_EXPIRY_MINUTES = 10;
@@ -67,6 +68,16 @@ const VerifyOtpSchema = z.object({
   phone: z.string().min(10),
   code: z.string().length(6),
   purpose: z.enum(['LOGIN', 'REGISTER', 'RESET_PASSWORD', 'HPCSA_VERIFY']),
+});
+
+const ForgotPasswordSchema = z.object({
+  phone: z.string().min(10),
+});
+
+const ResetPasswordSchema = z.object({
+  phone: z.string().min(10),
+  otp: z.string().length(6),
+  newPassword: z.string().min(8),
 });
 
 // ============================================================
@@ -548,5 +559,148 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
       },
       message: 'OTP verified successfully.',
     });
+  });
+
+  // POST /auth/forgot-password — initiate password reset via OTP
+  fastify.post('/auth/forgot-password', async (request, reply) => {
+    const parsed = ForgotPasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Validation failed',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const normalizedPhone = normalizePhone(parsed.data.phone);
+    const user = await prisma.user.findUnique({ where: { phone: normalizedPhone } });
+
+    // Always return 200 — don't reveal whether the number is registered
+    if (!user) {
+      if (config.NODE_ENV !== 'production') {
+        return reply.send({ success: true, data: { message: 'No account found for that number (dev mode).' } });
+      }
+      return reply.send({ success: true, data: { message: 'If this number is registered, an OTP has been sent.' } });
+    }
+
+    const otpCode = generateOtpCode();
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    // Invalidate any existing unused RESET_PASSWORD OTPs for this user
+    await prisma.oTP.updateMany({
+      where: {
+        userId: user.id,
+        purpose: 'RESET_PASSWORD' as never,
+        usedAt: null,
+      },
+      data: { usedAt: new Date() },
+    });
+
+    await prisma.oTP.create({
+      data: {
+        userId: user.id,
+        code: otpCode,
+        purpose: 'RESET_PASSWORD' as never,
+        expiresAt,
+      },
+    });
+
+    // In production, send via SMS (sendOtpSms handles Twilio)
+    if (config.NODE_ENV === 'production') {
+      await sendOtpSms(normalizedPhone, otpCode, 'RESET_PASSWORD');
+      return reply.send({ success: true, data: { message: 'If this number is registered, an OTP has been sent.' } });
+    }
+
+    // Dev mode: log and return OTP in response for easy testing
+    fastify.log.info({ phone: normalizedPhone, otpCode }, 'forgot-password OTP (dev mode)');
+    return reply.send({ success: true, data: { otp: otpCode, message: 'OTP sent (dev mode)' } });
+  });
+
+  // POST /auth/reset-password — verify OTP and set new password
+  fastify.post('/auth/reset-password', async (request, reply) => {
+    const parsed = ResetPasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Validation failed',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const { otp: otpCode, newPassword } = parsed.data;
+    const normalizedPhone = normalizePhone(parsed.data.phone);
+
+    const user = await prisma.user.findUnique({ where: { phone: normalizedPhone } });
+    if (!user) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Invalid or expired OTP.',
+        code: 'INVALID_OTP',
+      });
+    }
+
+    const otp = await prisma.oTP.findFirst({
+      where: {
+        userId: user.id,
+        purpose: 'RESET_PASSWORD' as never,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { expiresAt: 'desc' },
+    });
+
+    if (!otp) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Invalid or expired OTP.',
+        code: 'INVALID_OTP',
+      });
+    }
+
+    // Increment attempts before checking code
+    await prisma.oTP.update({
+      where: { id: otp.id },
+      data: { attempts: { increment: 1 } },
+    });
+
+    if (otp.attempts >= MAX_OTP_ATTEMPTS) {
+      await prisma.oTP.update({ where: { id: otp.id }, data: { usedAt: new Date() } });
+      return reply.status(400).send({
+        success: false,
+        error: 'Too many attempts. Please request a new OTP.',
+        code: 'OTP_ATTEMPTS_EXCEEDED',
+      });
+    }
+
+    if (otp.code !== otpCode) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Invalid or expired OTP.',
+        code: 'INVALID_OTP',
+      });
+    }
+
+    const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+    await prisma.user.update({
+      where: { phone: normalizedPhone },
+      data: { passwordHash: hash },
+    });
+
+    await prisma.oTP.update({
+      where: { id: otp.id },
+      data: { usedAt: new Date() },
+    });
+
+    await auditLog({
+      userId: user.id,
+      action: 'PASSWORD_RESET',
+      resource: 'User',
+      resourceId: user.id,
+      ipAddress: request.ip,
+      userAgent: request.headers['user-agent'],
+    });
+
+    return reply.send({ success: true, data: { message: 'Password reset successfully.' } });
   });
 }
