@@ -24,6 +24,7 @@ import { authApi, AuthRegisterPatientPayload } from '@api/endpoints';
 import { useAuthStore } from '@store/authStore';
 import { SA_LANGUAGES } from '@constants/languages';
 import { COLORS, SPACING, BORDER_RADIUS } from '@constants/theme';
+import TermsConsentModal from '../../components/TermsConsentModal';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = (screenWidth - SPACING.md * 2 - SPACING.xs * 2 * 3) / 3;
@@ -125,6 +126,9 @@ export default function RegisterPatientScreen() {
   // Step 4
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+
+  // Consent modal
+  const [showConsent, setShowConsent] = useState(false);
 
   // Validation
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -231,11 +235,16 @@ export default function RegisterPatientScreen() {
     }
   }
 
-  async function handleRegister() {
+  function handleRegister() {
     if (!otpCode.trim() || otpCode.length < 4) {
       showError('Please enter the verification code sent to your phone.');
       return;
     }
+    setShowConsent(true);
+  }
+
+  async function handleConsentAccept() {
+    setShowConsent(false);
 
     const normalized = normalizePhone(phone);
 
@@ -714,6 +723,13 @@ export default function RegisterPatientScreen() {
       >
         {snackbarMessage}
       </Snackbar>
+
+      {/* POPIA consent modal — shown before completing registration */}
+      <TermsConsentModal
+        visible={showConsent}
+        onAccept={handleConsentAccept}
+        onDecline={() => setShowConsent(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

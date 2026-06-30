@@ -247,6 +247,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
             gender: gender as never,
             preferredLanguage: preferredLanguage as never,
             idNumber: idNumber ? encryptPII(idNumber) : undefined,
+            consentVersion: 'v1.0',
           },
         },
       },

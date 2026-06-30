@@ -23,6 +23,7 @@ import { authApi, AuthRegisterDoctorPayload } from '@api/endpoints';
 import { useAuthStore } from '@store/authStore';
 import { SA_LANGUAGES } from '@constants/languages';
 import { COLORS, SPACING, BORDER_RADIUS } from '@constants/theme';
+import TermsConsentModal from '../../components/TermsConsentModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,9 @@ export default function RegisterDoctorScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+
+  // Consent modal
+  const [showConsent, setShowConsent] = useState(false);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -153,8 +157,13 @@ export default function RegisterDoctorScreen() {
 
   // ── Registration ───────────────────────────────────────────────────────────
 
-  async function handleRegister() {
+  function handleRegister() {
     if (!validateStep4()) return;
+    setShowConsent(true);
+  }
+
+  async function handleConsentAccept() {
+    setShowConsent(false);
 
     const payload: AuthRegisterDoctorPayload = {
       firstName: firstName.trim(),
@@ -572,6 +581,13 @@ export default function RegisterDoctorScreen() {
       >
         {snackbarMessage}
       </Snackbar>
+
+      {/* POPIA consent modal — shown before completing registration */}
+      <TermsConsentModal
+        visible={showConsent}
+        onAccept={handleConsentAccept}
+        onDecline={() => setShowConsent(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
