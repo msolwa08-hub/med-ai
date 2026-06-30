@@ -5,6 +5,7 @@ import { authenticate } from '../middleware/authenticate.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { requireConsent } from '../middleware/consent.js';
 import { auditLog } from '../services/audit.service.js';
+import { Notifications } from '../services/notification.service.js';
 import {
   encryptJSON,
   decryptJSON,
@@ -377,6 +378,21 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
           ipAddress: request.ip,
           userAgent: request.headers['user-agent'],
         });
+
+        // Notify patient of status changes (non-blocking)
+        if (newStatus === 'DOCTOR_REVIEW' || newStatus === 'COMPLETED') {
+          const statusConsultation = await prisma.consultation.findUnique({
+            where: { id },
+            select: { patient: { select: { userId: true } } },
+          });
+          if (statusConsultation?.patient?.userId) {
+            Notifications.consultationStatusChanged(
+              statusConsultation.patient.userId,
+              newStatus,
+              id
+            ).catch(() => {});
+          }
+        }
 
         return reply.send({
           success: true,
@@ -988,6 +1004,19 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
           ipAddress: request.ip,
           userAgent: request.headers['user-agent'],
         });
+
+        // Notify patient that consultation is complete (non-blocking)
+        const completedConsultation = await prisma.consultation.findUnique({
+          where: { id },
+          select: { patient: { select: { userId: true } } },
+        });
+        if (completedConsultation?.patient?.userId) {
+          Notifications.consultationStatusChanged(
+            completedConsultation.patient.userId,
+            'COMPLETED',
+            id
+          ).catch(() => {});
+        }
 
         return reply.send({
           success: true,
