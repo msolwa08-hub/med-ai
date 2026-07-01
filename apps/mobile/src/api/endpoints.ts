@@ -484,7 +484,8 @@ export type Department =
   | 'PAEDIATRICS'
   | 'FAMILY_MEDICINE'
   | 'SURGERY'
-  | 'ENT';
+  | 'ENT'
+  | 'PSYCHIATRY';
 
 export type InternalSystem =
   | 'CARDIOVASCULAR'
@@ -546,6 +547,15 @@ export const paymentsApi = {
 
   markCash: (consultationId: string) =>
     apiClient.post(`/payments/cash/${consultationId}`),
+};
+
+// ============================================================
+// Clinical reasoning (doctor — STG-linked decision support)
+// ============================================================
+
+export const clinicalReasoningApi = {
+  generate: (consultationId: string) =>
+    apiClient.post(`/clinical-reasoning/${consultationId}`),
 };
 
 // ============================================================

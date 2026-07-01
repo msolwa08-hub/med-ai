@@ -65,6 +65,12 @@ const DEPARTMENT_META: Record<
     color: COLORS.systemBlue,
     stages: ['Complaint', 'Ear', 'Nose', 'Throat', 'Neck', 'Risk Factors', 'Meds', 'Summary'],
   },
+  PSYCHIATRY: {
+    label: 'Mental Health',
+    icon: 'heart-circle-outline',
+    color: COLORS.systemTeal,
+    stages: ['Complaint', 'Mood & Mind', 'Safety', 'Psych Hx', 'Substances', 'Personal Hx', 'Support', 'Summary'],
+  },
 };
 
 function deriveStage(messages: Message[], total: number): number {

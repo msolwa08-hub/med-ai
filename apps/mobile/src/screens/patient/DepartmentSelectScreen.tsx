@@ -78,6 +78,13 @@ const CARDS: DepartmentCard[] = [
     icon: 'ear-outline',
     color: COLORS.systemBlue,
   },
+  {
+    option: { kind: 'specialty', department: 'PSYCHIATRY' },
+    label: 'Mental Health',
+    description: 'Mood, stress, sleep, substances — judgement-free',
+    icon: 'heart-circle-outline',
+    color: COLORS.systemTeal,
+  },
 ];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────

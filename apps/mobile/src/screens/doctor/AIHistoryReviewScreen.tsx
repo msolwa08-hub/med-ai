@@ -189,7 +189,7 @@ const ProbabilityBadge: React.FC<{ probability: 'HIGH' | 'MEDIUM' | 'LOW' }> = (
 
 const AIHistoryReviewScreen: React.FC = () => {
   const route = useRoute<RouteProp<AIHistoryReviewRouteParams, 'AIHistoryReview'>>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { consultationId } = route.params;
 
   const [loading, setLoading] = useState(true);
@@ -557,6 +557,16 @@ const AIHistoryReviewScreen: React.FC = () => {
                     )}
                   </TouchableOpacity>
                 )}
+
+                <TouchableOpacity
+                  style={styles.reasoningButton}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('ClinicalReasoning', { consultationId })}
+                >
+                  <Text style={styles.reasoningButtonText}>
+                    🧠  Clinical Reasoning & STG Guidance
+                  </Text>
+                </TouchableOpacity>
               </View>
             </>
           )}
@@ -1008,6 +1018,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
   },
+  reasoningButton: {
+    marginTop: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  reasoningButtonText: { color: COLORS.primary, fontWeight: '700', fontSize: FONT_SIZE.sm },
   confirmedBanner: {
     flexDirection: 'row',
     alignItems: 'center',

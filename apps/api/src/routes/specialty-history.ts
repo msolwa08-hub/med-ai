@@ -29,7 +29,7 @@ import { SA_LANGUAGES } from '../types/index.js';
 
 const StartSpecialtyHistorySchema = z.object({
   consultationId: z.string().min(1),
-  department: z.enum(['INTERNAL', 'PAEDIATRICS', 'FAMILY_MEDICINE', 'SURGERY', 'ENT']),
+  department: z.enum(['INTERNAL', 'PAEDIATRICS', 'FAMILY_MEDICINE', 'SURGERY', 'ENT', 'PSYCHIATRY']),
   language: z.enum(SA_LANGUAGES).default('en'),
   chiefComplaint: z.string().max(500).optional(),
   /** INTERNAL only — pre-select the disease system; auto-detected otherwise. */

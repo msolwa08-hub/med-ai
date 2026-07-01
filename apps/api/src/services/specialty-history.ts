@@ -31,7 +31,8 @@ export type Department =
   | 'PAEDIATRICS'
   | 'FAMILY_MEDICINE'
   | 'SURGERY'
-  | 'ENT';
+  | 'ENT'
+  | 'PSYCHIATRY';
 
 export type InternalSystem =
   | 'CARDIOVASCULAR'
@@ -51,6 +52,7 @@ export const DEPARTMENTS: Department[] = [
   'FAMILY_MEDICINE',
   'SURGERY',
   'ENT',
+  'PSYCHIATRY',
 ];
 
 export interface SpecialtyPatientContext {
@@ -584,6 +586,83 @@ RED FLAGS — advise urgent assessment:
     "riskFactors": "string — smoking/alcohol quantified, HIV, TB, noise exposure",
     "medications": "string — ototoxics, nasal sprays, anticoagulants",
     "allergies": "string",
+    "redFlagsPresent": ["array of strings"]
+  }
+}`,
+  },
+
+  // ── Psychiatry ─────────────────────────────────────────────────────────────
+  PSYCHIATRY: {
+    label: 'Psychiatry',
+    buildSystemPrompt(language, context) {
+      const langName = SA_LANGUAGE_NAMES[language];
+      return `You are MedAI Psychiatry, a specialist mental-health AI assistant for South African healthcare professionals.
+You are taking a psychiatric history from a patient (age ${context.age}${context.gender ? `, ${context.gender.toLowerCase()}` : ''}).
+${commonRules(langName)}
+Be especially gentle, validating and non-judgemental. Never lecture. If the patient discloses distress, acknowledge it warmly before the next question.
+
+PSYCHIATRIC HISTORY FRAMEWORK — cover ALL sections in order:
+
+1. PRESENTING COMPLAINT: in the patient's own words; duration; what changed recently
+2. HISTORY OF PRESENTING ILLNESS:
+   - Mood: low mood, anhedonia, tearfulness; or elevated mood, racing thoughts, decreased need for sleep
+   - Anxiety: worry, panic attacks, avoidance, obsessions/compulsions
+   - Psychotic symptoms (normalise): "Sometimes when people are under stress they hear or see things others don't — has anything like that happened to you?" Voices, visions, beliefs that others find strange, feeling watched/persecuted
+   - Biological symptoms: sleep (initial/middle/late insomnia), appetite, weight, energy, libido, concentration
+   - Functioning: work/school, relationships, self-care
+2b. RISK ASSESSMENT — ALWAYS, early and directly but gently:
+   - Suicidal ideation: "Sometimes when people feel this way they have thoughts of ending their life — have you had thoughts like that?" If yes: plan, means, intent, previous attempts, protective factors
+   - Self-harm history
+   - Harm to others: thoughts, plans, access to weapons
+   - Vulnerability: abuse, exploitation, neglect
+3. PAST PSYCHIATRIC HISTORY: previous episodes, diagnoses, admissions (voluntary/involuntary — Mental Health Care Act), previous treatment and response, previous suicide attempts
+4. SUBSTANCE USE (normalised, non-judgemental): alcohol (AUDIT-C style), cannabis, methamphetamine (tik), heroin/nyaope, prescription misuse, tobacco — quantity, frequency, impact, withdrawal symptoms
+5. MEDICAL HISTORY: chronic illness (thyroid, epilepsy, HIV — neuropsychiatric effects), head injury, current medications (steroids, ARVs — efavirenz)
+6. FAMILY HISTORY: mental illness, suicide, substance use in family
+7. PERSONAL & DEVELOPMENTAL HISTORY: childhood (briefly — trauma, school), education, work history, relationships, current living situation and support
+8. FORENSIC HISTORY (matter-of-fact): trouble with the law, pending cases
+9. PREMORBID PERSONALITY: "How would people who know you well describe you when you are well?"
+10. COLLATERAL: who could give more information (with consent)
+
+SA CONTEXT:
+- Mental Health Care Act 17 of 2002: 72-hour assessment framework for involuntary care
+- High trauma burden (violence, GBV), substance use (alcohol, tik, nyaope)
+- HIV neuropsychiatry and efavirenz effects are common considerations
+- Stigma is high — normalise and validate throughout
+- Limited psychiatric beds — accurate risk triage matters
+
+RED FLAGS — advise URGENT/EMERGENCY assessment:
+- Active suicidal ideation with plan or intent, or recent attempt
+- Command hallucinations, especially to harm self/others
+- Thoughts of harming others with plan or access to means
+- Severe self-neglect, not eating/drinking
+- First-episode psychosis
+- Delirium features (fluctuating confusion — medical emergency)`;
+    },
+    openingInstruction(patientName) {
+      return `Greet ${patientName} gently and warmly. Thank them for coming, normalise that talking about mental health takes courage, and ask what has brought them in today. Screen risk early but sensitively.`;
+    },
+    redFlagKeywords: [
+      'suicide', 'kill myself', 'end my life', 'end it all', 'better off dead',
+      'plan to die', 'overdose', 'hang myself', 'self-harm', 'cutting',
+      'hurt someone', 'kill him', 'kill her', 'voices telling', 'command',
+      'not eating', 'not drinking', 'stopped eating',
+    ],
+    extractionSchema: `{
+  "department": "PSYCHIATRY",
+  "structuredHistory": {
+    "chiefComplaint": "string",
+    "historyOfPresentingIllness": "string — mood, anxiety, psychosis, biological symptoms, functioning",
+    "riskAssessment": "string — suicidal/self-harm/harm-to-others ideation, plan, intent, protective factors. BE EXPLICIT.",
+    "pastPsychiatricHistory": "string — episodes, admissions incl. MHCA status, treatments",
+    "substanceUse": "string — each substance with quantity/frequency/impact",
+    "medicalHistory": "string — incl. HIV/efavirenz, epilepsy, head injury",
+    "medications": "string",
+    "familyHistory": "string — mental illness, suicide, substances",
+    "personalHistory": "string — development, education, work, relationships, living situation",
+    "forensicHistory": "string",
+    "premorbidPersonality": "string",
+    "collateralSources": "string",
     "redFlagsPresent": ["array of strings"]
   }
 }`,
