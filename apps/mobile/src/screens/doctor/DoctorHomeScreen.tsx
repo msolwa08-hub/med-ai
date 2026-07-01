@@ -76,6 +76,21 @@ function getConsultationTypeIcon(type: QueueEntry['consultationType']): keyof ty
   }
 }
 
+function getInitials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  const first = parts[0][0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
+  return (first + last).toUpperCase();
+}
+
+/** Urgency accent based on how long the patient has been waiting. */
+function getWaitUrgencyColor(waitTimeMinutes: number): string {
+  if (waitTimeMinutes >= 30) return COLORS.emergency;
+  if (waitTimeMinutes >= 15) return COLORS.warning;
+  return COLORS.success;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DoctorHomeScreen({ navigation }: Props) {
@@ -208,6 +223,7 @@ export default function DoctorHomeScreen({ navigation }: Props) {
 
   function renderQueueEntry({ item }: { item: QueueEntry }) {
     const typeColor = getConsultationTypeColor(item.consultationType);
+    const urgencyColor = getWaitUrgencyColor(item.waitTimeMinutes);
     const waitLabel = item.waitTimeMinutes < 1
       ? 'Just now'
       : item.waitTimeMinutes < 60
@@ -219,8 +235,9 @@ export default function DoctorHomeScreen({ navigation }: Props) {
         onPress={() => navigation.navigate('PatientQueue')}
         activeOpacity={0.85}
       >
+        <View style={[styles.waitingUrgencyBar, { backgroundColor: urgencyColor }]} />
         <View style={styles.waitingAvatar}>
-          <Text style={styles.waitingAvatarText}>{item.patientName.charAt(0)}</Text>
+          <Text style={styles.waitingAvatarText}>{getInitials(item.patientName)}</Text>
         </View>
         <Text style={styles.waitingPatientName} numberOfLines={1}>{item.patientName}</Text>
         <View style={styles.waitingDistanceRow}>
@@ -243,6 +260,17 @@ export default function DoctorHomeScreen({ navigation }: Props) {
       </TouchableOpacity>
     );
   }
+
+  const teleconsultCount = queue.filter((q) => q.consultationType === 'TELECONSULT').length;
+  const longestWaitMinutes = queue.reduce((max, q) => Math.max(max, q.waitTimeMinutes), 0);
+  const longestWaitLabel =
+    queue.length === 0
+      ? '—'
+      : longestWaitMinutes < 1
+        ? '<1m'
+        : longestWaitMinutes < 60
+          ? `${longestWaitMinutes}m`
+          : `${Math.floor(longestWaitMinutes / 60)}h ${longestWaitMinutes % 60}m`;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -336,6 +364,34 @@ export default function DoctorHomeScreen({ navigation }: Props) {
           </View>
         </View>
 
+        {/* ── Today at a glance ── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>TODAY AT A GLANCE</Text>
+        </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconCircle, { backgroundColor: COLORS.primary + '14' }]}>
+              <Ionicons name="people-outline" size={18} color={COLORS.primary} />
+            </View>
+            <Text style={styles.statValue}>{queue.length}</Text>
+            <Text style={styles.statLabel}>In Queue</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconCircle, { backgroundColor: COLORS.info + '20' }]}>
+              <Ionicons name="videocam-outline" size={18} color={COLORS.info} />
+            </View>
+            <Text style={styles.statValue}>{teleconsultCount}</Text>
+            <Text style={styles.statLabel}>Teleconsults</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconCircle, { backgroundColor: COLORS.warning + '18' }]}>
+              <Ionicons name="hourglass-outline" size={18} color={COLORS.warning} />
+            </View>
+            <Text style={styles.statValueSmall}>{longestWaitLabel}</Text>
+            <Text style={styles.statLabel}>Longest Wait</Text>
+          </View>
+        </View>
+
         {/* ── Waiting Patients ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>WAITING PATIENTS</Text>
@@ -368,8 +424,15 @@ export default function DoctorHomeScreen({ navigation }: Props) {
           </View>
         ) : queue.length === 0 ? (
           <View style={styles.emptySection}>
-            <Ionicons name="checkmark-circle-outline" size={32} color={COLORS.systemGray3} />
-            <Text style={styles.emptySectionText}>No patients waiting</Text>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="checkmark-done-circle-outline" size={28} color={COLORS.primary} />
+            </View>
+            <Text style={styles.emptySectionTitle}>No patients waiting</Text>
+            <Text style={styles.emptySectionText}>
+              {isOnline
+                ? "You're all caught up — new requests will appear here."
+                : 'Go online to start receiving patient requests.'}
+            </Text>
           </View>
         ) : (
           <FlatList
@@ -429,11 +492,14 @@ const styles = StyleSheet.create({
   onlinePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    height: 34,
-    borderRadius: 17,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.md,
+    minHeight: 44,
+    minWidth: 96,
+    borderRadius: BORDER_RADIUS.full,
     gap: 6,
     marginLeft: SPACING.md,
+    ...SHADOWS.sm,
   },
   onlinePillActive: {
     backgroundColor: COLORS.success + '20',
@@ -595,10 +661,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.card,
   },
+  statIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
   statValue: {
     ...TYPOGRAPHY.title2,
-    color: COLORS.primary,
+    color: COLORS.label,
     textAlign: 'center',
+  },
+  statValueSmall: {
+    ...TYPOGRAPHY.title3,
+    color: COLORS.label,
+    textAlign: 'center',
+    lineHeight: 28,
   },
   statLabel: {
     ...TYPOGRAPHY.caption1,
@@ -650,25 +730,34 @@ const styles = StyleSheet.create({
   },
   waitingCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
-    width: 150,
+    paddingTop: SPACING.md + 4,
+    width: 156,
     marginRight: SPACING.sm,
     alignItems: 'center',
+    overflow: 'hidden',
     ...SHADOWS.card,
   },
+  waitingUrgencyBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+  },
   waitingAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.primaryLight + '20',
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingTeal,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   waitingAvatarText: {
     ...TYPOGRAPHY.headline,
-    color: COLORS.primary,
+    color: COLORS.primaryDark,
   },
   waitingPatientName: {
     ...TYPOGRAPHY.subheadline,
@@ -702,12 +791,11 @@ const styles = StyleSheet.create({
   },
   viewBtn: {
     borderWidth: 1.5,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.md,
     alignSelf: 'stretch',
     alignItems: 'center',
-    minHeight: 32,
+    minHeight: 44,
     justifyContent: 'center',
   },
   viewBtnText: {
@@ -720,14 +808,29 @@ const styles = StyleSheet.create({
   emptySection: {
     marginHorizontal: SPACING.lg,
     paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
     alignItems: 'center',
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.lg,
     gap: SPACING.sm,
     ...SHADOWS.card,
   },
-  emptySectionText: {
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingMint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptySectionTitle: {
     ...TYPOGRAPHY.subheadline,
+    fontWeight: '600',
+    color: COLORS.label,
+    textAlign: 'center',
+  },
+  emptySectionText: {
+    ...TYPOGRAPHY.footnote,
     color: COLORS.secondaryLabel,
     textAlign: 'center',
   },

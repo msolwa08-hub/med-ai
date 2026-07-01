@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -55,6 +55,52 @@ const uniqueDoctors = (consultations: Consultation[]) => {
     })
     .map((c) => c.doctor!);
 };
+
+// ─── Quick actions ───────────────────────────────────────────────────────────
+
+interface QuickAction {
+  key: string;
+  label: string;
+  sublabel: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: string;
+  onPress: (navigation: any) => void;
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    key: 'find-doctor',
+    label: 'Find Doctor',
+    sublabel: 'Nearby & online',
+    icon: 'search',
+    tint: COLORS.primary,
+    onPress: (navigation) => navigation.navigate('FindDoctor'),
+  },
+  {
+    key: 'my-records',
+    label: 'My Records',
+    sublabel: 'Visit history',
+    icon: 'folder-open-outline',
+    tint: COLORS.systemBlue,
+    onPress: (navigation) => navigation.navigate('MyRecords'),
+  },
+  {
+    key: 'lab-results',
+    label: 'Lab Results',
+    sublabel: 'Tests & reports',
+    icon: 'flask-outline',
+    tint: COLORS.systemPurple,
+    onPress: (navigation) => navigation.navigate('LabResults'),
+  },
+  {
+    key: 'emergency',
+    label: 'Emergency',
+    sublabel: 'Share QR code',
+    icon: 'alert-circle-outline',
+    tint: COLORS.emergency,
+    onPress: (navigation) => navigation.navigate('Emergency'),
+  },
+];
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -127,18 +173,30 @@ export const PatientHomeScreen: React.FC = () => {
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="notifications-outline" size={28} color={COLORS.primary} />
+            <Ionicons name="notifications-outline" size={24} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
 
-        {/* ── Emergency Banner ── */}
+        {/* ── Hero: Start a consultation ── */}
         <TouchableOpacity
-          style={styles.emergencyBanner}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('Emergency')}
+          style={styles.heroCard}
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('LanguageSelect')}
         >
-          <Ionicons name="alert-circle-outline" size={20} color={COLORS.white} style={{ marginRight: 8 }} />
-          <Text style={styles.emergencyBannerText}>Emergency — tap to share QR</Text>
+          <View style={styles.heroDecorCircleLarge} />
+          <View style={styles.heroDecorCircleSmall} />
+          <View style={styles.heroIconCircle}>
+            <Ionicons name="medkit" size={26} color={COLORS.white} />
+          </View>
+          <View style={styles.heroTextBlock}>
+            <Text style={styles.heroTitle}>Start a consultation</Text>
+            <Text style={styles.heroSubtitle}>
+              Tell us your symptoms — a doctor will see you shortly
+            </Text>
+          </View>
+          <View style={styles.heroChevron}>
+            <Ionicons name="arrow-forward" size={20} color={COLORS.primaryDark} />
+          </View>
         </TouchableOpacity>
 
         {/* ── Profile Incomplete Banner ── */}
@@ -164,6 +222,27 @@ export const PatientHomeScreen: React.FC = () => {
           </View>
         )}
 
+        {/* ── Quick Actions ── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
+        </View>
+        <View style={styles.quickGrid}>
+          {QUICK_ACTIONS.map((action) => (
+            <TouchableOpacity
+              key={action.key}
+              style={styles.quickCard}
+              activeOpacity={0.85}
+              onPress={() => action.onPress(navigation)}
+            >
+              <View style={[styles.quickIconCircle, { backgroundColor: action.tint + '14' }]}>
+                <Ionicons name={action.icon} size={22} color={action.tint} />
+              </View>
+              <Text style={styles.quickLabel}>{action.label}</Text>
+              <Text style={styles.quickSublabel}>{action.sublabel}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* ── Stats Row ── */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
@@ -182,16 +261,6 @@ export const PatientHomeScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* ── Primary CTA ── */}
-        <TouchableOpacity
-          style={styles.ctaButton}
-          activeOpacity={0.88}
-          onPress={() => navigation.navigate('LanguageSelect')}
-        >
-          <Ionicons name="add-circle" size={22} color={COLORS.white} style={{ marginRight: 10 }} />
-          <Text style={styles.ctaText}>Start New Consultation</Text>
-        </TouchableOpacity>
-
         {/* ── Recent Consultations ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>RECENT CONSULTATIONS</Text>
@@ -205,9 +274,13 @@ export const PatientHomeScreen: React.FC = () => {
 
         {recentConsultations.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="medical-outline" size={40} color={COLORS.systemGray3} />
-            <Text style={styles.emptyStateText}>No consultations yet.</Text>
-            <Text style={styles.emptyStateSubText}>Tap "Start New Consultation" above.</Text>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="medical-outline" size={28} color={COLORS.primary} />
+            </View>
+            <Text style={styles.emptyStateText}>No consultations yet</Text>
+            <Text style={styles.emptyStateSubText}>
+              Your visit history will appear here after your first consultation.
+            </Text>
           </View>
         ) : (
           <FlatList
@@ -309,26 +382,76 @@ const styles = StyleSheet.create({
   notificationBtn: {
     width: 44,
     height: 44,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: SPACING.sm,
+    ...SHADOWS.sm,
   },
 
-  // Emergency Banner
-  emergencyBanner: {
+  // Hero card
+  heroCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.emergency,
-    borderRadius: 12,
-    height: 52,
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.xl,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.lg,
+    padding: SPACING.lg,
+    minHeight: 104,
+    overflow: 'hidden',
+    ...SHADOWS.lg,
   },
-  emergencyBannerText: {
-    ...TYPOGRAPHY.subheadline,
+  heroDecorCircleLarge: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.primaryLight,
+    opacity: 0.35,
+    top: -90,
+    right: -50,
+  },
+  heroDecorCircleSmall: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingTeal,
+    opacity: 0.18,
+    bottom: -40,
+    left: -24,
+  },
+  heroIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.primaryDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+  },
+  heroTextBlock: {
+    flex: 1,
+  },
+  heroTitle: {
+    ...TYPOGRAPHY.title3,
     color: COLORS.white,
-    fontWeight: '600',
+  },
+  heroSubtitle: {
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.healingTeal,
+    marginTop: 4,
+  },
+  heroChevron: {
+    width: 36,
+    height: 36,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: SPACING.sm,
   },
 
   // Profile incomplete banner
@@ -359,12 +482,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileBannerTitle: {
-    fontSize: 13,
+    ...TYPOGRAPHY.footnote,
     fontWeight: '700',
     color: COLORS.label,
   },
   profileBannerSubtitle: {
-    fontSize: 11,
+    ...TYPOGRAPHY.caption2,
     color: COLORS.textSecondary,
     marginTop: 1,
   },
@@ -372,12 +495,49 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
     borderRadius: BORDER_RADIUS.sm,
     paddingHorizontal: SPACING.md,
-    paddingVertical: 6,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   profileBannerBtnText: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption1,
     fontWeight: '700',
     color: COLORS.white,
+  },
+
+  // Quick actions
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
+  },
+  quickCard: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    minHeight: 108,
+    ...SHADOWS.card,
+  },
+  quickIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  quickLabel: {
+    ...TYPOGRAPHY.subheadline,
+    fontWeight: '600',
+    color: COLORS.label,
+  },
+  quickSublabel: {
+    ...TYPOGRAPHY.caption1,
+    color: COLORS.secondaryLabel,
+    marginTop: 2,
   },
 
   // Stats
@@ -390,7 +550,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     alignItems: 'center',
     ...SHADOWS.card,
@@ -413,29 +573,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // CTA Button
-  ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    height: 56,
-    borderRadius: 14,
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.lg,
-  },
-  ctaText: {
-    ...TYPOGRAPHY.headline,
-    color: COLORS.white,
-  },
-
   // Section headers
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   sectionTitle: {
     ...TYPOGRAPHY.footnote,
@@ -464,21 +608,32 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
     marginHorizontal: SPACING.lg,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.lg,
     ...SHADOWS.card,
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingMint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
   },
   emptyStateText: {
     ...TYPOGRAPHY.subheadline,
     fontWeight: '600',
-    color: COLORS.secondaryLabel,
-    marginTop: SPACING.sm,
+    color: COLORS.label,
+    marginTop: SPACING.xs,
   },
   emptyStateSubText: {
     ...TYPOGRAPHY.footnote,
-    color: COLORS.tertiaryLabel,
+    color: COLORS.secondaryLabel,
     marginTop: 4,
+    textAlign: 'center',
   },
 
   // Doctors
@@ -490,9 +645,9 @@ const styles = StyleSheet.create({
   },
   doctorCard: {
     alignItems: 'center',
-    width: 80,
+    width: 88,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.sm,
     marginRight: SPACING.sm,
@@ -501,15 +656,15 @@ const styles = StyleSheet.create({
   doctorAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primaryLight,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingTeal,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
   doctorInitials: {
     ...TYPOGRAPHY.headline,
-    color: COLORS.white,
+    color: COLORS.primaryDark,
   },
   doctorName: {
     ...TYPOGRAPHY.caption2,

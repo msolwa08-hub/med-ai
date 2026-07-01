@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
+import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { consultationApi } from '../../api/endpoints';
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE, SHADOWS } from '../../constants/theme';
@@ -108,7 +109,11 @@ const ExpandableSection: React.FC<ExpandableSectionProps> = ({ title, children }
     <View style={exStyles.expandableCard}>
       <TouchableOpacity style={exStyles.expandableHeader} onPress={toggle} activeOpacity={0.7}>
         <Text style={exStyles.expandableTitle}>{title}</Text>
-        <Text style={exStyles.chevron}>{expanded ? '▲' : '▼'}</Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={COLORS.textSecondary}
+        />
       </TouchableOpacity>
       <Animated.View
         style={{
@@ -170,6 +175,47 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
       placeholder={placeholder ?? (hint ? hint.replace(/[()]/g, '').trim() : label)}
       placeholderTextColor={COLORS.textSecondary}
     />
+  </View>
+);
+
+// ---------- Helper: vital sign input tile ----------
+
+interface VitalTileProps {
+  label: string;
+  unit: string;
+  hint?: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  keyboardType?: 'numeric' | 'decimal-pad';
+  wide?: boolean;
+}
+
+const VitalTile: React.FC<VitalTileProps> = ({
+  label,
+  unit,
+  hint,
+  value,
+  onChangeText,
+  keyboardType = 'numeric',
+  wide = false,
+}) => (
+  <View style={[exStyles.vitalTile, wide && exStyles.vitalTileWide]}>
+    <View style={exStyles.vitalTileHeader}>
+      <Text style={exStyles.vitalTileLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={exStyles.vitalTileUnit}>{unit}</Text>
+    </View>
+    <TextInput
+      style={exStyles.vitalTileInput}
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType}
+      placeholder="—"
+      placeholderTextColor={COLORS.textTertiary}
+      maxLength={6}
+    />
+    {hint ? <Text style={exStyles.vitalTileHint}>Normal {hint}</Text> : null}
   </View>
 );
 
@@ -306,74 +352,73 @@ const ExaminationScreen: React.FC = () => {
       showsVerticalScrollIndicator={false}
     >
       <Text style={exStyles.tabSectionHeading}>Blood Pressure</Text>
-      <LabeledInput
-        label="Systolic BP"
-        hint="(90–120 mmHg)"
-        value={state.vitalSigns.bloodPressureSystolic}
-        onChangeText={(v) => setVital('bloodPressureSystolic', v)}
-        keyboardType="numeric"
-        unit="mmHg"
-      />
-      <LabeledInput
-        label="Diastolic BP"
-        hint="(60–80 mmHg)"
-        value={state.vitalSigns.bloodPressureDiastolic}
-        onChangeText={(v) => setVital('bloodPressureDiastolic', v)}
-        keyboardType="numeric"
-        unit="mmHg"
-      />
+      <View style={exStyles.vitalGrid}>
+        <VitalTile
+          label="Systolic"
+          unit="mmHg"
+          hint="90–120"
+          value={state.vitalSigns.bloodPressureSystolic}
+          onChangeText={(v) => setVital('bloodPressureSystolic', v)}
+        />
+        <VitalTile
+          label="Diastolic"
+          unit="mmHg"
+          hint="60–80"
+          value={state.vitalSigns.bloodPressureDiastolic}
+          onChangeText={(v) => setVital('bloodPressureDiastolic', v)}
+        />
+      </View>
 
-      <Text style={exStyles.tabSectionHeading}>Measurements</Text>
-      <LabeledInput
-        label="Heart Rate"
-        hint="(60–100 bpm)"
-        value={state.vitalSigns.heartRate}
-        onChangeText={(v) => setVital('heartRate', v)}
-        keyboardType="numeric"
-        unit="bpm"
-      />
-      <LabeledInput
-        label="Respiratory Rate"
-        hint="(12–20 /min)"
-        value={state.vitalSigns.respiratoryRate}
-        onChangeText={(v) => setVital('respiratoryRate', v)}
-        keyboardType="numeric"
-        unit="/min"
-      />
-      <LabeledInput
-        label="Temperature"
-        hint="(36.5–37.5 °C)"
-        value={state.vitalSigns.temperature}
-        onChangeText={(v) => setVital('temperature', v)}
-        keyboardType="decimal-pad"
-        unit="°C"
-      />
-      <LabeledInput
-        label="SpO2"
-        hint="(95–100 %)"
-        value={state.vitalSigns.oxygenSaturation}
-        onChangeText={(v) => setVital('oxygenSaturation', v)}
-        keyboardType="numeric"
-        unit="%"
-      />
+      <Text style={exStyles.tabSectionHeading}>Vital Signs</Text>
+      <View style={exStyles.vitalGrid}>
+        <VitalTile
+          label="Heart Rate"
+          unit="bpm"
+          hint="60–100"
+          value={state.vitalSigns.heartRate}
+          onChangeText={(v) => setVital('heartRate', v)}
+        />
+        <VitalTile
+          label="Resp. Rate"
+          unit="/min"
+          hint="12–20"
+          value={state.vitalSigns.respiratoryRate}
+          onChangeText={(v) => setVital('respiratoryRate', v)}
+        />
+        <VitalTile
+          label="Temperature"
+          unit="°C"
+          hint="36.5–37.5"
+          value={state.vitalSigns.temperature}
+          onChangeText={(v) => setVital('temperature', v)}
+          keyboardType="decimal-pad"
+        />
+        <VitalTile
+          label="SpO2"
+          unit="%"
+          hint="95–100"
+          value={state.vitalSigns.oxygenSaturation}
+          onChangeText={(v) => setVital('oxygenSaturation', v)}
+        />
+      </View>
 
       <Text style={exStyles.tabSectionHeading}>Anthropometry</Text>
-      <LabeledInput
-        label="Weight"
-        value={state.vitalSigns.weight}
-        onChangeText={(v) => setVital('weight', v)}
-        keyboardType="decimal-pad"
-        unit="kg"
-        placeholder="e.g. 70"
-      />
-      <LabeledInput
-        label="Height"
-        value={state.vitalSigns.height}
-        onChangeText={(v) => setVital('height', v)}
-        keyboardType="decimal-pad"
-        unit="cm"
-        placeholder="e.g. 175"
-      />
+      <View style={exStyles.vitalGrid}>
+        <VitalTile
+          label="Weight"
+          unit="kg"
+          value={state.vitalSigns.weight}
+          onChangeText={(v) => setVital('weight', v)}
+          keyboardType="decimal-pad"
+        />
+        <VitalTile
+          label="Height"
+          unit="cm"
+          value={state.vitalSigns.height}
+          onChangeText={(v) => setVital('height', v)}
+          keyboardType="decimal-pad"
+        />
+      </View>
 
       {bmiResult && (
         <View style={[exStyles.bmiCard, { borderColor: bmiResult.color }]}>
@@ -437,6 +482,8 @@ const ExaminationScreen: React.FC = () => {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      <Text style={exStyles.tabSectionHeading}>General Examination</Text>
+      <View style={exStyles.examCard}>
       <LabeledInput
         label="General Appearance"
         value={state.generalExamination.generalAppearance}
@@ -477,6 +524,7 @@ const ExaminationScreen: React.FC = () => {
         numberOfLines={4}
         placeholder="Describe lymph node findings..."
       />
+      </View>
       <View style={{ height: SPACING.xl }} />
     </ScrollView>
   );
@@ -488,6 +536,7 @@ const ExaminationScreen: React.FC = () => {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      <Text style={exStyles.tabSectionHeading}>Systemic Examination</Text>
       {(
         [
           { key: 'cardiovascular', label: 'Cardiovascular' },
@@ -528,7 +577,7 @@ const ExaminationScreen: React.FC = () => {
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={exStyles.backIcon}>‹</Text>
+            <Ionicons name="chevron-back" size={26} color={COLORS.white} />
           </TouchableOpacity>
           <Text style={exStyles.headerTitle}>Examination</Text>
           <View style={exStyles.headerRight} />
@@ -568,7 +617,10 @@ const ExaminationScreen: React.FC = () => {
             {saving ? (
               <ActivityIndicator color={COLORS.white} size="small" />
             ) : (
-              <Text style={exStyles.saveButtonText}>Save Findings</Text>
+              <>
+                <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.white} />
+                <Text style={exStyles.saveButtonText}>Save Findings</Text>
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -602,11 +654,6 @@ const exStyles = StyleSheet.create({
     height: 44,
     alignItems: 'flex-start',
     justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 28,
-    color: COLORS.white,
-    lineHeight: 32,
   },
   headerTitle: {
     flex: 1,
@@ -711,6 +758,77 @@ const exStyles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.text,
     backgroundColor: COLORS.surface,
+  },
+
+  // Vital tiles
+  vitalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
+  },
+  vitalTile: {
+    width: '48.5%',
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.sm,
+    paddingBottom: SPACING.xs + 2,
+    marginBottom: SPACING.sm,
+    ...SHADOWS.xs,
+  },
+  vitalTileWide: {
+    width: '100%',
+  },
+  vitalTileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  vitalTileLabel: {
+    flex: 1,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginRight: SPACING.xs,
+  },
+  vitalTileUnit: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+    color: COLORS.primary,
+    backgroundColor: COLORS.healingMint,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 1,
+    borderRadius: BORDER_RADIUS.xs,
+    overflow: 'hidden',
+  },
+  vitalTileInput: {
+    fontSize: FONT_SIZE.xxl,
+    fontWeight: '700',
+    color: COLORS.text,
+    minHeight: 44,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  vitalTileHint: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textTertiary,
+  },
+
+  // Exam section card
+  examCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.md,
+    paddingBottom: 0,
+    marginBottom: SPACING.md,
+    ...SHADOWS.xs,
   },
 
   // BMI
@@ -826,10 +944,6 @@ const exStyles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
   },
-  chevron: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
-  },
   expandableContent: {
     padding: SPACING.md,
     paddingTop: 0,
@@ -857,6 +971,8 @@ const exStyles = StyleSheet.create({
     ...SHADOWS.md,
   },
   saveButton: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
     backgroundColor: COLORS.secondary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,

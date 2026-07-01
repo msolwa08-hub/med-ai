@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
-  Platform,
+  SafeAreaView,
   Dimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { DoctorCard, NearbyDoctor } from '../../components/DoctorCard';
 import { doctorApi } from '../../api/endpoints';
@@ -37,16 +37,29 @@ const TYPE_MAP: Record<DoctorTypeFilter, string | undefined> = {
   TRAVELLING: 'travelling',
 };
 
+function getMarkerIcon(doctorType: string): keyof typeof Ionicons.glyphMap {
+  switch (doctorType) {
+    case 'gp':
+      return 'person';
+    case 'specialist':
+      return 'pulse';
+    default:
+      return 'medkit';
+  }
+}
+
 const MapPlaceholder: React.FC<{
   doctors: NearbyDoctor[];
   selectedId: string | null;
   onMarkerPress: (id: string) => void;
 }> = ({ doctors, selectedId, onMarkerPress }) => (
   <View style={mapStyles.container}>
-    <Text style={mapStyles.placeholder}>🗺️</Text>
+    <View style={mapStyles.placeholderIconCircle}>
+      <Ionicons name="map-outline" size={28} color={COLORS.primary} />
+    </View>
     <Text style={mapStyles.placeholderText}>Map View</Text>
     <Text style={mapStyles.placeholderSub}>
-      {doctors.length} doctors nearby
+      {doctors.length} doctor{doctors.length !== 1 ? 's' : ''} nearby
     </Text>
     <View style={mapStyles.markers}>
       {doctors.slice(0, 5).map((doc) => (
@@ -54,14 +67,13 @@ const MapPlaceholder: React.FC<{
           key={doc.id}
           style={[
             mapStyles.marker,
-            { backgroundColor: doc.isOnline ? COLORS.success : COLORS.textLight },
+            { backgroundColor: doc.isOnline ? COLORS.success : COLORS.systemGray2 },
             selectedId === doc.id && mapStyles.markerSelected,
           ]}
           onPress={() => onMarkerPress(doc.id)}
+          activeOpacity={0.8}
         >
-          <Text style={mapStyles.markerText}>
-            {doc.doctorType === 'gp' ? '👨‍⚕️' : doc.doctorType === 'specialist' ? '🔬' : '🏥'}
-          </Text>
+          <Ionicons name={getMarkerIcon(doc.doctorType)} size={18} color={COLORS.white} />
         </TouchableOpacity>
       ))}
     </View>
@@ -71,24 +83,31 @@ const MapPlaceholder: React.FC<{
 const mapStyles = StyleSheet.create({
   container: {
     height: SCREEN_HEIGHT * 0.35,
-    backgroundColor: '#E8F0E8',
+    backgroundColor: COLORS.healingMint,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.healingTealMid,
   },
-  placeholder: {
-    fontSize: 48,
+  placeholderIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xs,
   },
   placeholderText: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: COLORS.primaryDark,
     marginTop: 4,
   },
   placeholderSub: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
+    marginTop: 2,
   },
   markers: {
     flexDirection: 'row',
@@ -96,24 +115,22 @@ const mapStyles = StyleSheet.create({
     marginTop: SPACING.md,
     flexWrap: 'wrap',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   marker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOWS.sm,
+    ...SHADOWS.md,
   },
   markerSelected: {
     borderWidth: 3,
     borderColor: COLORS.primary,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-  },
-  markerText: {
-    fontSize: 18,
+    width: 52,
+    height: 52,
+    borderRadius: BORDER_RADIUS.full,
   },
 });
 
@@ -256,7 +273,7 @@ export const DoctorSearchScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root}>
       {/* Map */}
       <MapPlaceholder
         doctors={filteredDoctors}
@@ -266,20 +283,26 @@ export const DoctorSearchScreen: React.FC = () => {
 
       {/* Bottom sheet */}
       <View style={styles.sheet}>
+        <View style={styles.sheetHandle} />
+
         {/* Search bar */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Ionicons name="search" size={18} color={COLORS.secondaryLabel} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search doctors..."
+              placeholder="Search by name or specialty…"
               placeholderTextColor={COLORS.textLight}
               value={searchText}
               onChangeText={setSearchText}
+              returnKeyType="search"
             />
             {searchText.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchText('')}>
-                <Text style={styles.clearIcon}>✕</Text>
+              <TouchableOpacity
+                onPress={() => setSearchText('')}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons name="close-circle" size={18} color={COLORS.systemGray2} />
               </TouchableOpacity>
             )}
           </View>
@@ -292,6 +315,7 @@ export const DoctorSearchScreen: React.FC = () => {
           keyExtractor={(item) => item.key}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterList}
+          style={styles.filterListWrap}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
@@ -299,6 +323,7 @@ export const DoctorSearchScreen: React.FC = () => {
                 typeFilter === item.key && styles.filterChipActive,
               ]}
               onPress={() => setTypeFilter(item.key)}
+              activeOpacity={0.8}
             >
               <Text
                 style={[
@@ -323,6 +348,8 @@ export const DoctorSearchScreen: React.FC = () => {
                 key={opt}
                 style={[styles.sortChip, sortBy === opt && styles.sortChipActive]}
                 onPress={() => setSortBy(opt)}
+                activeOpacity={0.8}
+                hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
               >
                 <Text style={[styles.sortChipText, sortBy === opt && styles.sortChipTextActive]}>
                   {opt === 'nearest' ? 'Nearest' : opt === 'rating' ? 'Best Rated' : 'Lowest Fee'}
@@ -334,11 +361,10 @@ export const DoctorSearchScreen: React.FC = () => {
 
         {/* Doctor list */}
         {isLoading ? (
-          <ActivityIndicator
-            size="large"
-            color={COLORS.primary}
-            style={{ marginTop: SPACING.xl }}
-          />
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Finding doctors near you…</Text>
+          </View>
         ) : (
           <FlatList
             data={filteredDoctors}
@@ -355,22 +381,26 @@ export const DoctorSearchScreen: React.FC = () => {
             )}
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Text style={styles.emptyStateIcon}>🩺</Text>
-                <Text style={styles.emptyStateText}>No doctors found nearby.</Text>
-                <Text style={styles.emptyStateSubText}>Try expanding your search.</Text>
+                <View style={styles.emptyIconCircle}>
+                  <Ionicons name="search-outline" size={30} color={COLORS.primary} />
+                </View>
+                <Text style={styles.emptyStateText}>No doctors found nearby</Text>
+                <Text style={styles.emptyStateSubText}>
+                  Try a different filter or clear your search.
+                </Text>
               </View>
             }
           />
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.healingMint,
   },
   sheet: {
     flex: 1,
@@ -378,8 +408,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BORDER_RADIUS.xl,
     borderTopRightRadius: BORDER_RADIUS.xl,
     marginTop: -BORDER_RADIUS.xl,
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.sm,
     ...SHADOWS.lg,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.systemGray4,
+    marginBottom: SPACING.sm,
   },
   searchRow: {
     paddingHorizontal: SPACING.md,
@@ -391,37 +429,35 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    minHeight: 44,
     borderWidth: 1,
     borderColor: COLORS.border,
     gap: SPACING.sm,
     ...SHADOWS.sm,
   },
-  searchIcon: {
-    fontSize: 16,
-  },
   searchInput: {
     flex: 1,
     fontSize: FONT_SIZE.md,
     color: COLORS.text,
+    paddingVertical: SPACING.sm,
   },
-  clearIcon: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    padding: 4,
+  filterListWrap: {
+    flexGrow: 0,
   },
   filterList: {
     paddingHorizontal: SPACING.md,
     gap: SPACING.sm,
-    marginBottom: SPACING.sm,
+    paddingBottom: SPACING.sm,
   },
   filterChip: {
     paddingHorizontal: SPACING.md,
-    paddingVertical: 6,
+    minHeight: 36,
+    justifyContent: 'center',
     borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...SHADOWS.xs,
   },
   filterChipActive: {
     backgroundColor: COLORS.primary,
@@ -454,12 +490,16 @@ const styles = StyleSheet.create({
   },
   sortChip: {
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: BORDER_RADIUS.sm,
+    minHeight: 30,
+    justifyContent: 'center',
+    borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.surfaceVariant,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   sortChipActive: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   sortChipText: {
     fontSize: FONT_SIZE.xs,
@@ -473,23 +513,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.xxl,
   },
+  loadingState: {
+    alignItems: 'center',
+    paddingTop: SPACING.xl,
+    gap: SPACING.sm,
+  },
+  loadingText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+  },
   emptyState: {
     alignItems: 'center',
-    paddingTop: SPACING.xxl,
+    paddingTop: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
   },
-  emptyStateIcon: {
-    fontSize: 40,
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingMint,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.sm,
   },
   emptyStateText: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.text,
   },
   emptyStateSubText: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.textLight,
+    color: COLORS.textSecondary,
     marginTop: 4,
+    textAlign: 'center',
   },
 });
 

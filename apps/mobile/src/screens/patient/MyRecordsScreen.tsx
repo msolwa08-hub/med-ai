@@ -8,11 +8,12 @@ import {
   RefreshControl,
   SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { useConsultationStore, Consultation } from '../../store/consultationStore';
 import { ConsultationCard } from '../../components/ConsultationCard';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '../../constants/theme';
+import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../../constants/theme';
 
 type TabFilter = 'all' | 'completed' | 'inprogress';
 
@@ -61,21 +62,31 @@ export const MyRecordsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.root}>
-      {/* Tabs */}
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Records</Text>
+        <Text style={styles.headerSubtitle}>
+          {consultations.length} consultation{consultations.length !== 1 ? 's' : ''} on file
+        </Text>
+      </View>
+
+      {/* Filter chips */}
       <View style={styles.tabBar}>
-        {TAB_OPTIONS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-            {activeTab === tab.key && <View style={styles.tabIndicator} />}
-          </TouchableOpacity>
-        ))}
+        {TAB_OPTIONS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <FlatList
@@ -99,7 +110,13 @@ export const MyRecordsScreen: React.FC = () => {
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIllustration}>🩺</Text>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons
+                name={activeTab === 'inprogress' ? 'hourglass-outline' : 'folder-open-outline'}
+                size={34}
+                color={COLORS.primary}
+              />
+            </View>
             <Text style={styles.emptyTitle}>
               {activeTab === 'all'
                 ? 'No consultations yet'
@@ -116,7 +133,9 @@ export const MyRecordsScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.startButton}
                 onPress={() => navigation.navigate('LanguageSelect')}
+                activeOpacity={0.85}
               >
+                <Ionicons name="add-circle-outline" size={18} color={COLORS.white} />
                 <Text style={styles.startButtonText}>Start First Consultation</Text>
               </TouchableOpacity>
             )}
@@ -133,50 +152,73 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  header: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.sm,
+  },
+  headerTitle: {
+    ...TYPOGRAPHY.largeTitle,
+    color: COLORS.label,
+  },
+  headerSubtitle: {
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
+    marginTop: 2,
+  },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
   },
   tab: {
-    flex: 1,
+    minHeight: 44,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     alignItems: 'center',
-    paddingVertical: SPACING.md,
-    position: 'relative',
+    justifyContent: 'center',
   },
-  tabActive: {},
+  tabActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+    ...SHADOWS.sm,
+  },
   tabText: {
     fontSize: FONT_SIZE.md,
     fontWeight: '600',
     color: COLORS.textSecondary,
   },
   tabTextActive: {
-    color: COLORS.primary,
-  },
-  tabIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: '20%',
-    right: '20%',
-    height: 3,
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.sm,
+    color: COLORS.white,
   },
   listContent: {
     paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.sm,
     paddingBottom: SPACING.xxl,
     flexGrow: 1,
   },
   emptyState: {
     alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: SPACING.xl,
+    marginTop: SPACING.xl,
+    marginHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    ...SHADOWS.card,
   },
-  emptyIllustration: {
-    fontSize: 64,
-    marginBottom: SPACING.lg,
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingMint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
   },
   emptyTitle: {
     fontSize: FONT_SIZE.xl,
@@ -192,11 +234,16 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   startButton: {
-    marginTop: SPACING.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.lg,
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    minHeight: 48,
     borderRadius: BORDER_RADIUS.md,
+    ...SHADOWS.sm,
   },
   startButtonText: {
     color: COLORS.white,

@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { consultationApi, investigationsApi } from '../../api/endpoints';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SHADOWS, SPACING } from '../../constants/theme';
@@ -55,7 +57,7 @@ const TYPE_COLORS: Record<InvType, string> = {
 };
 
 const URGENCY_COLORS: Record<Urgency, string> = {
-  ROUTINE: COLORS.success,
+  ROUTINE: COLORS.systemGray,
   URGENT: COLORS.warning,
   STAT: COLORS.error,
 };
@@ -249,9 +251,30 @@ export const InvestigationsScreen: React.FC = () => {
       <View style={styles.invCardHeader}>
         <TypeBadge type={item.type} />
         <UrgencyBadge urgency={item.urgency} />
+        <View style={styles.invCardHeaderSpacer} />
+        <View
+          style={[
+            styles.statusPill,
+            item.resultStatus === 'AVAILABLE' ? styles.statusPillAvailable : styles.statusPillOrdered,
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusPillText,
+              item.resultStatus === 'AVAILABLE'
+                ? styles.statusPillTextAvailable
+                : styles.statusPillTextOrdered,
+            ]}
+          >
+            {item.resultStatus === 'AVAILABLE' ? 'AVAILABLE' : 'ORDERED'}
+          </Text>
+        </View>
       </View>
       <Text style={styles.invName}>{item.name}</Text>
-      <Text style={styles.invDate}>Ordered: {formatDate(item.dateOrdered)}</Text>
+      <View style={styles.invDateRow}>
+        <Ionicons name="time-outline" size={13} color={COLORS.textSecondary} />
+        <Text style={styles.invDate}>Ordered {formatDate(item.dateOrdered)}</Text>
+      </View>
     </View>
   );
 
@@ -282,6 +305,7 @@ export const InvestigationsScreen: React.FC = () => {
           onPress={() => handleUploadResult(item.id)}
           activeOpacity={0.8}
         >
+          <Ionicons name="cloud-upload-outline" size={16} color={COLORS.white} />
           <Text style={styles.uploadBtnText}>Upload Result</Text>
         </TouchableOpacity>
       ) : (
@@ -301,11 +325,16 @@ export const InvestigationsScreen: React.FC = () => {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
     <View style={styles.root}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>‹</Text>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="chevron-back" size={26} color={COLORS.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Investigations</Text>
         <TouchableOpacity
@@ -337,6 +366,7 @@ export const InvestigationsScreen: React.FC = () => {
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={COLORS.primary} size="large" />
+          <Text style={styles.loadingText}>Loading investigations…</Text>
         </View>
       ) : (
         <FlatList
@@ -346,11 +376,19 @@ export const InvestigationsScreen: React.FC = () => {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyState}>
+              <Ionicons
+                name={activeTab === 'ORDERED' ? 'flask-outline' : 'document-text-outline'}
+                size={40}
+                color={COLORS.textTertiary}
+              />
               <Text style={styles.emptyStateText}>
                 {activeTab === 'ORDERED'
                   ? 'No investigations ordered yet'
                   : 'No results available yet'}
               </Text>
+              {activeTab === 'ORDERED' && (
+                <Text style={styles.emptyStateHint}>Tap + to order labs, imaging or ECG</Text>
+              )}
             </View>
           }
           showsVerticalScrollIndicator={false}
@@ -364,7 +402,7 @@ export const InvestigationsScreen: React.FC = () => {
           onPress={() => setShowOrderSheet(true)}
           activeOpacity={0.85}
         >
-          <Text style={styles.fabIcon}>+</Text>
+          <Ionicons name="add" size={30} color={COLORS.white} />
         </TouchableOpacity>
       )}
 
@@ -521,12 +559,17 @@ export const InvestigationsScreen: React.FC = () => {
         </View>
       </Modal>
     </View>
+    </SafeAreaView>
   );
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   root: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -535,18 +578,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.primary,
-    paddingTop: 48,
-    paddingBottom: SPACING.md,
+    paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
   },
   backBtn: {
-    width: 36,
+    width: 44,
+    height: 44,
     alignItems: 'flex-start',
-  },
-  backIcon: {
-    fontSize: 28,
-    color: COLORS.white,
-    lineHeight: 32,
+    justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
@@ -556,12 +595,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerRight: {
-    width: 36,
+    width: 44,
   },
   ussBtn: {
     backgroundColor: COLORS.systemPurple,
     paddingHorizontal: SPACING.sm,
     paddingVertical: 5,
+    minHeight: 32,
+    justifyContent: 'center',
     borderRadius: BORDER_RADIUS.sm,
   },
   ussBtnText: {
@@ -598,6 +639,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: SPACING.sm,
+  },
+  loadingText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
   },
   listContent: {
     padding: SPACING.md,
@@ -606,10 +652,16 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: SPACING.xxl,
+    gap: SPACING.sm,
   },
   emptyStateText: {
     fontSize: FONT_SIZE.md,
+    fontWeight: '600',
     color: COLORS.textSecondary,
+  },
+  emptyStateHint: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textTertiary,
   },
   invCard: {
     backgroundColor: COLORS.surface,
@@ -622,18 +674,53 @@ const styles = StyleSheet.create({
   },
   invCardHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: SPACING.sm,
     marginBottom: SPACING.sm,
   },
+  invCardHeaderSpacer: {
+    flex: 1,
+  },
   invName: {
-    fontSize: FONT_SIZE.md,
+    fontSize: FONT_SIZE.lg,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
   },
+  invDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
   invDate: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
+  },
+  statusPill: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  statusPillOrdered: {
+    backgroundColor: COLORS.systemGray6,
+    borderWidth: 1,
+    borderColor: COLORS.systemGray4,
+  },
+  statusPillAvailable: {
+    backgroundColor: COLORS.healingMint,
+    borderWidth: 1,
+    borderColor: COLORS.healingTealMid,
+  },
+  statusPillText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  statusPillTextOrdered: {
+    color: COLORS.textSecondary,
+  },
+  statusPillTextAvailable: {
+    color: COLORS.primaryDark,
   },
   resultBadge: {
     paddingHorizontal: SPACING.sm,
@@ -649,10 +736,14 @@ const styles = StyleSheet.create({
   },
   uploadBtn: {
     marginTop: SPACING.sm,
+    flexDirection: 'row',
+    gap: SPACING.xs,
     backgroundColor: COLORS.primaryLight,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   uploadBtnText: {
     color: COLORS.white,
@@ -672,7 +763,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   viewDocBtnText: {
     color: COLORS.primary,
@@ -690,12 +783,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.lg,
-  },
-  fabIcon: {
-    color: COLORS.white,
-    fontSize: 28,
-    fontWeight: '300',
-    lineHeight: 32,
   },
   overlay: {
     flex: 1,
@@ -739,6 +826,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     fontSize: FONT_SIZE.md,
     color: COLORS.text,
   },
@@ -752,7 +840,9 @@ const styles = StyleSheet.create({
   },
   typeChip: {
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    minHeight: 40,
+    justifyContent: 'center',
     borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.surfaceVariant,
     borderWidth: 1,
@@ -800,10 +890,12 @@ const styles = StyleSheet.create({
   urgencyChip: {
     flex: 1,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   urgencyChipText: {
     fontSize: FONT_SIZE.sm,

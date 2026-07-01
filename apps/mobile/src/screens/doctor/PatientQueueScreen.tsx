@@ -27,6 +27,8 @@ interface QueuedPatient {
   consultationType: ConsultationType;
   aiChiefComplaint: string;
   requestedAt: Date;
+  preferredLanguage: string | null;
+  hasRedFlags: boolean;
 }
 
 /** Item shape returned by GET /doctors/me/patient-queue. */
@@ -40,7 +42,25 @@ interface ApiQueueItem {
   chiefComplaintSnippet: string;
   distanceKm: number | null;
   isAssignedToMe: boolean;
+  /** Optional fields — rendered when the API provides them. */
+  preferredLanguage?: string | null;
+  hasRedFlags?: boolean;
+  redFlags?: string[] | null;
 }
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  zu: 'isiZulu',
+  xh: 'isiXhosa',
+  af: 'Afrikaans',
+  nso: 'Sepedi',
+  tn: 'Setswana',
+  st: 'Sesotho',
+  ts: 'Xitsonga',
+  ss: 'siSwati',
+  ve: 'Tshivenda',
+  nr: 'isiNdebele',
+};
 
 function mapConsultationType(type: ApiQueueItem['consultationType']): ConsultationType {
   switch (type) {
@@ -61,6 +81,8 @@ function mapQueueItem(item: ApiQueueItem): QueuedPatient {
     consultationType: mapConsultationType(item.consultationType),
     aiChiefComplaint: item.chiefComplaintSnippet || 'History-taking in progress',
     requestedAt: new Date(item.startedAt),
+    preferredLanguage: item.preferredLanguage ?? null,
+    hasRedFlags: item.hasRedFlags === true || (item.redFlags?.length ?? 0) > 0,
   };
 }
 
@@ -81,6 +103,27 @@ function getConsultationTypeColor(type: ConsultationType): string {
     default:
       return COLORS.textSecondary;
   }
+}
+
+function getConsultationTypeIcon(type: ConsultationType): keyof typeof Ionicons.glyphMap {
+  switch (type) {
+    case 'TELECONSULT':
+      return 'videocam-outline';
+    case 'IN-PERSON':
+      return 'person-outline';
+    case 'HOME VISIT':
+      return 'home-outline';
+    default:
+      return 'medical-outline';
+  }
+}
+
+function getInitials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  const first = parts[0][0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
+  return (first + last).toUpperCase();
 }
 
 function formatElapsedTime(since: Date): string {
@@ -120,6 +163,9 @@ function PatientCard({
   const typeColor = getConsultationTypeColor(item.consultationType);
   const elapsed = formatElapsedTime(item.requestedAt);
   const isProcessing = isAccepting || isDeclining;
+  const languageLabel = item.preferredLanguage
+    ? LANGUAGE_NAMES[item.preferredLanguage] ?? item.preferredLanguage.toUpperCase()
+    : null;
 
   return (
     <View style={styles.card}>
@@ -127,32 +173,54 @@ function PatientCard({
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarInitial}>{item.patientName.charAt(0)}</Text>
+            <Text style={styles.avatarInitial}>{getInitials(item.patientName)}</Text>
           </View>
-          <View>
-            <Text style={styles.patientName}>{item.patientName}</Text>
-            {item.distance != null && (
-              <Text style={styles.distanceText}>{item.distance} away</Text>
-            )}
+          <View style={styles.cardHeaderInfo}>
+            <Text style={styles.patientName} numberOfLines={1}>{item.patientName}</Text>
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={12} color={COLORS.warning} />
+                <Text style={styles.timerText}>{elapsed}</Text>
+              </View>
+              {item.distance != null && (
+                <View style={styles.metaItem}>
+                  <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} />
+                  <Text style={styles.distanceText}>{item.distance}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
         <View style={[styles.typeBadge, { backgroundColor: typeColor + '1A' }]}>
+          <Ionicons name={getConsultationTypeIcon(item.consultationType)} size={11} color={typeColor} />
           <Text style={[styles.typeBadgeText, { color: typeColor }]}>
             {item.consultationType}
           </Text>
         </View>
       </View>
 
+      {/* Chips: language + red flags */}
+      {(languageLabel != null || item.hasRedFlags) && (
+        <View style={styles.chipRow}>
+          {languageLabel != null && (
+            <View style={styles.languageChip}>
+              <Ionicons name="language-outline" size={12} color={COLORS.primaryDark} />
+              <Text style={styles.languageChipText}>{languageLabel}</Text>
+            </View>
+          )}
+          {item.hasRedFlags && (
+            <View style={styles.redFlagChip}>
+              <Ionicons name="flag" size={12} color={COLORS.emergency} />
+              <Text style={styles.redFlagChipText}>RED FLAGS</Text>
+            </View>
+          )}
+        </View>
+      )}
+
       {/* Chief Complaint */}
       <View style={styles.complaintBox}>
         <Text style={styles.complaintLabel}>AI Chief Complaint</Text>
         <Text style={styles.complaintText}>{truncate(item.aiChiefComplaint, 80)}</Text>
-      </View>
-
-      {/* Timer */}
-      <View style={styles.timerRow}>
-        <View style={styles.timerDot} />
-        <Text style={styles.timerText}>{elapsed}</Text>
       </View>
 
       {/* Action Buttons */}
@@ -163,7 +231,8 @@ function PatientCard({
           disabled={isProcessing}
           activeOpacity={0.7}
         >
-          <Text style={styles.historyButtonText}>View Full History</Text>
+          <Ionicons name="document-text-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.historyButtonText}>Full History</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -188,7 +257,10 @@ function PatientCard({
           {isAccepting ? (
             <ActivityIndicator color={COLORS.white} size="small" />
           ) : (
-            <Text style={styles.acceptButtonText}>Accept</Text>
+            <>
+              <Ionicons name="checkmark" size={16} color={COLORS.white} />
+              <Text style={styles.acceptButtonText}>Accept</Text>
+            </>
           )}
         </TouchableOpacity>
       </View>
@@ -326,14 +398,48 @@ export default function PatientQueueScreen({ navigation }: Props) {
   }
 
   function renderEmpty() {
+    if (isLoading) {
+      return (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.emptySubtitle}>Loading your queue…</Text>
+        </View>
+      );
+    }
+    if (loadError) {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconCircle}>
+            <Ionicons name="cloud-offline-outline" size={32} color={COLORS.textSecondary} />
+          </View>
+          <Text style={styles.emptyTitle}>Something went wrong</Text>
+          <Text style={styles.emptySubtitle}>{loadError}</Text>
+          <TouchableOpacity
+            style={styles.goOnlineButton}
+            onPress={() => fetchQueue(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.goOnlineButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>{isOnline ? '🩺' : '📴'}</Text>
-        <Text style={styles.emptyTitle}>No Pending Patients</Text>
+        <View style={styles.emptyIconCircle}>
+          <Ionicons
+            name={isOnline ? 'checkmark-done-circle-outline' : 'moon-outline'}
+            size={36}
+            color={COLORS.primary}
+          />
+        </View>
+        <Text style={styles.emptyTitle}>
+          {isOnline ? 'No patients waiting' : 'You are offline'}
+        </Text>
         <Text style={styles.emptySubtitle}>
           {isOnline
-            ? 'You are currently online and waiting for patients'
-            : 'You are offline. Go online to receive patient requests'}
+            ? "You're all caught up — new requests will appear here automatically."
+            : 'Go online to receive patient requests.'}
         </Text>
         {!isOnline && (
           <TouchableOpacity
@@ -349,57 +455,65 @@ export default function PatientQueueScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <Text style={styles.headerTitle}>Patient Queue</Text>
-          {queue.length > 0 && (
-            <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{queue.length} waiting</Text>
-            </View>
-          )}
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.headerTitle}>Patient Queue</Text>
+            {queue.length > 0 && (
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{queue.length} waiting</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.onlineIndicatorRow}>
+            <View style={[styles.onlineDot, { backgroundColor: isOnline ? COLORS.success : COLORS.systemGray3 }]} />
+            <Text style={[styles.onlineText, { color: isOnline ? COLORS.healingTeal : COLORS.systemGray4 }]}>
+              {isOnline ? 'Online — accepting patients' : 'Offline'}
+            </Text>
+          </View>
         </View>
-        <View style={styles.onlineIndicatorRow}>
-          <View style={[styles.onlineDot, { backgroundColor: isOnline ? COLORS.success : COLORS.textLight }]} />
-          <Text style={[styles.onlineText, { color: isOnline ? COLORS.success : COLORS.textLight }]}>
-            {isOnline ? 'Online' : 'Offline'}
-          </Text>
-        </View>
-      </View>
 
-      <FlatList
-        data={queue}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={[styles.listContent, queue.length === 0 && styles.listContentEmpty]}
-        ListEmptyComponent={renderEmpty}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
-        }
-      />
-    </View>
+        <FlatList
+          data={queue}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={[styles.listContent, queue.length === 0 && styles.listContentEmpty]}
+          ListEmptyComponent={renderEmpty}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primary}
+            />
+          }
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
   header: {
     backgroundColor: COLORS.primary,
-    paddingTop: SPACING.xl,
+    paddingTop: SPACING.md,
     paddingBottom: SPACING.lg,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderBottomLeftRadius: BORDER_RADIUS.xl,
+    borderBottomRightRadius: BORDER_RADIUS.xl,
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -413,10 +527,10 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   countBadge: {
-    backgroundColor: COLORS.error,
+    backgroundColor: COLORS.primaryDark,
     borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   countBadgeText: {
     color: COLORS.white,
@@ -431,7 +545,7 @@ const styles = StyleSheet.create({
   onlineDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.full,
   },
   onlineText: {
     fontSize: FONT_SIZE.sm,
@@ -439,17 +553,18 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: SPACING.md,
+    paddingTop: SPACING.md,
     gap: SPACING.md,
   },
   listContentEmpty: {
-    flex: 1,
+    flexGrow: 1,
   },
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
-    ...SHADOWS.md,
+    ...SHADOWS.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -464,31 +579,53 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: SPACING.sm,
   },
+  cardHeaderInfo: {
+    flex: 1,
+  },
   avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.primary + '18',
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingTeal,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.xl,
+    fontSize: FONT_SIZE.lg,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: COLORS.primaryDark,
   },
   patientName: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.text,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginTop: 3,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  timerText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.warning,
+    fontWeight: '600',
+  },
   distanceText: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
-    marginTop: 2,
   },
   typeBadge: {
-    borderRadius: BORDER_RADIUS.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: SPACING.sm,
     paddingVertical: 5,
     alignSelf: 'flex-start',
@@ -498,11 +635,51 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginBottom: SPACING.sm,
+  },
+  languageChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.healingMint,
+    borderWidth: 1,
+    borderColor: COLORS.healingTealMid,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+  },
+  languageChipText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+    color: COLORS.primaryDark,
+  },
+  redFlagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.emergency + '14',
+    borderWidth: 1,
+    borderColor: COLORS.emergency + '55',
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+  },
+  redFlagChipText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: COLORS.emergency,
+  },
   complaintBox: {
     backgroundColor: COLORS.surfaceVariant,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.sm,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
     borderLeftWidth: 3,
     borderLeftColor: COLORS.primary,
   },
@@ -519,23 +696,6 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     lineHeight: 20,
   },
-  timerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    marginBottom: SPACING.md,
-  },
-  timerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.warning,
-  },
-  timerText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.warning,
-    fontWeight: '600',
-  },
   actionsRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
@@ -543,11 +703,14 @@ const styles = StyleSheet.create({
   },
   historyButton: {
     flex: 1,
-    paddingVertical: SPACING.sm,
+    flexDirection: 'row',
+    minHeight: 44,
     paddingHorizontal: SPACING.xs,
     backgroundColor: COLORS.surfaceVariant,
     borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -557,14 +720,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   declineButton: {
-    paddingVertical: SPACING.sm,
+    minHeight: 44,
     paddingHorizontal: SPACING.md,
-    backgroundColor: COLORS.error + '12',
+    backgroundColor: COLORS.error + '10',
     borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.error,
-    minWidth: 72,
+    justifyContent: 'center',
+    minWidth: 84,
   },
   declineButtonText: {
     color: COLORS.error,
@@ -572,12 +734,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   acceptButton: {
-    paddingVertical: SPACING.sm,
+    flexDirection: 'row',
+    minHeight: 44,
     paddingHorizontal: SPACING.md,
-    backgroundColor: COLORS.success,
+    backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
-    minWidth: 72,
+    justifyContent: 'center',
+    gap: 4,
+    minWidth: 96,
+    ...SHADOWS.sm,
   },
   acceptButtonText: {
     color: COLORS.white,
@@ -592,16 +758,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
+    gap: SPACING.sm,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: SPACING.lg,
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingMint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
   },
   emptyTitle: {
     fontSize: FONT_SIZE.xl,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: SPACING.sm,
     textAlign: 'center',
   },
   emptySubtitle: {
@@ -611,11 +782,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   goOnlineButton: {
-    marginTop: SPACING.lg,
-    backgroundColor: COLORS.secondary,
-    borderRadius: BORDER_RADIUS.lg,
-    paddingVertical: SPACING.sm,
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.md,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: SPACING.xl,
+    ...SHADOWS.sm,
   },
   goOnlineButtonText: {
     color: COLORS.white,
