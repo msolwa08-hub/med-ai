@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { diagnosisApi } from '../../api/endpoints';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SHADOWS, SPACING } from '../../constants/theme';
@@ -43,6 +44,13 @@ const PROBABILITY_TEXT_COLORS: Record<AIDiagnosis['probability'], string> = {
   HIGH: COLORS.white,
   MEDIUM: COLORS.text,
   LOW: COLORS.white,
+};
+
+/** Visual weight of the confidence bar per probability band. */
+const PROBABILITY_FILL: Record<AIDiagnosis['probability'], `${number}%`> = {
+  HIGH: '85%',
+  MEDIUM: '55%',
+  LOW: '25%',
 };
 
 const COMMON_SA_DIAGNOSES = [
@@ -177,11 +185,16 @@ export const DiagnosisScreen: React.FC = () => {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
     <View style={styles.root}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>‹</Text>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="chevron-back" size={26} color={COLORS.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Working Diagnosis</Text>
         <View style={styles.headerRight} />
@@ -195,7 +208,10 @@ export const DiagnosisScreen: React.FC = () => {
       >
         {/* ── AI Differential Diagnoses ─────────────────────────────────────── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>AI Differential Diagnoses</Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="sparkles" size={16} color={COLORS.primary} />
+            <Text style={styles.sectionTitle}>AI Differential Diagnoses</Text>
+          </View>
           <Text style={styles.sectionSubtitle}>Tap to select as working diagnosis</Text>
 
           {isLoading ? (
@@ -205,7 +221,11 @@ export const DiagnosisScreen: React.FC = () => {
             </View>
           ) : aiDiagnoses.length === 0 ? (
             <View style={styles.emptyAI}>
+              <Ionicons name="bulb-outline" size={32} color={COLORS.textTertiary} />
               <Text style={styles.emptyAIText}>No AI suggestions available</Text>
+              <Text style={styles.emptyAISubtext}>
+                Search or add a diagnosis manually below
+              </Text>
             </View>
           ) : (
             aiDiagnoses.map((dx) => {
@@ -222,6 +242,17 @@ export const DiagnosisScreen: React.FC = () => {
                     {dx.icdCode ? (
                       <Text style={styles.aiIcdCode}>{dx.icdCode}</Text>
                     ) : null}
+                    <View style={styles.probabilityTrack}>
+                      <View
+                        style={[
+                          styles.probabilityFill,
+                          {
+                            width: PROBABILITY_FILL[dx.probability],
+                            backgroundColor: PROBABILITY_COLORS[dx.probability],
+                          },
+                        ]}
+                      />
+                    </View>
                   </View>
                   <View style={styles.aiCardRight}>
                     <View
@@ -239,11 +270,11 @@ export const DiagnosisScreen: React.FC = () => {
                         {dx.probability}
                       </Text>
                     </View>
-                    {selected && (
-                      <View style={styles.checkmark}>
-                        <Text style={styles.checkmarkText}>✓</Text>
-                      </View>
-                    )}
+                    <View style={[styles.checkmark, !selected && styles.checkmarkEmpty]}>
+                      {selected && (
+                        <Ionicons name="checkmark" size={15} color={COLORS.white} />
+                      )}
+                    </View>
                   </View>
                 </TouchableOpacity>
               );
@@ -321,7 +352,7 @@ export const DiagnosisScreen: React.FC = () => {
                   onPress={() => removeDiagnosis(dx.name)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.removeBtnText}>✕</Text>
+                  <Ionicons name="close" size={16} color={COLORS.error} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -357,17 +388,26 @@ export const DiagnosisScreen: React.FC = () => {
           {isSaving ? (
             <ActivityIndicator color={COLORS.white} />
           ) : (
-            <Text style={styles.confirmBtnText}>Confirm Diagnosis</Text>
+            <Text style={styles.confirmBtnText}>
+              {selectedDiagnoses.length > 0
+                ? `Confirm Diagnosis (${selectedDiagnoses.length})`
+                : 'Confirm Diagnosis'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
     </View>
+    </SafeAreaView>
   );
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   root: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -376,18 +416,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.primary,
-    paddingTop: 48,
-    paddingBottom: SPACING.md,
+    paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
   },
   backBtn: {
-    width: 36,
+    width: 44,
+    height: 44,
     alignItems: 'flex-start',
-  },
-  backIcon: {
-    fontSize: 28,
-    color: COLORS.white,
-    lineHeight: 32,
+    justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
@@ -397,7 +433,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerRight: {
-    width: 36,
+    width: 44,
   },
   scroll: {
     flex: 1,
@@ -413,6 +449,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: SPACING.xs,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
   },
   sectionSubtitle: {
     fontSize: FONT_SIZE.sm,
@@ -431,12 +472,19 @@ const styles = StyleSheet.create({
   emptyAI: {
     backgroundColor: COLORS.surfaceVariant,
     borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
+    padding: SPACING.lg,
     alignItems: 'center',
+    gap: SPACING.xs,
   },
   emptyAIText: {
     color: COLORS.textSecondary,
     fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+  },
+  emptyAISubtext: {
+    color: COLORS.textTertiary,
+    fontSize: FONT_SIZE.sm,
+    textAlign: 'center',
   },
   aiCard: {
     flexDirection: 'row',
@@ -451,7 +499,7 @@ const styles = StyleSheet.create({
   },
   aiCardSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#EEF4FF',
+    backgroundColor: COLORS.healingMint,
   },
   aiCardLeft: {
     flex: 1,
@@ -482,6 +530,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  probabilityTrack: {
+    height: 4,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.systemGray5,
+    marginTop: SPACING.xs + 2,
+    marginRight: SPACING.md,
+    overflow: 'hidden',
+  },
+  probabilityFill: {
+    height: 4,
+    borderRadius: BORDER_RADIUS.full,
+  },
   checkmark: {
     width: 22,
     height: 22,
@@ -490,10 +550,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkmarkText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '800',
+  checkmarkEmpty: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: COLORS.systemGray4,
   },
   searchRow: {
     flexDirection: 'row',
@@ -508,6 +568,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     fontSize: FONT_SIZE.md,
     color: COLORS.text,
   },
@@ -515,6 +576,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
+    minHeight: 44,
+    minWidth: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -597,11 +660,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: SPACING.sm,
   },
-  removeBtnText: {
-    color: COLORS.error,
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
-  },
   notesInput: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
@@ -626,7 +684,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
+    minHeight: 52,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.sm,
   },
   confirmBtnDisabled: {
     opacity: 0.6,

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { consultationApi, diagnosisApi, documentsApi } from '../../api/endpoints';
 import { useAuthStore } from '../../store/authStore';
@@ -398,7 +399,7 @@ export const ManagementPlanScreen: React.FC = () => {
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.backIcon}>‹</Text>
+            <Ionicons name="chevron-back" size={26} color={COLORS.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Management Plan</Text>
           <View style={styles.headerRight} />
@@ -411,7 +412,7 @@ export const ManagementPlanScreen: React.FC = () => {
           </View>
         ) : loadError ? (
           <View style={styles.centerContainer}>
-            <Text style={styles.errorIcon}>!</Text>
+            <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
             <Text style={styles.centerText}>{loadError}</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={loadData} activeOpacity={0.8}>
               <Text style={styles.retryBtnText}>Retry</Text>
@@ -426,7 +427,10 @@ export const ManagementPlanScreen: React.FC = () => {
           >
             {/* ── 1. Diagnosis ────────────────────────────────────────────────── */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Diagnosis</Text>
+              <View style={styles.sectionHeading}>
+                <Ionicons name="clipboard-outline" size={17} color={COLORS.primary} />
+                <Text style={styles.sectionTitle}>Diagnosis</Text>
+              </View>
               <TextInput
                 style={styles.multilineInput}
                 placeholder="Final diagnosis for this consultation..."
@@ -441,7 +445,15 @@ export const ManagementPlanScreen: React.FC = () => {
 
             {/* ── 2. Medications ──────────────────────────────────────────────── */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Medications</Text>
+              <View style={styles.sectionHeading}>
+                <Ionicons name="medkit-outline" size={17} color={COLORS.primary} />
+                <Text style={styles.sectionTitle}>Medications</Text>
+                {medications.length > 0 && (
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>{medications.length}</Text>
+                  </View>
+                )}
+              </View>
 
               {medications.map((med) => (
                 <View key={med.id} style={styles.medCard}>
@@ -462,7 +474,7 @@ export const ManagementPlanScreen: React.FC = () => {
                     onPress={() => removeMedication(med.id)}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   >
-                    <Text style={styles.removeBtnText}>✕</Text>
+                    <Ionicons name="close" size={15} color={COLORS.error} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -482,7 +494,10 @@ export const ManagementPlanScreen: React.FC = () => {
 
             {/* ── 3. Procedures ───────────────────────────────────────────────── */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Procedures</Text>
+              <View style={styles.sectionHeading}>
+                <Ionicons name="bandage-outline" size={17} color={COLORS.primary} />
+                <Text style={styles.sectionTitle}>Procedures</Text>
+              </View>
               <TextInput
                 style={styles.multilineInput}
                 placeholder="Describe procedures done or ordered..."
@@ -497,7 +512,15 @@ export const ManagementPlanScreen: React.FC = () => {
 
             {/* ── 4. Referrals ────────────────────────────────────────────────── */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Referrals</Text>
+              <View style={styles.sectionHeading}>
+                <Ionicons name="git-branch-outline" size={17} color={COLORS.primary} />
+                <Text style={styles.sectionTitle}>Referrals</Text>
+                {referrals.length > 0 && (
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>{referrals.length}</Text>
+                  </View>
+                )}
+              </View>
 
               {referrals.map((ref) => (
                 <View key={ref.id} style={styles.referralCard}>
@@ -531,9 +554,8 @@ export const ManagementPlanScreen: React.FC = () => {
                       }
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.referralLetterBtnText}>
-                        📄 Generate Referral Letter
-                      </Text>
+                      <Ionicons name="document-text-outline" size={14} color={COLORS.primary} />
+                      <Text style={styles.referralLetterBtnText}>Generate Referral Letter</Text>
                     </TouchableOpacity>
                   </View>
                   <TouchableOpacity
@@ -541,7 +563,7 @@ export const ManagementPlanScreen: React.FC = () => {
                     onPress={() => removeReferral(ref.id)}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   >
-                    <Text style={styles.removeBtnText}>✕</Text>
+                    <Ionicons name="close" size={15} color={COLORS.error} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -561,7 +583,10 @@ export const ManagementPlanScreen: React.FC = () => {
 
             {/* ── 5. Follow-up ────────────────────────────────────────────────── */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Follow-up</Text>
+              <View style={styles.sectionHeading}>
+                <Ionicons name="calendar-outline" size={17} color={COLORS.primary} />
+                <Text style={styles.sectionTitle}>Follow-up</Text>
+              </View>
               <Text style={styles.fieldLabel}>Follow-up in (days)</Text>
               <TextInput
                 style={styles.fieldInput}
@@ -576,7 +601,10 @@ export const ManagementPlanScreen: React.FC = () => {
             {/* ── 6. Patient Instructions ─────────────────────────────────────── */}
             <View style={styles.section}>
               <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Patient Instructions</Text>
+                <View style={[styles.sectionHeading, styles.sectionHeadingInline]}>
+                  <Ionicons name="chatbox-ellipses-outline" size={17} color={COLORS.primary} />
+                  <Text style={styles.sectionTitle}>Patient Instructions</Text>
+                </View>
                 {patientLanguage !== 'en' && (
                   <View style={styles.langBadge}>
                     <Text style={styles.langBadgeText}>
@@ -610,7 +638,8 @@ export const ManagementPlanScreen: React.FC = () => {
               onPress={() => setShowSickNoteModal(true)}
               activeOpacity={0.8}
             >
-              <Text style={styles.sickNoteBtnText}>🩺 Generate Sick Note</Text>
+              <Ionicons name="document-attach-outline" size={18} color={COLORS.secondary} />
+              <Text style={styles.sickNoteBtnText}>Generate Sick Note</Text>
             </TouchableOpacity>
 
             {/* ── Complete Consultation ───────────────────────────────────────── */}
@@ -1022,7 +1051,7 @@ export const ManagementPlanScreen: React.FC = () => {
           <View style={styles.successOverlay}>
             <View style={styles.successCard}>
               <View style={styles.successIcon}>
-                <Text style={styles.successIconText}>✓</Text>
+                <Ionicons name="checkmark" size={36} color={COLORS.white} />
               </View>
               <Text style={styles.successTitle}>Consultation Complete</Text>
               <Text style={styles.successBody}>
@@ -1068,11 +1097,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 28,
-    color: COLORS.white,
-    lineHeight: 32,
-  },
   headerTitle: {
     flex: 1,
     fontSize: FONT_SIZE.xl,
@@ -1094,18 +1118,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
     textAlign: 'center',
-  },
-  errorIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.error,
-    color: COLORS.white,
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '800',
-    textAlign: 'center',
-    lineHeight: 56,
-    overflow: 'hidden',
   },
   retryBtn: {
     backgroundColor: COLORS.primary,
@@ -1140,7 +1152,15 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.text,
+  },
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs + 2,
     marginBottom: SPACING.sm,
+  },
+  sectionHeadingInline: {
+    marginBottom: 0,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -1148,10 +1168,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: SPACING.sm,
   },
+  countBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.healingTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xs,
+  },
+  countBadgeText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
+    color: COLORS.primaryDark,
+  },
   emptyHint: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
+    color: COLORS.textTertiary,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: SPACING.sm,
+    marginBottom: SPACING.xs,
   },
   langBadge: {
     backgroundColor: COLORS.info,
@@ -1173,12 +1210,15 @@ const styles = StyleSheet.create({
   medCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.surfaceVariant,
+    backgroundColor: COLORS.healingMint,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.sm,
+    paddingLeft: SPACING.md,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.healingTealMid,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
   },
   medCardLeft: {
     flex: 1,
@@ -1214,11 +1254,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  removeBtnText: {
-    color: COLORS.error,
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '700',
-  },
   outlinedAddBtn: {
     borderWidth: 1.5,
     borderColor: COLORS.primary,
@@ -1241,9 +1276,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceVariant,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.sm,
+    paddingLeft: SPACING.md,
     marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.border,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.info,
   },
   referralCardLeft: {
     flex: 1,
@@ -1453,11 +1491,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: SPACING.md,
   },
-  successIconText: {
-    color: COLORS.white,
-    fontSize: 32,
-    fontWeight: '800',
-  },
   successTitle: {
     fontSize: FONT_SIZE.xxl,
     fontWeight: '800',
@@ -1488,12 +1521,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
   },
   referralLetterBtn: {
-    marginTop: SPACING.xs,
-    paddingVertical: SPACING.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.xs + 2,
     paddingHorizontal: SPACING.sm,
+    minHeight: 32,
     borderRadius: BORDER_RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
     alignSelf: 'flex-start',
   },
   referralLetterBtnText: {
@@ -1502,9 +1540,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   sickNoteBtn: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
     borderWidth: 1.5,
     borderColor: COLORS.secondary,
     borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.surface,
     paddingVertical: SPACING.md,
     minHeight: 44,
     alignItems: 'center',

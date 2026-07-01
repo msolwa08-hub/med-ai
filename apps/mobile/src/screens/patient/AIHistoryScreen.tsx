@@ -13,16 +13,16 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useConsultationStore, Message } from '../../store/consultationStore';
-import { ChatBubble } from '../../components/ChatBubble';
 import { SA_LANGUAGES } from '../../constants/languages';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,6 +51,90 @@ const HISTORY_STAGES = [
 const deriveStage = (messages: Message[]): number => {
   const aiMessages = messages.filter((m) => m.role === 'ai' && !m.isLoading).length;
   return Math.min(aiMessages, HISTORY_STAGES.length - 1);
+};
+
+// ─── Chat bubbles ─────────────────────────────────────────────────────────────
+
+const formatTime = (date: Date): string =>
+  date.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+
+const TypingDots: React.FC = () => {
+  const dots = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
+
+  useEffect(() => {
+    const animations = dots.map((dot, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 180),
+          Animated.timing(dot, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0, duration: 400, useNativeDriver: true }),
+          Animated.delay((2 - i) * 180),
+        ])
+      )
+    );
+    animations.forEach((a) => a.start());
+    return () => animations.forEach((a) => a.stop());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <View style={styles.dotsContainer}>
+      {dots.map((dot, i) => (
+        <Animated.View
+          key={i}
+          style={[
+            styles.dot,
+            {
+              opacity: dot.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
+              transform: [
+                { translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
+              ],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+};
+
+interface MessageBubbleProps {
+  role: 'ai' | 'patient';
+  content: string;
+  timestamp: Date;
+  isTyping?: boolean;
+}
+
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  role,
+  content,
+  timestamp,
+  isTyping = false,
+}) => {
+  const isAI = role === 'ai';
+
+  return (
+    <View style={[styles.msgRow, isAI ? styles.msgRowAI : styles.msgRowPatient]}>
+      {isAI && (
+        <View style={styles.aiAvatar}>
+          <Ionicons name="medical" size={13} color={COLORS.white} />
+        </View>
+      )}
+      <View style={styles.msgWrapper}>
+        <View style={[styles.bubble, isAI ? styles.bubbleAI : styles.bubblePatient]}>
+          {isTyping ? (
+            <TypingDots />
+          ) : (
+            <Text style={isAI ? styles.bubbleTextAI : styles.bubbleTextPatient}>{content}</Text>
+          )}
+        </View>
+        {!isTyping && (
+          <Text style={[styles.timestamp, isAI ? styles.timestampAI : styles.timestampPatient]}>
+            {formatTime(timestamp)}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -135,7 +219,7 @@ export const AIHistoryScreen: React.FC = () => {
   const renderItem = ({ item }: { item: Message }) => {
     const role = item.role === 'ai' ? 'ai' : 'patient';
     return (
-      <ChatBubble
+      <MessageBubble
         role={role}
         content={item.content}
         timestamp={new Date(item.timestamp)}
@@ -147,7 +231,7 @@ export const AIHistoryScreen: React.FC = () => {
   const renderTypingItem = () => {
     if (!isSendingMessage) return null;
     return (
-      <ChatBubble
+      <MessageBubble
         role="ai"
         content=""
         timestamp={new Date()}
@@ -211,6 +295,7 @@ export const AIHistoryScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           ListFooterComponent={renderTypingItem}
+          style={styles.chatArea}
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
@@ -351,10 +436,90 @@ const styles = StyleSheet.create({
   },
 
   // Message list
+  chatArea: {
+    backgroundColor: COLORS.secondarySystemBackground,
+  },
   messageList: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 4,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    gap: SPACING.xs,
+  },
+
+  // Bubbles
+  msgRow: {
+    flexDirection: 'row',
+    marginVertical: SPACING.xs,
+    alignItems: 'flex-end',
+  },
+  msgRowAI: {
+    justifyContent: 'flex-start',
+  },
+  msgRowPatient: {
+    justifyContent: 'flex-end',
+  },
+  aiAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.xs + 2,
+    marginBottom: SPACING.md,
+    ...SHADOWS.xs,
+  },
+  msgWrapper: {
+    maxWidth: '78%',
+  },
+  bubble: {
+    paddingHorizontal: SPACING.md - 2,
+    paddingVertical: SPACING.sm + 2,
+    borderRadius: BORDER_RADIUS.xl,
+  },
+  bubbleAI: {
+    backgroundColor: COLORS.white,
+    borderBottomLeftRadius: BORDER_RADIUS.xs,
+    borderWidth: 1,
+    borderColor: COLORS.separator,
+    ...SHADOWS.sm,
+  },
+  bubblePatient: {
+    backgroundColor: COLORS.primary,
+    borderBottomRightRadius: BORDER_RADIUS.xs,
+    ...SHADOWS.xs,
+  },
+  bubbleTextAI: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.label,
+  },
+  bubbleTextPatient: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.white,
+  },
+  timestamp: {
+    ...TYPOGRAPHY.caption2,
+    color: COLORS.tertiaryLabel,
+    marginTop: 3,
+  },
+  timestampAI: {
+    textAlign: 'left',
+    marginLeft: SPACING.xs,
+  },
+  timestampPatient: {
+    textAlign: 'right',
+    marginRight: SPACING.xs,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.xs,
+    gap: 5,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: COLORS.primaryLight,
   },
   emptyChat: {
     flex: 1,
@@ -385,8 +550,8 @@ const styles = StyleSheet.create({
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm + 4,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.separator,
@@ -402,11 +567,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     maxHeight: 120,
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    borderWidth: 1.5,
+    backgroundColor: COLORS.systemGray6,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
     borderColor: COLORS.separator,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.md,
     paddingVertical: 10,
     ...TYPOGRAPHY.body,
     color: COLORS.label,

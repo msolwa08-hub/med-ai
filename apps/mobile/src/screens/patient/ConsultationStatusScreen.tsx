@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   AppState,
+  Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { consultationApi, paymentsApi } from '../../api/endpoints';
@@ -112,6 +113,46 @@ const STATUS_DESCRIPTIONS: Record<ConsultationStatus, string> = {
 
 const apiErrorMessage = (err: unknown, fallback: string): string =>
   (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback;
+
+// ─── Pulsing live indicator ───────────────────────────────────────────────────
+
+const PulsingDot: React.FC<{ color?: string }> = ({ color = COLORS.success }) => {
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  return (
+    <Animated.View
+      style={[
+        pulsingStyles.dot,
+        {
+          backgroundColor: color,
+          opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }),
+          transform: [
+            { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.15] }) },
+          ],
+        },
+      ]}
+    />
+  );
+};
+
+const pulsingStyles = StyleSheet.create({
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+});
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -316,7 +357,8 @@ export const ConsultationStatusScreen: React.FC = () => {
             </View>
             {!isCancelled && (
               <View style={styles.onlinePill}>
-                <Text style={styles.onlinePillText}>● Active</Text>
+                <PulsingDot />
+                <Text style={styles.onlinePillText}>Active</Text>
               </View>
             )}
           </View>
@@ -341,7 +383,10 @@ export const ConsultationStatusScreen: React.FC = () => {
         {/* Stepper */}
         {!isCancelled && (
           <View style={styles.stepperCard}>
-            <Text style={styles.stepperTitle}>Consultation Progress</Text>
+            <View style={styles.stepperTitleRow}>
+              <Text style={styles.stepperTitle}>Consultation Progress</Text>
+              {status !== 'COMPLETED' && <PulsingDot color={COLORS.primary} />}
+            </View>
             <StatusStepper steps={steps} />
           </View>
         )}
@@ -386,6 +431,7 @@ export const ConsultationStatusScreen: React.FC = () => {
                 onPress={handlePayNow}
                 activeOpacity={0.85}
               >
+                <Ionicons name="card-outline" size={18} color={COLORS.white} />
                 <Text style={styles.paymentButtonText}>Pay Now</Text>
               </TouchableOpacity>
             )}
@@ -583,6 +629,9 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   onlinePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
     backgroundColor: COLORS.healingMint,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
@@ -619,11 +668,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  stepperTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
+  },
   stepperTitle: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: SPACING.md,
   },
   waitCard: {
     flexDirection: 'row',
@@ -712,6 +766,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   paymentButton: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
