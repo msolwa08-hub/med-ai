@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { consultationApi } from '../../api/endpoints';
+import { diagnosisApi } from '../../api/endpoints';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SHADOWS, SPACING } from '../../constants/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -74,8 +74,8 @@ export const DiagnosisScreen: React.FC = () => {
   useEffect(() => {
     const loadAI = async () => {
       try {
-        const resp = await consultationApi.getAIHistory(consultationId);
-        const data = resp.data;
+        const resp = await diagnosisApi.get(consultationId);
+        const data = resp.data?.data;
         // Support both { diagnoses: [...] } and flat array responses
         const list: AIDiagnosis[] = Array.isArray(data)
           ? data
@@ -152,13 +152,18 @@ export const DiagnosisScreen: React.FC = () => {
     setIsSaving(true);
     try {
       const [primary, ...differentials] = selectedDiagnoses;
-      await consultationApi.saveDiagnosis({
+      await diagnosisApi.select(
         consultationId,
-        primaryDiagnosis: primary.name,
-        icd10Code: primary.icdCode,
-        differentialDiagnoses: differentials.map((d) => d.name),
-        doctorNotes: notes,
-      });
+        primary.name,
+        [
+          notes,
+          differentials.length
+            ? `Differentials considered: ${differentials.map((d) => d.name).join(', ')}`
+            : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      );
       navigation.navigate('Investigations', { consultationId });
     } catch (err) {
       Alert.alert('Error', 'Failed to save diagnosis. Please try again.');

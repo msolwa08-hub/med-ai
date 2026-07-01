@@ -10,18 +10,43 @@ import {
   SafeAreaView,
   AppState,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { consultationApi, paymentsApi } from '../../api/endpoints';
 import { StatusStepper } from '../../components/StatusStepper';
-import { Consultation } from '../../store/consultationStore';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import type { PatientStackParamList } from '../../navigation/PatientNavigator';
 
-type RouteParams = {
-  ConsultationStatus: {
-    consultationId: string;
-    doctorId?: string;
-  };
-};
+// ─── Types (mirror GET /consultations/:id response) ──────────────────────────
+
+type ConsultationStatus =
+  | 'HISTORY_TAKING'
+  | 'DOCTOR_REVIEW'
+  | 'EXAMINATION'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+interface ConsultationDetail {
+  id: string;
+  patientId: string;
+  doctorId: string | null;
+  status: ConsultationStatus;
+  consultationType: string;
+  startedAt: string;
+  completedAt: string | null;
+  patient: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  doctor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    doctorType?: string;
+    specialization?: string | null;
+  } | null;
+}
 
 type Step = {
   label: string;
@@ -29,109 +54,116 @@ type Step = {
   description?: string;
 };
 
-const buildSteps = (status: Consultation['status']): Step[] => {
-  const statusOrder: Consultation['status'][] = [
-    'history_taking',
-    'history_complete',
-    'doctor_reviewing',
-    'examination',
-    'diagnosis',
-    'management',
-    'completed',
-  ];
+const STATUS_ORDER: ConsultationStatus[] = [
+  'HISTORY_TAKING',
+  'DOCTOR_REVIEW',
+  'EXAMINATION',
+  'COMPLETED',
+];
 
-  const displaySteps: Array<{
-    label: string;
-    statusKey: Consultation['status'];
-    description: string;
-  }> = [
-    {
-      label: 'History Taken',
-      statusKey: 'history_complete',
-      description: 'Your AI medical history has been recorded',
-    },
-    {
-      label: 'Doctor Reviewing',
-      statusKey: 'doctor_reviewing',
-      description: 'The doctor is reviewing your medical history',
-    },
-    {
-      label: 'Examination',
-      statusKey: 'examination',
-      description: 'Clinical examination in progress',
-    },
-    {
-      label: 'Diagnosis & Management',
-      statusKey: 'diagnosis',
-      description: 'Doctor is preparing your diagnosis and treatment plan',
-    },
-    {
-      label: 'Completed',
-      statusKey: 'completed',
-      description: 'Consultation complete. Check your records.',
-    },
-  ];
+const DISPLAY_STEPS: Array<{
+  label: string;
+  statusKey: ConsultationStatus;
+  description: string;
+}> = [
+  {
+    label: 'History Taking',
+    statusKey: 'HISTORY_TAKING',
+    description: 'Your AI medical history is being recorded',
+  },
+  {
+    label: 'Doctor Review',
+    statusKey: 'DOCTOR_REVIEW',
+    description: 'The doctor is reviewing your medical history',
+  },
+  {
+    label: 'Examination',
+    statusKey: 'EXAMINATION',
+    description: 'Clinical examination and management planning',
+  },
+  {
+    label: 'Completed',
+    statusKey: 'COMPLETED',
+    description: 'Consultation complete. Check your records.',
+  },
+];
 
-  const currentIdx = statusOrder.indexOf(status);
-
-  return displaySteps.map((step) => {
-    const stepIdx = statusOrder.indexOf(step.statusKey);
+const buildSteps = (status: ConsultationStatus): Step[] => {
+  const currentIdx = STATUS_ORDER.indexOf(status);
+  return DISPLAY_STEPS.map((step) => {
+    const stepIdx = STATUS_ORDER.indexOf(step.statusKey);
+    if (status === 'COMPLETED') return { ...step, status: 'completed' };
     if (currentIdx > stepIdx) return { ...step, status: 'completed' };
     if (currentIdx === stepIdx) return { ...step, status: 'current' };
     return { ...step, status: 'pending' };
   });
 };
 
-const STATUS_DESCRIPTIONS: Partial<Record<Consultation['status'], string>> = {
-  history_complete: 'Your medical history is ready. Waiting for a doctor to review.',
-  doctor_reviewing:
+const STATUS_DESCRIPTIONS: Record<ConsultationStatus, string> = {
+  HISTORY_TAKING:
+    'Your AI medical history is in progress. Complete it so a doctor can review your case.',
+  DOCTOR_REVIEW:
     'The doctor is carefully reviewing your AI-generated history. Please wait — this usually takes 5–10 minutes.',
-  examination: 'The doctor may ask you some follow-up questions or request an in-person examination.',
-  diagnosis: 'Your doctor is preparing your diagnosis and treatment plan.',
-  completed: 'Your consultation is complete! Your prescription and instructions are ready.',
+  EXAMINATION:
+    'The doctor may ask you some follow-up questions or request an in-person examination.',
+  COMPLETED: 'Your consultation is complete! Your prescription and instructions are ready.',
+  CANCELLED: 'This consultation was cancelled.',
 };
+
+const apiErrorMessage = (err: unknown, fallback: string): string =>
+  (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback;
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const ConsultationStatusScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<RouteParams, 'ConsultationStatus'>>();
+  const route = useRoute<RouteProp<PatientStackParamList, 'ConsultationStatus'>>();
   const { consultationId } = route.params;
 
-  const [consultation, setConsultation] = useState<Consultation | null>(null);
+  const [consultation, setConsultation] = useState<ConsultationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
   const [paymentPaidAt, setPaymentPaidAt] = useState<string | null>(null);
-  const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateRef = useRef(AppState.currentState);
 
   const fetchPaymentStatus = useCallback(async () => {
     try {
-      const res = await paymentsApi.getStatus(consultationId);
-      const data = res.data?.data;
-      if (data) {
-        setPaymentStatus(data.status ?? 'NOT_INITIATED');
-        setPaymentAmount(data.amount ?? null);
-        setPaymentPaidAt(data.paidAt ?? null);
-      }
+      const response = await paymentsApi.getStatus(consultationId);
+      const data = response.data.data as {
+        status?: string;
+        amount?: number;
+        paidAt?: string | null;
+      };
+      setPaymentStatus(data.status ?? 'NOT_INITIATED');
+      setPaymentAmount(data.amount ?? null);
+      setPaymentPaidAt(data.paidAt ?? null);
     } catch {
-      // Silently fail
+      // Silently fail on polling
     }
   }, [consultationId]);
 
   const fetchStatus = useCallback(async () => {
     try {
       const response = await consultationApi.getById(consultationId);
-      setConsultation(response.data);
-      if (response.data.status === 'completed') {
+      const data = response.data.data as ConsultationDetail;
+      setConsultation(data);
+      setLoadError(null);
+      if (data.status === 'COMPLETED' || data.status === 'CANCELLED') {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
       }
-    } catch {
-      // Silently fail on polling
+    } catch (err: unknown) {
+      // Only surface the error on the initial load; polling failures stay silent
+      setConsultation((prev) => {
+        if (!prev) setLoadError(apiErrorMessage(err, 'Could not load the consultation.'));
+        return prev;
+      });
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +172,10 @@ export const ConsultationStatusScreen: React.FC = () => {
   useEffect(() => {
     fetchStatus();
     fetchPaymentStatus();
-    intervalRef.current = setInterval(fetchStatus, 30000);
+    intervalRef.current = setInterval(() => {
+      fetchStatus();
+      fetchPaymentStatus();
+    }, 30000);
 
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
@@ -156,30 +191,12 @@ export const ConsultationStatusScreen: React.FC = () => {
     };
   }, [fetchStatus, fetchPaymentStatus]);
 
-  const handlePayNow = async () => {
-    setIsInitiatingPayment(true);
-    try {
-      const res = await paymentsApi.initiate(consultationId);
-      const data = res.data?.data;
-      if (!data?.paymentUrl) {
-        Alert.alert('Error', 'Could not initiate payment. Please try again.');
-        return;
-      }
-      navigation.navigate('Payment', {
-        consultationId,
-        paymentUrl: data.paymentUrl,
-        amount: data.amount,
-      });
-      // Refresh payment status when we come back
-      fetchPaymentStatus();
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        'Failed to initiate payment. Please try again.';
-      Alert.alert('Payment Error', message);
-    } finally {
-      setIsInitiatingPayment(false);
-    }
+  const handlePayNow = () => {
+    const doctor = consultation?.doctor;
+    navigation.navigate('Payment', {
+      consultationId,
+      doctorName: doctor ? `Dr. ${doctor.firstName} ${doctor.lastName}` : undefined,
+    });
   };
 
   const handleCancel = () => {
@@ -194,8 +211,13 @@ export const ConsultationStatusScreen: React.FC = () => {
           onPress: async () => {
             setIsCancelling(true);
             try {
-              // Call cancel endpoint if it exists; otherwise just navigate back
-              navigation.navigate('PatientHome');
+              await consultationApi.updateStatus(consultationId, 'CANCELLED');
+              await fetchStatus();
+            } catch (err: unknown) {
+              Alert.alert(
+                'Error',
+                apiErrorMessage(err, 'Could not cancel the consultation. Please try again.')
+              );
             } finally {
               setIsCancelling(false);
             }
@@ -213,28 +235,67 @@ export const ConsultationStatusScreen: React.FC = () => {
     );
   };
 
+  // ── Loading state ──
   if (isLoading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading consultation status...</Text>
-      </View>
+      <SafeAreaView style={styles.root}>
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading consultation status…</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  const status = consultation?.status ?? 'history_complete';
+  // ── Error state ──
+  if (!consultation) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <View style={styles.loading}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLORS.systemGray3} />
+          <Text style={styles.errorTitle}>Could not load consultation</Text>
+          <Text style={styles.errorBody}>{loadError ?? 'Please try again.'}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            activeOpacity={0.85}
+            onPress={() => {
+              setIsLoading(true);
+              fetchStatus();
+            }}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const status = consultation.status;
   const steps = buildSteps(status);
-  const description = STATUS_DESCRIPTIONS[status] ?? 'Processing your consultation...';
-  const doctor = consultation?.doctor;
-  const doctorFee = (doctor as unknown as { consultationFee?: number } | undefined)?.consultationFee;
+  const description = STATUS_DESCRIPTIONS[status] ?? 'Processing your consultation…';
+  const doctor = consultation.doctor;
+  const isCancelled = status === 'CANCELLED';
 
   // Show the payment card when a doctor is assigned and the consultation is in progress or complete
   const showPaymentCard =
-    !!doctor &&
-    ['doctor_reviewing', 'examination', 'diagnosis', 'completed'].includes(status);
+    !!doctor && ['DOCTOR_REVIEW', 'EXAMINATION', 'COMPLETED'].includes(status);
 
   return (
     <SafeAreaView style={styles.root}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerBackBtn}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="chevron-back" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Consultation Status</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Doctor card */}
         {doctor ? (
@@ -250,36 +311,40 @@ export const ConsultationStatusScreen: React.FC = () => {
                 Dr. {doctor.firstName} {doctor.lastName}
               </Text>
               <Text style={styles.doctorType}>
-                {doctor.doctorType?.replace('_', ' ')}
+                {(doctor.specialization || doctor.doctorType || '').replace(/_/g, ' ')}
               </Text>
             </View>
-            <View style={styles.onlinePill}>
-              <Text style={styles.onlinePillText}>● Active</Text>
-            </View>
+            {!isCancelled && (
+              <View style={styles.onlinePill}>
+                <Text style={styles.onlinePillText}>● Active</Text>
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.doctorCard}>
-            <View style={[styles.doctorAvatar, { backgroundColor: COLORS.textLight }]}>
+            <View style={[styles.doctorAvatar, { backgroundColor: COLORS.systemGray3 }]}>
               <Text style={styles.doctorAvatarInitials}>?</Text>
             </View>
             <View style={styles.doctorInfo}>
               <Text style={styles.doctorName}>Awaiting Doctor</Text>
               <Text style={styles.doctorType}>Your history is being matched</Text>
             </View>
-            <ActivityIndicator size="small" color={COLORS.primary} />
+            {!isCancelled && <ActivityIndicator size="small" color={COLORS.primary} />}
           </View>
         )}
 
         {/* Status description */}
-        <View style={styles.descriptionCard}>
+        <View style={[styles.descriptionCard, isCancelled && styles.descriptionCardCancelled]}>
           <Text style={styles.descriptionText}>{description}</Text>
         </View>
 
         {/* Stepper */}
-        <View style={styles.stepperCard}>
-          <Text style={styles.stepperTitle}>Consultation Progress</Text>
-          <StatusStepper steps={steps} />
-        </View>
+        {!isCancelled && (
+          <View style={styles.stepperCard}>
+            <Text style={styles.stepperTitle}>Consultation Progress</Text>
+            <StatusStepper steps={steps} />
+          </View>
+        )}
 
         {/* Payment card */}
         {showPaymentCard && (
@@ -288,11 +353,13 @@ export const ConsultationStatusScreen: React.FC = () => {
 
             {paymentStatus === 'COMPLETE' ? (
               <View style={styles.paymentConfirmed}>
-                <Text style={styles.paymentConfirmedIcon}>✓</Text>
+                <Ionicons name="checkmark-circle" size={28} color={COLORS.success} />
                 <View>
                   <Text style={styles.paymentConfirmedLabel}>Payment Confirmed</Text>
                   {paymentAmount !== null && (
-                    <Text style={styles.paymentConfirmedAmount}>R{paymentAmount.toFixed(2)}</Text>
+                    <Text style={styles.paymentConfirmedAmount}>
+                      R{paymentAmount.toFixed(2)}
+                    </Text>
                   )}
                   {paymentPaidAt && (
                     <Text style={styles.paymentConfirmedDate}>
@@ -309,60 +376,79 @@ export const ConsultationStatusScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.paymentRetryButton}
                 onPress={handlePayNow}
-                disabled={isInitiatingPayment}
+                activeOpacity={0.85}
               >
-                {isInitiatingPayment ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
-                ) : (
-                  <Text style={styles.paymentRetryButtonText}>
-                    Retry Payment{doctorFee ? ` — R${doctorFee.toFixed(2)}` : ''}
-                  </Text>
-                )}
+                <Text style={styles.paymentRetryButtonText}>Retry Payment</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={styles.paymentButton}
                 onPress={handlePayNow}
-                disabled={isInitiatingPayment}
+                activeOpacity={0.85}
               >
-                {isInitiatingPayment ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
-                ) : (
-                  <Text style={styles.paymentButtonText}>
-                    Pay Now{doctorFee ? ` — R${doctorFee.toFixed(2)}` : ''}
-                  </Text>
-                )}
+                <Text style={styles.paymentButtonText}>Pay Now</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
 
         {/* Wait time */}
-        <View style={styles.waitCard}>
-          <Text style={styles.waitIcon}>⏱</Text>
-          <View>
-            <Text style={styles.waitTitle}>Estimated Wait</Text>
-            <Text style={styles.waitValue}>
-              {status === 'doctor_reviewing' ? '5–10 minutes' : status === 'examination' ? '10–20 minutes' : status === 'completed' ? 'Done!' : 'Calculating...'}
-            </Text>
+        {!isCancelled && status !== 'COMPLETED' && (
+          <View style={styles.waitCard}>
+            <Ionicons name="time-outline" size={28} color={COLORS.primary} />
+            <View>
+              <Text style={styles.waitTitle}>Estimated Wait</Text>
+              <Text style={styles.waitValue}>
+                {status === 'DOCTOR_REVIEW'
+                  ? '5–10 minutes'
+                  : status === 'EXAMINATION'
+                  ? '10–20 minutes'
+                  : 'Calculating…'}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Contact button */}
-        <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
-          <Text style={styles.contactButtonIcon}>💬</Text>
-          <Text style={styles.contactButtonText}>Contact Doctor</Text>
-        </TouchableOpacity>
+        {!isCancelled && (
+          <TouchableOpacity
+            style={styles.contactButton}
+            onPress={handleContact}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={COLORS.primary} />
+            <Text style={styles.contactButtonText}>Contact Doctor</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Auto-refresh notice */}
-        <Text style={styles.refreshNote}>Status auto-updates every 30 seconds</Text>
+        {!isCancelled && status !== 'COMPLETED' && (
+          <Text style={styles.refreshNote}>Status auto-updates every 30 seconds</Text>
+        )}
+
+        {/* Continue history when still history taking */}
+        {status === 'HISTORY_TAKING' && (
+          <TouchableOpacity
+            style={styles.viewRecordsButton}
+            onPress={() =>
+              navigation.navigate('AIHistory', {
+                consultationId,
+                language: consultation.patient?.firstName ? undefined : undefined,
+              })
+            }
+            activeOpacity={0.85}
+          >
+            <Text style={styles.viewRecordsText}>Continue Medical History</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Cancel */}
-        {status !== 'completed' && (
+        {status !== 'COMPLETED' && !isCancelled && (
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={handleCancel}
             disabled={isCancelling}
+            activeOpacity={0.7}
           >
             {isCancelling ? (
               <ActivityIndicator size="small" color={COLORS.error} />
@@ -373,10 +459,11 @@ export const ConsultationStatusScreen: React.FC = () => {
         )}
 
         {/* View records when complete */}
-        {status === 'completed' && (
+        {status === 'COMPLETED' && (
           <TouchableOpacity
             style={styles.viewRecordsButton}
-            onPress={() => navigation.navigate('MyRecords')}
+            onPress={() => navigation.navigate('PatientTabs', { screen: 'MyRecords' })}
+            activeOpacity={0.85}
           >
             <Text style={styles.viewRecordsText}>View My Records</Text>
           </TouchableOpacity>
@@ -398,10 +485,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.md,
+    paddingHorizontal: SPACING.xl,
   },
   loadingText: {
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
+  },
+  errorTitle: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  errorBody: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: FONT_SIZE.md,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerBackBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerSpacer: {
+    width: 44,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   content: {
     paddingHorizontal: SPACING.md,
@@ -446,9 +583,9 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   onlinePill: {
-    backgroundColor: '#E8F8EF',
+    backgroundColor: COLORS.healingMint,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
+    paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.full,
   },
   onlinePillText: {
@@ -457,12 +594,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   descriptionCard: {
-    backgroundColor: '#EBF4FF',
+    backgroundColor: COLORS.healingMint,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.md,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.primary,
+  },
+  descriptionCardCancelled: {
+    backgroundColor: COLORS.systemGray6,
+    borderLeftColor: COLORS.systemGray,
   },
   descriptionText: {
     fontSize: FONT_SIZE.md,
@@ -495,9 +636,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  waitIcon: {
-    fontSize: 28,
-  },
   waitTitle: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
@@ -514,13 +652,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
+    minHeight: 50,
     marginBottom: SPACING.sm,
     borderWidth: 2,
     borderColor: COLORS.primary,
     gap: SPACING.sm,
-  },
-  contactButtonIcon: {
-    fontSize: 18,
   },
   contactButtonText: {
     fontSize: FONT_SIZE.md,
@@ -536,6 +672,8 @@ const styles = StyleSheet.create({
   cancelButton: {
     alignItems: 'center',
     paddingVertical: SPACING.md,
+    minHeight: 44,
+    justifyContent: 'center',
     marginBottom: SPACING.md,
   },
   cancelButtonText: {
@@ -547,7 +685,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
+    minHeight: 50,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.md,
     ...SHADOWS.sm,
   },
@@ -602,14 +742,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    backgroundColor: '#E8F8EF',
+    backgroundColor: COLORS.healingMint,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
-  },
-  paymentConfirmedIcon: {
-    fontSize: 28,
-    color: COLORS.success,
-    fontWeight: '700',
   },
   paymentConfirmedLabel: {
     fontSize: FONT_SIZE.md,

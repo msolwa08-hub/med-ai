@@ -12,10 +12,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { consultationApi } from '../../api/endpoints';
-import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE } from '../../constants/theme';
+import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE, SHADOWS } from '../../constants/theme';
 
 // ---------- Types ----------
 
@@ -78,7 +79,7 @@ interface BMIResult {
 function getBMIResult(bmi: number): BMIResult {
   if (bmi < 18.5) return { value: bmi, label: 'Underweight', color: COLORS.warning };
   if (bmi < 25) return { value: bmi, label: 'Normal', color: COLORS.success };
-  if (bmi < 30) return { value: bmi, label: 'Overweight', color: '#E67E22' };
+  if (bmi < 30) return { value: bmi, label: 'Overweight', color: COLORS.accent };
   return { value: bmi, label: 'Obese', color: COLORS.error };
 }
 
@@ -172,6 +173,26 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
   </View>
 );
 
+// ---------- Payload helpers ----------
+
+/** Parse a text input into a number, returning undefined for empty/invalid values. */
+function parseNum(s: string): number | undefined {
+  const trimmed = s.trim();
+  if (!trimmed) return undefined;
+  const n = parseFloat(trimmed);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Keep only non-empty (trimmed) string fields of a record. */
+function trimmedFields<T extends { [K in keyof T]: string }>(obj: T): Partial<T> {
+  const out: Partial<T> = {};
+  (Object.keys(obj) as Array<keyof T>).forEach((key) => {
+    const v = obj[key].trim();
+    if (v) out[key] = v as T[keyof T];
+  });
+  return out;
+}
+
 // ---------- Tabs ----------
 
 const TABS = ['Vital Signs', 'General Exam', 'Systemic Exam'];
@@ -245,10 +266,9 @@ const ExaminationScreen: React.FC = () => {
       setSaving(true);
       const { vitalSigns, generalExamination, systemicExamination } = state;
 
-      const parseNum = (s: string) => (s.trim() ? parseFloat(s) : undefined);
-
       await consultationApi.saveExamination({
         consultationId,
+        // Numeric vitals — empty inputs are omitted (undefined)
         vitalSigns: {
           bloodPressureSystolic: parseNum(vitalSigns.bloodPressureSystolic),
           bloodPressureDiastolic: parseNum(vitalSigns.bloodPressureDiastolic),
@@ -258,18 +278,19 @@ const ExaminationScreen: React.FC = () => {
           oxygenSaturation: parseNum(vitalSigns.oxygenSaturation),
           weight: parseNum(vitalSigns.weight),
           height: parseNum(vitalSigns.height),
+          painScore: vitalSigns.painScore,
         },
-        generalExamination: Object.values(generalExamination).some((v) => v.trim())
-          ? JSON.stringify(generalExamination)
-          : undefined,
-        systemicExamination: Object.fromEntries(
-          Object.entries(systemicExamination).filter(([, v]) => v.trim()),
-        ),
+        // Both examination sections are structured objects per the API schema
+        generalExamination: trimmedFields(generalExamination),
+        systemicExamination: trimmedFields(systemicExamination),
       });
 
       navigation.navigate('Diagnosis', { consultationId });
-    } catch (err) {
-      Alert.alert('Error', 'Failed to save examination findings. Please try again.');
+    } catch (err: any) {
+      Alert.alert(
+        'Error',
+        err.response?.data?.error ?? 'Failed to save examination findings. Please try again.',
+      );
     } finally {
       setSaving(false);
     }
@@ -405,7 +426,7 @@ const ExaminationScreen: React.FC = () => {
         </View>
       </View>
 
-      <View style={{ height: 32 }} />
+      <View style={{ height: SPACING.xl }} />
     </ScrollView>
   );
 
@@ -456,7 +477,7 @@ const ExaminationScreen: React.FC = () => {
         numberOfLines={4}
         placeholder="Describe lymph node findings..."
       />
-      <View style={{ height: 32 }} />
+      <View style={{ height: SPACING.xl }} />
     </ScrollView>
   );
 
@@ -490,63 +511,112 @@ const ExaminationScreen: React.FC = () => {
           />
         </ExpandableSection>
       ))}
-      <View style={{ height: 32 }} />
+      <View style={{ height: SPACING.xl }} />
     </ScrollView>
   );
 
   return (
-    <KeyboardAvoidingView
-      style={exStyles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      {/* ── Custom Tab Bar ── */}
-      <View style={exStyles.tabBar}>
-        {TABS.map((tab, idx) => (
+    <SafeAreaView style={exStyles.safeArea} edges={['top']}>
+      <KeyboardAvoidingView
+        style={exStyles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* ── Header ── */}
+        <View style={exStyles.header}>
           <TouchableOpacity
-            key={tab}
-            style={[exStyles.tabItem, activeTab === idx && exStyles.tabItemActive]}
-            onPress={() => setActiveTab(idx)}
-            activeOpacity={0.7}
+            style={exStyles.backBtn}
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={[exStyles.tabLabel, activeTab === idx && exStyles.tabLabelActive]}>
-              {tab}
-            </Text>
+            <Text style={exStyles.backIcon}>‹</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+          <Text style={exStyles.headerTitle}>Examination</Text>
+          <View style={exStyles.headerRight} />
+        </View>
 
-      {/* ── Tab Content ── */}
-      <View style={exStyles.tabContent}>
-        {activeTab === 0 && renderVitalSigns()}
-        {activeTab === 1 && renderGeneralExam()}
-        {activeTab === 2 && renderSystemicExam()}
-      </View>
+        {/* ── Custom Tab Bar ── */}
+        <View style={exStyles.tabBar}>
+          {TABS.map((tab, idx) => (
+            <TouchableOpacity
+              key={tab}
+              style={[exStyles.tabItem, activeTab === idx && exStyles.tabItemActive]}
+              onPress={() => setActiveTab(idx)}
+              activeOpacity={0.7}
+            >
+              <Text style={[exStyles.tabLabel, activeTab === idx && exStyles.tabLabelActive]}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* ── Fixed Save Button ── */}
-      <View style={exStyles.saveBar}>
-        <TouchableOpacity
-          style={[exStyles.saveButton, saving && exStyles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={saving}
-          activeOpacity={0.8}
-        >
-          {saving ? (
-            <ActivityIndicator color={COLORS.white} size="small" />
-          ) : (
-            <Text style={exStyles.saveButtonText}>Save Findings</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+        {/* ── Tab Content ── */}
+        <View style={exStyles.tabContent}>
+          {activeTab === 0 && renderVitalSigns()}
+          {activeTab === 1 && renderGeneralExam()}
+          {activeTab === 2 && renderSystemicExam()}
+        </View>
+
+        {/* ── Fixed Save Button ── */}
+        <View style={exStyles.saveBar}>
+          <TouchableOpacity
+            style={[exStyles.saveButton, saving && exStyles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.8}
+          >
+            {saving ? (
+              <ActivityIndicator color={COLORS.white} size="small" />
+            ) : (
+              <Text style={exStyles.saveButtonText}>Save Findings</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 // ---------- Styles ----------
 
 const exStyles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   root: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  backIcon: {
+    fontSize: 28,
+    color: COLORS.white,
+    lineHeight: 32,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: COLORS.white,
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 44,
   },
 
   // Tab bar
@@ -555,18 +625,14 @@ const exStyles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    ...{
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08,
-      shadowRadius: 2,
-      elevation: 2,
-    },
+    ...SHADOWS.sm,
   },
   tabItem: {
     flex: 1,
     paddingVertical: SPACING.md,
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
@@ -641,6 +707,7 @@ const exStyles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     fontSize: FONT_SIZE.md,
     color: COLORS.text,
     backgroundColor: COLORS.surface,
@@ -724,7 +791,7 @@ const exStyles = StyleSheet.create({
   },
   slider: {
     width: '100%',
-    height: 40,
+    height: 44,
   },
   painTickRow: {
     flexDirection: 'row',
@@ -752,6 +819,7 @@ const exStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: SPACING.md,
+    minHeight: 44,
   },
   expandableTitle: {
     fontSize: FONT_SIZE.md,
@@ -786,13 +854,7 @@ const exStyles = StyleSheet.create({
     padding: SPACING.md,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    ...{
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 8,
-    },
+    ...SHADOWS.md,
   },
   saveButton: {
     backgroundColor: COLORS.secondary,
@@ -801,13 +863,7 @@ const exStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 50,
-    ...{
-      shadowColor: COLORS.secondary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 4,
-    },
+    ...SHADOWS.md,
   },
   saveButtonDisabled: {
     opacity: 0.7,

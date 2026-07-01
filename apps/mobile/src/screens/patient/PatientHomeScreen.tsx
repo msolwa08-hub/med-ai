@@ -95,9 +95,9 @@ export const PatientHomeScreen: React.FC = () => {
     }
   }, [user?.id]);
 
-  const lang = user?.preferredLanguage || 'en';
+  const lang = user?.patient?.preferredLanguage || 'en';
   const greetWord = GREETING_WORDS[lang] || GREETING_WORDS['en'];
-  const firstName = user?.firstName || 'there';
+  const firstName = user?.patient?.firstName || 'there';
 
   const recentConsultations = [...consultations]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -155,7 +155,7 @@ export const PatientHomeScreen: React.FC = () => {
               </View>
               <TouchableOpacity
                 style={styles.profileBannerBtn}
-                onPress={() => navigation.navigate('PatientProfileSetup', { language: user?.preferredLanguage || 'en' })}
+                onPress={() => navigation.navigate('PatientProfileSetup', { language: user?.patient?.preferredLanguage || 'en' })}
                 activeOpacity={0.85}
               >
                 <Text style={styles.profileBannerBtnText}>Set Up</Text>

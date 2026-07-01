@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
-import { patientApi } from '../../api/endpoints';
+import { patientApi, PatientProfileUpdatePayload } from '../../api/endpoints';
 import { ProfilePhotoUpload } from '../../components/ProfilePhotoUpload';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 
@@ -25,37 +26,84 @@ const SA_LANGUAGES = [
   { code: 'af', label: 'Afrikaans' },
   { code: 'nso', label: 'Sepedi' },
   { code: 'tn', label: 'Setswana' },
-  { code: 'so', label: 'Sesotho' },
+  { code: 'st', label: 'Sesotho' },
   { code: 'ts', label: 'Xitsonga' },
   { code: 've', label: 'Tshivenda' },
   { code: 'ss', label: 'Siswati' },
   { code: 'nr', label: 'isiNdebele' },
 ];
 
+const apiErrorMessage = (err: unknown, fallback: string): string =>
+  (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback;
+
+interface PatientMeResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string;
+  gender?: string;
+  preferredLanguage?: string;
+  idNumber?: string;
+  emergencyContact?: { name?: string; phone?: string; relationship?: string } | null;
+  user?: { email?: string; phone?: string };
+}
+
 export const EditPatientProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, updateUser } = useAuthStore();
+  const patient = user?.patient;
 
-  const [firstName, setFirstName] = useState(user?.firstName ?? '');
-  const [lastName, setLastName] = useState(user?.lastName ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
-  const [preferredLanguage, setPreferredLanguage] = useState(user?.preferredLanguage ?? 'en');
+  const [firstName, setFirstName] = useState(patient?.firstName ?? '');
+  const [lastName, setLastName] = useState(patient?.lastName ?? '');
+  const [preferredLanguage, setPreferredLanguage] = useState(patient?.preferredLanguage ?? 'en');
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [emergencyContactRelation, setEmergencyContactRelation] = useState('');
+  const [idNumber, setIdNumber] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const dob = user?.dateOfBirth
-    ? new Date(user.dateOfBirth).toLocaleDateString('en-ZA', {
+  // Prefill from GET /patients/me (has the decrypted emergency contact & ID number)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await patientApi.getProfile();
+        const me = response.data.data as PatientMeResponse;
+        if (cancelled) return;
+        setFirstName(me.firstName ?? '');
+        setLastName(me.lastName ?? '');
+        setPreferredLanguage(me.preferredLanguage ?? 'en');
+        setIdNumber(me.idNumber ?? null);
+        if (me.emergencyContact) {
+          setEmergencyContactName(me.emergencyContact.name ?? '');
+          setEmergencyContactPhone(me.emergencyContact.phone ?? '');
+          setEmergencyContactRelation(me.emergencyContact.relationship ?? '');
+        }
+      } catch {
+        // Fall back to the auth store values already set above
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dob = patient?.dateOfBirth
+    ? new Date(patient.dateOfBirth).toLocaleDateString('en-ZA', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       })
     : '—';
 
-  const genderDisplay = user?.gender
-    ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1)
+  const genderDisplay = patient?.gender
+    ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1).toLowerCase()
     : '—';
+
+  const displayName = `${firstName || patient?.firstName || ''} ${lastName || patient?.lastName || ''}`.trim() || 'Patient';
 
   const handleSave = useCallback(async () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -65,41 +113,62 @@ export const EditPatientProfileScreen: React.FC = () => {
 
     setIsSaving(true);
     try {
-      const payload: Record<string, unknown> = {
+      const payload: PatientProfileUpdatePayload = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         preferredLanguage,
       };
-      if (email.trim()) payload.email = email.trim();
-      if (emergencyContactName.trim() || emergencyContactPhone.trim()) {
+      if (emergencyContactName.trim() && emergencyContactPhone.trim()) {
         payload.emergencyContact = {
           name: emergencyContactName.trim(),
           phone: emergencyContactPhone.trim(),
-          relation: emergencyContactRelation.trim() || 'Other',
+          relationship: emergencyContactRelation.trim() || 'Other',
         };
       }
 
-      await patientApi.updateProfile(user!.id, payload as Parameters<typeof patientApi.updateProfile>[1]);
+      await patientApi.updateProfile(payload);
 
-      updateUser({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim() || undefined,
-        preferredLanguage,
-      });
+      if (user?.patient) {
+        updateUser({
+          patient: {
+            ...user.patient,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            preferredLanguage,
+          },
+        });
+      }
 
       Alert.alert('Saved', 'Your profile has been updated.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        'Failed to save profile. Please try again.';
-      Alert.alert('Error', message);
+      Alert.alert('Error', apiErrorMessage(err, 'Failed to save profile. Please try again.'));
     } finally {
       setIsSaving(false);
     }
-  }, [firstName, lastName, email, preferredLanguage, emergencyContactName, emergencyContactPhone, emergencyContactRelation, user, updateUser, navigation]);
+  }, [
+    firstName,
+    lastName,
+    preferredLanguage,
+    emergencyContactName,
+    emergencyContactPhone,
+    emergencyContactRelation,
+    user,
+    updateUser,
+    navigation,
+  ]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading your profile…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.root}>
@@ -109,14 +178,20 @@ export const EditPatientProfileScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="chevron-back" size={28} color={COLORS.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Profile</Text>
           <TouchableOpacity
             style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={isSaving}
+            activeOpacity={0.85}
           >
             {isSaving ? (
               <ActivityIndicator size="small" color={COLORS.white} />
@@ -133,11 +208,7 @@ export const EditPatientProfileScreen: React.FC = () => {
         >
           {/* Profile Photo */}
           <View style={styles.photoSection}>
-            <ProfilePhotoUpload
-              existingUrl={user?.profileImage}
-              userId={user?.id ?? ''}
-              onUploadComplete={(url) => updateUser({ profileImage: url })}
-            />
+            <ProfilePhotoUpload displayName={displayName} size={100} />
           </View>
 
           {/* Read-only fields */}
@@ -151,11 +222,11 @@ export const EditPatientProfileScreen: React.FC = () => {
               <Text style={styles.readOnlyLabel}>Gender</Text>
               <Text style={styles.readOnlyValue}>{genderDisplay}</Text>
             </View>
-            {user?.idNumber ? (
+            {idNumber ? (
               <View style={styles.readOnlyRow}>
                 <Text style={styles.readOnlyLabel}>ID Number</Text>
                 <Text style={styles.readOnlyValue}>
-                  {user.idNumber.replace(/(\d{6})(\d{4})(\d{1})(\d{1})(\d{1})/, '$1 $2 $3 $4 $5')}
+                  {idNumber.replace(/(\d{6})(\d{4})(\d{1})(\d{1})(\d{1})/, '$1 $2 $3 $4 $5')}
                 </Text>
               </View>
             ) : null}
@@ -190,23 +261,18 @@ export const EditPatientProfileScreen: React.FC = () => {
               returnKeyType="next"
             />
 
-            <Text style={styles.fieldLabel}>Email Address (optional)</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="email@example.com"
-              placeholderTextColor={COLORS.textLight}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              returnKeyType="next"
-            />
+            <Text style={styles.fieldLabel}>Email Address</Text>
+            <View style={[styles.input, styles.readOnlyInput]}>
+              <Text style={styles.readOnlyInputText}>{user?.email ?? '—'}</Text>
+            </View>
 
             <Text style={styles.fieldLabel}>Phone Number</Text>
             <View style={[styles.input, styles.readOnlyInput]}>
               <Text style={styles.readOnlyInputText}>{user?.phone ?? '—'}</Text>
             </View>
-            <Text style={styles.readOnlyNote}>Phone number cannot be changed here.</Text>
+            <Text style={styles.readOnlyNote}>
+              Email and phone number cannot be changed here.
+            </Text>
           </View>
 
           {/* Preferred Language */}
@@ -240,7 +306,9 @@ export const EditPatientProfileScreen: React.FC = () => {
           {/* Emergency Contact */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Emergency Contact</Text>
-            <Text style={styles.fieldHint}>Used in emergencies if you are unable to speak for yourself</Text>
+            <Text style={styles.fieldHint}>
+              Used in emergencies if you are unable to speak for yourself
+            </Text>
 
             <Text style={styles.fieldLabel}>Full Name</Text>
             <TextInput
@@ -281,6 +349,7 @@ export const EditPatientProfileScreen: React.FC = () => {
             style={[styles.bottomSaveButton, isSaving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={isSaving}
+            activeOpacity={0.85}
           >
             {isSaving ? (
               <ActivityIndicator size="small" color={COLORS.white} />
@@ -301,26 +370,35 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.md,
+  },
+  loadingText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   backButton: {
-    paddingVertical: SPACING.xs,
-    paddingRight: SPACING.md,
-  },
-  backText: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.primary,
-    fontWeight: '600',
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.text,
@@ -329,9 +407,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    minWidth: 60,
+    minHeight: 44,
+    minWidth: 64,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonDisabled: {
     opacity: 0.6,
@@ -407,12 +486,13 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     fontSize: FONT_SIZE.md,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
   readOnlyInput: {
-    backgroundColor: COLORS.border,
+    backgroundColor: COLORS.systemGray6,
     justifyContent: 'center',
   },
   readOnlyInputText: {
@@ -427,7 +507,7 @@ const styles = StyleSheet.create({
   },
   languageChip: {
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1.5,
     borderColor: COLORS.border,
@@ -435,7 +515,7 @@ const styles = StyleSheet.create({
   },
   languageChipActive: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.healingTeal,
   },
   languageChipText: {
     fontSize: FONT_SIZE.sm,
@@ -443,14 +523,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   languageChipTextActive: {
-    color: COLORS.primary,
+    color: COLORS.primaryDark,
     fontWeight: '700',
   },
   bottomSaveButton: {
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
+    minHeight: 52,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: SPACING.md,
     ...SHADOWS.sm,
   },

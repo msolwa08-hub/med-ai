@@ -445,10 +445,10 @@ export default function STGLookupScreen() {
                     <Text style={p1Styles.sectionSubtitle}>FCP · FC Paeds · FCFP · FC Psych · MMed</Text>
                     </>) : null}
 
-                    {learningPoints.part1PharmacologyPearls?.length > 0 && (
+                    {(learningPoints.part1PharmacologyPearls?.length ?? 0) > 0 && (
                       <>
                         <Text style={p1Styles.label}>Pharmacology Pearls</Text>
-                        {learningPoints.part1PharmacologyPearls.map((pearl, i) => (
+                        {(learningPoints.part1PharmacologyPearls ?? []).map((pearl, i) => (
                           <View key={i} style={p1Styles.pharmRow}>
                             <Text style={p1Styles.pharmDot}>💊</Text>
                             <Text style={p1Styles.pharmText}>{pearl}</Text>
@@ -457,10 +457,10 @@ export default function STGLookupScreen() {
                       </>
                     )}
 
-                    {learningPoints.part1ExamTraps?.length > 0 && (
+                    {(learningPoints.part1ExamTraps?.length ?? 0) > 0 && (
                       <>
                         <Text style={p1Styles.label}>Exam Traps</Text>
-                        {learningPoints.part1ExamTraps.map((trap, i) => (
+                        {(learningPoints.part1ExamTraps ?? []).map((trap, i) => (
                           <View key={i} style={p1Styles.trapRow}>
                             <Text style={p1Styles.trapDot}>⚠️</Text>
                             <Text style={p1Styles.trapText}>{trap}</Text>
@@ -469,10 +469,10 @@ export default function STGLookupScreen() {
                       </>
                     )}
 
-                    {learningPoints.part1MustKnow?.length > 0 && (
+                    {(learningPoints.part1MustKnow?.length ?? 0) > 0 && (
                       <>
                         <Text style={p1Styles.label}>Must-Know Q&A</Text>
-                        {learningPoints.part1MustKnow.map((qa, i) => (
+                        {(learningPoints.part1MustKnow ?? []).map((qa, i) => (
                           <View key={i} style={p1Styles.qaCard}>
                             <Text style={p1Styles.qaQuestion}>Q: {qa.question}</Text>
                             <Text style={p1Styles.qaAnswer}>A: {qa.answer}</Text>

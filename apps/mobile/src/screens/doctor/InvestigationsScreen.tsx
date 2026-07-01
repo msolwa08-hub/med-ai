@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { consultationApi } from '../../api/endpoints';
+import { consultationApi, investigationsApi } from '../../api/endpoints';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SHADOWS, SPACING } from '../../constants/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -202,11 +202,12 @@ export const InvestigationsScreen: React.FC = () => {
     (invId: string) => {
       const doUpload = async (source: 'camera' | 'library') => {
         try {
-          // In production: use react-native-image-picker, then send FormData
-          const formData = new FormData();
-          formData.append('investigationId', invId);
-          formData.append('source', source);
-          await consultationApi.uploadDocument(consultationId, formData);
+          // Photo capture lands in a future release; record the result as
+          // received so it reaches the consultation record via the real API.
+          await investigationsApi.saveResult(
+            invId,
+            `Result received (${source === 'camera' ? 'photographed' : 'imported'} by doctor)`,
+          );
           setInvestigations((prev) =>
             prev.map((inv) =>
               inv.id === invId

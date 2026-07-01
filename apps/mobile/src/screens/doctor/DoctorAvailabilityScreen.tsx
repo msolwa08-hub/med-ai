@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, Circle, Region } from 'react-native-maps';
 import Slider from '@react-native-community/slider';
-import Geolocation from '@react-native-community/geolocation';
+import * as Location from 'expo-location';
 import { useAuthStore } from '../../store/authStore';
 import { doctorApi } from '../../api/endpoints';
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE, SHADOWS } from '../../constants/theme';
@@ -44,10 +44,10 @@ export default function DoctorAvailabilityScreen({ navigation }: Props) {
   const { user } = useAuthStore();
   const mapRef = useRef<MapView>(null);
 
-  const [isOnline, setIsOnline] = useState<boolean>(user?.isOnline ?? false);
+  const [isOnline, setIsOnline] = useState<boolean>(user?.doctor?.isAvailable ?? false);
   const [radiusKm, setRadiusKm] = useState<number>(10);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
-    new Set(user?.doctorType ? [user.doctorType] : ['gp'])
+    new Set(user?.doctor?.doctorType ? [user.doctor.doctorType.toLowerCase()] : ['gp'])
   );
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
@@ -58,59 +58,60 @@ export default function DoctorAvailabilityScreen({ navigation }: Props) {
     requestLocationPermission();
   }, []);
 
-  function requestLocationPermission() {
-    if (Platform.OS === 'android') {
-      Geolocation.requestAuthorization();
+  async function requestLocationPermission() {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationPermission('denied');
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const { latitude, longitude } = position.coords;
+      const newRegion: Region = {
+        latitude,
+        longitude,
+        latitudeDelta: 0.15,
+        longitudeDelta: 0.15,
+      };
+      setLocation({ latitude, longitude });
+      setRegion(newRegion);
+      setLocationPermission('granted');
+      mapRef.current?.animateToRegion(newRegion, 800);
+    } catch {
+      setLocationPermission('denied');
+      Alert.alert('Location Error', 'Could not retrieve your location. Please enable GPS.');
     }
-    Geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const newRegion: Region = {
-          latitude,
-          longitude,
-          latitudeDelta: 0.15,
-          longitudeDelta: 0.15,
-        };
-        setLocation({ latitude, longitude });
-        setRegion(newRegion);
-        setLocationPermission('granted');
-        mapRef.current?.animateToRegion(newRegion, 800);
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationPermission('denied');
-        } else {
-          setLocationPermission('denied');
-          Alert.alert('Location Error', 'Could not retrieve your location. Please enable GPS.');
-        }
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
   }
 
-  function handleUpdateLocation() {
+  async function handleUpdateLocation() {
     setIsUpdating(true);
-    Geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const newRegion: Region = {
-          latitude,
-          longitude,
-          latitudeDelta: 0.15,
-          longitudeDelta: 0.15,
-        };
-        setLocation({ latitude, longitude });
-        setRegion(newRegion);
-        setLocationPermission('granted');
-        mapRef.current?.animateToRegion(newRegion, 800);
-        setIsUpdating(false);
-      },
-      () => {
-        setIsUpdating(false);
-        Alert.alert('Error', 'Could not update location. Please check GPS settings.');
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationPermission('denied');
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest,
+      });
+      const { latitude, longitude } = position.coords;
+      const newRegion: Region = {
+        latitude,
+        longitude,
+        latitudeDelta: 0.15,
+        longitudeDelta: 0.15,
+      };
+      setLocation({ latitude, longitude });
+      setRegion(newRegion);
+      setLocationPermission('granted');
+      mapRef.current?.animateToRegion(newRegion, 800);
+    } catch {
+      Alert.alert('Error', 'Could not update location. Please check GPS settings.');
+    } finally {
+      setIsUpdating(false);
+    }
   }
 
   function toggleDoctorType(key: string) {
@@ -148,10 +149,10 @@ export default function DoctorAvailabilityScreen({ navigation }: Props) {
     if (!user) return;
     setIsUpdating(true);
     try {
-      await doctorApi.setAvailability(user.id, {
-        isOnline: nextState,
-        latitude: location?.latitude,
-        longitude: location?.longitude,
+      await doctorApi.setAvailability({
+        isAvailable: nextState,
+        lat: location?.latitude,
+        lng: location?.longitude,
         radius: radiusKm,
       });
       setIsOnline(nextState);
@@ -170,10 +171,10 @@ export default function DoctorAvailabilityScreen({ navigation }: Props) {
     }
     setIsUpdating(true);
     try {
-      await doctorApi.setAvailability(user.id, {
-        isOnline,
-        latitude: location.latitude,
-        longitude: location.longitude,
+      await doctorApi.setAvailability({
+        isAvailable: isOnline,
+        lat: location.latitude,
+        lng: location.longitude,
         radius: radiusKm,
       });
       Alert.alert('Saved', 'Your availability settings have been updated.');
@@ -219,7 +220,7 @@ export default function DoctorAvailabilityScreen({ navigation }: Props) {
           <>
             <Marker
               coordinate={location}
-              title={`Dr ${user?.lastName ?? 'Doctor'}`}
+              title={`Dr ${user?.doctor?.lastName ?? 'Doctor'}`}
               description={isOnline ? 'Online and accepting patients' : 'Currently offline'}
               pinColor={COLORS.primary}
             />

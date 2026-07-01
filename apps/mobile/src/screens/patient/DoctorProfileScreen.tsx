@@ -89,7 +89,7 @@ export const DoctorProfileScreen: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await doctorApi.getProfile(doctorId);
+        const response = await doctorApi.getPublicProfile(doctorId);
         setDoctor(response.data);
       } catch {
         // Mock data fallback

@@ -16,10 +16,12 @@ import { BORDER_RADIUS, COLORS, SPACING } from '@constants/theme';
 // Types
 // ---------------------------------------------------------------------------
 
-type HpcsaStatus = 'pending' | 'verified' | 'rejected' | 'suspended';
+type HpcsaStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
 
-interface HpcsaStatusResponse {
-  status: HpcsaStatus;
+interface HpcsaStatusData {
+  hpcsaNumber: string;
+  hpcsaStatus: HpcsaStatus;
+  hpcsaVerifiedAt?: string | null;
   rejectionReason?: string;
 }
 
@@ -57,7 +59,7 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [localStatus, setLocalStatus] = useState<HpcsaStatus>(
-    (user?.hpcsaStatus as HpcsaStatus) ?? 'pending',
+    user?.doctor?.hpcsaStatus ?? 'PENDING',
   );
   const [rejectionReason, setRejectionReason] = useState<string>('');
 
@@ -71,11 +73,11 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
 
     (async () => {
       try {
-        const response = await doctorApi.getHpcsaStatus(user.id);
-        const data = response.data as HpcsaStatusResponse;
+        const response = await doctorApi.getHpcsaStatus();
+        const data = response.data.data as HpcsaStatusData;
         if (cancelled) return;
 
-        setLocalStatus(data.status);
+        setLocalStatus(data.hpcsaStatus);
         if (data.rejectionReason) {
           setRejectionReason(data.rejectionReason);
         }
@@ -97,17 +99,17 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
 
     setIsRefreshing(true);
     try {
-      const response = await doctorApi.getHpcsaStatus(user.id);
-      const data = response.data as HpcsaStatusResponse;
+      const response = await doctorApi.getHpcsaStatus();
+      const data = response.data.data as HpcsaStatusData;
 
-      setLocalStatus(data.status);
+      setLocalStatus(data.hpcsaStatus);
       if (data.rejectionReason) {
         setRejectionReason(data.rejectionReason);
       }
 
-      if (data.status === 'verified') {
+      if (data.hpcsaStatus === 'VERIFIED' && user?.doctor) {
         // Propagate to auth store — RootNavigator will re-render automatically
-        updateUser({ hpcsaStatus: 'verified' });
+        updateUser({ doctor: { ...user.doctor, hpcsaStatus: 'VERIFIED' } });
       }
     } catch {
       // Status unchanged; user can try again
@@ -120,8 +122,10 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
   // Continue to Dashboard (shown when locally 'verified')
   // ------------------------------------------------------------------
   const handleContinue = useCallback(() => {
-    updateUser({ hpcsaStatus: 'verified' });
-  }, [updateUser]);
+    if (user?.doctor) {
+      updateUser({ doctor: { ...user.doctor, hpcsaStatus: 'VERIFIED' } });
+    }
+  }, [updateUser, user?.doctor]);
 
   // ------------------------------------------------------------------
   // Logout
@@ -135,7 +139,7 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
   // ------------------------------------------------------------------
   const renderStatusBody = (): React.JSX.Element => {
     switch (localStatus) {
-      case 'verified':
+      case 'VERIFIED':
         return (
           <View style={styles.statusBody}>
             <StatusIcon
@@ -144,7 +148,7 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
               borderColor={COLORS.success}
             />
             <Text style={[styles.statusTitle, { color: COLORS.success }]}>
-              {`Verified! Welcome, Dr. ${user?.firstName ?? ''}`}
+              {`Verified! Welcome, Dr. ${user?.doctor?.firstName ?? ''}`}
             </Text>
             <Text style={styles.statusMessage}>
               {'Your HPCSA registration has been verified. You can now start seeing patients.'}
@@ -162,7 +166,7 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
           </View>
         );
 
-      case 'rejected':
+      case 'REJECTED':
         return (
           <View style={styles.statusBody}>
             <StatusIcon
@@ -209,7 +213,7 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
           </View>
         );
 
-      case 'pending':
+      case 'PENDING':
         return (
           <View style={styles.statusBody}>
             <StatusIcon
@@ -224,10 +228,10 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
               }
             </Text>
 
-            {user?.hpcsaNumber ? (
+            {user?.doctor?.hpcsaNumber ? (
               <Surface style={styles.infoCard} elevation={1}>
                 <Text style={styles.infoCardLabel}>HPCSA No.</Text>
-                <Text style={styles.infoCardValue}>{user.hpcsaNumber}</Text>
+                <Text style={styles.infoCardValue}>{user.doctor?.hpcsaNumber}</Text>
               </Surface>
             ) : null}
 
@@ -289,7 +293,7 @@ export default function HPCSAVerificationScreen(): React.JSX.Element {
 
         {/* Bottom actions */}
         <View style={styles.bottomActions}>
-          {localStatus === 'pending' && (
+          {localStatus === 'PENDING' && (
             <Button
               mode="text"
               onPress={handleRefresh}

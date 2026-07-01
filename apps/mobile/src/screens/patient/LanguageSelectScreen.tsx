@@ -84,7 +84,7 @@ export const LanguageSelectScreen: React.FC = () => {
   const { user } = useAuthStore();
   const { startConsultation, isLoading } = useConsultationStore();
   const [selectedCode, setSelectedCode] = useState<string | null>(
-    user?.preferredLanguage || null
+    user?.patient?.preferredLanguage || null
   );
 
   const handleContinue = async () => {

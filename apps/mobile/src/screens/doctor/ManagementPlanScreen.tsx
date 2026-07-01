@@ -10,8 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { consultationApi, aiApi, documentsApi } from '../../api/endpoints';
+import { consultationApi, diagnosisApi, documentsApi } from '../../api/endpoints';
 import { useAuthStore } from '../../store/authStore';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SHADOWS, SPACING } from '../../constants/theme';
 
@@ -142,6 +143,11 @@ const LANGUAGE_LABELS: Record<string, string> = {
   nr: 'isiNdebele',
 };
 
+function apiErrorMessage(error: unknown, fallback: string): string {
+  const apiError = (error as { response?: { data?: { error?: string } } })?.response?.data;
+  return apiError?.error ?? fallback;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const ManagementPlanScreen: React.FC = () => {
@@ -149,6 +155,14 @@ export const ManagementPlanScreen: React.FC = () => {
   const route = useRoute<RouteProp<ManagementRouteParams, 'ManagementPlanScreen'>>();
   const { consultationId } = route.params;
   const { user } = useAuthStore();
+  const doctor = user?.doctor;
+
+  // Initial load
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Diagnosis (required by the management payload)
+  const [diagnosis, setDiagnosis] = useState('');
 
   // Medications
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -164,14 +178,13 @@ export const ManagementPlanScreen: React.FC = () => {
   const [referralForm, setReferralForm] = useState<ReferralForm>(DEFAULT_REFERRAL_FORM);
 
   // Follow-up
-  const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpDays, setFollowUpDays] = useState('');
 
   // Patient instructions
   const [patientInstructions, setPatientInstructions] = useState('');
   const [patientLanguage, setPatientLanguage] = useState('en');
-  const [isTranslating, setIsTranslating] = useState(false);
 
-  // Consultation data (patient info, diagnosis)
+  // Consultation data (patient info)
   const [consultation, setConsultation] = useState<any>(null);
 
   // Sick note
@@ -193,20 +206,37 @@ export const ManagementPlanScreen: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Load consultation to get patient language
-  useEffect(() => {
-    const load = async () => {
+  // Load consultation (patient info + language) and the doctor-selected diagnosis
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const resp = await consultationApi.getById(consultationId);
+      const data = resp.data.data;
+      setConsultation(data);
+      setPatientLanguage(data?.patient?.preferredLanguage || 'en');
+
+      // Prefill the diagnosis chosen on the Diagnosis screen (404 if not yet generated)
       try {
-        const resp = await consultationApi.getById(consultationId);
-        setConsultation(resp.data);
-        const lang = resp.data?.patient?.preferredLanguage || 'en';
-        setPatientLanguage(lang);
+        const diagResp = await diagnosisApi.get(consultationId);
+        const selected = diagResp.data.data?.doctorSelectedDiagnosis;
+        if (selected) {
+          setDiagnosis((prev) => prev || selected);
+          setSickNoteForm((f) => ({ ...f, diagnosisText: f.diagnosisText || selected }));
+        }
       } catch {
-        // Fall back to English
+        // No AI differential yet — doctor enters the diagnosis manually
       }
-    };
-    load();
+    } catch (err) {
+      setLoadError(apiErrorMessage(err, 'Failed to load consultation.'));
+    } finally {
+      setIsLoading(false);
+    }
   }, [consultationId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // ── Medication handlers ──────────────────────────────────────────────────────
   const saveMedication = useCallback(() => {
@@ -254,32 +284,12 @@ export const ManagementPlanScreen: React.FC = () => {
     setReferrals((prev) => prev.filter((r) => r.id !== id));
   };
 
-  // ── Translate instructions ───────────────────────────────────────────────────
-  const handleTranslate = useCallback(async () => {
-    if (!patientInstructions.trim()) {
-      Alert.alert('Nothing to translate', 'Please enter patient instructions first.');
-      return;
-    }
-    if (patientLanguage === 'en') {
-      Alert.alert('Already in English', "The patient's preferred language is English.");
-      return;
-    }
-    setIsTranslating(true);
-    try {
-      const resp = await aiApi.translateText(patientInstructions, 'en', patientLanguage);
-      const translated = resp.data?.translatedText || resp.data?.text || '';
-      if (translated) {
-        setPatientInstructions(translated);
-      }
-    } catch {
-      Alert.alert('Translation failed', 'Could not translate text. Please try again.');
-    } finally {
-      setIsTranslating(false);
-    }
-  }, [patientInstructions, patientLanguage]);
-
   // ── Complete consultation ────────────────────────────────────────────────────
   const handleComplete = async () => {
+    if (!diagnosis.trim()) {
+      Alert.alert('Missing diagnosis', 'Please enter a diagnosis before completing.');
+      return;
+    }
     if (medications.length === 0 && !procedures.trim() && referrals.length === 0) {
       Alert.alert(
         'Empty plan',
@@ -287,28 +297,43 @@ export const ManagementPlanScreen: React.FC = () => {
       );
       return;
     }
+    const followUpDaysNum = parseInt(followUpDays, 10);
+    if (followUpDays.trim() && (!Number.isFinite(followUpDaysNum) || followUpDaysNum <= 0)) {
+      Alert.alert('Invalid follow-up', 'Follow-up must be a positive number of days.');
+      return;
+    }
     setIsSaving(true);
     try {
       await consultationApi.saveManagement({
         consultationId,
-        prescriptions: medications.map((m) => ({
-          medication: m.name,
+        diagnosis: diagnosis.trim(),
+        medications: medications.map((m) => ({
+          name: m.name,
           dose: m.dose,
           frequency: m.frequency,
-          duration: m.duration,
-          instructions: m.instructions || undefined,
+          duration: m.duration || undefined,
+          route: m.route,
+          notes: m.instructions || undefined,
         })),
-        investigations: procedures ? [procedures] : [],
-        referrals: referrals.map(
-          (r) => `${r.specialty} (${r.urgency}): ${r.reason}`,
-        ),
-        followUpDate: followUpDate || undefined,
-        patientInstructions: patientInstructions || undefined,
+        procedures: procedures.trim() || undefined,
+        referrals:
+          referrals.length > 0
+            ? referrals.map((r) => ({
+                specialty: r.specialty,
+                reason: r.reason,
+                urgency: r.urgency,
+              }))
+            : undefined,
+        followUpDays: followUpDays.trim() ? followUpDaysNum : undefined,
+        patientInstructions: patientInstructions.trim() || undefined,
       });
       await consultationApi.completeConsultation(consultationId);
       setShowSuccessModal(true);
-    } catch {
-      Alert.alert('Error', 'Failed to complete consultation. Please try again.');
+    } catch (err) {
+      Alert.alert(
+        'Error',
+        apiErrorMessage(err, 'Failed to complete consultation. Please try again.'),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -316,7 +341,7 @@ export const ManagementPlanScreen: React.FC = () => {
 
   const handleSuccessOk = () => {
     setShowSuccessModal(false);
-    navigation.navigate('DoctorHome');
+    navigation.navigate('DoctorTabs');
   };
 
   const referralUrgencyColor = (u: ReferralUrgency) =>
@@ -340,10 +365,9 @@ export const ManagementPlanScreen: React.FC = () => {
         patientName,
         patientIdNumber: consultation?.patient?.idNumber,
         patientDateOfBirth: consultation?.patient?.dateOfBirth,
-        doctorName: user ? `${user.firstName} ${user.lastName}` : '',
-        doctorHpcsa: (user as any)?.hpcsaNumber ?? '',
-        practiceName: (user as any)?.practiceName ?? 'MedAI Practice',
-        practiceAddress: (user as any)?.practiceAddress,
+        doctorName: doctor ? `${doctor.firstName} ${doctor.lastName}` : '',
+        doctorHpcsa: doctor?.hpcsaNumber ?? '',
+        practiceName: doctor?.practiceName ?? 'MedAI Practice',
         diagnosisText: sickNoteForm.diagnosisText,
         icd10Code: sickNoteForm.icd10Code || undefined,
         dateOfConsultation: sickNoteForm.dateOfConsultation,
@@ -352,9 +376,12 @@ export const ManagementPlanScreen: React.FC = () => {
         daysOff: parseInt(sickNoteForm.daysOff, 10) || 1,
         fitnessStatement: sickNoteForm.fitnessStatement || undefined,
       });
-      setGeneratedSickNote(resp.data?.data?.sickNote?.certificateText ?? '');
-    } catch {
-      Alert.alert('Error', 'Failed to generate sick note. Please try again.');
+      setGeneratedSickNote(resp.data.data?.sickNote?.certificateText ?? '');
+    } catch (err) {
+      Alert.alert(
+        'Error',
+        apiErrorMessage(err, 'Failed to generate sick note. Please try again.'),
+      );
     } finally {
       setGeneratingSickNote(false);
     }
@@ -362,627 +389,668 @@ export const ManagementPlanScreen: React.FC = () => {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <View style={styles.root}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Management Plan</Text>
-        <View style={styles.headerRight} />
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── 1. Medications ──────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Medications</Text>
-
-          {medications.map((med) => (
-            <View key={med.id} style={styles.medCard}>
-              <View style={styles.medCardLeft}>
-                <Text style={styles.medName}>{med.name}</Text>
-                <Text style={styles.medDetails}>
-                  {med.dose} · {med.route} · {med.frequency}
-                </Text>
-                {med.duration ? (
-                  <Text style={styles.medDuration}>Duration: {med.duration}</Text>
-                ) : null}
-                {med.instructions ? (
-                  <Text style={styles.medInstructions}>{med.instructions}</Text>
-                ) : null}
-              </View>
-              <TouchableOpacity
-                style={styles.removeBtn}
-                onPress={() => removeMedication(med.id)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Text style={styles.removeBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.root}>
+        {/* Header */}
+        <View style={styles.header}>
           <TouchableOpacity
-            style={styles.outlinedAddBtn}
-            onPress={() => setShowMedModal(true)}
-            activeOpacity={0.8}
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.outlinedAddBtnText}>+ Add Medication</Text>
+            <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>Management Plan</Text>
+          <View style={styles.headerRight} />
         </View>
 
-        {/* ── 2. Procedures ───────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Procedures</Text>
-          <TextInput
-            style={styles.multilineInput}
-            placeholder="Describe procedures done or ordered..."
-            placeholderTextColor={COLORS.textSecondary}
-            value={procedures}
-            onChangeText={setProcedures}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
-
-        {/* ── 3. Referrals ────────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Referrals</Text>
-
-          {referrals.map((ref) => (
-            <View key={ref.id} style={styles.referralCard}>
-              <View style={styles.referralCardLeft}>
-                <View style={styles.referralHeader}>
-                  <Text style={styles.referralSpecialty}>{ref.specialty}</Text>
-                  <View
-                    style={[
-                      styles.urgencyBadge,
-                      { backgroundColor: referralUrgencyColor(ref.urgency) },
-                    ]}
-                  >
-                    <Text style={styles.urgencyBadgeText}>{ref.urgency}</Text>
-                  </View>
-                </View>
-                <Text style={styles.referralReason} numberOfLines={2}>
-                  {ref.reason}
-                </Text>
-                <TouchableOpacity
-                  style={styles.referralLetterBtn}
-                  onPress={() =>
-                    navigation.navigate('ReferralLetter', {
-                      consultationId,
-                      specialty: ref.specialty,
-                      urgency: ref.urgency,
-                      reasonForReferral: ref.reason,
-                      patientName: consultation?.patient
-                        ? `${consultation.patient.firstName} ${consultation.patient.lastName}`
-                        : undefined,
-                    })
-                  }
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.referralLetterBtnText}>📄 Generate Referral Letter</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity
-                style={styles.removeBtn}
-                onPress={() => removeReferral(ref.id)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Text style={styles.removeBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-
-          <TouchableOpacity
-            style={styles.outlinedAddBtn}
-            onPress={() => setShowReferralModal(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.outlinedAddBtnText}>+ Add Referral</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── 4. Follow-up ────────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Follow-up</Text>
-          <Text style={styles.fieldLabel}>Follow-up date (YYYY-MM-DD)</Text>
-          <TextInput
-            style={styles.fieldInput}
-            placeholder="e.g. 2026-07-01"
-            placeholderTextColor={COLORS.textSecondary}
-            value={followUpDate}
-            onChangeText={setFollowUpDate}
-            keyboardType="default"
-          />
-        </View>
-
-        {/* ── 5. Patient Instructions ─────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Patient Instructions</Text>
-            {patientLanguage !== 'en' && (
-              <View style={styles.langBadge}>
-                <Text style={styles.langBadgeText}>
-                  {LANGUAGE_LABELS[patientLanguage] ?? patientLanguage}
-                </Text>
-              </View>
-            )}
+        {isLoading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.centerText}>Loading consultation…</Text>
           </View>
-          <TextInput
-            style={[styles.multilineInput, styles.instructionsInput]}
-            placeholder="Enter patient-facing instructions in plain language..."
-            placeholderTextColor={COLORS.textSecondary}
-            value={patientInstructions}
-            onChangeText={setPatientInstructions}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-          {patientLanguage !== 'en' && (
-            <TouchableOpacity
-              style={[styles.translateBtn, isTranslating && { opacity: 0.6 }]}
-              onPress={handleTranslate}
-              activeOpacity={0.8}
-              disabled={isTranslating}
-            >
-              {isTranslating ? (
-                <ActivityIndicator color={COLORS.primary} size="small" />
-              ) : (
-                <Text style={styles.translateBtnText}>
-                  Translate to {LANGUAGE_LABELS[patientLanguage] ?? patientLanguage}
+        ) : loadError ? (
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorIcon}>!</Text>
+            <Text style={styles.centerText}>{loadError}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadData} activeOpacity={0.8}>
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* ── 1. Diagnosis ────────────────────────────────────────────────── */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Diagnosis</Text>
+              <TextInput
+                style={styles.multilineInput}
+                placeholder="Final diagnosis for this consultation..."
+                placeholderTextColor={COLORS.textSecondary}
+                value={diagnosis}
+                onChangeText={setDiagnosis}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* ── 2. Medications ──────────────────────────────────────────────── */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Medications</Text>
+
+              {medications.map((med) => (
+                <View key={med.id} style={styles.medCard}>
+                  <View style={styles.medCardLeft}>
+                    <Text style={styles.medName}>{med.name}</Text>
+                    <Text style={styles.medDetails}>
+                      {med.dose} · {med.route} · {med.frequency}
+                    </Text>
+                    {med.duration ? (
+                      <Text style={styles.medDuration}>Duration: {med.duration}</Text>
+                    ) : null}
+                    {med.instructions ? (
+                      <Text style={styles.medInstructions}>{med.instructions}</Text>
+                    ) : null}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.removeBtn}
+                    onPress={() => removeMedication(med.id)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Text style={styles.removeBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {medications.length === 0 && (
+                <Text style={styles.emptyHint}>No medications added yet.</Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.outlinedAddBtn}
+                onPress={() => setShowMedModal(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.outlinedAddBtnText}>+ Add Medication</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ── 3. Procedures ───────────────────────────────────────────────── */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Procedures</Text>
+              <TextInput
+                style={styles.multilineInput}
+                placeholder="Describe procedures done or ordered..."
+                placeholderTextColor={COLORS.textSecondary}
+                value={procedures}
+                onChangeText={setProcedures}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* ── 4. Referrals ────────────────────────────────────────────────── */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Referrals</Text>
+
+              {referrals.map((ref) => (
+                <View key={ref.id} style={styles.referralCard}>
+                  <View style={styles.referralCardLeft}>
+                    <View style={styles.referralHeader}>
+                      <Text style={styles.referralSpecialty}>{ref.specialty}</Text>
+                      <View
+                        style={[
+                          styles.urgencyBadge,
+                          { backgroundColor: referralUrgencyColor(ref.urgency) },
+                        ]}
+                      >
+                        <Text style={styles.urgencyBadgeText}>{ref.urgency}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.referralReason} numberOfLines={2}>
+                      {ref.reason}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.referralLetterBtn}
+                      onPress={() =>
+                        navigation.navigate('ReferralLetter', {
+                          consultationId,
+                          specialty: ref.specialty,
+                          urgency: ref.urgency,
+                          reasonForReferral: ref.reason,
+                          patientName: consultation?.patient
+                            ? `${consultation.patient.firstName} ${consultation.patient.lastName}`
+                            : undefined,
+                        })
+                      }
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.referralLetterBtnText}>
+                        📄 Generate Referral Letter
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.removeBtn}
+                    onPress={() => removeReferral(ref.id)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Text style={styles.removeBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {referrals.length === 0 && (
+                <Text style={styles.emptyHint}>No referrals added yet.</Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.outlinedAddBtn}
+                onPress={() => setShowReferralModal(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.outlinedAddBtnText}>+ Add Referral</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ── 5. Follow-up ────────────────────────────────────────────────── */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Follow-up</Text>
+              <Text style={styles.fieldLabel}>Follow-up in (days)</Text>
+              <TextInput
+                style={styles.fieldInput}
+                placeholder="e.g. 7"
+                placeholderTextColor={COLORS.textSecondary}
+                value={followUpDays}
+                onChangeText={setFollowUpDays}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            {/* ── 6. Patient Instructions ─────────────────────────────────────── */}
+            <View style={styles.section}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>Patient Instructions</Text>
+                {patientLanguage !== 'en' && (
+                  <View style={styles.langBadge}>
+                    <Text style={styles.langBadgeText}>
+                      {LANGUAGE_LABELS[patientLanguage] ?? patientLanguage}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <TextInput
+                style={[styles.multilineInput, styles.instructionsInput]}
+                placeholder="Enter patient-facing instructions in plain language..."
+                placeholderTextColor={COLORS.textSecondary}
+                value={patientInstructions}
+                onChangeText={setPatientInstructions}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+              {patientLanguage !== 'en' && (
+                <Text style={styles.langHint}>
+                  Patient's preferred language is{' '}
+                  {LANGUAGE_LABELS[patientLanguage] ?? patientLanguage}. Write instructions in a
+                  language the patient understands.
                 </Text>
               )}
+            </View>
+
+            {/* ── Sick Note ───────────────────────────────────────────────────── */}
+            <TouchableOpacity
+              style={styles.sickNoteBtn}
+              onPress={() => setShowSickNoteModal(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sickNoteBtnText}>🩺 Generate Sick Note</Text>
             </TouchableOpacity>
-          )}
-        </View>
 
-        {/* ── Sick Note ───────────────────────────────────────────────────────── */}
-        <TouchableOpacity
-          style={styles.sickNoteBtn}
-          onPress={() => setShowSickNoteModal(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.sickNoteBtnText}>🩺 Generate Sick Note</Text>
-        </TouchableOpacity>
+            {/* ── Complete Consultation ───────────────────────────────────────── */}
+            <TouchableOpacity
+              style={[styles.completeBtn, isSaving && { opacity: 0.6 }]}
+              onPress={handleComplete}
+              activeOpacity={0.85}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <Text style={styles.completeBtnText}>Complete Consultation</Text>
+              )}
+            </TouchableOpacity>
 
-        {/* ── Complete Consultation ────────────────────────────────────────────── */}
-        <TouchableOpacity
-          style={[styles.completeBtn, isSaving && { opacity: 0.6 }]}
-          onPress={handleComplete}
-          activeOpacity={0.85}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color={COLORS.white} />
-          ) : (
-            <Text style={styles.completeBtnText}>Complete Consultation</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={{ height: SPACING.xl }} />
-      </ScrollView>
-
-      {/* ── Add Medication Modal ─────────────────────────────────────────────── */}
-      <Modal
-        visible={showMedModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowMedModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setShowMedModal(false)}
-        />
-        <View style={styles.bottomSheet}>
-          <View style={styles.bottomSheetHandle} />
-          <Text style={styles.modalTitle}>Add Medication</Text>
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            {/* Name */}
-            <Text style={styles.fieldLabel}>Name</Text>
-            <TextInput
-              style={styles.fieldInput}
-              placeholder="Medication name..."
-              placeholderTextColor={COLORS.textSecondary}
-              value={medForm.name}
-              onChangeText={(v) => setMedForm((f) => ({ ...f, name: v }))}
-            />
-            <View style={styles.chipRow}>
-              {COMMON_MEDS.map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  style={[styles.chip, medForm.name === m && styles.chipSelected]}
-                  onPress={() => setMedForm((f) => ({ ...f, name: m }))}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.chipText, medForm.name === m && styles.chipTextSelected]}>
-                    {m}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Dose */}
-            <Text style={styles.fieldLabel}>Dose</Text>
-            <TextInput
-              style={styles.fieldInput}
-              placeholder="e.g. 500mg"
-              placeholderTextColor={COLORS.textSecondary}
-              value={medForm.dose}
-              onChangeText={(v) => setMedForm((f) => ({ ...f, dose: v }))}
-            />
-
-            {/* Route */}
-            <Text style={styles.fieldLabel}>Route</Text>
-            <View style={styles.chipRow}>
-              {ROUTES.map((r) => (
-                <TouchableOpacity
-                  key={r}
-                  style={[styles.chip, medForm.route === r && styles.chipSelected]}
-                  onPress={() => setMedForm((f) => ({ ...f, route: r }))}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.chipText, medForm.route === r && styles.chipTextSelected]}>
-                    {r}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Frequency */}
-            <Text style={styles.fieldLabel}>Frequency</Text>
-            <View style={styles.chipRow}>
-              {FREQUENCIES.map((f) => (
-                <TouchableOpacity
-                  key={f.code}
-                  style={[styles.chip, medForm.frequency === f.code && styles.chipSelected]}
-                  onPress={() => setMedForm((frm) => ({ ...frm, frequency: f.code }))}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      medForm.frequency === f.code && styles.chipTextSelected,
-                    ]}
-                  >
-                    {f.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Duration */}
-            <Text style={styles.fieldLabel}>Duration</Text>
-            <TextInput
-              style={styles.fieldInput}
-              placeholder="e.g. 7 days"
-              placeholderTextColor={COLORS.textSecondary}
-              value={medForm.duration}
-              onChangeText={(v) => setMedForm((f) => ({ ...f, duration: v }))}
-            />
-
-            {/* Instructions */}
-            <Text style={styles.fieldLabel}>Instructions</Text>
-            <TextInput
-              style={[styles.fieldInput, { minHeight: 60 }]}
-              placeholder="e.g. Take with food"
-              placeholderTextColor={COLORS.textSecondary}
-              value={medForm.instructions}
-              onChangeText={(v) => setMedForm((f) => ({ ...f, instructions: v }))}
-              multiline
-              textAlignVertical="top"
-            />
-
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setShowMedModal(false);
-                  setMedForm(DEFAULT_MED_FORM);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveBtn}
-                onPress={saveMedication}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.saveBtnText}>Save</Text>
-              </TouchableOpacity>
-            </View>
             <View style={{ height: SPACING.xl }} />
           </ScrollView>
-        </View>
-      </Modal>
+        )}
 
-      {/* ── Add Referral Modal ───────────────────────────────────────────────── */}
-      <Modal
-        visible={showReferralModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowReferralModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setShowReferralModal(false)}
-        />
-        <View style={styles.bottomSheet}>
-          <View style={styles.bottomSheetHandle} />
-          <Text style={styles.modalTitle}>Add Referral</Text>
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            {/* Specialty */}
-            <Text style={styles.fieldLabel}>Specialty</Text>
-            <TextInput
-              style={styles.fieldInput}
-              placeholder="Specialty..."
-              placeholderTextColor={COLORS.textSecondary}
-              value={referralForm.specialty}
-              onChangeText={(v) => setReferralForm((f) => ({ ...f, specialty: v }))}
-            />
-            <View style={styles.chipRow}>
-              {SPECIALTIES.map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  style={[styles.chip, referralForm.specialty === s && styles.chipSelected]}
-                  onPress={() => setReferralForm((f) => ({ ...f, specialty: s }))}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      referralForm.specialty === s && styles.chipTextSelected,
-                    ]}
+        {/* ── Add Medication Modal ─────────────────────────────────────────────── */}
+        <Modal
+          visible={showMedModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowMedModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.overlay}
+            activeOpacity={1}
+            onPress={() => setShowMedModal(false)}
+          />
+          <View style={styles.bottomSheet}>
+            <View style={styles.bottomSheetHandle} />
+            <Text style={styles.modalTitle}>Add Medication</Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Name */}
+              <Text style={styles.fieldLabel}>Name</Text>
+              <TextInput
+                style={styles.fieldInput}
+                placeholder="Medication name..."
+                placeholderTextColor={COLORS.textSecondary}
+                value={medForm.name}
+                onChangeText={(v) => setMedForm((f) => ({ ...f, name: v }))}
+              />
+              <View style={styles.chipRow}>
+                {COMMON_MEDS.map((m) => (
+                  <TouchableOpacity
+                    key={m}
+                    style={[styles.chip, medForm.name === m && styles.chipSelected]}
+                    onPress={() => setMedForm((f) => ({ ...f, name: m }))}
+                    activeOpacity={0.7}
                   >
-                    {s}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <Text style={[styles.chipText, medForm.name === m && styles.chipTextSelected]}>
+                      {m}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-            {/* Reason */}
-            <Text style={styles.fieldLabel}>Reason</Text>
-            <TextInput
-              style={[styles.fieldInput, { minHeight: 80 }]}
-              placeholder="Reason for referral..."
-              placeholderTextColor={COLORS.textSecondary}
-              value={referralForm.reason}
-              onChangeText={(v) => setReferralForm((f) => ({ ...f, reason: v }))}
-              multiline
-              textAlignVertical="top"
-            />
+              {/* Dose */}
+              <Text style={styles.fieldLabel}>Dose</Text>
+              <TextInput
+                style={styles.fieldInput}
+                placeholder="e.g. 500mg"
+                placeholderTextColor={COLORS.textSecondary}
+                value={medForm.dose}
+                onChangeText={(v) => setMedForm((f) => ({ ...f, dose: v }))}
+              />
 
-            {/* Urgency */}
-            <Text style={styles.fieldLabel}>Urgency</Text>
-            <View style={styles.urgencyRow}>
-              {REFERRAL_URGENCIES.map(({ code, color, textColor }) => (
-                <TouchableOpacity
-                  key={code}
-                  style={[
-                    styles.urgencyChip,
-                    referralForm.urgency === code && {
-                      backgroundColor: color,
-                      borderColor: color,
-                    },
-                  ]}
-                  onPress={() => setReferralForm((f) => ({ ...f, urgency: code }))}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.urgencyChipText,
-                      referralForm.urgency === code && { color: textColor, fontWeight: '700' },
-                    ]}
+              {/* Route */}
+              <Text style={styles.fieldLabel}>Route</Text>
+              <View style={styles.chipRow}>
+                {ROUTES.map((r) => (
+                  <TouchableOpacity
+                    key={r}
+                    style={[styles.chip, medForm.route === r && styles.chipSelected]}
+                    onPress={() => setMedForm((f) => ({ ...f, route: r }))}
+                    activeOpacity={0.7}
                   >
-                    {code}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <Text style={[styles.chipText, medForm.route === r && styles.chipTextSelected]}>
+                      {r}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setShowReferralModal(false);
-                  setReferralForm(DEFAULT_REFERRAL_FORM);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveBtn}
-                onPress={saveReferral}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.saveBtnText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ height: SPACING.xl }} />
-          </ScrollView>
-        </View>
-      </Modal>
+              {/* Frequency */}
+              <Text style={styles.fieldLabel}>Frequency</Text>
+              <View style={styles.chipRow}>
+                {FREQUENCIES.map((f) => (
+                  <TouchableOpacity
+                    key={f.code}
+                    style={[styles.chip, medForm.frequency === f.code && styles.chipSelected]}
+                    onPress={() => setMedForm((frm) => ({ ...frm, frequency: f.code }))}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        medForm.frequency === f.code && styles.chipTextSelected,
+                      ]}
+                    >
+                      {f.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-      {/* ── Sick Note Modal ─────────────────────────────────────────────────── */}
-      <Modal
-        visible={showSickNoteModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
-      >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
-        />
-        <View style={[styles.bottomSheet, { maxHeight: '90%' }]}>
-          <View style={styles.bottomSheetHandle} />
-          <Text style={styles.modalTitle}>
-            {generatedSickNote ? 'Sick Note Generated' : 'Generate Sick Note'}
-          </Text>
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            {generatedSickNote ? (
-              <>
-                <View style={snStyles.resultBox}>
-                  <Text style={snStyles.resultText}>{generatedSickNote}</Text>
-                </View>
+              {/* Duration */}
+              <Text style={styles.fieldLabel}>Duration</Text>
+              <TextInput
+                style={styles.fieldInput}
+                placeholder="e.g. 7 days"
+                placeholderTextColor={COLORS.textSecondary}
+                value={medForm.duration}
+                onChangeText={(v) => setMedForm((f) => ({ ...f, duration: v }))}
+              />
+
+              {/* Instructions */}
+              <Text style={styles.fieldLabel}>Instructions</Text>
+              <TextInput
+                style={[styles.fieldInput, { minHeight: 60 }]}
+                placeholder="e.g. Take with food"
+                placeholderTextColor={COLORS.textSecondary}
+                value={medForm.instructions}
+                onChangeText={(v) => setMedForm((f) => ({ ...f, instructions: v }))}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <View style={styles.modalBtnRow}>
                 <TouchableOpacity
                   style={styles.cancelBtn}
-                  onPress={() => setGeneratedSickNote(null)}
+                  onPress={() => {
+                    setShowMedModal(false);
+                    setMedForm(DEFAULT_MED_FORM);
+                  }}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.cancelBtnText}>Edit Details</Text>
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.saveBtn, { marginTop: SPACING.sm }]}
-                  onPress={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
+                  style={styles.saveBtn}
+                  onPress={saveMedication}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.saveBtnText}>Done</Text>
+                  <Text style={styles.saveBtnText}>Save</Text>
                 </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={styles.fieldLabel}>Diagnosis</Text>
-                <TextInput
-                  style={[styles.fieldInput, { minHeight: 60 }]}
-                  placeholder="e.g. Acute viral upper respiratory tract infection"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={sickNoteForm.diagnosisText}
-                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, diagnosisText: v }))}
-                  multiline
-                  textAlignVertical="top"
-                />
+              </View>
+              <View style={{ height: SPACING.xl }} />
+            </ScrollView>
+          </View>
+        </Modal>
 
-                <Text style={styles.fieldLabel}>ICD-10 Code (optional)</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  placeholder="e.g. J06.9"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={sickNoteForm.icd10Code}
-                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, icd10Code: v }))}
-                  autoCapitalize="characters"
-                />
-
-                <Text style={styles.fieldLabel}>Date of Consultation (YYYY-MM-DD)</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  placeholder={today}
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={sickNoteForm.dateOfConsultation}
-                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, dateOfConsultation: v }))}
-                />
-
-                <Text style={styles.fieldLabel}>Unfit From (YYYY-MM-DD)</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  placeholder={today}
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={sickNoteForm.unfitFromDate}
-                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, unfitFromDate: v }))}
-                />
-
-                <Text style={styles.fieldLabel}>Unfit Until (YYYY-MM-DD)</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  placeholder="e.g. 2026-06-24"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={sickNoteForm.unfitToDate}
-                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, unfitToDate: v }))}
-                />
-
-                <Text style={styles.fieldLabel}>Days Off Work</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  placeholder="e.g. 3"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={sickNoteForm.daysOff}
-                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, daysOff: v }))}
-                  keyboardType="number-pad"
-                />
-
-                <Text style={styles.fieldLabel}>Fitness Statement (optional)</Text>
-                <TextInput
-                  style={[styles.fieldInput, { minHeight: 60 }]}
-                  placeholder="e.g. Patient may return to light duties on..."
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={sickNoteForm.fitnessStatement}
-                  onChangeText={(v) => setSickNoteForm((f) => ({ ...f, fitnessStatement: v }))}
-                  multiline
-                  textAlignVertical="top"
-                />
-
-                <View style={styles.modalBtnRow}>
+        {/* ── Add Referral Modal ───────────────────────────────────────────────── */}
+        <Modal
+          visible={showReferralModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowReferralModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.overlay}
+            activeOpacity={1}
+            onPress={() => setShowReferralModal(false)}
+          />
+          <View style={styles.bottomSheet}>
+            <View style={styles.bottomSheetHandle} />
+            <Text style={styles.modalTitle}>Add Referral</Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Specialty */}
+              <Text style={styles.fieldLabel}>Specialty</Text>
+              <TextInput
+                style={styles.fieldInput}
+                placeholder="Specialty..."
+                placeholderTextColor={COLORS.textSecondary}
+                value={referralForm.specialty}
+                onChangeText={(v) => setReferralForm((f) => ({ ...f, specialty: v }))}
+              />
+              <View style={styles.chipRow}>
+                {SPECIALTIES.map((s) => (
                   <TouchableOpacity
-                    style={styles.cancelBtn}
-                    onPress={() => setShowSickNoteModal(false)}
+                    key={s}
+                    style={[styles.chip, referralForm.specialty === s && styles.chipSelected]}
+                    onPress={() => setReferralForm((f) => ({ ...f, specialty: s }))}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        referralForm.specialty === s && styles.chipTextSelected,
+                      ]}
+                    >
+                      {s}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Reason */}
+              <Text style={styles.fieldLabel}>Reason</Text>
+              <TextInput
+                style={[styles.fieldInput, { minHeight: 80 }]}
+                placeholder="Reason for referral..."
+                placeholderTextColor={COLORS.textSecondary}
+                value={referralForm.reason}
+                onChangeText={(v) => setReferralForm((f) => ({ ...f, reason: v }))}
+                multiline
+                textAlignVertical="top"
+              />
+
+              {/* Urgency */}
+              <Text style={styles.fieldLabel}>Urgency</Text>
+              <View style={styles.urgencyRow}>
+                {REFERRAL_URGENCIES.map(({ code, color, textColor }) => (
+                  <TouchableOpacity
+                    key={code}
+                    style={[
+                      styles.urgencyChip,
+                      referralForm.urgency === code && {
+                        backgroundColor: color,
+                        borderColor: color,
+                      },
+                    ]}
+                    onPress={() => setReferralForm((f) => ({ ...f, urgency: code }))}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                    <Text
+                      style={[
+                        styles.urgencyChipText,
+                        referralForm.urgency === code && { color: textColor, fontWeight: '700' },
+                      ]}
+                    >
+                      {code}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.modalBtnRow}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    setShowReferralModal(false);
+                    setReferralForm(DEFAULT_REFERRAL_FORM);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.saveBtn}
+                  onPress={saveReferral}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.saveBtnText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ height: SPACING.xl }} />
+            </ScrollView>
+          </View>
+        </Modal>
+
+        {/* ── Sick Note Modal ─────────────────────────────────────────────────── */}
+        <Modal
+          visible={showSickNoteModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
+        >
+          <TouchableOpacity
+            style={styles.overlay}
+            activeOpacity={1}
+            onPress={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
+          />
+          <View style={[styles.bottomSheet, { maxHeight: '90%' }]}>
+            <View style={styles.bottomSheetHandle} />
+            <Text style={styles.modalTitle}>
+              {generatedSickNote ? 'Sick Note Generated' : 'Generate Sick Note'}
+            </Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {generatedSickNote ? (
+                <>
+                  <View style={snStyles.resultBox}>
+                    <Text style={snStyles.resultText}>{generatedSickNote}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => setGeneratedSickNote(null)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelBtnText}>Edit Details</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.saveBtn, generatingSickNote && { opacity: 0.6 }]}
-                    onPress={handleGenerateSickNote}
-                    disabled={generatingSickNote}
+                    style={[styles.saveBtn, { marginTop: SPACING.sm }]}
+                    onPress={() => { setShowSickNoteModal(false); setGeneratedSickNote(null); }}
                     activeOpacity={0.85}
                   >
-                    {generatingSickNote ? (
-                      <ActivityIndicator color={COLORS.white} size="small" />
-                    ) : (
-                      <Text style={styles.saveBtnText}>Generate</Text>
-                    )}
+                    <Text style={styles.saveBtnText}>Done</Text>
                   </TouchableOpacity>
-                </View>
-              </>
-            )}
-            <View style={{ height: SPACING.xl }} />
-          </ScrollView>
-        </View>
-      </Modal>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.fieldLabel}>Diagnosis</Text>
+                  <TextInput
+                    style={[styles.fieldInput, { minHeight: 60 }]}
+                    placeholder="e.g. Acute viral upper respiratory tract infection"
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={sickNoteForm.diagnosisText}
+                    onChangeText={(v) => setSickNoteForm((f) => ({ ...f, diagnosisText: v }))}
+                    multiline
+                    textAlignVertical="top"
+                  />
 
-      {/* ── Success Modal ────────────────────────────────────────────────────── */}
-      <Modal
-        visible={showSuccessModal}
-        transparent
-        animationType="fade"
-        onRequestClose={handleSuccessOk}
-      >
-        <View style={styles.successOverlay}>
-          <View style={styles.successCard}>
-            <View style={styles.successIcon}>
-              <Text style={styles.successIconText}>✓</Text>
-            </View>
-            <Text style={styles.successTitle}>Consultation Complete</Text>
-            <Text style={styles.successBody}>
-              The management plan has been saved and the consultation has been completed
-              successfully.
-            </Text>
-            <TouchableOpacity
-              style={styles.successBtn}
-              onPress={handleSuccessOk}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.successBtnText}>Back to Home</Text>
-            </TouchableOpacity>
+                  <Text style={styles.fieldLabel}>ICD-10 Code (optional)</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    placeholder="e.g. J06.9"
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={sickNoteForm.icd10Code}
+                    onChangeText={(v) => setSickNoteForm((f) => ({ ...f, icd10Code: v }))}
+                    autoCapitalize="characters"
+                  />
+
+                  <Text style={styles.fieldLabel}>Date of Consultation (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    placeholder={today}
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={sickNoteForm.dateOfConsultation}
+                    onChangeText={(v) => setSickNoteForm((f) => ({ ...f, dateOfConsultation: v }))}
+                  />
+
+                  <Text style={styles.fieldLabel}>Unfit From (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    placeholder={today}
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={sickNoteForm.unfitFromDate}
+                    onChangeText={(v) => setSickNoteForm((f) => ({ ...f, unfitFromDate: v }))}
+                  />
+
+                  <Text style={styles.fieldLabel}>Unfit Until (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    placeholder="e.g. 2026-06-24"
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={sickNoteForm.unfitToDate}
+                    onChangeText={(v) => setSickNoteForm((f) => ({ ...f, unfitToDate: v }))}
+                  />
+
+                  <Text style={styles.fieldLabel}>Days Off Work</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    placeholder="e.g. 3"
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={sickNoteForm.daysOff}
+                    onChangeText={(v) => setSickNoteForm((f) => ({ ...f, daysOff: v }))}
+                    keyboardType="number-pad"
+                  />
+
+                  <Text style={styles.fieldLabel}>Fitness Statement (optional)</Text>
+                  <TextInput
+                    style={[styles.fieldInput, { minHeight: 60 }]}
+                    placeholder="e.g. Patient may return to light duties on..."
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={sickNoteForm.fitnessStatement}
+                    onChangeText={(v) => setSickNoteForm((f) => ({ ...f, fitnessStatement: v }))}
+                    multiline
+                    textAlignVertical="top"
+                  />
+
+                  <View style={styles.modalBtnRow}>
+                    <TouchableOpacity
+                      style={styles.cancelBtn}
+                      onPress={() => setShowSickNoteModal(false)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.saveBtn, generatingSickNote && { opacity: 0.6 }]}
+                      onPress={handleGenerateSickNote}
+                      disabled={generatingSickNote}
+                      activeOpacity={0.85}
+                    >
+                      {generatingSickNote ? (
+                        <ActivityIndicator color={COLORS.white} size="small" />
+                      ) : (
+                        <Text style={styles.saveBtnText}>Generate</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+              <View style={{ height: SPACING.xl }} />
+            </ScrollView>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+
+        {/* ── Success Modal ────────────────────────────────────────────────────── */}
+        <Modal
+          visible={showSuccessModal}
+          transparent
+          animationType="fade"
+          onRequestClose={handleSuccessOk}
+        >
+          <View style={styles.successOverlay}>
+            <View style={styles.successCard}>
+              <View style={styles.successIcon}>
+                <Text style={styles.successIconText}>✓</Text>
+              </View>
+              <Text style={styles.successTitle}>Consultation Complete</Text>
+              <Text style={styles.successBody}>
+                The management plan has been saved and the consultation has been completed
+                successfully.
+              </Text>
+              <TouchableOpacity
+                style={styles.successBtn}
+                onPress={handleSuccessOk}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.successBtnText}>Back to Home</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </SafeAreaView>
   );
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   root: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -991,13 +1059,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.primary,
-    paddingTop: 48,
-    paddingBottom: SPACING.md,
+    paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
   },
   backBtn: {
-    width: 36,
+    width: 44,
+    height: 44,
     alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   backIcon: {
     fontSize: 28,
@@ -1012,7 +1081,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerRight: {
-    width: 36,
+    width: 44,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+    gap: SPACING.md,
+  },
+  centerText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  errorIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.error,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.xxl,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 56,
+    overflow: 'hidden',
+  },
+  retryBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryBtnText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: FONT_SIZE.md,
   },
   scroll: {
     flex: 1,
@@ -1041,6 +1148,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: SPACING.sm,
   },
+  emptyHint: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+  },
   langBadge: {
     backgroundColor: COLORS.info,
     borderRadius: BORDER_RADIUS.full,
@@ -1051,6 +1163,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: FONT_SIZE.xs,
     fontWeight: '700',
+  },
+  langHint: {
+    marginTop: SPACING.sm,
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    lineHeight: 16,
   },
   medCard: {
     flexDirection: 'row',
@@ -1107,7 +1225,9 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     borderStyle: 'dashed',
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: SPACING.xs,
   },
   outlinedAddBtnText: {
@@ -1170,6 +1290,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     fontSize: FONT_SIZE.md,
     color: COLORS.text,
   },
@@ -1185,19 +1306,6 @@ const styles = StyleSheet.create({
   },
   instructionsInput: {
     minHeight: 140,
-  },
-  translateBtn: {
-    marginTop: SPACING.sm,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: SPACING.sm,
-    alignItems: 'center',
-  },
-  translateBtnText: {
-    color: COLORS.primary,
-    fontWeight: '700',
-    fontSize: FONT_SIZE.sm,
   },
   completeBtn: {
     backgroundColor: COLORS.secondary,
@@ -1248,7 +1356,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.surfaceVariant,
     borderWidth: 1,
@@ -1275,10 +1383,12 @@ const styles = StyleSheet.create({
   urgencyChip: {
     flex: 1,
     paddingVertical: SPACING.sm,
+    minHeight: 44,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   urgencyChipText: {
     fontSize: FONT_SIZE.sm,
@@ -1293,10 +1403,12 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     paddingVertical: SPACING.md,
+    minHeight: 44,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelBtnText: {
     color: COLORS.textSecondary,
@@ -1306,9 +1418,11 @@ const styles = StyleSheet.create({
   saveBtn: {
     flex: 1,
     paddingVertical: SPACING.md,
+    minHeight: 44,
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   saveBtnText: {
     color: COLORS.white,
@@ -1364,7 +1478,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.xl,
     width: '100%',
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   successBtnText: {
     color: COLORS.white,
@@ -1373,7 +1489,7 @@ const styles = StyleSheet.create({
   },
   referralLetterBtn: {
     marginTop: SPACING.xs,
-    paddingVertical: 4,
+    paddingVertical: SPACING.xs,
     paddingHorizontal: SPACING.sm,
     borderRadius: BORDER_RADIUS.sm,
     borderWidth: 1,
@@ -1390,7 +1506,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.secondary,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.sm,
   },
   sickNoteBtnText: {

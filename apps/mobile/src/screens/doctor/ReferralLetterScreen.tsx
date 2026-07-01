@@ -107,9 +107,9 @@ const ReferralLetterScreen: React.FC = () => {
         patientAge: '',
         patientGender: '',
         referringDoctorName: user
-          ? `${user.lastName}, ${user.firstName}`
+          ? `${user.doctor?.lastName}, ${user.doctor?.firstName}`
           : '',
-        referringDoctorHpcsa: user?.hpcsaNumber ?? '',
+        referringDoctorHpcsa: user?.doctor?.hpcsaNumber ?? '',
         referringPracticeName: practiceName.trim(),
         specialty,
         urgency: selectedUrgency,

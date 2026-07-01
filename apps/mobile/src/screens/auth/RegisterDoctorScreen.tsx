@@ -14,26 +14,26 @@ import {
   Button,
   Snackbar,
   HelperText,
-  Chip,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
 import { authApi, AuthRegisterDoctorPayload } from '@api/endpoints';
-import { useAuthStore } from '@store/authStore';
-import { SA_LANGUAGES } from '@constants/languages';
+import { setAuthTokens } from '@api/client';
+import { useAuthStore, User } from '@store/authStore';
 import { COLORS, SPACING, BORDER_RADIUS } from '@constants/theme';
 import TermsConsentModal from '../../components/TermsConsentModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type DoctorType = 'gp' | 'specialist' | 'allied_health' | 'travelling';
+// UPPERCASE — must match the API's zod enum exactly
+type DoctorType = AuthRegisterDoctorPayload['doctorType'];
 
 const DOCTOR_TYPE_OPTIONS: { value: DoctorType; label: string; description: string }[] = [
-  { value: 'gp', label: 'General Practitioner', description: 'Primary care / family medicine' },
-  { value: 'specialist', label: 'Specialist', description: 'Specialist with referral practice' },
-  { value: 'allied_health', label: 'Allied Health', description: 'Physiotherapy, nursing, etc.' },
-  { value: 'travelling', label: 'Travelling Doctor', description: 'Rural/remote visit-based practice' },
+  { value: 'GP', label: 'General Practitioner', description: 'Primary care / family medicine' },
+  { value: 'SPECIALIST', label: 'Specialist', description: 'Specialist with referral practice' },
+  { value: 'ALLIED_HEALTH', label: 'Allied Health', description: 'Physiotherapy, nursing, etc.' },
+  { value: 'TRAVELLING', label: 'Travelling Doctor', description: 'Rural/remote visit-based practice' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -53,11 +53,19 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// Must match the API's zod schema: min 8 chars, 1 uppercase, 1 number
+function passwordRuleError(value: string): string | null {
+  if (value.length < 8) return 'Password must be at least 8 characters.';
+  if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter.';
+  if (!/[0-9]/.test(value)) return 'Password must contain at least one number.';
+  return null;
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function RegisterDoctorScreen() {
   const navigation = useNavigation();
-  const { login } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,13 +83,8 @@ export default function RegisterDoctorScreen() {
   const [doctorType, setDoctorType] = useState<DoctorType | ''>('');
   const [specialization, setSpecialization] = useState('');
   const [hpcsaNumber, setHpcsaNumber] = useState('');
-  const [practiceName, setPracticeName] = useState('');
-  const [consultationFee, setConsultationFee] = useState('');
 
-  // Step 3 — Languages
-  const [languagesSpoken, setLanguagesSpoken] = useState<string[]>(['en']);
-
-  // Step 4 — Security
+  // Step 3 — Security
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -99,8 +102,16 @@ export default function RegisterDoctorScreen() {
 
   function validateStep1(): boolean {
     const errs: Record<string, string> = {};
-    if (!firstName.trim()) errs.firstName = 'First name is required.';
-    if (!lastName.trim()) errs.lastName = 'Last name is required.';
+    if (!firstName.trim()) {
+      errs.firstName = 'First name is required.';
+    } else if (firstName.trim().length < 2 || firstName.trim().length > 50) {
+      errs.firstName = 'First name must be 2-50 characters.';
+    }
+    if (!lastName.trim()) {
+      errs.lastName = 'Last name is required.';
+    } else if (lastName.trim().length < 2 || lastName.trim().length > 50) {
+      errs.lastName = 'Last name must be 2-50 characters.';
+    }
     if (!phone.trim()) {
       errs.phone = 'Phone number is required.';
     } else if (!isValidPhone(phone)) {
@@ -118,24 +129,23 @@ export default function RegisterDoctorScreen() {
   function validateStep2(): boolean {
     const errs: Record<string, string> = {};
     if (!doctorType) errs.doctorType = 'Please select your practice type.';
-    if (!hpcsaNumber.trim()) {
+    const hpcsa = hpcsaNumber.trim();
+    if (!hpcsa) {
       errs.hpcsaNumber = 'HPCSA number is required.';
-    } else if (hpcsaNumber.trim().length < 4) {
-      errs.hpcsaNumber = 'HPCSA number must be at least 4 characters.';
-    }
-    if (!consultationFee.trim() || isNaN(Number(consultationFee))) {
-      errs.consultationFee = 'Enter a valid consultation fee (ZAR).';
+    } else if (hpcsa.length < 5 || hpcsa.length > 20) {
+      errs.hpcsaNumber = 'HPCSA number must be 5-20 characters.';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
 
-  function validateStep4(): boolean {
+  function validateStep3(): boolean {
     const errs: Record<string, string> = {};
     if (!password) {
       errs.password = 'Password is required.';
-    } else if (password.length < 8) {
-      errs.password = 'Password must be at least 8 characters.';
+    } else {
+      const ruleError = passwordRuleError(password);
+      if (ruleError) errs.password = ruleError;
     }
     if (password !== confirmPassword) {
       errs.confirmPassword = 'Passwords do not match.';
@@ -158,34 +168,47 @@ export default function RegisterDoctorScreen() {
   // ── Registration ───────────────────────────────────────────────────────────
 
   function handleRegister() {
-    if (!validateStep4()) return;
+    if (!validateStep3()) return;
     setShowConsent(true);
   }
 
   async function handleConsentAccept() {
     setShowConsent(false);
 
+    // Only the fields the API's zod schema accepts at registration.
+    // Languages, consultation fee and practice name are set later via the profile.
     const payload: AuthRegisterDoctorPayload = {
+      email: email.trim().toLowerCase(),
+      phone: normalizePhone(phone),
+      password,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: normalizePhone(phone),
-      email: email.trim().toLowerCase(),
-      password,
       hpcsaNumber: hpcsaNumber.trim().toUpperCase(),
       doctorType: doctorType as DoctorType,
-      specialization: specialization.trim() || undefined,
-      languagesSpoken,
-      consultationFee: Number(consultationFee),
-      practiceName: practiceName.trim() || undefined,
+      ...(specialization.trim() ? { specialization: specialization.trim() } : {}),
     };
 
     setIsLoading(true);
     try {
-      await authApi.registerDoctor(payload);
-      await login(normalizePhone(phone), password);
+      // 201 → { success, data: { accessToken, refreshToken, expiresIn, user } }
+      const response = await authApi.registerDoctor(payload);
+      const { accessToken, refreshToken, user } = response.data.data;
+      await setAuthTokens(accessToken, refreshToken);
+
+      // Fetch the full profile so the store has the nested doctor record
+      // (hpcsaStatus etc.); fall back to the minimal /auth/register user.
+      let fullUser: User = user;
+      try {
+        const me = await authApi.getMe();
+        fullUser = me.data.data.user as User;
+      } catch {
+        // Minimal user is enough to enter the app; profile loads later.
+      }
+      setUser(fullUser);
+      // RootNavigator routes to HPCSA verification / dashboard on auth change.
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
         'Registration failed. Please check your details and try again.';
       showError(message);
     } finally {
@@ -195,7 +218,7 @@ export default function RegisterDoctorScreen() {
 
   // ── Progress Bar ────────────────────────────────────────────────────────────
 
-  const stepLabels = ['1. Personal', '2. Practice', '3. Languages', '4. Security'];
+  const stepLabels = ['1. Personal', '2. Practice', '3. Security'];
 
   function renderProgressBar() {
     return (
@@ -359,30 +382,12 @@ export default function RegisterDoctorScreen() {
           activeOutlineColor={COLORS.primary}
         />
 
-        <TextInput
-          label="Practice Name (optional)"
-          value={practiceName}
-          onChangeText={setPracticeName}
-          mode="outlined"
-          style={styles.input}
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.primary}
-        />
-
-        <TextInput
-          label="Consultation Fee (ZAR) *"
-          value={consultationFee}
-          onChangeText={setConsultationFee}
-          mode="outlined"
-          keyboardType="numeric"
-          placeholder="e.g. 800"
-          style={styles.input}
-          error={!!errors.consultationFee}
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.primary}
-          left={<TextInput.Affix text="R" />}
-        />
-        {!!errors.consultationFee && <HelperText type="error" visible>{errors.consultationFee}</HelperText>}
+        <View style={styles.profileLaterNotice}>
+          <Text style={styles.profileLaterNoticeText}>
+            Consultation fee, practice name and the languages you consult in are set up
+            later in your profile.
+          </Text>
+        </View>
 
         <Button
           mode="contained"
@@ -398,72 +403,9 @@ export default function RegisterDoctorScreen() {
     );
   }
 
-  // ── Step 3: Languages ───────────────────────────────────────────────────────
+  // ── Step 3: Security ────────────────────────────────────────────────────────
 
   function renderStep3() {
-    function toggleLanguage(code: string) {
-      setLanguagesSpoken((prev) =>
-        prev.includes(code) ? prev.filter((l) => l !== code) : [...prev, code]
-      );
-    }
-
-    return (
-      <View>
-        <Text style={styles.stepTitle}>Languages Spoken</Text>
-        <Text style={styles.stepSubtitle}>
-          Select all languages you can consult in. Patients will be matched based on their preferred language.
-        </Text>
-
-        <View style={styles.chipGrid}>
-          {SA_LANGUAGES.map((lang) => {
-            const selected = languagesSpoken.includes(lang.code);
-            return (
-              <Chip
-                key={lang.code}
-                selected={selected}
-                onPress={() => toggleLanguage(lang.code)}
-                style={[
-                  styles.langChip,
-                  { backgroundColor: selected ? COLORS.primary : COLORS.surfaceVariant },
-                ]}
-                textStyle={{ color: selected ? COLORS.white : COLORS.text, fontSize: 13 }}
-                icon={lang.flag ? () => <Text style={{ fontSize: 14 }}>{lang.flag}</Text> : undefined}
-              >
-                {lang.name}
-              </Chip>
-            );
-          })}
-        </View>
-
-        {languagesSpoken.length === 0 && (
-          <HelperText type="error" visible>
-            Please select at least one language.
-          </HelperText>
-        )}
-
-        <Button
-          mode="contained"
-          onPress={() => {
-            if (languagesSpoken.length === 0) {
-              showError('Please select at least one language.');
-              return;
-            }
-            setCurrentStep(4);
-          }}
-          style={styles.nextButton}
-          contentStyle={styles.nextButtonContent}
-          buttonColor={COLORS.primary}
-          labelStyle={styles.nextButtonLabel}
-        >
-          Next →
-        </Button>
-      </View>
-    );
-  }
-
-  // ── Step 4: Security ────────────────────────────────────────────────────────
-
-  function renderStep4() {
     return (
       <View>
         <Text style={styles.stepTitle}>Account Security</Text>
@@ -570,7 +512,6 @@ export default function RegisterDoctorScreen() {
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
-        {currentStep === 4 && renderStep4()}
       </ScrollView>
 
       <Snackbar
@@ -687,6 +628,19 @@ const styles = StyleSheet.create({
   hpcsaNoticeText: {
     fontSize: 13,
     color: '#856404',
+    lineHeight: 19,
+  },
+  profileLaterNotice: {
+    backgroundColor: COLORS.primary + '12',
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginTop: SPACING.md,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  profileLaterNoticeText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
     lineHeight: 19,
   },
 
