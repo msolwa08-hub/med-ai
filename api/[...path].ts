@@ -5,10 +5,6 @@
  * app calls /beta/*, /cockpit/*, /tools/* and /health; vercel.json rewrites
  * those to /api/<same-path>, so here we strip the leading "/api" and emit the
  * request into the shared Fastify app (built once, reused across invocations).
- *
- * Session state lives in Vercel KV when KV_REST_API_URL + KV_REST_API_TOKEN are
- * set (see session-store.ts) — required for correctness, since serverless
- * instances don't share memory.
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';

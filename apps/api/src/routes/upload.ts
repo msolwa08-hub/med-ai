@@ -28,7 +28,8 @@ export async function uploadRoutes(fastify: FastifyInstance): Promise<void> {
    */
   fastify.post(
     '/upload/profile-photo',
-    { preHandler: [authenticate] },
+    // base64 inflates ~4/3, so a 5 MB image needs ~7 MB of JSON body
+    { preHandler: [authenticate], bodyLimit: 10 * 1024 * 1024 },
     async (request, reply) => {
       try {
         const userId = request.user!.sub;

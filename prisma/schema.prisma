@@ -30,17 +30,17 @@ enum Gender {
 }
 
 enum PreferredLanguage {
-  en   // English
-  zu   // isiZulu
-  xh   // isiXhosa
-  af   // Afrikaans
-  nso  // Sepedi / Northern Sotho
-  tn   // Setswana
-  st   // Sesotho
-  ts   // Xitsonga
-  ss   // Siswati
-  ve   // Tshivenda
-  nr   // isiNdebele
+  en // English
+  zu // isiZulu
+  xh // isiXhosa
+  af // Afrikaans
+  nso // Sepedi / Northern Sotho
+  tn // Setswana
+  st // Sesotho
+  ts // Xitsonga
+  ss // Siswati
+  ve // Tshivenda
+  nr // isiNdebele
 }
 
 enum HpcsaStatus {
@@ -99,8 +99,8 @@ enum OtpPurpose {
 }
 
 enum PracticeMode {
-  OPEN_LOOP    // Data on MedAI cloud — doctor appears in patient marketplace
-  CLOSED_LOOP  // Data on doctor's own cloud — private practice only
+  OPEN_LOOP // Data on MedAI cloud — doctor appears in patient marketplace
+  CLOSED_LOOP // Data on doctor's own cloud — private practice only
 }
 
 enum LabProvider {
@@ -127,9 +127,9 @@ enum PaymentStatus {
 }
 
 enum AiHistoryDepth {
-  FOCUSED        // 12–18 exchanges, short symptom chains
-  STANDARD       // 18–25 exchanges, full chains, skip health promotion if short on time
-  COMPREHENSIVE  // No exchange limit, every symptom chain fully explored, all priorities
+  FOCUSED // 12–18 exchanges, short symptom chains
+  STANDARD // 18–25 exchanges, full chains, skip health promotion if short on time
+  COMPREHENSIVE // No exchange limit, every symptom chain fully explored, all priorities
 }
 
 enum PaymentMethod {
@@ -138,10 +138,10 @@ enum PaymentMethod {
 }
 
 enum PatientLiteracyLevel {
-  LOW       // Simple yes/no questions
-  MEDIUM    // Everyday language
-  HIGH      // Can handle clinical terminology
-  UNKNOWN   // Not yet assessed (default)
+  LOW // Simple yes/no questions
+  MEDIUM // Everyday language
+  HIGH // Can handle clinical terminology
+  UNKNOWN // Not yet assessed (default)
 }
 
 // ============================================================
@@ -170,30 +170,30 @@ model User {
 }
 
 model Patient {
-  id                       String            @id @default(cuid())
-  userId                   String            @unique
-  firstName                String
-  lastName                 String
-  dateOfBirth              DateTime
-  gender                   Gender
+  id                      String            @id @default(cuid())
+  userId                  String            @unique
+  firstName               String
+  lastName                String
+  dateOfBirth             DateTime
+  gender                  Gender
   // AES-256-GCM encrypted fields (stored as base64 JSON: {encryptedData, iv, authTag})
-  idNumber                 String?           // encrypted South African ID number
-  nationalHealthInsurance  String?           // NHI number
-  emergencyContact         String?           // encrypted JSON: {name, phone, relationship}
-  preferredLanguage        PreferredLanguage @default(en)
-  consentVersion           String?           // version of consent form accepted
-  createdAt                DateTime          @default(now())
-  updatedAt                DateTime          @updatedAt
+  idNumber                String? // encrypted South African ID number
+  nationalHealthInsurance String? // NHI number
+  emergencyContact        String? // encrypted JSON: {name, phone, relationship}
+  preferredLanguage       PreferredLanguage @default(en)
+  consentVersion          String? // version of consent form accepted
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  consultations     Consultation[]
-  consentRecords    ConsentRecord[]
-  reviews           Review[]
-  literacy          PatientLiteracy?
-  emergencyProfile  EmergencyProfile?
-  labAccounts       PatientLabAccount[]
-  labResults        LabResult[]
-  payments          Payment[]
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations    Consultation[]
+  consentRecords   ConsentRecord[]
+  reviews          Review[]
+  literacy         PatientLiteracy?
+  emergencyProfile EmergencyProfile?
+  labAccounts      PatientLabAccount[]
+  labResults       LabResult[]
+  payments         Payment[]
 
   @@index([userId])
   @@map("patients")
@@ -208,7 +208,7 @@ model Doctor {
   hpcsaStatus        HpcsaStatus @default(PENDING)
   hpcsaVerifiedAt    DateTime?
   specialization     String?
-  qualifications     Json?       // array of {degree, institution, year}
+  qualifications     Json? // array of {degree, institution, year}
   practiceNumber     String?
   doctorType         DoctorType  @default(GP)
   isAvailable        Boolean     @default(false)
@@ -216,9 +216,9 @@ model Doctor {
   currentLng         Float?
   availabilityRadius Float       @default(10) // km
   consultationFee    Float?
-  profilePhoto       String?     // S3 key
+  profilePhoto       String? // S3 key
   bio                String?
-  languages          String[]    // array of PreferredLanguage codes
+  languages          String[] // array of PreferredLanguage codes
   languagesSpoken    String[]    @default([])
   practiceName       String?
   practiceAddress    String?
@@ -227,14 +227,14 @@ model Doctor {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
-  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  consultations     Consultation[]
-  availabilityLogs  DoctorAvailabilityLog[]
-  consentRecords    ConsentRecord[]
-  reviews           Review[]
-  settings          DoctorSettings?
-  incentiveScore    DoctorIncentiveScore?
-  payments          Payment[]
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations    Consultation[]
+  availabilityLogs DoctorAvailabilityLog[]
+  consentRecords   ConsentRecord[]
+  reviews          Review[]
+  settings         DoctorSettings?
+  incentiveScore   DoctorIncentiveScore?
+  payments         Payment[]
 
   @@index([userId])
   @@index([hpcsaNumber])
@@ -269,9 +269,9 @@ model Consultation {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
-  patient              Patient               @relation(fields: [patientId], references: [id])
-  doctor               Doctor?               @relation(fields: [doctorId], references: [id])
-  payment              Payment?
+  patient               Patient                @relation(fields: [patientId], references: [id])
+  doctor                Doctor?                @relation(fields: [doctorId], references: [id])
+  payment               Payment?
   medicalHistory        MedicalHistory?
   differentialDiagnosis DifferentialDiagnosis?
   examinationFindings   ExaminationFindings?
@@ -289,28 +289,28 @@ model Consultation {
 }
 
 model MedicalHistory {
-  id                    String               @id @default(cuid())
-  consultationId        String               @unique
-  language              PreferredLanguage    @default(en)
-  literacyLevel         PatientLiteracyLevel @default(UNKNOWN)
+  id                      String               @id @default(cuid())
+  consultationId          String               @unique
+  language                PreferredLanguage    @default(en)
+  literacyLevel           PatientLiteracyLevel @default(UNKNOWN)
   // All fields below are AES-256-GCM encrypted with consultation data key
-  chiefComplaint        String    // encrypted
-  historyOfPresentIllness String  // encrypted
-  pastMedicalHistory    String    // encrypted
-  medications           String    // encrypted
-  allergies             String    // encrypted
-  familyHistory         String    // encrypted
-  socialHistory         String    // encrypted
-  systemsReview         String    // encrypted
-  clinicalScores        String?   // encrypted — validated clinical scores (CRB-65, IPSS, PHQ-9, etc.)
-  opportunisticFindings String?   // encrypted — health promotion / screening findings
-  redFlagsIdentified    String?   // encrypted — red flag symptoms noted
-  aiConversationLog     String    // encrypted JSON - full AI conversation
-  doctorConfirmed       Boolean   @default(false)
-  doctorNotes           String?   // encrypted
-  confirmedAt           DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  chiefComplaint          String // encrypted
+  historyOfPresentIllness String // encrypted
+  pastMedicalHistory      String // encrypted
+  medications             String // encrypted
+  allergies               String // encrypted
+  familyHistory           String // encrypted
+  socialHistory           String // encrypted
+  systemsReview           String // encrypted
+  clinicalScores          String? // encrypted — validated clinical scores (CRB-65, IPSS, PHQ-9, etc.)
+  opportunisticFindings   String? // encrypted — health promotion / screening findings
+  redFlagsIdentified      String? // encrypted — red flag symptoms noted
+  aiConversationLog       String // encrypted JSON - full AI conversation
+  doctorConfirmed         Boolean              @default(false)
+  doctorNotes             String? // encrypted
+  confirmedAt             DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
 
   consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
 
@@ -319,16 +319,16 @@ model MedicalHistory {
 }
 
 model DifferentialDiagnosis {
-  id                     String    @id @default(cuid())
-  consultationId         String    @unique
+  id                      String    @id @default(cuid())
+  consultationId          String    @unique
   // JSON array: [{diagnosis, icdCode, probability, reasoning}]
-  diagnoses              Json
-  aiModel                String
-  generatedAt            DateTime  @default(now())
-  doctorReviewed         Boolean   @default(false)
+  diagnoses               Json
+  aiModel                 String
+  generatedAt             DateTime  @default(now())
+  doctorReviewed          Boolean   @default(false)
   doctorSelectedDiagnosis String?
-  doctorNotes            String?
-  reviewedAt             DateTime?
+  doctorNotes             String?
+  reviewedAt              DateTime?
 
   consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
 
@@ -340,10 +340,10 @@ model ExaminationFindings {
   id             String   @id @default(cuid())
   consultationId String   @unique
   // All fields encrypted with consultation data key
-  vitalSigns     String   // encrypted JSON: {bp, hr, rr, temp, spo2, weight, height}
-  generalExam    String   // encrypted
-  systemicExam   String   // encrypted JSON: {cvs, resp, abdo, neuro, msk}
-  doctorNotes    String?  // encrypted
+  vitalSigns     String // encrypted JSON: {bp, hr, rr, temp, spo2, weight, height}
+  generalExam    String // encrypted
+  systemicExam   String // encrypted JSON: {cvs, resp, abdo, neuro, msk}
+  doctorNotes    String? // encrypted
   recordedAt     DateTime @default(now())
 
   consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
@@ -353,18 +353,18 @@ model ExaminationFindings {
 }
 
 model Investigation {
-  id                   String               @id @default(cuid())
-  consultationId       String
-  type                 InvestigationType
-  name                 String
-  urgency              InvestigationUrgency @default(ROUTINE)
-  specialInstructions  String?
-  encryptedResult      String?              // encrypted result data
-  resultDate           DateTime?
-  uploadedFileKey      String?              // encrypted S3 key
-  requestedBy          String               // doctorId
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  id                  String               @id @default(cuid())
+  consultationId      String
+  type                InvestigationType
+  name                String
+  urgency             InvestigationUrgency @default(ROUTINE)
+  specialInstructions String?
+  encryptedResult     String? // encrypted result data
+  resultDate          DateTime?
+  uploadedFileKey     String? // encrypted S3 key
+  requestedBy         String // doctorId
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
 
@@ -376,14 +376,14 @@ model ManagementPlan {
   id                  String   @id @default(cuid())
   consultationId      String   @unique
   // All fields encrypted with consultation data key
-  diagnosis           String   // encrypted
-  medications         String   // encrypted JSON array: [{name, dose, frequency, duration, route}]
-  procedures          String?  // encrypted
-  referrals           String?  // encrypted JSON: [{specialty, reason, urgency}]
-  followUpDays        Int?     // number of days for follow-up
-  followUpDate        String?  // ISO date string
-  patientInstructions String?  // encrypted patient-facing instructions
-  doctorNotes         String?  // encrypted
+  diagnosis           String // encrypted
+  medications         String // encrypted JSON array: [{name, dose, frequency, duration, route}]
+  procedures          String? // encrypted
+  referrals           String? // encrypted JSON: [{specialty, reason, urgency}]
+  followUpDays        Int? // number of days for follow-up
+  followUpDate        String? // ISO date string
+  patientInstructions String? // encrypted patient-facing instructions
+  doctorNotes         String? // encrypted
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -420,7 +420,7 @@ model Review {
   patientId      String
   doctorId       String
   consultationId String
-  rating         Int      // 1-5
+  rating         Int // 1-5
   comment        String?
   createdAt      DateTime @default(now())
 
@@ -453,18 +453,18 @@ model OTP {
 // ─────────────────────────────────────────────────────────
 
 model DoctorSettings {
-  id              String         @id @default(cuid())
-  doctorId        String         @unique
-  doctor          Doctor         @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  practiceMode    PracticeMode   @default(OPEN_LOOP)
-  aiHistoryDepth  AiHistoryDepth @default(STANDARD)
+  id             String         @id @default(cuid())
+  doctorId       String         @unique
+  doctor         Doctor         @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  practiceMode   PracticeMode   @default(OPEN_LOOP)
+  aiHistoryDepth AiHistoryDepth @default(STANDARD)
   // Closed-loop: doctor's own cloud storage
-  cloudProvider   String?        // 'aws' | 'azure' | 'gcp'
-  cloudBucket     String?
-  cloudRegion     String?
-  cloudAccessKey  String?        // encrypted
-  cloudSecretKey  String?        // encrypted
-  updatedAt       DateTime       @updatedAt
+  cloudProvider  String? // 'aws' | 'azure' | 'gcp'
+  cloudBucket    String?
+  cloudRegion    String?
+  cloudAccessKey String? // encrypted
+  cloudSecretKey String? // encrypted
+  updatedAt      DateTime       @updatedAt
 
   @@map("doctor_settings")
 }
@@ -474,14 +474,14 @@ model DoctorSettings {
 // ─────────────────────────────────────────────────────────
 
 model DoctorIncentiveScore {
-  id                String   @id @default(cuid())
-  doctorId          String   @unique
-  doctor            Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  totalPoints       Int      @default(0)
-  completionRate    Float    @default(0)   // % of consultations with full SOAP
-  streakDays        Int      @default(0)   // consecutive days with completed records
-  priorityBoost     Float    @default(1.0) // multiplier for search ranking
-  lastCalculated    DateTime @default(now())
+  id             String   @id @default(cuid())
+  doctorId       String   @unique
+  doctor         Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  totalPoints    Int      @default(0)
+  completionRate Float    @default(0) // % of consultations with full SOAP
+  streakDays     Int      @default(0) // consecutive days with completed records
+  priorityBoost  Float    @default(1.0) // multiplier for search ranking
+  lastCalculated DateTime @default(now())
 
   @@map("doctor_incentive_scores")
 }
@@ -507,20 +507,20 @@ model PatientLiteracy {
 // ─────────────────────────────────────────────────────────
 
 model EmergencyProfile {
-  id                    String   @id @default(cuid())
-  patientId             String   @unique
-  patient               Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  bloodType             String?
+  id                   String   @id @default(cuid())
+  patientId            String   @unique
+  patient              Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bloodType            String?
   // Encrypted but accessible via QR emergency token
-  encryptedAllergies    String?
-  encryptedMedications  String?
-  encryptedConditions   String?
-  encryptedContacts     String?
-  organDonor            Boolean  @default(false)
+  encryptedAllergies   String?
+  encryptedMedications String?
+  encryptedConditions  String?
+  encryptedContacts    String?
+  organDonor           Boolean  @default(false)
   // QR code emergency access
-  emergencyAccessToken  String?  @unique // hashed token for QR code
-  isEnabled             Boolean  @default(true)
-  updatedAt             DateTime @updatedAt
+  emergencyAccessToken String?  @unique // hashed token for QR code
+  isEnabled            Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
 
   @@map("emergency_profiles")
 }
@@ -530,27 +530,27 @@ model EmergencyProfile {
 // ─────────────────────────────────────────────────────────
 
 model PatientLabAccount {
-  id               String      @id @default(cuid())
-  patientId        String
-  patient          Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  provider         LabProvider
-  providerPatientId String     // patient ID at the lab
+  id                   String      @id @default(cuid())
+  patientId            String
+  patient              Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider             LabProvider
+  providerPatientId    String // patient ID at the lab
   encryptedAccessToken String? // encrypted OAuth/API token
-  isActive         Boolean     @default(true)
-  linkedAt         DateTime    @default(now())
-  lastSyncAt       DateTime?
-  labResults       LabResult[]
+  isActive             Boolean     @default(true)
+  linkedAt             DateTime    @default(now())
+  lastSyncAt           DateTime?
+  labResults           LabResult[]
 
   @@unique([patientId, provider])
   @@map("patient_lab_accounts")
 }
 
 model LabResult {
-  id               String      @id @default(cuid())
+  id               String            @id @default(cuid())
   patientId        String
-  patient          Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
   consultationId   String?
-  consultation     Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  consultation     Consultation?     @relation(fields: [consultationId], references: [id], onDelete: SetNull)
   labAccountId     String
   labAccount       PatientLabAccount @relation(fields: [labAccountId], references: [id], onDelete: Cascade)
   provider         LabProvider
@@ -562,8 +562,8 @@ model LabResult {
   encryptedResults String
   // S3 key for raw PDF report (encrypted)
   encryptedPdfKey  String?
-  isAbnormal       Boolean     @default(false)
-  importedAt       DateTime    @default(now())
+  isAbnormal       Boolean           @default(false)
+  importedAt       DateTime          @default(now())
 
   @@unique([provider, externalResultId])
   @@index([patientId, collectedAt])
@@ -576,13 +576,13 @@ model LabResult {
 // ─────────────────────────────────────────────────────────
 
 model ICD10Code {
-  code        String     @id   // e.g., "J18.9"
+  code        String      @id // e.g., "J18.9"
   description String
-  category    String?          // chapter name
-  blockCode   String?          // e.g., "J10-J18"
-  isLeaf      Boolean    @default(true)
+  category    String? // chapter name
+  blockCode   String? // e.g., "J10-J18"
+  isLeaf      Boolean     @default(true)
   parentCode  String?
-  parent      ICD10Code? @relation("ICD10Hierarchy", fields: [parentCode], references: [code])
+  parent      ICD10Code?  @relation("ICD10Hierarchy", fields: [parentCode], references: [code])
   children    ICD10Code[] @relation("ICD10Hierarchy")
   stgEntry    STGEntry?
 
@@ -596,25 +596,25 @@ model ICD10Code {
 // ─────────────────────────────────────────────────────────
 
 model STGEntry {
-  id              String    @id @default(cuid())
-  icd10Code       String    @unique
-  icd10           ICD10Code @relation(fields: [icd10Code], references: [code])
-  conditionName   String
-  synonyms        String[]  @default([])
-  category        String    // "Respiratory", "Cardiovascular", etc.
-  subCategory     String?
-  levelOfCare     String    // "Primary", "Secondary", "Tertiary", "All"
-  edition         String    @default("8th Edition 2023")
+  id                   String    @id @default(cuid())
+  icd10Code            String    @unique
+  icd10                ICD10Code @relation(fields: [icd10Code], references: [code])
+  conditionName        String
+  synonyms             String[]  @default([])
+  category             String // "Respiratory", "Cardiovascular", etc.
+  subCategory          String?
+  levelOfCare          String // "Primary", "Secondary", "Tertiary", "All"
+  edition              String    @default("8th Edition 2023")
   // JSON arrays of treatment info
-  firstLineTreatment   Json  // [{medication, dose, route, frequency, duration, notes}]
+  firstLineTreatment   Json // [{medication, dose, route, frequency, duration, notes}]
   alternativeTreatment Json? // [{medication, dose, route, frequency, duration, notes, indication}]
-  investigations  Json      // [{name, urgency: "ROUTINE|URGENT|STAT", rationale}]
-  referralCriteria String?
-  redFlags        String?   // comma-separated red flag symptoms
-  followUpAdvice  String?
-  notes           String?
-  saPrevalence    String?   // "Common", "Uncommon", "Rare in SA"
-  updatedAt       DateTime  @updatedAt
+  investigations       Json // [{name, urgency: "ROUTINE|URGENT|STAT", rationale}]
+  referralCriteria     String?
+  redFlags             String? // comma-separated red flag symptoms
+  followUpAdvice       String?
+  notes                String?
+  saPrevalence         String? // "Common", "Uncommon", "Rare in SA"
+  updatedAt            DateTime  @updatedAt
 
   @@index([conditionName])
   @@index([category])
@@ -635,7 +635,7 @@ model Prescription {
   issueDate       DateTime           @default(now())
   validUntilDate  DateTime?
   // Encrypted prescription items JSON
-  encryptedItems  String             // [{name, dose, route, frequency, duration, quantity, instructions, isScheduled}]
+  encryptedItems  String // [{name, dose, route, frequency, duration, quantity, instructions, isScheduled}]
   containsDDA     Boolean            @default(false) // Dangerous Drugs Act scheduled substances
   isRepeat        Boolean            @default(false)
   repeatTotal     Int                @default(0)
@@ -678,10 +678,10 @@ model Payment {
 model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
-  action     String   // e.g., "VIEW_MEDICAL_HISTORY", "UPDATE_CONSULTATION"
-  resource   String   // e.g., "MedicalHistory", "Consultation"
+  action     String // e.g., "VIEW_MEDICAL_HISTORY", "UPDATE_CONSULTATION"
+  resource   String // e.g., "MedicalHistory", "Consultation"
   resourceId String?
-  metadata   Json?    // additional context
+  metadata   Json? // additional context
   ipAddress  String?
   userAgent  String?
   createdAt  DateTime @default(now())

@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import formbody from '@fastify/formbody';
 import { betaRoutes } from './routes/beta.js';
 import { cockpitRoutes } from './routes/cockpit.js';
 import { toolsRoutes } from './routes/tools.js';
@@ -22,6 +23,9 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
     max: 100,
     timeWindow: '1 minute',
   });
+
+  // PayFast ITN posts application/x-www-form-urlencoded
+  await app.register(formbody);
 
   // Health check
   app.get('/health', async () => ({ status: 'ok', env: betaConfig.NODE_ENV }));

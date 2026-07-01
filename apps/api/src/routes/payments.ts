@@ -205,6 +205,21 @@ export async function paymentRoutes(fastify: FastifyInstance): Promise<void> {
         }
 
         if (paymentStatus === 'COMPLETE') {
+          // Cross-check the paid amount against our record (PayFast security guideline)
+          const record = await prisma.payment.findUnique({ where: { id: paymentId } });
+          if (!record) {
+            fastify.log.warn({ paymentId }, 'PayFast ITN: unknown payment id — ignoring');
+            return;
+          }
+          const amountGross = parseFloat(body['amount_gross'] ?? '');
+          if (Number.isFinite(amountGross) && Math.abs(amountGross - record.amountTotal) > 0.01) {
+            fastify.log.warn(
+              { paymentId, amountGross, expected: record.amountTotal },
+              'PayFast ITN: amount mismatch — ignoring'
+            );
+            return;
+          }
+
           await prisma.payment.update({
             where: { id: paymentId },
             data: {

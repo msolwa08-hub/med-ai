@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+import formbody from '@fastify/formbody';
 import { config } from './config.js';
 import { prisma } from './lib/prisma.js';
 import { authRoutes } from './routes/auth.js';
@@ -50,6 +51,8 @@ await fastify.register(cors, {
 await fastify.register(helmet, { contentSecurityPolicy: false });
 await fastify.register(jwt, { secret: config.JWT_SECRET });
 await fastify.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+// PayFast ITN posts application/x-www-form-urlencoded
+await fastify.register(formbody);
 
 await fastify.register(authRoutes);
 await fastify.register(patientRoutes);
