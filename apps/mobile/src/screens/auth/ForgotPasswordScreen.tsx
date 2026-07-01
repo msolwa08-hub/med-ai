@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   StatusBar,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { TextInput, HelperText } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -47,6 +48,7 @@ export default function ForgotPasswordScreen() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   async function handleSendCode() {
     setApiError(null);
@@ -73,12 +75,12 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoid}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.systemGroupedBackground} />
-      <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
 
         {/* HEADER */}
         <View style={styles.header}>
@@ -87,13 +89,15 @@ export default function ForgotPasswordScreen() {
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
-            <Text style={styles.backArrow}>{'←'}</Text>
+            <Text style={styles.backChevron}>{'‹'}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Reset Password</Text>
+          <Text style={styles.headerTitle}>Forgot password?</Text>
           <Text style={styles.headerSubtitle}>
-            Enter your registered phone number and we'll send you a verification code.
+            No stress — enter your registered phone number and we'll send you a verification code.
           </Text>
         </View>
 
@@ -104,7 +108,7 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.formContainer}>
+          <View style={styles.formCard}>
             <Text style={styles.fieldLabel}>Phone Number</Text>
             <TextInput
               mode="flat"
@@ -115,13 +119,15 @@ export default function ForgotPasswordScreen() {
                 setPhoneError(null);
                 setApiError(null);
               }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               keyboardType="phone-pad"
               autoComplete="tel"
               textContentType="telephoneNumber"
               error={!!phoneError}
               underlineColor="transparent"
               activeUnderlineColor="transparent"
-              style={styles.flatInput}
+              style={[styles.flatInput, isFocused && styles.inputFocused]}
               left={<TextInput.Icon icon="phone-outline" color={COLORS.secondaryLabel} />}
               returnKeyType="done"
               onSubmitEditing={handleSendCode}
@@ -147,23 +153,30 @@ export default function ForgotPasswordScreen() {
               onPress={handleSendCode}
               disabled={isLoading}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
-              <Text style={styles.primaryButtonText}>
-                {isLoading ? 'Sending…' : 'Send Code'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.backToLoginLink}
-              onPress={() => navigation.navigate('Login')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.backToLoginText}>Back to Sign In</Text>
+              {isLoading ? (
+                <View style={styles.buttonLoadingRow}>
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                  <Text style={styles.primaryButtonText}>Sending…</Text>
+                </View>
+              ) : (
+                <Text style={styles.primaryButtonText}>Send Code</Text>
+              )}
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={styles.backToLoginLink}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Text style={styles.backToLoginText}>Back to Sign In</Text>
+          </TouchableOpacity>
         </ScrollView>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -186,41 +199,46 @@ const styles = StyleSheet.create({
   // HEADER
   header: {
     backgroundColor: COLORS.systemGroupedBackground,
-    paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.sm,
     paddingBottom: 0,
   },
   backButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.systemGray6,
+    backgroundColor: COLORS.systemBackground,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
-  backArrow: {
-    fontSize: 18,
+  backChevron: {
+    fontSize: 28,
     color: COLORS.primary,
     fontWeight: '600',
-    lineHeight: 22,
+    lineHeight: 30,
+    marginTop: -2,
   },
   headerTitle: {
     ...TYPOGRAPHY.largeTitle,
     color: COLORS.label,
-    marginTop: 40,
+    marginTop: SPACING.lg,
   },
   headerSubtitle: {
     ...TYPOGRAPHY.body,
     color: COLORS.secondaryLabel,
-    marginTop: 8,
-    marginBottom: 32,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xl,
   },
 
-  // FORM
-  formContainer: {
-    marginHorizontal: 24,
-    marginTop: 8,
+  // FORM CARD (card-on-soft-background)
+  formCard: {
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.xs,
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.lg,
+    ...SHADOWS.sm,
   },
   fieldLabel: {
     ...TYPOGRAPHY.footnote,
@@ -228,15 +246,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   flatInput: {
-    backgroundColor: COLORS.systemBackground,
+    backgroundColor: COLORS.systemGray6,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.separator,
     height: 56,
     ...TYPOGRAPHY.body,
+  },
+  inputFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.systemBackground,
   },
   helperText: {
     ...TYPOGRAPHY.footnote,
@@ -250,9 +272,9 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.systemRed,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginTop: 12,
+    paddingVertical: SPACING.md - SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    marginTop: SPACING.md - SPACING.xs,
   },
   apiErrorText: {
     ...TYPOGRAPHY.footnote,
@@ -264,26 +286,33 @@ const styles = StyleSheet.create({
     height: 56,
     width: '100%',
     backgroundColor: COLORS.primary,
-    borderRadius: 14,
+    borderRadius: BORDER_RADIUS.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    ...SHADOWS.card,
+    marginTop: SPACING.lg - SPACING.xs,
   },
   primaryButtonDisabled: {
+    backgroundColor: COLORS.primaryLight,
     opacity: 0.55,
   },
   primaryButtonText: {
     ...TYPOGRAPHY.headline,
     color: COLORS.white,
   },
+  buttonLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
 
   // BACK TO LOGIN
   backToLoginLink: {
     alignSelf: 'center',
-    marginTop: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    marginTop: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   backToLoginText: {
     ...TYPOGRAPHY.subheadline,

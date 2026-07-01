@@ -1,22 +1,24 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Button, Snackbar } from 'react-native-paper';
+import { Snackbar } from 'react-native-paper';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 import { useAuthStore } from '@store/authStore';
 import { authApi } from '@api/endpoints';
-import { BORDER_RADIUS, COLORS, SPACING } from '@constants/theme';
+import { BORDER_RADIUS, COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '@constants/theme';
 import type { AuthStackParamList } from '@navigation/AuthNavigator';
 
 // ---------------------------------------------------------------------------
@@ -168,6 +170,7 @@ export default function OTPVerificationScreen(): React.JSX.Element {
   // ------------------------------------------------------------------
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.systemGroupedBackground} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -183,78 +186,94 @@ export default function OTPVerificationScreen(): React.JSX.Element {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
-            <Text style={styles.backArrow}>{'←'}</Text>
+            <Text style={styles.backChevron}>{'‹'}</Text>
           </TouchableOpacity>
 
-          {/* Lock icon */}
-          <View style={styles.iconCircle}>
-            <Text style={styles.iconEmoji}>{'🔐'}</Text>
-          </View>
+          {/* CARD */}
+          <View style={styles.card}>
+            {/* Lock icon */}
+            <View style={styles.iconCircle}>
+              <Text style={styles.iconEmoji}>{'🔐'}</Text>
+            </View>
 
-          {/* Title */}
-          <Text style={styles.title}>Enter Verification Code</Text>
+            {/* Title */}
+            <Text style={styles.title}>Enter verification code</Text>
 
-          {/* Subtitle */}
-          <Text style={styles.subtitle}>{`We sent a 6-digit code to\n${phone}`}</Text>
+            {/* Subtitle */}
+            <Text style={styles.subtitle}>{`We sent a 6-digit code to\n${phone}`}</Text>
 
-          {/* OTP boxes */}
-          <View style={styles.otpRow}>
-            {Array.from({ length: OTP_LENGTH }, (_, i) => {
-              const isFocused = focusedIndex === i;
-              const isFilled = digits[i] !== '';
-              return (
-                <TextInput
-                  key={i}
-                  ref={(el) => {
-                    inputRefs.current[i] = el;
-                  }}
-                  style={[
-                    styles.digitBox,
-                    (isFocused || isFilled) && styles.digitBoxActive,
-                  ]}
-                  value={digits[i]}
-                  onChangeText={(text) => handleDigitChange(text, i)}
-                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
-                  onFocus={() => setFocusedIndex(i)}
-                  onBlur={() => setFocusedIndex(null)}
-                  keyboardType="numeric"
-                  maxLength={1}
-                  selectTextOnFocus
-                  textAlign="center"
-                  returnKeyType="done"
-                  caretHidden={Platform.OS === 'ios'}
-                />
-              );
-            })}
-          </View>
+            {/* OTP boxes */}
+            <View style={styles.otpRow}>
+              {Array.from({ length: OTP_LENGTH }, (_, i) => {
+                const isFocused = focusedIndex === i;
+                const isFilled = digits[i] !== '';
+                return (
+                  <TextInput
+                    key={i}
+                    ref={(el) => {
+                      inputRefs.current[i] = el;
+                    }}
+                    style={[
+                      styles.digitBox,
+                      isFilled && styles.digitBoxFilled,
+                      isFocused && styles.digitBoxFocused,
+                    ]}
+                    value={digits[i]}
+                    onChangeText={(text) => handleDigitChange(text, i)}
+                    onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
+                    onFocus={() => setFocusedIndex(i)}
+                    onBlur={() => setFocusedIndex(null)}
+                    keyboardType="numeric"
+                    maxLength={1}
+                    selectTextOnFocus
+                    textAlign="center"
+                    returnKeyType="done"
+                    caretHidden={Platform.OS === 'ios'}
+                  />
+                );
+              })}
+            </View>
 
-          {/* Timer / Resend */}
-          <View style={styles.timerSection}>
-            {countdown > 0 ? (
-              <Text style={styles.countdownText}>{`Resend in ${countdown}s`}</Text>
-            ) : (
-              <TouchableOpacity onPress={handleResend} activeOpacity={0.7}>
-                <Text style={styles.resendText}>Resend Code</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+            {/* Timer / Resend */}
+            <View style={styles.timerSection}>
+              {countdown > 0 ? (
+                <Text style={styles.countdownText}>{`Resend in ${countdown}s`}</Text>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleResend}
+                  activeOpacity={0.7}
+                  style={styles.resendTouch}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.resendText}>Resend Code</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-          {/* Verify button */}
-          <View style={styles.buttonWrapper}>
-            <Button
-              mode="contained"
+            {/* Verify button */}
+            <TouchableOpacity
+              style={[
+                styles.verifyButton,
+                (!isOtpComplete || isLoading) && styles.verifyButtonDisabled,
+              ]}
               onPress={handleVerify}
               disabled={!isOtpComplete || isLoading}
-              loading={isLoading}
-              contentStyle={styles.verifyButtonContent}
-              style={styles.verifyButton}
-              labelStyle={styles.verifyButtonLabel}
-              buttonColor={COLORS.primary}
+              activeOpacity={0.85}
+              accessibilityRole="button"
             >
-              Verify Code
-            </Button>
+              {isLoading ? (
+                <View style={styles.buttonLoadingRow}>
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                  <Text style={styles.verifyButtonText}>Verifying…</Text>
+                </View>
+              ) : (
+                <Text style={styles.verifyButtonText}>Verify Code</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -279,37 +298,55 @@ export default function OTPVerificationScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.systemGroupedBackground,
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.xxl,
   },
 
   // Back button
   backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.systemBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    marginTop: SPACING.md,
-    marginBottom: SPACING.md,
-    padding: SPACING.xs,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
-  backArrow: {
-    fontSize: 24,
+  backChevron: {
+    fontSize: 28,
     color: COLORS.primary,
     fontWeight: '600',
+    lineHeight: 30,
+    marginTop: -2,
+  },
+
+  // Card (card-on-soft-background)
+  card: {
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: BORDER_RADIUS.xl,
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    alignItems: 'center',
+    ...SHADOWS.sm,
   },
 
   // Icon
   iconCircle: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(26, 58, 107, 0.12)',
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.healingMint,
+    borderWidth: 1,
+    borderColor: COLORS.healingTeal,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.lg,
@@ -320,14 +357,13 @@ const styles = StyleSheet.create({
 
   // Headings
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.primary,
+    ...TYPOGRAPHY.title2,
+    color: COLORS.label,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    ...TYPOGRAPHY.subheadline,
+    color: COLORS.secondaryLabel,
     textAlign: 'center',
     marginTop: SPACING.sm,
     marginBottom: SPACING.xl,
@@ -343,54 +379,74 @@ const styles = StyleSheet.create({
   digitBox: {
     width: 48,
     height: 56,
-    borderWidth: 2,
-    borderColor: COLORS.border,
+    borderWidth: 1.5,
+    borderColor: COLORS.separator,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.systemGray6,
     fontSize: 24,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: COLORS.label,
     textAlign: 'center',
   },
-  digitBoxActive: {
+  digitBoxFilled: {
+    backgroundColor: COLORS.systemBackground,
+    borderColor: COLORS.primaryLight,
+    color: COLORS.primaryDark,
+  },
+  digitBoxFocused: {
+    backgroundColor: COLORS.systemBackground,
     borderColor: COLORS.primary,
+    borderWidth: 2,
   },
 
   // Timer
   timerSection: {
-    marginTop: SPACING.lg,
+    marginTop: SPACING.md,
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   countdownText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    ...TYPOGRAPHY.footnote,
+    color: COLORS.secondaryLabel,
+  },
+  resendTouch: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.md,
   },
   resendText: {
-    fontSize: 14,
+    ...TYPOGRAPHY.footnote,
     fontWeight: '600',
     color: COLORS.primary,
   },
 
   // Verify button
-  buttonWrapper: {
-    width: '100%',
-    marginTop: SPACING.xl,
-  },
   verifyButton: {
-    borderRadius: 26,
-    overflow: 'hidden',
+    height: 56,
+    width: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: SPACING.md,
   },
-  verifyButtonContent: {
-    height: 52,
+  verifyButtonDisabled: {
+    backgroundColor: COLORS.primaryLight,
+    opacity: 0.55,
   },
-  verifyButtonLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  verifyButtonText: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.white,
+  },
+  buttonLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
 
   // Snackbar
   snackbar: {
-    backgroundColor: COLORS.text,
+    backgroundColor: COLORS.label,
   },
 });

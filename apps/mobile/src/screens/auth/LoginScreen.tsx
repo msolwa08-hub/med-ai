@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   StatusBar,
   Animated,
+  ActivityIndicator,
   Dimensions,
 } from 'react-native';
 import {
@@ -27,6 +28,8 @@ import type { AuthStackParamList } from '@navigation/AuthNavigator';
 type LoginNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
 type LoginMode = 'phone' | 'email';
+
+type FocusField = 'phone' | 'otp' | 'email' | 'password';
 
 interface FormErrors {
   phone?: string;
@@ -70,7 +73,7 @@ function normalisePhone(phone: string): string {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PILL_CONTAINER_PADDING = 3;
-const PILL_MARGIN = 24;
+const PILL_MARGIN = SPACING.lg;
 
 export default function LoginScreen() {
   const navigation = useNavigation<LoginNavigationProp>();
@@ -87,6 +90,7 @@ export default function LoginScreen() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
+  const [focusedField, setFocusedField] = useState<FocusField | null>(null);
 
   // Animated pill switcher
   const pillAnim = useRef(new Animated.Value(0)).current;
@@ -207,13 +211,17 @@ export default function LoginScreen() {
     outputRange: [0, pillWidth],
   });
 
+  function inputStyle(field: FocusField, base: object) {
+    return [base, focusedField === field && styles.inputFocused];
+  }
+
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoid}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.systemGroupedBackground} />
-      <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
 
         {/* STATIC HEADER — does not scroll */}
         <View style={styles.header}>
@@ -222,12 +230,14 @@ export default function LoginScreen() {
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
-            <Text style={styles.backArrow}>{'←'}</Text>
+            <Text style={styles.backChevron}>{'‹'}</Text>
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Welcome back</Text>
-          <Text style={styles.headerSubtitle}>Sign in to MedAI</Text>
+          <Text style={styles.headerSubtitle}>Sign in to continue your care</Text>
 
           {/* Custom pill segmented control */}
           <View style={styles.pillContainer}>
@@ -275,7 +285,7 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.formContainer}>
+          <View style={styles.formCard}>
             {loginMode === 'phone' ? (
               <View>
                 {!otpSent ? (
@@ -295,13 +305,15 @@ export default function LoginScreen() {
                           setPhone(val);
                           clearFieldError('phone');
                         }}
+                        onFocus={() => setFocusedField('phone')}
+                        onBlur={() => setFocusedField(null)}
                         keyboardType="phone-pad"
                         autoComplete="tel"
                         textContentType="telephoneNumber"
                         error={!!errors.phone}
                         underlineColor="transparent"
                         activeUnderlineColor="transparent"
-                        style={styles.phoneInput}
+                        style={inputStyle('phone', styles.phoneInput)}
                         returnKeyType="done"
                         onSubmitEditing={handleSendOtp}
                       />
@@ -322,9 +334,14 @@ export default function LoginScreen() {
                       disabled={loading}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.primaryButtonText}>
-                        {loading ? 'Sending…' : 'Send OTP'}
-                      </Text>
+                      {loading ? (
+                        <View style={styles.buttonLoadingRow}>
+                          <ActivityIndicator size="small" color={COLORS.white} />
+                          <Text style={styles.primaryButtonText}>Sending…</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.primaryButtonText}>Send OTP</Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -347,12 +364,14 @@ export default function LoginScreen() {
                         setOtp(digits);
                         clearFieldError('otp');
                       }}
+                      onFocus={() => setFocusedField('otp')}
+                      onBlur={() => setFocusedField(null)}
                       keyboardType="number-pad"
                       maxLength={6}
                       error={!!errors.otp}
                       underlineColor="transparent"
                       activeUnderlineColor="transparent"
-                      style={[styles.flatInput, styles.otpInput]}
+                      style={[...inputStyle('otp', styles.flatInput), styles.otpInput]}
                       returnKeyType="done"
                       onSubmitEditing={handlePhoneLogin}
                     />
@@ -375,9 +394,14 @@ export default function LoginScreen() {
                       disabled={loading || otp.length !== 6}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.primaryButtonText}>
-                        {loading ? 'Verifying…' : 'Verify & Sign In'}
-                      </Text>
+                      {loading ? (
+                        <View style={styles.buttonLoadingRow}>
+                          <ActivityIndicator size="small" color={COLORS.white} />
+                          <Text style={styles.primaryButtonText}>Verifying…</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.primaryButtonText}>Verify & Sign In</Text>
+                      )}
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -405,6 +429,8 @@ export default function LoginScreen() {
                     setEmail(val);
                     clearFieldError('email');
                   }}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
@@ -412,7 +438,7 @@ export default function LoginScreen() {
                   error={!!errors.email}
                   underlineColor="transparent"
                   activeUnderlineColor="transparent"
-                  style={styles.flatInput}
+                  style={inputStyle('email', styles.flatInput)}
                   left={<TextInput.Icon icon="email-outline" color={COLORS.secondaryLabel} />}
                   returnKeyType="next"
                 />
@@ -422,7 +448,7 @@ export default function LoginScreen() {
                   </HelperText>
                 ) : null}
 
-                <View style={{ height: 12 }} />
+                <View style={styles.fieldGap} />
 
                 <TextInput
                   mode="flat"
@@ -432,6 +458,8 @@ export default function LoginScreen() {
                     setPassword(val);
                     clearFieldError('password');
                   }}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
                   secureTextEntry={!passwordVisible}
                   autoCapitalize="none"
                   autoComplete="password"
@@ -439,7 +467,7 @@ export default function LoginScreen() {
                   error={!!errors.password}
                   underlineColor="transparent"
                   activeUnderlineColor="transparent"
-                  style={styles.flatInput}
+                  style={inputStyle('password', styles.flatInput)}
                   left={<TextInput.Icon icon="lock-outline" color={COLORS.secondaryLabel} />}
                   right={
                     <TextInput.Icon
@@ -472,9 +500,14 @@ export default function LoginScreen() {
                   disabled={loading}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.primaryButtonText}>
-                    {loading ? 'Signing in…' : 'Sign In'}
-                  </Text>
+                  {loading ? (
+                    <View style={styles.buttonLoadingRow}>
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                      <Text style={styles.primaryButtonText}>Signing in…</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Sign In</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             )}
@@ -489,6 +522,7 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={() => navigation.navigate('RegisterPatient')}
                 activeOpacity={0.7}
+                style={styles.footerLinkTouch}
               >
                 <Text style={styles.registerLink}>Register as Patient</Text>
               </TouchableOpacity>
@@ -496,6 +530,7 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={() => navigation.navigate('RegisterDoctor')}
                 activeOpacity={0.7}
+                style={styles.footerLinkTouch}
               >
                 <Text style={styles.registerLink}>Register as Doctor</Text>
               </TouchableOpacity>
@@ -503,7 +538,7 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={() => navigation.navigate('ForgotPassword')}
               activeOpacity={0.7}
-              style={{ alignSelf: 'center', marginTop: 8 }}
+              style={[styles.footerLinkTouch, styles.footerForgotLink]}
             >
               <Text style={styles.registerLink}>Forgot password?</Text>
             </TouchableOpacity>
@@ -523,8 +558,8 @@ export default function LoginScreen() {
         >
           <Text style={styles.snackbarText}>{snackbarMessage}</Text>
         </Snackbar>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -547,44 +582,45 @@ const styles = StyleSheet.create({
   // STATIC HEADER
   header: {
     backgroundColor: COLORS.systemGroupedBackground,
-    paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingHorizontal: PILL_MARGIN,
+    paddingTop: SPACING.sm,
     paddingBottom: 0,
   },
   backButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.systemGray6,
+    backgroundColor: COLORS.systemBackground,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
-  backArrow: {
-    fontSize: 18,
+  backChevron: {
+    fontSize: 28,
     color: COLORS.primary,
     fontWeight: '600',
-    lineHeight: 22,
+    lineHeight: 30,
+    marginTop: -2,
   },
   headerTitle: {
     ...TYPOGRAPHY.largeTitle,
     color: COLORS.label,
-    marginTop: 40,
+    marginTop: SPACING.lg,
   },
   headerSubtitle: {
     ...TYPOGRAPHY.body,
     color: COLORS.secondaryLabel,
-    marginTop: 8,
-    marginBottom: 32,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xl,
   },
 
   // PILL SWITCHER
   pillContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.systemGray6,
-    borderRadius: 10,
+    backgroundColor: COLORS.systemGray5,
+    borderRadius: BORDER_RADIUS.md,
     padding: PILL_CONTAINER_PADDING,
-    marginBottom: 24,
+    marginBottom: SPACING.sm,
     position: 'relative',
   },
   pillIndicator: {
@@ -593,12 +629,12 @@ const styles = StyleSheet.create({
     left: PILL_CONTAINER_PADDING,
     bottom: PILL_CONTAINER_PADDING,
     backgroundColor: COLORS.systemBackground,
-    borderRadius: 8,
-    ...SHADOWS.sm,
+    borderRadius: BORDER_RADIUS.sm + 2,
+    ...SHADOWS.xs,
   },
   pillOption: {
     flex: 1,
-    paddingVertical: 8,
+    minHeight: 38,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
@@ -614,20 +650,31 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryLabel,
   },
 
-  // FORM CONTAINER
-  formContainer: {
-    marginHorizontal: 24,
-    marginTop: 24,
+  // FORM CARD (card-on-soft-background)
+  formCard: {
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.systemBackground,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.lg,
+    ...SHADOWS.sm,
   },
 
-  // FLAT INPUT (white card style)
+  // FLAT INPUT (soft fill, teal focus ring)
   flatInput: {
-    backgroundColor: COLORS.systemBackground,
+    backgroundColor: COLORS.systemGray6,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.separator,
     height: 56,
     ...TYPOGRAPHY.body,
+  },
+  inputFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.systemBackground,
+  },
+  fieldGap: {
+    height: SPACING.md,
   },
 
   // PHONE ROW
@@ -635,12 +682,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 56,
-    gap: 8,
+    gap: SPACING.sm,
   },
   phonePrefixBox: {
     height: 56,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.systemBackground,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: COLORS.systemGray6,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.separator,
@@ -649,11 +696,12 @@ const styles = StyleSheet.create({
   },
   phonePrefixText: {
     ...TYPOGRAPHY.body,
-    color: COLORS.label,
+    fontWeight: '600',
+    color: COLORS.secondaryLabel,
   },
   phoneInput: {
     flex: 1,
-    backgroundColor: COLORS.systemBackground,
+    backgroundColor: COLORS.systemGray6,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.separator,
@@ -669,11 +717,13 @@ const styles = StyleSheet.create({
 
   // OTP
   otpInfoBanner: {
-    backgroundColor: COLORS.systemGray6,
+    backgroundColor: COLORS.healingMint,
     borderRadius: BORDER_RADIUS.md,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.healingTealMid,
+    paddingVertical: SPACING.md - SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
   },
   otpInfoText: {
     ...TYPOGRAPHY.footnote,
@@ -682,7 +732,7 @@ const styles = StyleSheet.create({
   },
   otpInfoPhone: {
     fontWeight: '700',
-    color: COLORS.primary,
+    color: COLORS.primaryDark,
   },
   otpInput: {
     letterSpacing: 8,
@@ -692,9 +742,11 @@ const styles = StyleSheet.create({
   },
   changeNumberLink: {
     alignSelf: 'center',
-    marginTop: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.md - SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   changeNumberText: {
     ...TYPOGRAPHY.footnote,
@@ -705,13 +757,16 @@ const styles = StyleSheet.create({
   // FORGOT PASSWORD
   forgotPasswordLink: {
     alignSelf: 'flex-end',
-    marginTop: 8,
-    marginBottom: 4,
-    paddingVertical: 4,
+    marginTop: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   forgotPasswordText: {
     ...TYPOGRAPHY.footnote,
     color: COLORS.primary,
+    fontWeight: '600',
   },
 
   // PRIMARY BUTTON
@@ -719,30 +774,44 @@ const styles = StyleSheet.create({
     height: 56,
     width: '100%',
     backgroundColor: COLORS.primary,
-    borderRadius: 14,
+    borderRadius: BORDER_RADIUS.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    ...SHADOWS.card,
+    marginTop: SPACING.lg - SPACING.xs,
   },
   primaryButtonDisabled: {
+    backgroundColor: COLORS.primaryLight,
     opacity: 0.55,
   },
   primaryButtonText: {
     ...TYPOGRAPHY.headline,
     color: COLORS.white,
   },
+  buttonLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
 
   // FOOTER
   footer: {
     alignItems: 'center',
     marginTop: SPACING.xl,
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.lg,
   },
   footerText: {
     ...TYPOGRAPHY.subheadline,
     color: COLORS.secondaryLabel,
-    marginBottom: 8,
+    marginBottom: SPACING.xs,
+  },
+  footerLinkTouch: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xs,
+  },
+  footerForgotLink: {
+    alignSelf: 'center',
+    marginTop: SPACING.xs,
   },
   registerRow: {
     flexDirection: 'row',
@@ -752,8 +821,8 @@ const styles = StyleSheet.create({
   registerDivider: {
     width: 1,
     height: 16,
-    backgroundColor: COLORS.separator,
-    marginHorizontal: 12,
+    backgroundColor: COLORS.opaqueSeparator,
+    marginHorizontal: SPACING.md - SPACING.xs,
   },
   registerLink: {
     ...TYPOGRAPHY.subheadline,
