@@ -19,6 +19,8 @@ import EditPatientProfileScreen from '../screens/patient/EditPatientProfileScree
 import OGHistoryScreen from '../screens/patient/OGHistoryScreen';
 import PaymentScreen from '../screens/patient/PaymentScreen';
 import PatientProfileSetupScreen from '../screens/patient/PatientProfileSetupScreen';
+import DepartmentSelectScreen from '../screens/patient/DepartmentSelectScreen';
+import SpecialtyHistoryScreen from '../screens/patient/SpecialtyHistoryScreen';
 
 // ─── Param Lists ───────────────────────────────────────────────
 
@@ -44,6 +46,13 @@ export type PatientStackParamList = {
   };
   LanguageSelect: { consultationId: string };
   LabResults: undefined;
+  DepartmentSelect: { consultationId: string; language?: string };
+  SpecialtyHistory: {
+    consultationId: string;
+    department: import('../api/endpoints').Department;
+    language?: string;
+    chiefComplaint?: string;
+  };
   EditPatientProfile: undefined;
   PatientProfileSetup: { language?: string };
   Payment: { consultationId: string; doctorName?: string };
@@ -122,6 +131,8 @@ export default function PatientNavigator() {
       <Stack.Screen name="OGHistory" component={OGHistoryScreen} />
       <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
       <Stack.Screen name="LabResults" component={LabResultsScreen} />
+      <Stack.Screen name="DepartmentSelect" component={DepartmentSelectScreen} />
+      <Stack.Screen name="SpecialtyHistory" component={SpecialtyHistoryScreen} />
       <Stack.Screen name="EditPatientProfile" component={EditPatientProfileScreen} />
       <Stack.Screen name="PatientProfileSetup" component={PatientProfileSetupScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />

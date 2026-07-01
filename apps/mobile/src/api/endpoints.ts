@@ -476,6 +476,50 @@ export const ogHistoryApi = {
 };
 
 // ============================================================
+// Specialty history-taking (Internal, Paeds, Fam Med, Surgery, ENT)
+// ============================================================
+
+export type Department =
+  | 'INTERNAL'
+  | 'PAEDIATRICS'
+  | 'FAMILY_MEDICINE'
+  | 'SURGERY'
+  | 'ENT';
+
+export type InternalSystem =
+  | 'CARDIOVASCULAR'
+  | 'RESPIRATORY'
+  | 'GASTROINTESTINAL'
+  | 'RENAL'
+  | 'NEUROLOGY'
+  | 'ENDOCRINE'
+  | 'INFECTIOUS_DISEASES'
+  | 'HAEMATOLOGY'
+  | 'RHEUMATOLOGY'
+  | 'GENERAL';
+
+export const specialtyHistoryApi = {
+  getDepartments: () => apiClient.get('/specialty-history/departments'),
+
+  start: (payload: {
+    consultationId: string;
+    department: Department;
+    language?: string;
+    chiefComplaint?: string;
+    system?: InternalSystem;
+  }) => apiClient.post('/specialty-history/start', payload),
+
+  continue: (consultationId: string, patientMessage: string) =>
+    apiClient.post('/specialty-history/continue', { consultationId, patientMessage }),
+
+  complete: (consultationId: string) =>
+    apiClient.post('/specialty-history/complete', { consultationId }),
+
+  getHistory: (consultationId: string) =>
+    apiClient.get(`/specialty-history/${consultationId}`),
+};
+
+// ============================================================
 // Profile setup (AI-guided onboarding)
 // ============================================================
 

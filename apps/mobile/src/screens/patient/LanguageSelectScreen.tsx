@@ -91,7 +91,7 @@ export const LanguageSelectScreen: React.FC = () => {
     if (!selectedCode || !user?.id) return;
     try {
       const consultation = await startConsultation(user.id, selectedCode);
-      navigation.navigate('AIHistory', { consultationId: consultation.id, language: selectedCode });
+      navigation.navigate('DepartmentSelect', { consultationId: consultation.id, language: selectedCode });
     } catch {
       // Error is in store
     }
