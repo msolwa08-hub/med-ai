@@ -41,7 +41,6 @@ export async function doctorSettingsRoutes(fastify: FastifyInstance): Promise<vo
             id: true,
             firstName: true,
             lastName: true,
-            practiceMode: false,
             settings: {
               select: {
                 id: true,

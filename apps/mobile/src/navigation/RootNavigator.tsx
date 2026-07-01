@@ -28,15 +28,15 @@ export default function RootNavigator() {
 
   // Doctor whose HPCSA registration has not yet been verified — block app access
   // until the council confirms their credentials
-  if (user.role === 'doctor' && user.hpcsaStatus !== 'verified') {
+  if (user.role === 'DOCTOR' && user.doctor?.hpcsaStatus !== 'VERIFIED') {
     return <HPCSAVerificationScreen />;
   }
 
-  if (user.role === 'patient') {
+  if (user.role === 'PATIENT') {
     return <PatientNavigator />;
   }
 
-  if (user.role === 'doctor') {
+  if (user.role === 'DOCTOR') {
     return <DoctorNavigator />;
   }
 

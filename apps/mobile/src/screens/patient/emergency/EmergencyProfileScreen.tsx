@@ -7,8 +7,8 @@ import {
   ActivityIndicator, Snackbar, IconButton,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
-import { apiClient } from '../../api/client';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../../constants/theme';
+import { apiClient } from '../../../api/client';
 
 interface EmergencyMedication {
   name: string;

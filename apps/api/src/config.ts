@@ -47,6 +47,10 @@ const configSchema = z.object({
   // Expo Push Notifications
   EXPO_ACCESS_TOKEN: z.string().optional(),
 
+  // Emergency QR profile signing (falls back to ENCRYPTION_KEY when unset)
+  EMERGENCY_SECRET: z.string().optional(),
+  APP_BASE_URL: z.string().optional(),
+
   // PayFast payment gateway
   PAYFAST_MERCHANT_ID: z.string().default('10000100'),      // sandbox default
   PAYFAST_MERCHANT_KEY: z.string().default('46f0cd694581a'), // sandbox default

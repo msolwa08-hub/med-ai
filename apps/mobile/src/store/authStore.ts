@@ -1,29 +1,42 @@
 import { create } from 'zustand';
-import { setAuthTokens, clearAuthTokens } from '../api/client';
+import { setAuthTokens, clearAuthTokens, getAccessToken } from '../api/client';
 import { authApi } from '../api/endpoints';
 
-export type UserRole = 'patient' | 'doctor';
+// Roles and statuses use the API's enum casing throughout the app.
+export type UserRole = 'PATIENT' | 'DOCTOR' | 'ADMIN';
+export type HpcsaStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
 
-export interface User {
+export interface PatientProfile {
   id: string;
   firstName: string;
   lastName: string;
-  email?: string;
-  phone: string;
-  role: UserRole;
-  preferredLanguage?: string;
-  profileImage?: string;
-  // Doctor-specific
-  hpcsaNumber?: string;
-  hpcsaStatus?: 'pending' | 'verified' | 'rejected';
-  doctorType?: 'gp' | 'specialist' | 'allied_health' | 'travelling';
-  specialization?: string;
-  isOnline?: boolean;
-  consultationFee?: number;
-  // Patient-specific
-  idNumber?: string;
   dateOfBirth?: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: string;
+  preferredLanguage?: string;
+}
+
+export interface DoctorProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  hpcsaNumber?: string;
+  hpcsaStatus?: HpcsaStatus;
+  doctorType?: 'GP' | 'SPECIALIST' | 'ALLIED_HEALTH' | 'TRAVELLING';
+  specialization?: string | null;
+  isAvailable?: boolean;
+  consultationFee?: number | null;
+  practiceName?: string | null;
+  profilePhoto?: string | null;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+  isVerified?: boolean;
+  patient?: PatientProfile | null;
+  doctor?: DoctorProfile | null;
 }
 
 interface AuthState {
@@ -42,7 +55,22 @@ interface AuthState {
   updateUser: (updates: Partial<User>) => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+function errorMessage(error: unknown, fallback: string): string {
+  const apiError = (error as { response?: { data?: { error?: string; message?: string } } })
+    ?.response?.data;
+  if (apiError?.error) return apiError.error;
+  if (apiError?.message) return apiError.message;
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
+/** Fetch the full profile after obtaining tokens so the store has patient/doctor data. */
+async function fetchFullUser(): Promise<User> {
+  const response = await authApi.getMe();
+  return response.data.data.user as User;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -52,22 +80,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (phone: string, otp: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await authApi.verifyOtp(phone, otp);
-      const { access_token, refresh_token, user } = response.data;
-      await setAuthTokens(access_token, refresh_token);
-      set({
-        user,
-        isAuthenticated: true,
-        role: user.role,
-        isLoading: false,
-        error: null,
-      });
+      const response = await authApi.verifyOtp(phone, otp, 'LOGIN');
+      const { accessToken, refreshToken } = response.data.data;
+      await setAuthTokens(accessToken, refreshToken);
+      const user = await fetchFullUser();
+      set({ user, isAuthenticated: true, role: user.role, isLoading: false, error: null });
     } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: errorMessage(error, 'Login failed') });
       throw error;
     }
   },
@@ -76,21 +95,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authApi.login({ email, password });
-      const { access_token, refresh_token, user } = response.data;
-      await setAuthTokens(access_token, refresh_token);
-      set({
-        user,
-        isAuthenticated: true,
-        role: user.role,
-        isLoading: false,
-        error: null,
-      });
+      const { accessToken, refreshToken } = response.data.data;
+      await setAuthTokens(accessToken, refreshToken);
+      const user = await fetchFullUser();
+      set({ user, isAuthenticated: true, role: user.role, isLoading: false, error: null });
     } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: errorMessage(error, 'Login failed') });
       throw error;
     }
   },
@@ -100,16 +110,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await authApi.logout();
     } catch {
-      // Continue with local logout even if API call fails
+      // Continue with local logout even if the API call fails
     } finally {
       await clearAuthTokens();
-      set({
-        user: null,
-        isAuthenticated: false,
-        role: null,
-        isLoading: false,
-        error: null,
-      });
+      set({ user: null, isAuthenticated: false, role: null, isLoading: false, error: null });
     }
   },
 
@@ -124,13 +128,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   loadUser: async () => {
+    // No stored token — nothing to rehydrate, skip the network round-trip
+    const token = await getAccessToken().catch(() => null);
+    if (!token) {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      return;
+    }
+
     set({ isLoading: true });
     try {
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), 8000)
       );
-      const response = await Promise.race([authApi.getMe(), timeout]);
-      const user = response.data;
+      const user = await Promise.race([fetchFullUser(), timeout]);
       set({ user, isAuthenticated: true, role: user.role, isLoading: false });
     } catch {
       await clearAuthTokens();
@@ -139,9 +149,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   updateUser: (updates: Partial<User>) => {
-    const currentUser = get().user;
-    if (currentUser) {
-      set({ user: { ...currentUser, ...updates } });
-    }
+    set((state) => ({
+      user: state.user ? { ...state.user, ...updates } : state.user,
+    }));
   },
 }));

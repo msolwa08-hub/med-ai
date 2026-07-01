@@ -264,49 +264,56 @@ function determineTier(totalScore: number): IncentiveTier {
 /**
  * Fetch and compute the current score for a doctor
  */
-export async function computeDoctorScore(doctorUserId: string): Promise<DoctorScore | null> {
+export async function computeDoctorScore(doctorIdOrUserId: string): Promise<DoctorScore | null> {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const doctor = await prisma.doctor.findUnique({
-    where: { userId: doctorUserId },
-    include: {
-      user: true,
-    },
+  // Callers pass either a Doctor.id (patient matching) or a User.id (own dashboard)
+  const doctor = await prisma.doctor.findFirst({
+    where: { OR: [{ userId: doctorIdOrUserId }, { id: doctorIdOrUserId }] },
   });
 
   if (!doctor) return null;
 
-  // Consultation metrics this month
-  const consultations = await prisma.consultation.findMany({
-    where: {
-      doctorId: doctorUserId,
-      createdAt: { gte: monthStart },
-    },
-    select: {
-      status: true,
-      rating: true,
-      responseTimeMinutes: true,
-      structuredHistoryData: true,
-    } as Record<string, unknown>,
-  });
+  // Consultation + review metrics this month
+  const [consultations, monthReviews] = await Promise.all([
+    prisma.consultation.findMany({
+      where: {
+        doctorId: doctor.id,
+        createdAt: { gte: monthStart },
+      },
+      select: {
+        status: true,
+        startedAt: true,
+        completedAt: true,
+        medicalHistory: { select: { clinicalScores: true } },
+      },
+    }),
+    prisma.review.findMany({
+      where: { doctorId: doctor.id, createdAt: { gte: monthStart } },
+      select: { rating: true },
+    }),
+  ]);
 
-  const completed = consultations.filter((c) =>
-    ['COMPLETED', 'CLOSED'].includes(c.status)
-  );
+  const completed = consultations.filter((c) => c.status === 'COMPLETED');
   const totalConsultations = consultations.length;
   const completedCount = completed.length;
 
-  const ratings = consultations
-    .map((c) => (c as Record<string, unknown>).rating as number | null)
+  const ratings = monthReviews
+    .map((r) => r.rating)
     .filter((r): r is number => typeof r === 'number' && r > 0);
 
   const avgRating = ratings.length > 0
     ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
-    : 3.0; // Default to 3.0 if no ratings yet
+    : doctor.rating > 0
+      ? doctor.rating
+      : 3.0; // Default to 3.0 if no ratings yet
 
-  const responseTimes = consultations
-    .map((c) => (c as Record<string, unknown>).responseTimeMinutes as number | null)
+  // Time from consultation start to completion, as the responsiveness proxy
+  const responseTimes = completed
+    .map((c) =>
+      c.completedAt ? (c.completedAt.getTime() - c.startedAt.getTime()) / 60_000 : null
+    )
     .filter((t): t is number => typeof t === 'number' && t > 0);
 
   const avgResponseTime = responseTimes.length > 0
@@ -317,17 +324,14 @@ export async function computeDoctorScore(doctorUserId: string): Promise<DoctorSc
     ? completedCount / totalConsultations
     : 0;
 
-  // STG adherence: % of completed consultations that have structuredHistoryData
+  // STG adherence: % of completed consultations with captured clinical scores
   const withSTGData = completed.filter(
-    (c) => !!(c as Record<string, unknown>).structuredHistoryData
+    (c) => !!c.medicalHistory?.clinicalScores
   ).length;
   const stgAdherenceRate = completedCount > 0 ? withSTGData / completedCount : 0;
 
-  // Language count from doctor's language array
-  const languages = (doctor as Record<string, unknown>).languages as string[] ?? [];
-  const languageCount = languages.length;
-
-  const isAvailable = (doctor as Record<string, unknown>).isAvailable as boolean ?? false;
+  const languageCount = doctor.languages.length;
+  const isAvailable = doctor.isAvailable;
 
   return calculateDoctorScore({
     consultationsThisMonth: completedCount,
@@ -337,7 +341,7 @@ export async function computeDoctorScore(doctorUserId: string): Promise<DoctorSc
     languageCount,
     stgAdherenceRate,
     isAvailable,
-    doctorUserId,
+    doctorUserId: doctor.userId,
   });
 }
 
@@ -543,12 +547,12 @@ export async function getDoctorLeaderboard(limit = 10): Promise<Array<{
   // No PII — doctor can see their own rank position
 }>> {
   const doctors = await prisma.doctor.findMany({
-    where: { hpcsaStatus: 'ACTIVE' },
-    select: { userId: true } as Record<string, unknown>,
+    where: { hpcsaStatus: 'VERIFIED' },
+    select: { userId: true },
     take: 100, // Cap at 100 for performance
   });
 
-  const scorePromises = (doctors as Array<{ userId: string }>).map((d) => computeDoctorScore(d.userId));
+  const scorePromises = doctors.map((d) => computeDoctorScore(d.userId));
   const scores = await Promise.all(scorePromises);
 
   const validScores = scores

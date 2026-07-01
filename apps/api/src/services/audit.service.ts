@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma.js';
+import { Prisma } from '@prisma/client';
 
 interface AuditLogParams {
   userId?: string;
@@ -22,7 +23,7 @@ export async function auditLog(params: AuditLogParams): Promise<void> {
         action: params.action,
         resource: params.resource,
         resourceId: params.resourceId,
-        metadata: params.metadata ?? {},
+        metadata: (params.metadata ?? {}) as Prisma.InputJsonValue,
         ipAddress: params.ipAddress,
         userAgent: params.userAgent,
       },

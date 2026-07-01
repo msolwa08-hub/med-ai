@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { config } from '../config.js';
 
 let redisClient: Redis | null = null;
@@ -14,7 +14,7 @@ export function getRedisClient(): Redis {
       lazyConnect: true,
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (err: Error) => {
       console.error('[Redis] Connection error:', err.message);
     });
 

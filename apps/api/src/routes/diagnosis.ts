@@ -84,7 +84,7 @@ export async function diagnosisRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send({
         success: true,
         data: {
-          diagnoses: diff.diagnoses as DiagnosisEntry[],
+          diagnoses: diff.diagnoses as unknown as DiagnosisEntry[],
           doctorReviewed: diff.doctorReviewed,
           doctorSelectedDiagnosis: diff.doctorSelectedDiagnosis,
           doctorNotes: diff.doctorNotes,
@@ -220,7 +220,7 @@ export async function diagnosisRoutes(fastify: FastifyInstance): Promise<void> {
         data: {
           id: updated.id,
           consultationId: updated.consultationId,
-          diagnoses: updated.diagnoses as DiagnosisEntry[],
+          diagnoses: updated.diagnoses as unknown as DiagnosisEntry[],
           doctorReviewed: updated.doctorReviewed,
           doctorSelectedDiagnosis: updated.doctorSelectedDiagnosis,
           doctorNotes: updated.doctorNotes,

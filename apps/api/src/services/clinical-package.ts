@@ -10,7 +10,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { CLINICAL_PACKAGE_SYSTEM } from './medai-prompt.js';
 import { extractJSON, asString, asNumber, asStringArray } from '../lib/json-extract.js';
-import type { ChatMessage } from './beta-engine.js';
+import type { BetaMessage as ChatMessage } from './beta-store.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 const PACKAGE_MODEL = 'claude-sonnet-4-6';

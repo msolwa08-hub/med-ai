@@ -206,6 +206,7 @@ model Doctor {
   lastName           String
   hpcsaNumber        String      @unique
   hpcsaStatus        HpcsaStatus @default(PENDING)
+  hpcsaVerifiedAt    DateTime?
   specialization     String?
   qualifications     Json?       // array of {degree, institution, year}
   practiceNumber     String?

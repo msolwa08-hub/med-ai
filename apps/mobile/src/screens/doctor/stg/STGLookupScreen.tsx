@@ -8,10 +8,10 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
-import { apiClient } from '../../api/client';
-import { documentsApi } from '../../api/endpoints';
-import { useMode } from '../../context/ModeContext';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../../constants/theme';
+import { apiClient } from '../../../api/client';
+import { documentsApi } from '../../../api/endpoints';
+import { useMode } from '../../../context/ModeContext';
 
 interface STGMedication {
   medication: string;

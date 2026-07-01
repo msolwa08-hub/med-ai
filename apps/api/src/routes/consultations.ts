@@ -104,7 +104,7 @@ async function checkConsultationAccess(
 ): Promise<
   | {
       ok: true;
-      consultation: Awaited<ReturnType<typeof getFullConsultation>>;
+      consultation: NonNullable<Awaited<ReturnType<typeof getFullConsultation>>>;
     }
   | { ok: false; status: number; error: string; code: string }
 > {
@@ -663,7 +663,7 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
             referrals: referrals
               ? encryptJSON(referrals as ReferralEntry[], dataKey)
               : undefined,
-            followUp: followUpDays ? `${followUpDays} days` : undefined,
+            followUpDays: followUpDays ?? undefined,
             doctorNotes: patientInstructions
               ? encryptField(patientInstructions, dataKey)
               : undefined,
@@ -675,7 +675,7 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
             referrals: referrals
               ? encryptJSON(referrals as ReferralEntry[], dataKey)
               : null,
-            followUp: followUpDays ? `${followUpDays} days` : null,
+            followUpDays: followUpDays ?? null,
             doctorNotes: patientInstructions
               ? encryptField(patientInstructions, dataKey)
               : null,
@@ -757,7 +757,8 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
             medications: decryptJSON(plan.medications, dataKey),
             procedures: plan.procedures ? decryptField(plan.procedures, dataKey) : null,
             referrals: plan.referrals ? decryptJSON(plan.referrals, dataKey) : null,
-            followUp: plan.followUp,
+            followUpDays: plan.followUpDays,
+            followUp: plan.followUpDays ? `${plan.followUpDays} days` : null,
             patientInstructions: plan.doctorNotes
               ? decryptField(plan.doctorNotes, dataKey)
               : null,
@@ -885,7 +886,8 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
             medications: decryptJSON(mp.medications, dataKey),
             procedures: mp.procedures ? decryptField(mp.procedures, dataKey) : null,
             referrals: mp.referrals ? decryptJSON(mp.referrals, dataKey) : null,
-            followUp: mp.followUp,
+            followUpDays: mp.followUpDays,
+            followUp: mp.followUpDays ? `${mp.followUpDays} days` : null,
             doctorNotes: mp.doctorNotes ? decryptField(mp.doctorNotes, dataKey) : null,
           };
         }

@@ -29,7 +29,7 @@ import { SA_LANGUAGES } from '../types/index.js';
 
 const StartHistorySchema = z.object({
   consultationId: z.string().min(1),
-  language: z.enum(SA_LANGUAGES as [string, ...string[]]).default('en'),
+  language: z.enum(SA_LANGUAGES).default('en'),
   practiceName: z.string().max(120).optional(),
 });
 
@@ -77,7 +77,7 @@ async function buildPatientContext(
       where: {
         patientId,
         id: { not: currentConsultationId },
-        status: { in: ['DOCTOR_REVIEW', 'EXAMINATION', 'MANAGEMENT', 'COMPLETED'] },
+        status: { in: ['DOCTOR_REVIEW', 'EXAMINATION', 'COMPLETED'] },
       },
       orderBy: { completedAt: 'desc' },
       select: { completedAt: true },

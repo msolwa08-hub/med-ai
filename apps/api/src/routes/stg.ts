@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/authenticate.js';
@@ -454,9 +455,10 @@ export async function stgRoutes(fastify: FastifyInstance): Promise<void> {
                   subCategory: entry.subCategory ?? null,
                   levelOfCare: entry.levelOfCare,
                   edition: entry.edition,
-                  firstLineTreatment: entry.firstLineTreatment,
-                  alternativeTreatment: entry.alternativeTreatment ?? null,
-                  investigations: entry.investigations,
+                  firstLineTreatment: entry.firstLineTreatment as Prisma.InputJsonValue,
+                  alternativeTreatment:
+                    (entry.alternativeTreatment as Prisma.InputJsonValue | undefined) ?? Prisma.DbNull,
+                  investigations: entry.investigations as Prisma.InputJsonValue,
                   referralCriteria: entry.referralCriteria ?? null,
                   redFlags: entry.redFlags ?? null,
                   followUpAdvice: entry.followUpAdvice ?? null,
@@ -475,9 +477,10 @@ export async function stgRoutes(fastify: FastifyInstance): Promise<void> {
                   subCategory: entry.subCategory ?? null,
                   levelOfCare: entry.levelOfCare,
                   edition: entry.edition,
-                  firstLineTreatment: entry.firstLineTreatment,
-                  alternativeTreatment: entry.alternativeTreatment ?? null,
-                  investigations: entry.investigations,
+                  firstLineTreatment: entry.firstLineTreatment as Prisma.InputJsonValue,
+                  alternativeTreatment:
+                    (entry.alternativeTreatment as Prisma.InputJsonValue | undefined) ?? Prisma.DbNull,
+                  investigations: entry.investigations as Prisma.InputJsonValue,
                   referralCriteria: entry.referralCriteria ?? null,
                   redFlags: entry.redFlags ?? null,
                   followUpAdvice: entry.followUpAdvice ?? null,

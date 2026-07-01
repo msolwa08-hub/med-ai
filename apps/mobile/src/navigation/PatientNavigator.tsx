@@ -54,12 +54,12 @@ const Stack = createNativeStackNavigator<PatientStackParamList>();
 
 // ─── Bottom Tabs ───────────────────────────────────────────────
 
-type TabIconName = 'home' | 'map-marker-radius' | 'folder-medical' | 'ambulance';
+type TabIconName = 'home' | 'map-marker-radius' | 'medical-bag' | 'ambulance';
 
 const TAB_META: Record<keyof PatientTabParamList, { icon: TabIconName; label: string }> = {
   Home: { icon: 'home', label: 'Home' },
   FindDoctor: { icon: 'map-marker-radius', label: 'Find Doctor' },
-  MyRecords: { icon: 'folder-medical', label: 'My Records' },
+  MyRecords: { icon: 'medical-bag', label: 'My Records' },
   Emergency: { icon: 'ambulance', label: 'Emergency' },
 };
 

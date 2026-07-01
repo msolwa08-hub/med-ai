@@ -1,56 +1,67 @@
 import { apiClient } from './client';
 
-// --- Types ---
+// ============================================================
+// Payload types — mirror the API's zod schemas exactly
+// ============================================================
+
+export type OtpPurpose = 'LOGIN' | 'REGISTER' | 'RESET_PASSWORD' | 'HPCSA_VERIFY';
+
 export interface AuthLoginPayload {
-  phone?: string;
-  email?: string;
-  password?: string;
-  otp?: string;
+  email: string;
+  password: string;
 }
 
 export interface AuthRegisterPatientPayload {
+  email: string;
+  phone: string;
+  password: string;
   firstName: string;
   lastName: string;
-  dateOfBirth: string;
-  gender: 'male' | 'female' | 'other';
-  idNumber: string;
-  phone: string;
-  email?: string;
-  preferredLanguage: string;
+  dateOfBirth: string; // YYYY-MM-DD
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
+  preferredLanguage?: string;
+  idNumber?: string;
 }
 
 export interface AuthRegisterDoctorPayload {
+  email: string;
+  phone: string;
+  password: string;
   firstName: string;
   lastName: string;
-  phone: string;
-  email: string;
-  password: string;
   hpcsaNumber: string;
-  doctorType: 'gp' | 'specialist' | 'allied_health' | 'travelling';
+  doctorType: 'GP' | 'SPECIALIST' | 'ALLIED_HEALTH' | 'TRAVELLING';
   specialization?: string;
-  languagesSpoken: string[];
-  consultationFee: number;
-  practiceName?: string;
-  practiceAddress?: string;
 }
 
 export interface ConsultationPayload {
-  patientId: string;
   language: string;
+  consultationType?: 'IN_PERSON' | 'TELECONSULT' | 'HOME_VISIT';
   doctorId?: string;
 }
 
-export interface MessagePayload {
-  consultationId: string;
-  content: string;
-  role: 'patient' | 'doctor';
+export interface DoctorAvailabilityPayload {
+  isAvailable: boolean;
+  lat?: number;
+  lng?: number;
+  radius?: number;
 }
 
-export interface DoctorAvailabilityPayload {
-  isOnline: boolean;
-  latitude?: number;
-  longitude?: number;
-  radius?: number;
+export interface DoctorProfileUpdatePayload {
+  bio?: string;
+  consultationFee?: number;
+  languages?: string[];
+  specialization?: string;
+  availabilityRadius?: number;
+  qualifications?: Array<{ degree: string; institution: string; year: number }>;
+  practiceNumber?: string;
+}
+
+export interface PatientProfileUpdatePayload {
+  firstName?: string;
+  lastName?: string;
+  preferredLanguage?: string;
+  emergencyContact?: { name: string; phone: string; relationship: string };
 }
 
 export interface ExaminationPayload {
@@ -64,53 +75,69 @@ export interface ExaminationPayload {
     oxygenSaturation?: number;
     weight?: number;
     height?: number;
+    painScore?: number;
   };
-  generalExamination?: string;
-  systemicExamination?: Record<string, string>;
-}
-
-export interface DiagnosisPayload {
-  consultationId: string;
-  primaryDiagnosis: string;
-  icd10Code?: string;
-  differentialDiagnoses?: string[];
-  doctorNotes?: string;
+  generalExamination: {
+    generalAppearance?: string;
+    handsNails?: string;
+    headNeck?: string;
+    jvp?: string;
+    lymphNodes?: string;
+  };
+  systemicExamination: {
+    cardiovascular?: string;
+    respiratory?: string;
+    abdominal?: string;
+    neurological?: string;
+    msk?: string;
+    skin?: string;
+  };
 }
 
 export interface ManagementPayload {
   consultationId: string;
-  prescriptions?: Array<{
-    medication: string;
+  diagnosis: string;
+  medications: Array<{
+    name: string;
     dose: string;
     frequency: string;
-    duration: string;
-    instructions?: string;
+    duration?: string;
+    route?: string;
+    notes?: string;
   }>;
-  investigations?: string[];
-  referrals?: string[];
-  followUpDate?: string;
+  procedures?: string;
+  referrals?: Array<{
+    specialty: string;
+    reason: string;
+    urgency: 'ROUTINE' | 'URGENT' | 'EMERGENCY';
+    facility?: string;
+  }>;
+  followUpDays?: number;
   patientInstructions?: string;
 }
 
-// --- Auth Endpoints ---
-export const authApi = {
-  sendOtp: (phone: string) =>
-    apiClient.post('/auth/otp/send', { phone }),
+// ============================================================
+// Auth
+// ============================================================
 
-  verifyOtp: (phone: string, otp: string) =>
-    apiClient.post('/auth/otp/verify', { phone, otp }),
+export const authApi = {
+  sendOtp: (phone: string, purpose: OtpPurpose = 'LOGIN') =>
+    apiClient.post('/auth/send-otp', { phone, purpose }),
+
+  verifyOtp: (phone: string, code: string, purpose: OtpPurpose = 'LOGIN') =>
+    apiClient.post('/auth/verify-otp', { phone, code, purpose }),
 
   login: (payload: AuthLoginPayload) =>
     apiClient.post('/auth/login', payload),
 
   registerPatient: (payload: AuthRegisterPatientPayload) =>
-    apiClient.post('/auth/register/patient', payload),
+    apiClient.post('/auth/register', { ...payload, role: 'PATIENT' }),
 
   registerDoctor: (payload: AuthRegisterDoctorPayload) =>
-    apiClient.post('/auth/register/doctor', payload),
+    apiClient.post('/auth/register', { ...payload, role: 'DOCTOR' }),
 
   refreshToken: (refreshToken: string) =>
-    apiClient.post('/auth/refresh', { refresh_token: refreshToken }),
+    apiClient.post('/auth/refresh', { refreshToken }),
 
   logout: () => apiClient.post('/auth/logout'),
 
@@ -123,63 +150,78 @@ export const authApi = {
     apiClient.post('/auth/reset-password', { phone, otp, newPassword }),
 };
 
-// --- Patient Endpoints ---
+// ============================================================
+// Patients (all "me"-scoped on the API)
+// ============================================================
+
 export const patientApi = {
-  getProfile: (patientId: string) =>
-    apiClient.get(`/patients/${patientId}`),
+  getProfile: () => apiClient.get('/patients/me'),
 
-  updateProfile: (patientId: string, data: Partial<AuthRegisterPatientPayload>) =>
-    apiClient.patch(`/patients/${patientId}`, data),
+  updateProfile: (data: PatientProfileUpdatePayload) =>
+    apiClient.put('/patients/me', data),
 
-  getConsultations: (patientId: string) =>
-    apiClient.get(`/patients/${patientId}/consultations`),
+  getConsultations: () => apiClient.get('/patients/me/consultations'),
 
   getConsultation: (consultationId: string) =>
     apiClient.get(`/consultations/${consultationId}`),
 
-  getConsentList: (patientId: string) =>
-    apiClient.get(`/patients/${patientId}/consents`),
+  getConsentList: () => apiClient.get('/patients/me/consents'),
 
-  grantConsent: (patientId: string, doctorId: string) =>
-    apiClient.post(`/patients/${patientId}/consents`, { doctorId }),
+  grantConsent: (doctorId: string, consentType?: string) =>
+    apiClient.post('/patients/me/consents', { doctorId, consentType }),
 
-  revokeConsent: (patientId: string, doctorId: string) =>
-    apiClient.delete(`/patients/${patientId}/consents/${doctorId}`),
+  revokeConsent: (doctorId: string) =>
+    apiClient.delete(`/patients/me/consents/${doctorId}`),
 };
 
-// --- Doctor Endpoints ---
+// ============================================================
+// Doctors
+// ============================================================
+
 export const doctorApi = {
-  getProfile: (doctorId: string) =>
-    apiClient.get(`/doctors/${doctorId}`),
+  getMyProfile: () => apiClient.get('/doctors/me'),
 
-  updateProfile: (doctorId: string, data: Partial<AuthRegisterDoctorPayload>) =>
-    apiClient.patch(`/doctors/${doctorId}`, data),
+  updateMyProfile: (data: DoctorProfileUpdatePayload) =>
+    apiClient.put('/doctors/me', data),
 
-  getHpcsaStatus: (doctorId: string) =>
-    apiClient.get(`/doctors/${doctorId}/hpcsa-status`),
+  getPublicProfile: (doctorId: string) =>
+    apiClient.get(`/doctors/${doctorId}/profile`),
 
-  setAvailability: (doctorId: string, payload: DoctorAvailabilityPayload) =>
-    apiClient.post(`/doctors/${doctorId}/availability`, payload),
+  getHpcsaStatus: () => apiClient.get('/hpcsa/status'),
 
-  getNearbyDoctors: (latitude: number, longitude: number, type?: string, radius?: number) =>
+  verifyHpcsa: (hpcsaNumber?: string) =>
+    apiClient.post('/hpcsa/verify', hpcsaNumber ? { hpcsaNumber } : {}),
+
+  setAvailability: (payload: DoctorAvailabilityPayload) =>
+    apiClient.put('/doctors/availability', payload),
+
+  getNearbyDoctors: (
+    lat: number,
+    lng: number,
+    doctorType?: string,
+    radiusKm?: number,
+    language?: string
+  ) =>
     apiClient.get('/doctors/nearby', {
-      params: { latitude, longitude, type, radius: radius || 10 },
+      params: { lat, lng, doctorType, radiusKm: radiusKm ?? 10, language },
     }),
 
-  getPatientQueue: (_doctorId: string) =>
-    apiClient.get('/doctors/me/patient-queue'),
+  getPatientQueue: () => apiClient.get('/doctors/me/patient-queue'),
 
-  acceptPatient: (doctorId: string, consultationId: string) =>
-    apiClient.post(`/doctors/${doctorId}/accept-patient`, { consultationId }),
+  acceptPatient: (consultationId: string) =>
+    apiClient.post('/doctors/me/accept-patient', { consultationId }),
 
-  declinePatient: (doctorId: string, consultationId: string) =>
-    apiClient.post(`/doctors/${doctorId}/decline-patient`, { consultationId }),
+  declinePatient: (consultationId: string, reason?: string) =>
+    apiClient.post('/doctors/me/decline-patient', { consultationId, reason }),
 
-  getPatientRecords: (doctorId: string, patientId: string) =>
-    apiClient.get(`/doctors/${doctorId}/patients/${patientId}/records`),
+  getFullRecord: (consultationId: string) =>
+    apiClient.get(`/consultations/${consultationId}/full-record`),
 };
 
-// --- Consultation Endpoints ---
+// ============================================================
+// Consultations & clinical workflow
+// ============================================================
+
 export const consultationApi = {
   create: (payload: ConsultationPayload) =>
     apiClient.post('/consultations', payload),
@@ -187,55 +229,139 @@ export const consultationApi = {
   getById: (consultationId: string) =>
     apiClient.get(`/consultations/${consultationId}`),
 
-  sendMessage: (payload: MessagePayload) =>
-    apiClient.post(`/consultations/${payload.consultationId}/messages`, {
-      content: payload.content,
-      role: payload.role,
-    }),
-
-  getMessages: (consultationId: string) =>
-    apiClient.get(`/consultations/${consultationId}/messages`),
-
-  completeHistory: (consultationId: string) =>
-    apiClient.post(`/consultations/${consultationId}/complete-history`),
-
-  getAIHistory: (consultationId: string) =>
-    apiClient.get(`/consultations/${consultationId}/ai-history`),
-
-  confirmHistory: (consultationId: string, doctorNotes?: string) =>
-    apiClient.post(`/consultations/${consultationId}/confirm-history`, { doctorNotes }),
+  updateStatus: (
+    consultationId: string,
+    status: 'HISTORY_TAKING' | 'DOCTOR_REVIEW' | 'EXAMINATION' | 'COMPLETED' | 'CANCELLED'
+  ) => apiClient.put(`/consultations/${consultationId}/status`, { status }),
 
   saveExamination: (payload: ExaminationPayload) =>
-    apiClient.post(`/consultations/${payload.consultationId}/examination`, payload),
+    apiClient.post(`/consultations/${payload.consultationId}/examination`, {
+      vitalSigns: payload.vitalSigns,
+      generalExamination: payload.generalExamination,
+      systemicExamination: payload.systemicExamination,
+    }),
 
-  saveDiagnosis: (payload: DiagnosisPayload) =>
-    apiClient.post(`/consultations/${payload.consultationId}/diagnosis`, payload),
+  getExamination: (consultationId: string) =>
+    apiClient.get(`/consultations/${consultationId}/examination`),
 
   saveManagement: (payload: ManagementPayload) =>
-    apiClient.post(`/consultations/${payload.consultationId}/management`, payload),
+    apiClient.post(`/consultations/${payload.consultationId}/management`, {
+      diagnosis: payload.diagnosis,
+      medications: payload.medications,
+      procedures: payload.procedures,
+      referrals: payload.referrals,
+      followUpDays: payload.followUpDays,
+      patientInstructions: payload.patientInstructions,
+    }),
+
+  getManagement: (consultationId: string) =>
+    apiClient.get(`/consultations/${consultationId}/management`),
+
+  getFullRecord: (consultationId: string) =>
+    apiClient.get(`/consultations/${consultationId}/full-record`),
 
   completeConsultation: (consultationId: string) =>
     apiClient.post(`/consultations/${consultationId}/complete`),
-
-  uploadDocument: (consultationId: string, formData: FormData) =>
-    apiClient.post(`/consultations/${consultationId}/documents`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
 };
 
-// --- AI Endpoints ---
-export const aiApi = {
-  chat: (consultationId: string, message: string, language: string) =>
-    apiClient.post('/ai/chat', { consultationId, message, language }),
+// ============================================================
+// AI history-taking (general medicine)
+// ============================================================
 
-  translateText: (text: string, fromLanguage: string, toLanguage: string) =>
-    apiClient.post('/ai/translate', { text, fromLanguage, toLanguage }),
+export const aiHistoryApi = {
+  start: (consultationId: string, language?: string, practiceName?: string) =>
+    apiClient.post('/ai-history/start', { consultationId, language, practiceName }),
 
-  getDifferentialDiagnoses: (consultationId: string) =>
-    apiClient.get(`/ai/differential-diagnoses/${consultationId}`),
+  continue: (consultationId: string, patientMessage: string) =>
+    apiClient.post('/ai-history/continue', { consultationId, patientMessage }),
+
+  complete: (consultationId: string) =>
+    apiClient.post('/ai-history/complete', { consultationId }),
+
+  getHistory: (consultationId: string) =>
+    apiClient.get(`/ai-history/${consultationId}`),
+
+  confirm: (consultationId: string, notes?: string, corrections?: string) =>
+    apiClient.post(`/ai-history/${consultationId}/confirm`, { notes, corrections }),
 };
 
-// --- Documents Endpoints (referral letters, sick notes) ---
+// ============================================================
+// Diagnosis (AI differential — doctor review)
+// ============================================================
+
+export const diagnosisApi = {
+  get: (consultationId: string) =>
+    apiClient.get(`/diagnosis/${consultationId}`),
+
+  select: (consultationId: string, selectedDiagnosis: string, doctorNotes?: string) =>
+    apiClient.put(`/diagnosis/${consultationId}/select`, { selectedDiagnosis, doctorNotes }),
+};
+
+// ============================================================
+// Investigations
+// ============================================================
+
+export const investigationsApi = {
+  create: (payload: {
+    consultationId: string;
+    type: 'LAB' | 'RADIOLOGY' | 'ECG' | 'OTHER';
+    name: string;
+    urgency?: 'ROUTINE' | 'URGENT' | 'STAT';
+    specialInstructions?: string;
+  }) => apiClient.post('/investigations', payload),
+
+  getForConsultation: (consultationId: string) =>
+    apiClient.get(`/investigations/${consultationId}`),
+
+  saveResult: (investigationId: string, result: string, resultDate?: string) =>
+    apiClient.put(`/investigations/${investigationId}/result`, { result, resultDate }),
+};
+
+// ============================================================
+// Prescriptions
+// ============================================================
+
+export const prescriptionsApi = {
+  create: (payload: Record<string, unknown>) =>
+    apiClient.post('/prescriptions', payload),
+
+  getForConsultation: (consultationId: string) =>
+    apiClient.get(`/prescriptions/consultation/${consultationId}`),
+
+  getForPatient: (patientId: string) =>
+    apiClient.get(`/prescriptions/patient/${patientId}`),
+
+  getPdf: (prescriptionId: string) =>
+    apiClient.get(`/prescriptions/${prescriptionId}/pdf`),
+
+  cancel: (prescriptionId: string, reason?: string) =>
+    apiClient.put(`/prescriptions/${prescriptionId}/cancel`, { reason }),
+};
+
+// ============================================================
+// Labs
+// ============================================================
+
+export const labsApi = {
+  getAccounts: () => apiClient.get('/labs/accounts'),
+
+  linkAccount: (payload: { provider: string; accountNumber: string; idNumber?: string }) =>
+    apiClient.post('/labs/accounts', payload),
+
+  unlinkAccount: (accountId: string) =>
+    apiClient.delete(`/labs/accounts/${accountId}`),
+
+  sync: () => apiClient.post('/labs/sync'),
+
+  getResults: () => apiClient.get('/labs/results'),
+
+  getConsultationResults: (consultationId: string) =>
+    apiClient.get(`/labs/results/consultation/${consultationId}`),
+};
+
+// ============================================================
+// Documents (referral letters, sick notes, STG learning points)
+// ============================================================
 
 export interface ReferralLetterPayload {
   patientName: string;
@@ -306,7 +432,10 @@ export const documentsApi = {
     apiClient.post('/eml/lookup', payload),
 };
 
-// --- Ultrasound Endpoints ---
+// ============================================================
+// Ultrasound AI (doctor)
+// ============================================================
+
 export const ultrasoundApi = {
   interpret: (payload: {
     consultationId: string;
@@ -320,7 +449,10 @@ export const ultrasoundApi = {
     apiClient.get(`/ultrasound/results/${consultationId}`),
 };
 
-// --- O&G History Endpoints ---
+// ============================================================
+// O&G history-taking
+// ============================================================
+
 export const ogHistoryApi = {
   start: (payload: {
     consultationId: string;
@@ -343,7 +475,10 @@ export const ogHistoryApi = {
     apiClient.get(`/og-history/${consultationId}`),
 };
 
-// --- Profile Setup Endpoints ---
+// ============================================================
+// Profile setup (AI-guided onboarding)
+// ============================================================
+
 export const profileSetupApi = {
   start: (language?: string) =>
     apiClient.post('/profile-setup/start', { language: language || 'en' }),
@@ -351,24 +486,87 @@ export const profileSetupApi = {
   continue: (userMessage: string) =>
     apiClient.post('/profile-setup/continue', { userMessage }),
 
-  complete: () =>
-    apiClient.post('/profile-setup/complete'),
+  complete: () => apiClient.post('/profile-setup/complete'),
 };
 
-// --- Payments Endpoints ---
+// ============================================================
+// Payments
+// ============================================================
+
 export const paymentsApi = {
   initiate: (consultationId: string) =>
     apiClient.post('/payments/initiate', { consultationId }),
 
   getStatus: (consultationId: string) =>
     apiClient.get(`/payments/status/${consultationId}`),
+
+  markCash: (consultationId: string) =>
+    apiClient.post(`/payments/cash/${consultationId}`),
 };
 
-// --- Notifications Endpoints ---
+// ============================================================
+// Emergency profile
+// ============================================================
+
+export const emergencyApi = {
+  getMyProfile: () => apiClient.get('/emergency/my-profile'),
+
+  updateMyProfile: (data: Record<string, unknown>) =>
+    apiClient.put('/emergency/my-profile', data),
+
+  generateQr: () => apiClient.post('/emergency/generate-qr'),
+
+  syncFromConsultation: (consultationId: string) =>
+    apiClient.post(`/emergency/sync-from-consultation/${consultationId}`),
+};
+
+// ============================================================
+// Notifications
+// ============================================================
+
 export const notificationsApi = {
   registerToken: (token: string) =>
     apiClient.post('/notifications/register-token', { token }),
 
-  clearToken: () =>
-    apiClient.delete('/notifications/token'),
+  clearToken: () => apiClient.delete('/notifications/token'),
+};
+
+// ============================================================
+// Uploads
+// ============================================================
+
+export const uploadApi = {
+  profilePhoto: (imageBase64: string, mimeType = 'image/jpeg') =>
+    apiClient.post('/upload/profile-photo', { imageBase64, mimeType }),
+};
+
+// ============================================================
+// Reviews
+// ============================================================
+
+export const reviewsApi = {
+  create: (payload: { consultationId: string; rating: number; comment?: string }) =>
+    apiClient.post('/reviews', payload),
+
+  getForDoctor: (doctorId: string) =>
+    apiClient.get(`/reviews/doctor/${doctorId}`),
+};
+
+// ============================================================
+// STG (Standard Treatment Guidelines)
+// ============================================================
+
+export const stgApi = {
+  search: (query: string, category?: string) =>
+    apiClient.get('/stg/search', { params: { q: query, category } }),
+
+  icd10Search: (query: string) =>
+    apiClient.get('/stg/icd10/search', { params: { q: query } }),
+
+  icd10ByCode: (code: string) => apiClient.get(`/stg/icd10/${code}`),
+
+  getAdapted: (payload: Record<string, unknown>) =>
+    apiClient.post('/stg/adapted', payload),
+
+  getCategories: () => apiClient.get('/stg/categories'),
 };

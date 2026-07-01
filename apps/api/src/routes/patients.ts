@@ -13,7 +13,7 @@ import { SA_LANGUAGES } from '../types/index.js';
 const UpdatePatientSchema = z.object({
   firstName: z.string().min(2).max(50).optional(),
   lastName: z.string().min(2).max(50).optional(),
-  preferredLanguage: z.enum(SA_LANGUAGES as [string, ...string[]]).optional(),
+  preferredLanguage: z.enum(SA_LANGUAGES).optional(),
   emergencyContact: z
     .object({
       name: z.string().min(1),

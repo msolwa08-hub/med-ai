@@ -96,7 +96,7 @@ export async function paymentRoutes(fastify: FastifyInstance): Promise<void> {
             amountTotal: fee,
             amountDoctor: doctor,
             amountPlatform: platform,
-            paymentMethod: 'payfast',
+            paymentMethod: 'PAYFAST',
             status: 'PENDING',
           },
         }));
@@ -273,7 +273,7 @@ export async function paymentRoutes(fastify: FastifyInstance): Promise<void> {
           where: { id: existingPayment.id },
           data: {
             status: 'COMPLETE',
-            paymentMethod: 'cash',
+            paymentMethod: 'CASH',
             paidAt: new Date(),
           },
         });
@@ -286,7 +286,7 @@ export async function paymentRoutes(fastify: FastifyInstance): Promise<void> {
             amountTotal: fee,
             amountDoctor,
             amountPlatform,
-            paymentMethod: 'cash',
+            paymentMethod: 'CASH',
             status: 'COMPLETE',
             paidAt: new Date(),
           },

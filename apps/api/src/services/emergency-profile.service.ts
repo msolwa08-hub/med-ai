@@ -351,7 +351,7 @@ export async function refreshEmergencyQRToken(patientId: string): Promise<{
   const expiresAt = new Date(Date.now() + QR_TOKEN_TTL_HOURS * 3600 * 1000).toISOString();
 
   // Base URL from config, fallback to relative path
-  const baseUrl = (config as Record<string, string>).APP_BASE_URL ?? 'https://medai.co.za';
+  const baseUrl = config.APP_BASE_URL ?? 'https://medai.co.za';
   const qrUrl = `${baseUrl}/emergency/${token}`;
 
   return {

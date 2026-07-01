@@ -11,10 +11,7 @@ import { auditLog } from '../services/audit.service.js';
  *   - route param: consultationId or patientId
  */
 export async function requireConsent(
-  request: FastifyRequest<{
-    Params: { consultationId?: string; patientId?: string };
-    Querystring: { consultationId?: string };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
   const user = request.user;

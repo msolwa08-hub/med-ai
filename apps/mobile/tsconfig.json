@@ -4,14 +4,32 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@components/*": ["src/components/*"],
-      "@screens/*": ["src/screens/*"],
-      "@store/*": ["src/store/*"],
-      "@api/*": ["src/api/*"],
-      "@constants/*": ["src/constants/*"],
-      "@navigation/*": ["src/navigation/*"],
-      "@i18n/*": ["src/i18n/*"]
-    }
+      "@/*": [
+        "src/*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@screens/*": [
+        "src/screens/*"
+      ],
+      "@store/*": [
+        "src/store/*"
+      ],
+      "@api/*": [
+        "src/api/*"
+      ],
+      "@constants/*": [
+        "src/constants/*"
+      ],
+      "@navigation/*": [
+        "src/navigation/*"
+      ],
+      "@i18n/*": [
+        "src/i18n/*"
+      ]
+    },
+    "module": "esnext",
+    "moduleResolution": "bundler"
   }
 }

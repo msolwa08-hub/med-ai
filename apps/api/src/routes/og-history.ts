@@ -119,10 +119,11 @@ export async function ogHistoryRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const role = request.user!.role;
-      if (
-        role === 'PATIENT' && consultation.patient?.userId !== userId &&
-        role === 'DOCTOR' && consultation.doctor?.userId !== userId
-      ) {
+      const isOwner =
+        (role === 'PATIENT' && consultation.patient?.userId === userId) ||
+        (role === 'DOCTOR' && consultation.doctor?.userId === userId) ||
+        role === 'ADMIN';
+      if (!isOwner) {
         return reply.status(403).send({ success: false, error: 'Forbidden.', code: 'FORBIDDEN' });
       }
 

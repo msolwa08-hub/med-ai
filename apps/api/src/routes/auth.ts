@@ -31,7 +31,7 @@ const RegisterPatientSchema = z.object({
   lastName: z.string().min(2).max(50),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format: YYYY-MM-DD'),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']),
-  preferredLanguage: z.enum(SA_LANGUAGES as [string, ...string[]]).default('en'),
+  preferredLanguage: z.enum(SA_LANGUAGES).default('en'),
   idNumber: z.string().optional(),
 });
 
@@ -703,5 +703,52 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
     });
 
     return reply.send({ success: true, data: { message: 'Password reset successfully.' } });
+  });
+
+  // GET /auth/me — current user with their patient/doctor profile
+  fastify.get('/auth/me', { preHandler: [authenticate] }, async (request, reply) => {
+    const userId = request.user!.sub;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        role: true,
+        isVerified: true,
+        patient: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            dateOfBirth: true,
+            gender: true,
+            preferredLanguage: true,
+          },
+        },
+        doctor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            hpcsaNumber: true,
+            hpcsaStatus: true,
+            doctorType: true,
+            specialization: true,
+            isAvailable: true,
+            consultationFee: true,
+            practiceName: true,
+            profilePhoto: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return reply.status(404).send({ success: false, error: 'User not found.', code: 'USER_NOT_FOUND' });
+    }
+
+    return reply.send({ success: true, data: { user } });
   });
 }
