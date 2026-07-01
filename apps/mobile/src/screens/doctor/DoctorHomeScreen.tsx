@@ -13,6 +13,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useAuthStore } from '../../store/authStore';
 import { doctorApi } from '../../api/endpoints';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
@@ -79,10 +80,11 @@ function getConsultationTypeIcon(type: QueueEntry['consultationType']): keyof ty
 
 export default function DoctorHomeScreen({ navigation }: Props) {
   const { user } = useAuthStore();
-  const [isOnline, setIsOnline] = useState<boolean>(user?.isOnline ?? false);
+  const [isOnline, setIsOnline] = useState<boolean>(user?.doctor?.isAvailable ?? false);
   const [isToggling, setIsToggling] = useState(false);
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [queueLoading, setQueueLoading] = useState(false);
+  const [queueError, setQueueError] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   useEffect(() => {
@@ -97,9 +99,9 @@ export default function DoctorHomeScreen({ navigation }: Props) {
 
   async function checkProfileCompletion() {
     try {
-      const res = await doctorApi.getProfile(user?.id ?? '');
-      const data = res.data as { data?: { bio?: string | null } };
-      const bio = data.data?.bio;
+      const res = await doctorApi.getMyProfile();
+      const profile = res.data.data as { bio?: string | null };
+      const bio = profile?.bio;
       if (!bio || bio.trim() === '') {
         setProfileIncomplete(true);
       }
@@ -110,14 +112,16 @@ export default function DoctorHomeScreen({ navigation }: Props) {
 
   async function loadQueue() {
     setQueueLoading(true);
+    setQueueError(null);
     try {
-      const res = await doctorApi.getPatientQueue(user?.id ?? '');
-      const data = res.data as { success: boolean; data?: { queue: QueueEntry[] } };
-      if (data.success && data.data) {
-        setQueue(data.data.queue);
-      }
-    } catch {
-      // Queue load failure is non-fatal
+      const res = await doctorApi.getPatientQueue();
+      const data = res.data.data as { queue?: QueueEntry[] };
+      setQueue(data?.queue ?? []);
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Could not load your patient queue';
+      setQueueError(message);
     } finally {
       setQueueLoading(false);
     }
@@ -169,10 +173,30 @@ export default function DoctorHomeScreen({ navigation }: Props) {
           onPress: async () => {
             setIsToggling(true);
             try {
-              await doctorApi.setAvailability(user.id, { isOnline: nextState });
+              let lat: number | undefined;
+              let lng: number | undefined;
+              if (nextState) {
+                // Backend requires coordinates when going online
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                  Alert.alert(
+                    'Location Required',
+                    'Location access is needed to go online so nearby patients can find you.'
+                  );
+                  setIsToggling(false);
+                  return;
+                }
+                const pos = await Location.getCurrentPositionAsync({});
+                lat = pos.coords.latitude;
+                lng = pos.coords.longitude;
+              }
+              await doctorApi.setAvailability({ isAvailable: nextState, lat, lng });
               setIsOnline(nextState);
-            } catch {
-              Alert.alert('Error', 'Could not update availability. Please try again.');
+            } catch (err: unknown) {
+              const message =
+                (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+                'Could not update availability. Please try again.';
+              Alert.alert('Error', message);
             } finally {
               setIsToggling(false);
             }
@@ -233,7 +257,7 @@ export default function DoctorHomeScreen({ navigation }: Props) {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.doctorTitle}>
-              Dr. {user?.lastName ?? 'Doctor'}
+              Dr. {user?.doctor?.lastName ?? 'Doctor'}
             </Text>
             <Text style={styles.dashboardSubtitle}>MedAI Provider Dashboard</Text>
           </View>
@@ -322,7 +346,7 @@ export default function DoctorHomeScreen({ navigation }: Props) {
           )}
           <TouchableOpacity
             onPress={loadQueue}
-            style={{ marginLeft: 'auto' }}
+            style={{ marginLeft: 'auto', minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="refresh-outline" size={18} color={COLORS.secondaryLabel} />
@@ -332,6 +356,15 @@ export default function DoctorHomeScreen({ navigation }: Props) {
         {queueLoading ? (
           <View style={styles.emptySection}>
             <ActivityIndicator color={COLORS.primary} />
+            <Text style={styles.emptySectionText}>Loading queue…</Text>
+          </View>
+        ) : queueError ? (
+          <View style={styles.emptySection}>
+            <Ionicons name="cloud-offline-outline" size={32} color={COLORS.systemGray3} />
+            <Text style={styles.emptySectionText}>{queueError}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadQueue} activeOpacity={0.8}>
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : queue.length === 0 ? (
           <View style={styles.emptySection}>
@@ -696,6 +729,23 @@ const styles = StyleSheet.create({
   emptySectionText: {
     ...TYPOGRAPHY.subheadline,
     color: COLORS.secondaryLabel,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: SPACING.xs,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  retryBtnText: {
+    ...TYPOGRAPHY.footnote,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
 
   // Recent consultations

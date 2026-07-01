@@ -12,58 +12,79 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
-import { consultationApi } from '../../api/endpoints';
+import { aiHistoryApi } from '../../api/endpoints';
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE, SHADOWS } from '../../constants/theme';
 
-// ---------- Types ----------
+// ---------- Types (mirror GET /ai-history/:consultationId response) ----------
 
 type AIHistoryReviewRouteParams = {
   AIHistoryReview: {
     consultationId: string;
-    patientName: string;
-    patientAge: number;
-    patientGender: string;
-    language: string;
   };
 };
 
-interface Medication {
-  name: string;
-  dose: string;
-  frequency: string;
+interface HistoryOfPresentIllness {
+  onset?: string;
+  duration?: string;
+  severity?: string;
+  character?: string;
+  radiation?: string;
+  aggravatingFactors?: string;
+  relievingFactors?: string;
+  associatedSymptoms?: string;
 }
 
-interface DifferentialDiagnosis {
-  name: string;
+interface StructuredHistory {
+  chiefComplaint?: string;
+  historyOfPresentIllness?: HistoryOfPresentIllness;
+  pastMedicalHistory?: string;
+  medications?: string;
+  allergies?: string;
+  familyHistory?: string;
+  socialHistory?: string;
+  systemsReview?: string;
+  clinicalScores?: string;
+  opportunisticFindings?: string;
+  redFlagsIdentified?: string;
+}
+
+interface DiagnosisEntry {
+  diagnosis: string;
   icdCode?: string;
   probability: 'HIGH' | 'MEDIUM' | 'LOW';
   reasoning?: string;
 }
 
-interface StructuredHistory {
-  chiefComplaint?: string;
-  historyOfPresentIllness?: {
-    onset?: string;
-    duration?: string;
-    severity?: string;
-    character?: string;
-    radiation?: string;
-    aggravatingFactors?: string;
-    relievingFactors?: string;
-    associatedSymptoms?: string;
-  };
-  pastMedicalHistory?: string;
-  currentMedications?: Medication[];
-  allergies?: string;
-  familyHistory?: string;
-  socialHistory?: string;
-  reviewOfSystems?: string;
+interface AIHistoryData {
+  structuredHistory: StructuredHistory | null;
+  diagnoses: DiagnosisEntry[] | null;
+  doctorConfirmed: boolean;
+  confirmedAt: string | null;
+  doctorNotes: string | null;
+  language: string;
+  literacyLevel: string | null;
 }
 
-interface AIHistoryData {
-  structuredHistory: StructuredHistory;
-  differentialDiagnoses: DifferentialDiagnosis[];
+// ---------- Helpers ----------
+
+function getApiErrorMessage(err: unknown, fallback: string): string {
+  const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+  return message ?? fallback;
+}
+
+function formatTimestamp(iso: string | null): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString([], {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 // ---------- SA High Prevalence Check ----------
@@ -113,7 +134,11 @@ const ExpandableSection: React.FC<ExpandableSectionProps> = ({
             {title}
           </Text>
         </View>
-        <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+        <MaterialCommunityIcons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={COLORS.textSecondary}
+        />
       </TouchableOpacity>
 
       <Animated.View
@@ -165,29 +190,34 @@ const ProbabilityBadge: React.FC<{ probability: 'HIGH' | 'MEDIUM' | 'LOW' }> = (
 const AIHistoryReviewScreen: React.FC = () => {
   const route = useRoute<RouteProp<AIHistoryReviewRouteParams, 'AIHistoryReview'>>();
   const navigation = useNavigation();
-  const { consultationId, patientName, patientAge, patientGender, language } = route.params;
+  const { consultationId } = route.params;
 
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState<AIHistoryData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [notes, setNotes] = useState('');
+  const [corrections, setCorrections] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
 
   useEffect(() => {
     loadHistory();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consultationId]);
 
   const loadHistory = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await consultationApi.getAIHistory(consultationId);
-      setHistoryData(response.data);
+      const response = await aiHistoryApi.getHistory(consultationId);
+      const data = response.data.data as AIHistoryData;
+      setHistoryData(data);
+      setConfirmed(data.doctorConfirmed);
+      setConfirmedAt(data.confirmedAt);
     } catch (err) {
-      setError('Failed to load AI history. Please try again.');
+      setError(getApiErrorMessage(err, 'Failed to load AI history. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -196,257 +226,346 @@ const AIHistoryReviewScreen: React.FC = () => {
   const handleConfirm = async () => {
     try {
       setConfirming(true);
-      await consultationApi.confirmHistory(consultationId, notes || undefined);
-      const now = new Date();
-      const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setConfirmedAt(timestamp);
+      const response = await aiHistoryApi.confirm(
+        consultationId,
+        notes.trim() || undefined,
+        corrections.trim() || undefined,
+      );
+      const result = response.data.data as { confirmed: boolean; confirmedAt: string };
+      setConfirmedAt(result.confirmedAt);
       setConfirmed(true);
     } catch (err) {
-      Alert.alert('Error', 'Failed to confirm history. Please try again.');
+      Alert.alert(
+        'Error',
+        getApiErrorMessage(err, 'Failed to confirm history. Please try again.'),
+      );
     } finally {
       setConfirming(false);
     }
   };
 
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => navigation.goBack()}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <MaterialCommunityIcons name="chevron-left" size={30} color={COLORS.white} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>AI History Review</Text>
+      <View style={styles.headerRight} />
+    </View>
+  );
+
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading AI medical history...</Text>
-      </View>
+      <SafeAreaView style={styles.root} edges={['top']}>
+        {renderHeader()}
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading AI medical history...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadHistory}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.root} edges={['top']}>
+        {renderHeader()}
+        <View style={styles.centerContainer}>
+          <MaterialCommunityIcons
+            name="alert-circle-outline"
+            size={48}
+            color={COLORS.error}
+            style={styles.stateIcon}
+          />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadHistory} activeOpacity={0.8}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  const history = historyData?.structuredHistory ?? {};
-  const differentials = historyData?.differentialDiagnoses ?? [];
+  const history = historyData?.structuredHistory ?? null;
+  const differentials = historyData?.diagnoses ?? [];
+  const allergiesText = history?.allergies?.trim() ?? '';
   const hasAllergies =
-    history.allergies && history.allergies.trim().toLowerCase() !== 'nkda';
+    allergiesText.length > 0 &&
+    !['nkda', 'none', 'no known allergies'].includes(allergiesText.toLowerCase());
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.root} edges={['top']}>
+      {renderHeader()}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* ── Patient Info Card ── */}
-        <View style={[styles.card, styles.patientCard]}>
-          <Text style={styles.patientCardSubtitle}>AI-Assisted Medical History</Text>
-          <Text style={styles.patientName}>{patientName}</Text>
-          <View style={styles.patientMetaRow}>
-            <View style={styles.patientMetaItem}>
-              <Text style={styles.patientMetaLabel}>Age</Text>
-              <Text style={styles.patientMetaValue}>{patientAge} years</Text>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Consultation Summary Card ── */}
+          <View style={[styles.card, styles.patientCard]}>
+            <Text style={styles.patientCardSubtitle}>AI-Assisted Medical History</Text>
+            <Text style={styles.patientName}>Patient History</Text>
+            <View style={styles.patientMetaRow}>
+              <View style={styles.patientMetaItem}>
+                <Text style={styles.patientMetaLabel}>Language</Text>
+                <Text style={styles.patientMetaValue}>
+                  {(historyData?.language ?? 'en').toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.patientMetaDivider} />
+              <View style={styles.patientMetaItem}>
+                <Text style={styles.patientMetaLabel}>Literacy</Text>
+                <Text style={styles.patientMetaValue}>
+                  {historyData?.literacyLevel ?? 'Unknown'}
+                </Text>
+              </View>
+              <View style={styles.patientMetaDivider} />
+              <View style={styles.patientMetaItem}>
+                <Text style={styles.patientMetaLabel}>Status</Text>
+                <Text style={styles.patientMetaValue}>
+                  {confirmed ? 'Confirmed' : 'For review'}
+                </Text>
+              </View>
             </View>
-            <View style={styles.patientMetaDivider} />
-            <View style={styles.patientMetaItem}>
-              <Text style={styles.patientMetaLabel}>Gender</Text>
-              <Text style={styles.patientMetaValue}>
-                {patientGender.charAt(0).toUpperCase() + patientGender.slice(1)}
+          </View>
+
+          {!history && differentials.length === 0 ? (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons
+                name="clipboard-text-clock-outline"
+                size={48}
+                color={COLORS.textTertiary}
+                style={styles.stateIcon}
+              />
+              <Text style={styles.emptyStateTitle}>History not yet available</Text>
+              <Text style={styles.emptyStateText}>
+                The AI history-taking session has not been completed for this consultation.
               </Text>
             </View>
-            <View style={styles.patientMetaDivider} />
-            <View style={styles.patientMetaItem}>
-              <Text style={styles.patientMetaLabel}>Language</Text>
-              <Text style={styles.patientMetaValue}>{language}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ── Chief Complaint ── */}
-        {history.chiefComplaint ? (
-          <View style={styles.chiefComplaintBox}>
-            <Text style={styles.sectionLabel}>CHIEF COMPLAINT</Text>
-            <Text style={styles.chiefComplaintText}>{history.chiefComplaint}</Text>
-          </View>
-        ) : null}
-
-        {/* ── History of Present Illness ── */}
-        <ExpandableSection title="History of Present Illness" defaultExpanded>
-          <InfoRow label="Onset" value={history.historyOfPresentIllness?.onset} />
-          <InfoRow label="Duration" value={history.historyOfPresentIllness?.duration} />
-          <InfoRow label="Severity" value={history.historyOfPresentIllness?.severity} />
-          <InfoRow label="Character" value={history.historyOfPresentIllness?.character} />
-          <InfoRow label="Radiation" value={history.historyOfPresentIllness?.radiation} />
-          <InfoRow
-            label="Aggravating Factors"
-            value={history.historyOfPresentIllness?.aggravatingFactors}
-          />
-          <InfoRow
-            label="Relieving Factors"
-            value={history.historyOfPresentIllness?.relievingFactors}
-          />
-          <InfoRow
-            label="Associated Symptoms"
-            value={history.historyOfPresentIllness?.associatedSymptoms}
-          />
-        </ExpandableSection>
-
-        {/* ── Past Medical History ── */}
-        <ExpandableSection title="Past Medical History">
-          <Text style={styles.plainText}>{history.pastMedicalHistory || 'None reported'}</Text>
-        </ExpandableSection>
-
-        {/* ── Current Medications ── */}
-        <ExpandableSection title="Current Medications">
-          {history.currentMedications && history.currentMedications.length > 0 ? (
+          ) : (
             <>
-              <View style={styles.medicationHeaderRow}>
-                <Text style={[styles.medicationCell, styles.medicationHeaderCell, { flex: 2 }]}>
-                  Medication
-                </Text>
-                <Text style={[styles.medicationCell, styles.medicationHeaderCell, { flex: 1 }]}>
-                  Dose
-                </Text>
-                <Text style={[styles.medicationCell, styles.medicationHeaderCell, { flex: 1.5 }]}>
-                  Frequency
-                </Text>
-              </View>
-              {history.currentMedications.map((med, idx) => (
-                <View
-                  key={idx}
-                  style={[styles.medicationRow, idx % 2 === 1 && styles.medicationRowAlt]}
-                >
-                  <Text style={[styles.medicationCell, { flex: 2 }]}>{med.name}</Text>
-                  <Text style={[styles.medicationCell, { flex: 1 }]}>{med.dose}</Text>
-                  <Text style={[styles.medicationCell, { flex: 1.5 }]}>{med.frequency}</Text>
+              {/* ── Red Flags ── */}
+              {history?.redFlagsIdentified ? (
+                <View style={styles.redFlagBox}>
+                  <View style={styles.redFlagHeaderRow}>
+                    <MaterialCommunityIcons name="flag" size={18} color={COLORS.error} />
+                    <Text style={styles.redFlagLabel}>RED FLAGS IDENTIFIED</Text>
+                  </View>
+                  <Text style={styles.redFlagText}>{history.redFlagsIdentified}</Text>
                 </View>
-              ))}
-            </>
-          ) : (
-            <Text style={styles.plainText}>No current medications</Text>
-          )}
-        </ExpandableSection>
+              ) : null}
 
-        {/* ── Allergies ── */}
-        <ExpandableSection
-          title={hasAllergies ? 'Allergies  ⚠' : 'Allergies'}
-          hasAlert={!!hasAllergies}
-        >
-          {hasAllergies ? (
-            <View style={styles.allergyAlert}>
-              <Text style={styles.allergyAlertText}>{history.allergies}</Text>
-            </View>
-          ) : (
-            <View style={styles.nkdaBadge}>
-              <Text style={styles.nkdaBadgeText}>NKDA — No Known Drug Allergies</Text>
-            </View>
-          )}
-        </ExpandableSection>
+              {/* ── Chief Complaint ── */}
+              {history?.chiefComplaint ? (
+                <View style={styles.chiefComplaintBox}>
+                  <Text style={styles.sectionLabel}>CHIEF COMPLAINT</Text>
+                  <Text style={styles.chiefComplaintText}>{history.chiefComplaint}</Text>
+                </View>
+              ) : null}
 
-        {/* ── Family History ── */}
-        <ExpandableSection title="Family History">
-          <Text style={styles.plainText}>{history.familyHistory || 'None reported'}</Text>
-        </ExpandableSection>
+              {/* ── History of Present Illness ── */}
+              <ExpandableSection title="History of Present Illness" defaultExpanded>
+                <InfoRow label="Onset" value={history?.historyOfPresentIllness?.onset} />
+                <InfoRow label="Duration" value={history?.historyOfPresentIllness?.duration} />
+                <InfoRow label="Severity" value={history?.historyOfPresentIllness?.severity} />
+                <InfoRow label="Character" value={history?.historyOfPresentIllness?.character} />
+                <InfoRow label="Radiation" value={history?.historyOfPresentIllness?.radiation} />
+                <InfoRow
+                  label="Aggravating Factors"
+                  value={history?.historyOfPresentIllness?.aggravatingFactors}
+                />
+                <InfoRow
+                  label="Relieving Factors"
+                  value={history?.historyOfPresentIllness?.relievingFactors}
+                />
+                <InfoRow
+                  label="Associated Symptoms"
+                  value={history?.historyOfPresentIllness?.associatedSymptoms}
+                />
+              </ExpandableSection>
 
-        {/* ── Social History ── */}
-        <ExpandableSection title="Social History">
-          <Text style={styles.plainText}>{history.socialHistory || 'None reported'}</Text>
-        </ExpandableSection>
+              {/* ── Past Medical History ── */}
+              <ExpandableSection title="Past Medical History">
+                <Text style={styles.plainText}>
+                  {history?.pastMedicalHistory || 'None reported'}
+                </Text>
+              </ExpandableSection>
 
-        {/* ── Review of Systems ── */}
-        <ExpandableSection title="Review of Systems">
-          <Text style={styles.plainText}>{history.reviewOfSystems || 'Not completed'}</Text>
-        </ExpandableSection>
+              {/* ── Current Medications ── */}
+              <ExpandableSection title="Current Medications">
+                <Text style={styles.plainText}>
+                  {history?.medications || 'No current medications'}
+                </Text>
+              </ExpandableSection>
 
-        {/* ── Differential Diagnosis Divider ── */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerLabel}>AI DIFFERENTIAL DIAGNOSIS</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* ── Differential Diagnoses ── */}
-        {differentials.length > 0 ? (
-          differentials.map((diag, idx) => (
-            <View key={idx} style={styles.diagnosisCard}>
-              <View style={styles.diagnosisHeaderRow}>
-                <Text style={styles.diagnosisName}>{diag.name}</Text>
-                {diag.icdCode ? (
-                  <Text style={styles.icdCode}>{diag.icdCode}</Text>
-                ) : null}
-              </View>
-              <View style={styles.diagnosisBadgeRow}>
-                <ProbabilityBadge probability={diag.probability} />
-                {isSAPrevalent(diag.name) && (
-                  <View style={styles.saPrevalentBadge}>
-                    <Text style={styles.saPrevalentText}>SA HIGH PREVALENCE</Text>
+              {/* ── Allergies ── */}
+              <ExpandableSection title="Allergies" hasAlert={hasAllergies}>
+                {hasAllergies ? (
+                  <View style={styles.allergyAlert}>
+                    <Text style={styles.allergyAlertText}>{history?.allergies}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.nkdaBadge}>
+                    <Text style={styles.nkdaBadgeText}>NKDA — No Known Drug Allergies</Text>
                   </View>
                 )}
-              </View>
-              {diag.reasoning ? (
-                <Text style={styles.diagnosisReasoning}>{diag.reasoning}</Text>
+              </ExpandableSection>
+
+              {/* ── Family History ── */}
+              <ExpandableSection title="Family History">
+                <Text style={styles.plainText}>{history?.familyHistory || 'None reported'}</Text>
+              </ExpandableSection>
+
+              {/* ── Social History ── */}
+              <ExpandableSection title="Social History">
+                <Text style={styles.plainText}>{history?.socialHistory || 'None reported'}</Text>
+              </ExpandableSection>
+
+              {/* ── Systems Review ── */}
+              <ExpandableSection title="Systems Review">
+                <Text style={styles.plainText}>{history?.systemsReview || 'Not completed'}</Text>
+              </ExpandableSection>
+
+              {/* ── Clinical Scores ── */}
+              {history?.clinicalScores ? (
+                <ExpandableSection title="Clinical Scores">
+                  <Text style={styles.plainText}>{history.clinicalScores}</Text>
+                </ExpandableSection>
               ) : null}
-            </View>
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No differential diagnoses generated</Text>
-          </View>
-        )}
 
-        {/* ── Doctor Actions Divider ── */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerLabel}>DOCTOR ACTIONS</Text>
-          <View style={styles.dividerLine} />
-        </View>
+              {/* ── Opportunistic Findings ── */}
+              {history?.opportunisticFindings ? (
+                <ExpandableSection title="Opportunistic Findings">
+                  <Text style={styles.plainText}>{history.opportunisticFindings}</Text>
+                </ExpandableSection>
+              ) : null}
 
-        {/* ── Notes + Confirm (bottom section with extra padding for fixed bar) ── */}
-        <View style={styles.actionsSection}>
-          <Text style={styles.actionsLabel}>Notes / Corrections</Text>
-          <TextInput
-            style={styles.notesInput}
-            placeholder="Add notes or corrections..."
-            placeholderTextColor={COLORS.textSecondary}
-            multiline
-            numberOfLines={4}
-            value={notes}
-            onChangeText={setNotes}
-            textAlignVertical="top"
-            editable={!confirmed}
-          />
+              {/* ── Differential Diagnosis Divider ── */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerLabel}>AI DIFFERENTIAL DIAGNOSIS</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-          {confirmed ? (
-            <View style={styles.confirmedBanner}>
-              <Text style={styles.confirmedIcon}>✓</Text>
-              <Text style={styles.confirmedText}>Confirmed at {confirmedAt}</Text>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.confirmButton, confirming && styles.confirmButtonDisabled]}
-              onPress={handleConfirm}
-              disabled={confirming}
-              activeOpacity={0.8}
-            >
-              {confirming ? (
-                <ActivityIndicator color={COLORS.white} size="small" />
+              {/* ── Differential Diagnoses ── */}
+              {differentials.length > 0 ? (
+                differentials.map((diag, idx) => (
+                  <View key={`${diag.diagnosis}-${idx}`} style={styles.diagnosisCard}>
+                    <View style={styles.diagnosisHeaderRow}>
+                      <Text style={styles.diagnosisName}>{diag.diagnosis}</Text>
+                      {diag.icdCode ? <Text style={styles.icdCode}>{diag.icdCode}</Text> : null}
+                    </View>
+                    <View style={styles.diagnosisBadgeRow}>
+                      <ProbabilityBadge probability={diag.probability} />
+                      {isSAPrevalent(diag.diagnosis) && (
+                        <View style={styles.saPrevalentBadge}>
+                          <Text style={styles.saPrevalentText}>SA HIGH PREVALENCE</Text>
+                        </View>
+                      )}
+                    </View>
+                    {diag.reasoning ? (
+                      <Text style={styles.diagnosisReasoning}>{diag.reasoning}</Text>
+                    ) : null}
+                  </View>
+                ))
               ) : (
-                <Text style={styles.confirmButtonText}>Confirm History</Text>
+                <View style={styles.emptyState}>
+                  <MaterialCommunityIcons
+                    name="stethoscope"
+                    size={40}
+                    color={COLORS.textTertiary}
+                    style={styles.stateIcon}
+                  />
+                  <Text style={styles.emptyStateText}>No differential diagnoses generated</Text>
+                </View>
               )}
-            </TouchableOpacity>
-          )}
-        </View>
 
-        {/* Bottom padding so content isn't hidden behind anything */}
-        <View style={{ height: 32 }} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+              {/* ── Doctor Actions Divider ── */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerLabel}>DOCTOR ACTIONS</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* ── Notes + Corrections + Confirm ── */}
+              <View style={styles.actionsSection}>
+                {confirmed && historyData?.doctorNotes ? (
+                  <>
+                    <Text style={styles.actionsLabel}>Doctor Notes</Text>
+                    <Text style={styles.savedNotesText}>{historyData.doctorNotes}</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.actionsLabel}>Notes</Text>
+                    <TextInput
+                      style={styles.notesInput}
+                      placeholder="Add notes..."
+                      placeholderTextColor={COLORS.textTertiary}
+                      multiline
+                      numberOfLines={3}
+                      value={notes}
+                      onChangeText={setNotes}
+                      textAlignVertical="top"
+                      editable={!confirmed}
+                    />
+                    <Text style={styles.actionsLabel}>Corrections</Text>
+                    <TextInput
+                      style={styles.notesInput}
+                      placeholder="Add corrections to the AI history..."
+                      placeholderTextColor={COLORS.textTertiary}
+                      multiline
+                      numberOfLines={3}
+                      value={corrections}
+                      onChangeText={setCorrections}
+                      textAlignVertical="top"
+                      editable={!confirmed}
+                    />
+                  </>
+                )}
+
+                {confirmed ? (
+                  <View style={styles.confirmedBanner}>
+                    <MaterialCommunityIcons
+                      name="check-circle"
+                      size={20}
+                      color={COLORS.success}
+                    />
+                    <Text style={styles.confirmedText}>
+                      Confirmed{confirmedAt ? ` — ${formatTimestamp(confirmedAt)}` : ''}
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.confirmButton, confirming && styles.confirmButtonDisabled]}
+                    onPress={handleConfirm}
+                    disabled={confirming}
+                    activeOpacity={0.8}
+                  >
+                    {confirming ? (
+                      <ActivityIndicator color={COLORS.white} size="small" />
+                    ) : (
+                      <Text style={styles.confirmButtonText}>Confirm History</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            </>
+          )}
+
+          {/* Bottom padding so content isn't hidden behind anything */}
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -455,10 +574,39 @@ const AIHistoryReviewScreen: React.FC = () => {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: COLORS.primary,
+  },
+  flex: {
+    flex: 1,
     backgroundColor: COLORS.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    minHeight: 52,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: COLORS.white,
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 44,
   },
   scrollView: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     padding: SPACING.md,
@@ -469,6 +617,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.background,
     padding: SPACING.lg,
+  },
+  stateIcon: {
+    marginBottom: SPACING.sm,
   },
   loadingText: {
     marginTop: SPACING.md,
@@ -486,6 +637,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   retryButtonText: {
     color: COLORS.white,
@@ -493,19 +646,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Patient card
+  // Summary card
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    ...{
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 3,
-    },
+    ...SHADOWS.sm,
   },
   patientCard: {
     backgroundColor: COLORS.primary,
@@ -549,11 +696,39 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 
+  // Red flags
+  redFlagBox: {
+    backgroundColor: COLORS.error + '12',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.error,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  redFlagHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginBottom: SPACING.xs,
+  },
+  redFlagLabel: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
+    color: COLORS.error,
+    letterSpacing: 1,
+  },
+  redFlagText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.error,
+    lineHeight: 20,
+  },
+
   // Chief complaint
   chiefComplaintBox: {
-    backgroundColor: '#EBF4FF',
+    backgroundColor: COLORS.healingMint,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.info,
+    borderLeftColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.md,
@@ -561,7 +736,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: FONT_SIZE.xs,
     fontWeight: '700',
-    color: COLORS.info,
+    color: COLORS.primaryDark,
     letterSpacing: 1,
     marginBottom: SPACING.xs,
   },
@@ -586,6 +761,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: SPACING.md,
+    minHeight: 48,
   },
   expandableTitleRow: {
     flexDirection: 'row',
@@ -606,11 +782,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: COLORS.error,
     marginRight: SPACING.sm,
-  },
-  chevron: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
-    marginLeft: SPACING.sm,
   },
   expandableBody: {
     overflow: 'hidden',
@@ -647,40 +818,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
   },
 
-  // Medication table
-  medicationHeaderRow: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surfaceVariant,
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.xs,
-    borderRadius: BORDER_RADIUS.sm,
-    marginBottom: SPACING.xs,
-  },
-  medicationHeaderCell: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '700',
-    color: COLORS.text,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  medicationRow: {
-    flexDirection: 'row',
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.xs,
-  },
-  medicationRowAlt: {
-    backgroundColor: COLORS.surfaceVariant,
-    borderRadius: BORDER_RADIUS.sm,
-  },
-  medicationCell: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.text,
-    paddingRight: SPACING.xs,
-  },
-
   // Allergies
   allergyAlert: {
-    backgroundColor: '#FFF0F0',
+    backgroundColor: COLORS.error + '12',
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
@@ -692,7 +832,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   nkdaBadge: {
-    backgroundColor: '#F0FFF4',
+    backgroundColor: COLORS.success + '12',
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
@@ -776,13 +916,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.error,
   },
   probMedium: {
-    backgroundColor: '#E67E22',
+    backgroundColor: COLORS.warning,
   },
   probLow: {
     backgroundColor: COLORS.success,
   },
   saPrevalentBadge: {
-    backgroundColor: '#FFF3CD',
+    backgroundColor: COLORS.warning + '20',
     borderWidth: 1,
     borderColor: COLORS.warning,
     paddingHorizontal: SPACING.sm,
@@ -792,7 +932,7 @@ const styles = StyleSheet.create({
   saPrevalentText: {
     fontSize: FONT_SIZE.xs,
     fontWeight: '700',
-    color: '#856404',
+    color: COLORS.warning,
     letterSpacing: 0.3,
   },
   diagnosisReasoning: {
@@ -807,9 +947,16 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     alignItems: 'center',
   },
+  emptyStateTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
   emptyStateText: {
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
+    textAlign: 'center',
   },
 
   // Actions section
@@ -827,6 +974,12 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: SPACING.sm,
   },
+  savedNotesText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+    marginBottom: SPACING.md,
+  },
   notesInput: {
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -834,7 +987,7 @@ const styles = StyleSheet.create({
     padding: SPACING.sm,
     fontSize: FONT_SIZE.md,
     color: COLORS.text,
-    minHeight: 100,
+    minHeight: 80,
     backgroundColor: COLORS.background,
     marginBottom: SPACING.md,
   },
@@ -845,13 +998,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 50,
-    ...{
-      shadowColor: COLORS.secondary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 4,
-    },
+    ...SHADOWS.md,
   },
   confirmButtonDisabled: {
     opacity: 0.7,
@@ -864,23 +1011,22 @@ const styles = StyleSheet.create({
   confirmedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FFF4',
+    backgroundColor: COLORS.success + '12',
     borderWidth: 1,
     borderColor: COLORS.success,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     justifyContent: 'center',
-  },
-  confirmedIcon: {
-    fontSize: FONT_SIZE.xl,
-    color: COLORS.success,
-    fontWeight: '700',
-    marginRight: SPACING.sm,
+    gap: SPACING.sm,
+    minHeight: 44,
   },
   confirmedText: {
     fontSize: FONT_SIZE.md,
     color: COLORS.success,
     fontWeight: '600',
+  },
+  bottomSpacer: {
+    height: SPACING.xl,
   },
 });
 

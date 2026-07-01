@@ -93,7 +93,9 @@ export default function LoginScreen() {
   const pillContainerWidth = SCREEN_WIDTH - PILL_MARGIN * 2 - PILL_CONTAINER_PADDING * 2;
   const pillWidth = pillContainerWidth / 2;
 
-  const otpInputRef = useRef<React.ElementRef<typeof TextInput>>(null);
+  // react-native-paper's TextInput ref type (TextInputHandles) is not exported,
+  // so use `any` to avoid the RefObject<TextInputHandles> mismatch.
+  const otpInputRef = useRef<any>(null);
 
   const loading = isLoading || storeLoading;
 
@@ -122,14 +124,14 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       const normalised = normalisePhone(phone);
-      await authApi.sendOtp(normalised);
+      await authApi.sendOtp(normalised, 'LOGIN');
       setOtpSent(true);
       showSnackbar('Verification code sent to ' + normalised);
       // Focus OTP input after a brief delay
       setTimeout(() => otpInputRef.current?.focus(), 350);
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
         'Failed to send OTP. Please try again.';
       showSnackbar(message);
     } finally {
@@ -154,7 +156,7 @@ export default function LoginScreen() {
       // Navigation handled by root navigator on auth state change
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
         storeError ||
         'Verification failed. Please check the code and try again.';
       showSnackbar(message);
@@ -179,7 +181,7 @@ export default function LoginScreen() {
       // Navigation handled by root navigator on auth state change
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
         storeError ||
         'Login failed. Please check your credentials.';
       showSnackbar(message);

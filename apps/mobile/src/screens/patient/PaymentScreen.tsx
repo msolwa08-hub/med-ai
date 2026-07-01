@@ -1,13 +1,12 @@
 /**
- * PaymentScreen — opens the PayFast payment URL in the device browser
- * and allows the patient to poll payment status.
+ * PaymentScreen — initiates a PayFast payment for a consultation, opens the
+ * payment URL in the device browser and polls the payment status.
  *
- * Note: react-native-webview is not installed in this project.
- * Install it with `npx expo install react-native-webview` to enable
- * in-app WebView payments. Until then this screen uses Linking.openURL
- * to launch the PayFast page in the system browser.
+ * Contract:
+ *   POST /payments/initiate { consultationId } -> { data: { paymentId, paymentUrl, amount } }
+ *   GET  /payments/status/:consultationId      -> { data: { status, amount?, paidAt? } }
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +18,7 @@ import {
   Linking,
   SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { paymentsApi } from '../../api/endpoints';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
@@ -26,18 +26,78 @@ import type { PatientStackParamList } from '../../navigation/PatientNavigator';
 
 type PaymentRouteProp = RouteProp<PatientStackParamList, 'Payment'>;
 
+type PaymentStatus = 'NOT_INITIATED' | 'PENDING' | 'COMPLETE' | 'FAILED' | 'CANCELLED';
+
+const apiErrorMessage = (err: unknown, fallback: string): string =>
+  (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback;
+
 export const PaymentScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<PaymentRouteProp>();
-  const { consultationId, paymentUrl, amount } = route.params;
+  const { consultationId, doctorName } = route.params;
 
+  const [isInitiating, setIsInitiating] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [amount, setAmount] = useState<number | null>(null);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [hasOpenedBrowser, setHasOpenedBrowser] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const platformFee = Math.round(amount * 0.15 * 100) / 100;
-  const doctorAmount = Math.round(amount * 0.85 * 100) / 100;
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const initiate = useCallback(async () => {
+    setIsInitiating(true);
+    setInitError(null);
+    try {
+      const response = await paymentsApi.initiate(consultationId);
+      const data = response.data.data as { paymentId: string; paymentUrl: string; amount: number };
+      setPaymentUrl(data.paymentUrl);
+      setAmount(data.amount);
+    } catch (err: unknown) {
+      // e.g. "Doctor has not set a consultation fee" / "already been paid"
+      setInitError(apiErrorMessage(err, 'Could not set up the payment. Please try again.'));
+    } finally {
+      setIsInitiating(false);
+    }
+  }, [consultationId]);
+
+  useEffect(() => {
+    initiate();
+    return () => stopPolling();
+  }, [initiate, stopPolling]);
+
+  const fetchStatus = useCallback(async (): Promise<PaymentStatus | null> => {
+    try {
+      const response = await paymentsApi.getStatus(consultationId);
+      const data = response.data.data as { status: PaymentStatus };
+      return data.status;
+    } catch {
+      return null;
+    }
+  }, [consultationId]);
+
+  // Poll payment status every 5 seconds once the browser has been opened
+  useEffect(() => {
+    if (!hasOpenedBrowser || paymentComplete) return;
+    pollRef.current = setInterval(async () => {
+      const status = await fetchStatus();
+      if (status === 'COMPLETE') {
+        stopPolling();
+        setPaymentComplete(true);
+      }
+    }, 5000);
+    return () => stopPolling();
+  }, [hasOpenedBrowser, paymentComplete, fetchStatus, stopPolling]);
 
   const handleOpenPayment = useCallback(async () => {
+    if (!paymentUrl) return;
     try {
       const canOpen = await Linking.canOpenURL(paymentUrl);
       if (!canOpen) {
@@ -53,51 +113,105 @@ export const PaymentScreen: React.FC = () => {
 
   const handleCheckStatus = useCallback(async () => {
     setIsCheckingStatus(true);
-    try {
-      const response = await paymentsApi.getStatus(consultationId);
-      const data = response.data?.data;
+    const status = await fetchStatus();
+    setIsCheckingStatus(false);
 
-      if (data?.status === 'COMPLETE') {
-        Alert.alert(
-          'Payment Confirmed',
-          `Your payment of R${amount.toFixed(2)} has been successfully processed.`,
-          [
-            {
-              text: 'View Consultation',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      } else if (data?.status === 'FAILED' || data?.status === 'CANCELLED') {
-        Alert.alert(
-          'Payment Not Completed',
-          'Your payment was not completed. You can try again.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert(
-          'Payment Pending',
-          'Your payment is still being processed. Please complete payment in the browser and check again.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch {
+    if (status === 'COMPLETE') {
+      stopPolling();
+      setPaymentComplete(true);
+    } else if (status === 'FAILED' || status === 'CANCELLED') {
+      Alert.alert('Payment Not Completed', 'Your payment was not completed. You can try again.', [
+        { text: 'OK' },
+      ]);
+    } else if (status === null) {
       Alert.alert('Error', 'Could not retrieve payment status. Please try again.');
-    } finally {
-      setIsCheckingStatus(false);
+    } else {
+      Alert.alert(
+        'Payment Pending',
+        'Your payment is still being processed. Please complete payment in the browser and check again.',
+        [{ text: 'OK' }]
+      );
     }
-  }, [consultationId, amount, navigation]);
+  }, [fetchStatus, stopPolling]);
+
+  // ── Loading state (initiating payment) ──
+  if (isInitiating) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.centeredText}>Setting up your payment…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Error state (initiate failed, e.g. no fee set) ──
+  if (initError || paymentUrl === null || amount === null) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="chevron-back" size={28} color={COLORS.primary} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Payment</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.centered}>
+          <Ionicons name="card-outline" size={48} color={COLORS.systemGray3} />
+          <Text style={styles.errorTitle}>Payment unavailable</Text>
+          <Text style={styles.errorBody}>
+            {initError ?? 'Could not set up the payment. Please try again.'}
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={initiate} activeOpacity={0.85}>
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const platformFee = Math.round(amount * 0.15 * 100) / 100;
+  const doctorAmount = Math.round(amount * 0.85 * 100) / 100;
 
   return (
     <SafeAreaView style={styles.root}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="chevron-back" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Pay for Consultation</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Pay for Consultation</Text>
-        </View>
+        {doctorName ? (
+          <Text style={styles.doctorLine}>Consultation with {doctorName}</Text>
+        ) : null}
+
+        {/* Payment complete banner */}
+        {paymentComplete && (
+          <View style={styles.successCard}>
+            <Ionicons name="checkmark-circle" size={32} color={COLORS.success} />
+            <View style={styles.successTextBlock}>
+              <Text style={styles.successTitle}>Payment Confirmed</Text>
+              <Text style={styles.successBody}>
+                Your payment of R{amount.toFixed(2)} was processed successfully.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Fee Summary Card */}
         <View style={styles.feeCard}>
@@ -131,42 +245,62 @@ export const PaymentScreen: React.FC = () => {
 
         {/* Info card */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoIcon}>🔒</Text>
+          <Ionicons name="lock-closed-outline" size={22} color={COLORS.systemBlue} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoTitle}>Secure Payment via PayFast</Text>
             <Text style={styles.infoBody}>
-              You will be redirected to PayFast's secure payment page. Supported: credit/debit card,
-              EFT, instant EFT, and SnapScan.
+              You will be redirected to PayFast's secure payment page. Supported: credit/debit
+              card, EFT, instant EFT, and SnapScan.
             </Text>
           </View>
         </View>
 
-        {/* Pay Now button */}
-        <TouchableOpacity style={styles.payButton} onPress={handleOpenPayment}>
-          <Text style={styles.payButtonText}>
-            {hasOpenedBrowser ? 'Reopen Payment Page' : `Pay R${amount.toFixed(2)} Now`}
-          </Text>
-        </TouchableOpacity>
+        {!paymentComplete && (
+          <>
+            {/* Pay Now button */}
+            <TouchableOpacity
+              style={styles.payButton}
+              onPress={handleOpenPayment}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.payButtonText}>
+                {hasOpenedBrowser ? 'Reopen Payment Page' : `Pay R${amount.toFixed(2)} Now`}
+              </Text>
+            </TouchableOpacity>
 
-        {/* Check status button (visible after opening browser) */}
-        {hasOpenedBrowser && (
-          <TouchableOpacity
-            style={styles.statusButton}
-            onPress={handleCheckStatus}
-            disabled={isCheckingStatus}
-          >
-            {isCheckingStatus ? (
-              <ActivityIndicator size="small" color={COLORS.primary} />
-            ) : (
-              <Text style={styles.statusButtonText}>Check Payment Status</Text>
+            {/* Check status button (visible after opening browser) */}
+            {hasOpenedBrowser && (
+              <TouchableOpacity
+                style={styles.statusButton}
+                onPress={handleCheckStatus}
+                disabled={isCheckingStatus}
+                activeOpacity={0.85}
+              >
+                {isCheckingStatus ? (
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                ) : (
+                  <Text style={styles.statusButtonText}>Check Payment Status</Text>
+                )}
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+
+            {/* Browser note */}
+            <Text style={styles.browserNote}>
+              Payment opens in your device browser. Return here after completing payment — we check
+              the status automatically.
+            </Text>
+          </>
         )}
 
-        {/* Browser note */}
-        <Text style={styles.browserNote}>
-          Payment opens in your device browser. Return here after completing payment to verify status.
-        </Text>
+        {paymentComplete && (
+          <TouchableOpacity
+            style={styles.payButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.payButtonText}>Back to Consultation</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={{ height: SPACING.xxl }} />
       </ScrollView>
@@ -179,25 +313,100 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.md,
+  },
+  centeredText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+  },
+  errorTitle: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  errorBody: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.sm,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: FONT_SIZE.md,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerSpacer: {
+    width: 44,
+  },
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
   content: {
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.lg,
   },
-  header: {
-    marginBottom: SPACING.lg,
-  },
-  backButton: {
-    marginBottom: SPACING.sm,
-  },
-  backButtonText: {
+  doctorLine: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.primary,
-    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.md,
   },
-  title: {
-    fontSize: FONT_SIZE.xxl,
+  successCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    backgroundColor: COLORS.healingMint,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.healingTealMid,
+  },
+  successTextBlock: {
+    flex: 1,
+  },
+  successTitle: {
+    fontSize: FONT_SIZE.md,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.success,
+  },
+  successBody: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   feeCard: {
     backgroundColor: COLORS.surface,
@@ -223,7 +432,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: SPACING.xs,
   },
   feeLabel: {
     fontSize: FONT_SIZE.md,
@@ -262,16 +471,13 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#EBF8FF',
+    backgroundColor: COLORS.healingMint,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.systemBlue,
     gap: SPACING.sm,
-  },
-  infoIcon: {
-    fontSize: 22,
   },
   infoTextContainer: {
     flex: 1,
@@ -280,7 +486,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   infoBody: {
     fontSize: FONT_SIZE.sm,
@@ -291,7 +497,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
+    minHeight: 52,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.sm,
     ...SHADOWS.sm,
   },

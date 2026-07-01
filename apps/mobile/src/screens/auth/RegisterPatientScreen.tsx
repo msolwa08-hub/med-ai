@@ -21,7 +21,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
 import { authApi, AuthRegisterPatientPayload } from '@api/endpoints';
-import { useAuthStore } from '@store/authStore';
+import { setAuthTokens } from '@api/client';
+import { useAuthStore, User } from '@store/authStore';
 import { SA_LANGUAGES } from '@constants/languages';
 import { COLORS, SPACING, BORDER_RADIUS } from '@constants/theme';
 import TermsConsentModal from '../../components/TermsConsentModal';
@@ -54,6 +55,27 @@ function isValidSaId(id: string): boolean {
   // SA ID is exactly 13 numeric digits (Luhn check optional for now)
   return /^\d{13}$/.test(id);
 }
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+// Must match the API's zod schema: min 8 chars, 1 uppercase, 1 number
+function passwordRuleError(value: string): string | null {
+  if (value.length < 8) return 'Password must be at least 8 characters.';
+  if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter.';
+  if (!/[0-9]/.test(value)) return 'Password must contain at least one number.';
+  return null;
+}
+
+type Gender = AuthRegisterPatientPayload['gender'];
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
+];
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
@@ -98,7 +120,7 @@ function PasswordStrengthIndicator({ password }: PasswordStrengthProps) {
 
 export default function RegisterPatientScreen() {
   const navigation = useNavigation();
-  const { login } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   // Step state
   const [currentStep, setCurrentStep] = useState(1);
@@ -110,8 +132,9 @@ export default function RegisterPatientScreen() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>('');
+  const [gender, setGender] = useState<Gender | ''>('');
 
   // Step 2
   const [preferredLanguage, setPreferredLanguage] = useState('en');
@@ -122,10 +145,6 @@ export default function RegisterPatientScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
-
-  // Step 4
-  const [otpCode, setOtpCode] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
 
   // Consent modal
   const [showConsent, setShowConsent] = useState(false);
@@ -143,8 +162,17 @@ export default function RegisterPatientScreen() {
   function validateStep1(): boolean {
     const newErrors: Record<string, string> = {};
 
-    if (!firstName.trim()) newErrors.firstName = 'First name is required.';
-    if (!lastName.trim()) newErrors.lastName = 'Last name is required.';
+    if (!firstName.trim()) {
+      newErrors.firstName = 'First name is required.';
+    } else if (firstName.trim().length < 2 || firstName.trim().length > 50) {
+      newErrors.firstName = 'First name must be 2-50 characters.';
+    }
+
+    if (!lastName.trim()) {
+      newErrors.lastName = 'Last name is required.';
+    } else if (lastName.trim().length < 2 || lastName.trim().length > 50) {
+      newErrors.lastName = 'Last name must be 2-50 characters.';
+    }
 
     if (!dateOfBirth.trim()) {
       newErrors.dateOfBirth = 'Date of birth is required.';
@@ -160,6 +188,12 @@ export default function RegisterPatientScreen() {
       newErrors.phone = 'Enter a valid South African number (e.g. 082 123 4567).';
     }
 
+    if (!email.trim()) {
+      newErrors.email = 'Email address is required.';
+    } else if (!isValidEmail(email)) {
+      newErrors.email = 'Enter a valid email address.';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -173,8 +207,9 @@ export default function RegisterPatientScreen() {
 
     if (!password) {
       newErrors.password = 'Password is required.';
-    } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters.';
+    } else {
+      const ruleError = passwordRuleError(password);
+      if (ruleError) newErrors.password = ruleError;
     }
 
     if (!confirmPassword) {
@@ -217,57 +252,51 @@ export default function RegisterPatientScreen() {
     }
   }
 
-  // ── OTP & Registration ─────────────────────────────────────────────────
-
-  async function handleSendOtp() {
-    const normalized = normalizePhone(phone);
-    setIsLoading(true);
-    try {
-      await authApi.sendOtp(normalized);
-      setOtpSent(true);
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? 'Failed to send OTP. Please try again.';
-      showError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  // ── Registration ────────────────────────────────────────────────────────
 
   function handleRegister() {
-    if (!otpCode.trim() || otpCode.length < 4) {
-      showError('Please enter the verification code sent to your phone.');
-      return;
-    }
     setShowConsent(true);
   }
 
   async function handleConsentAccept() {
     setShowConsent(false);
 
-    const normalized = normalizePhone(phone);
-
+    // Payload mirrors the API's zod schema exactly — gender is UPPERCASE,
+    // idNumber is omitted when blank.
     const payload: AuthRegisterPatientPayload = {
+      email: email.trim().toLowerCase(),
+      phone: normalizePhone(phone),
+      password,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       dateOfBirth: dateOfBirth.trim(),
-      gender: gender as 'male' | 'female' | 'other',
-      idNumber: idNumber.trim(),
-      phone: normalized,
+      gender: gender as Gender,
       preferredLanguage,
+      ...(idNumber.trim() ? { idNumber: idNumber.trim() } : {}),
     };
 
     setIsLoading(true);
     try {
-      await authApi.registerPatient(payload);
-      await authApi.verifyOtp(normalized, otpCode.trim());
-      await login(normalized, otpCode.trim());
-      // Navigation is handled by auth state change in the navigator
+      // 201 → { success, data: { accessToken, refreshToken, expiresIn, user } }
+      const response = await authApi.registerPatient(payload);
+      const { accessToken, refreshToken, user } = response.data.data;
+      await setAuthTokens(accessToken, refreshToken);
+
+      // Fetch the full profile so the store has the nested patient record;
+      // fall back to the minimal user returned by /auth/register.
+      let fullUser: User = user;
+      try {
+        const me = await authApi.getMe();
+        fullUser = me.data.data.user as User;
+      } catch {
+        // Minimal user is enough to enter the app; profile loads later.
+      }
+      setUser(fullUser);
+      // RootNavigator switches stacks on auth state change.
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? 'Registration failed. Please check your details and try again.';
+        (err as { response?: { data?: { error?: string } } })?.response?.data
+          ?.error ?? 'Registration failed. Please check your details and try again.';
       showError(message);
     } finally {
       setIsLoading(false);
@@ -276,7 +305,7 @@ export default function RegisterPatientScreen() {
 
   // ── Progress Bar ───────────────────────────────────────────────────────
 
-  const stepLabels = ['1. Info', '2. Language', '3. Security', '4. Verify'];
+  const stepLabels = ['1. Info', '2. Language', '3. Security', '4. Review'];
 
   function renderProgressBar() {
     return (
@@ -373,12 +402,11 @@ export default function RegisterPatientScreen() {
 
         <Text style={styles.fieldLabel}>Gender *</Text>
         <View style={styles.genderRow}>
-          {(['male', 'female', 'other'] as const).map((g) => {
-            const selected = gender === g;
-            const label = g.charAt(0).toUpperCase() + g.slice(1);
+          {GENDER_OPTIONS.map(({ value, label }) => {
+            const selected = gender === value;
             return (
               <TouchableOpacity
-                key={g}
+                key={value}
                 style={[
                   styles.genderCard,
                   selected
@@ -386,7 +414,7 @@ export default function RegisterPatientScreen() {
                     : styles.genderCardUnselected,
                 ]}
                 onPress={() => {
-                  setGender(g);
+                  setGender(value);
                   if (errors.gender) setErrors((e) => ({ ...e, gender: '' }));
                 }}
                 activeOpacity={0.8}
@@ -399,6 +427,7 @@ export default function RegisterPatientScreen() {
                       fontWeight: selected ? '700' : '400',
                     },
                   ]}
+                  numberOfLines={1}
                 >
                   {label}
                 </Text>
@@ -419,6 +448,8 @@ export default function RegisterPatientScreen() {
           mode="outlined"
           placeholder="+27 XX XXX XXXX"
           keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
           style={styles.input}
           error={!!errors.phone}
           outlineColor={COLORS.border}
@@ -426,6 +457,25 @@ export default function RegisterPatientScreen() {
         />
         <HelperText type={errors.phone ? 'error' : 'info'} visible>
           {errors.phone ?? 'South African number required'}
+        </HelperText>
+
+        <TextInput
+          label="Email Address *"
+          value={email}
+          onChangeText={setEmail}
+          mode="outlined"
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          textContentType="emailAddress"
+          style={styles.input}
+          error={!!errors.email}
+          outlineColor={COLORS.border}
+          activeOutlineColor={COLORS.primary}
+        />
+        <HelperText type={errors.email ? 'error' : 'info'} visible>
+          {errors.email ?? 'Used to sign in and for important updates'}
         </HelperText>
 
         <Button
@@ -560,7 +610,7 @@ export default function RegisterPatientScreen() {
           }
         />
         <HelperText type={errors.password ? 'error' : 'info'} visible>
-          {errors.password ?? 'At least 8 characters'}
+          {errors.password ?? 'Min. 8 characters, with 1 uppercase letter and 1 number'}
         </HelperText>
 
         <PasswordStrengthIndicator password={password} />
@@ -603,71 +653,57 @@ export default function RegisterPatientScreen() {
     );
   }
 
-  // ── Step 4: OTP Verification ─────────────────────────────────────────────
+  // ── Step 4: Review & Create ──────────────────────────────────────────────
 
   function renderStep4() {
     const displayPhone = normalizePhone(phone);
+    const genderLabel = GENDER_OPTIONS.find((g) => g.value === gender)?.label ?? '—';
+    const languageLabel =
+      SA_LANGUAGES.find((l) => l.code === preferredLanguage)?.name ?? preferredLanguage;
+
+    const reviewRows: { label: string; value: string }[] = [
+      { label: 'Name', value: `${firstName.trim()} ${lastName.trim()}` },
+      { label: 'Date of birth', value: dateOfBirth.trim() },
+      { label: 'Gender', value: genderLabel },
+      { label: 'Phone', value: displayPhone },
+      { label: 'Email', value: email.trim().toLowerCase() },
+      { label: 'Preferred language', value: languageLabel },
+      ...(idNumber.trim() ? [{ label: 'SA ID number', value: idNumber.trim() }] : []),
+    ];
 
     return (
       <View>
-        <Text style={styles.stepTitle}>Verify Your Number</Text>
+        <Text style={styles.stepTitle}>Review Your Details</Text>
         <Text style={styles.stepSubtitle}>
-          We&apos;ll send a verification code to {displayPhone}
+          Make sure everything is correct before creating your account.
         </Text>
 
-        {!otpSent ? (
-          <>
-            <Surface style={styles.phonePreview} elevation={1}>
-              <Text style={styles.phonePreviewLabel}>Phone number</Text>
-              <Text style={styles.phonePreviewValue}>{displayPhone}</Text>
-            </Surface>
-
-            <Button
-              mode="contained"
-              onPress={handleSendOtp}
-              loading={isLoading}
-              disabled={isLoading}
-              style={styles.nextButton}
-              contentStyle={styles.nextButtonContent}
-              buttonColor={COLORS.primary}
-              labelStyle={styles.nextButtonLabel}
+        <Surface style={styles.reviewCard} elevation={1}>
+          {reviewRows.map((row, index) => (
+            <View
+              key={row.label}
+              style={[styles.reviewRow, index > 0 && styles.reviewRowBorder]}
             >
-              Send Verification Code
-            </Button>
-          </>
-        ) : (
-          <>
-            <View style={styles.otpSentRow}>
-              <Text style={styles.otpSentText}>✓ Code sent to {displayPhone}</Text>
+              <Text style={styles.reviewLabel}>{row.label}</Text>
+              <Text style={styles.reviewValue} numberOfLines={2}>
+                {row.value}
+              </Text>
             </View>
+          ))}
+        </Surface>
 
-            <TextInput
-              label="Verification Code"
-              value={otpCode}
-              onChangeText={setOtpCode}
-              mode="outlined"
-              keyboardType="numeric"
-              maxLength={6}
-              style={styles.otpInput}
-              outlineColor={COLORS.border}
-              activeOutlineColor={COLORS.primary}
-              contentStyle={styles.otpInputContent}
-            />
-
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              loading={isLoading}
-              disabled={isLoading}
-              style={[styles.nextButton, { marginTop: SPACING.md }]}
-              contentStyle={styles.nextButtonContent}
-              buttonColor={COLORS.secondary}
-              labelStyle={styles.nextButtonLabel}
-            >
-              Create Account
-            </Button>
-          </>
-        )}
+        <Button
+          mode="contained"
+          onPress={handleRegister}
+          loading={isLoading}
+          disabled={isLoading}
+          style={[styles.nextButton, { marginTop: SPACING.md }]}
+          contentStyle={styles.nextButtonContent}
+          buttonColor={COLORS.secondary}
+          labelStyle={styles.nextButtonLabel}
+        >
+          Create Account
+        </Button>
       </View>
     );
   }
@@ -840,13 +876,16 @@ const styles = StyleSheet.create({
   // ── Gender ──
   genderRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: SPACING.xs,
+    marginHorizontal: -4,
   },
   genderCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '45%',
     margin: 4,
     paddingVertical: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 2,
     alignItems: 'center',
@@ -854,7 +893,7 @@ const styles = StyleSheet.create({
   },
   genderCardSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#EEF4FF',
+    backgroundColor: COLORS.healingMint,
   },
   genderCardUnselected: {
     borderColor: COLORS.border,
@@ -927,43 +966,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // ── OTP step ──
-  phonePreview: {
+  // ── Review step ──
+  reviewCard: {
     borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    marginVertical: SPACING.md,
     backgroundColor: COLORS.surface,
+    marginTop: SPACING.sm,
+    overflow: 'hidden',
   },
-  phonePreviewLabel: {
-    fontSize: 12,
+  reviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 14,
+    gap: SPACING.md,
+  },
+  reviewRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.divider,
+  },
+  reviewLabel: {
+    fontSize: 13,
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    flexShrink: 0,
   },
-  phonePreviewValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-    letterSpacing: 1,
-  },
-  otpSentRow: {
-    marginVertical: SPACING.md,
-    backgroundColor: '#D4EDDA',
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-  },
-  otpSentText: {
-    color: COLORS.success,
+  reviewValue: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  otpInput: {
-    marginTop: SPACING.sm,
-    backgroundColor: COLORS.surface,
-  },
-  otpInputContent: {
-    fontSize: 24,
-    textAlign: 'center',
-    letterSpacing: 8,
+    color: COLORS.text,
+    flex: 1,
+    textAlign: 'right',
   },
 
   // ── Snackbar ──

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { consultationApi, aiApi } from '../api/endpoints';
+import { consultationApi, patientApi, aiHistoryApi } from '../api/endpoints';
 
 export interface Message {
   id: string;
@@ -93,11 +93,69 @@ interface ConsultationState {
   sendMessage: (content: string) => Promise<void>;
   loadMessages: (consultationId: string) => Promise<void>;
   completeHistory: () => Promise<void>;
-  loadConsultations: (patientId: string) => Promise<void>;
+  loadConsultations: (patientId?: string) => Promise<void>;
   setCurrentConsultation: (consultation: Consultation) => void;
   addOptimisticMessage: (content: string) => void;
   clearError: () => void;
   reset: () => void;
+}
+
+// ─── API shapes (envelope: { success, data }) ────────────────────────────────
+
+/** Response body of POST /ai-history/start and /ai-history/continue. */
+interface AiHistoryTurn {
+  message: string;
+  isComplete: boolean;
+  literacyLevel?: string;
+  redFlagDetected?: boolean;
+  suggestedFollowUp?: string;
+}
+
+/** Item shape from GET /patients/me/consultations. */
+interface ApiConsultationSummary {
+  id: string;
+  status: string;
+  consultationType?: string;
+  startedAt: string;
+  completedAt?: string | null;
+  doctor?: {
+    id?: string;
+    firstName: string;
+    lastName: string;
+    doctorType?: string;
+  } | null;
+}
+
+/** Map the API's UPPERCASE consultation status to the app's lowercase union. */
+function mapStatus(status: string): Consultation['status'] {
+  switch (status) {
+    case 'HISTORY_TAKING':
+      return 'history_taking';
+    case 'DOCTOR_REVIEW':
+      return 'doctor_reviewing';
+    case 'EXAMINATION':
+      return 'examination';
+    case 'COMPLETED':
+    case 'CANCELLED':
+      return 'completed';
+    default:
+      return 'history_taking';
+  }
+}
+
+function apiError(error: unknown, fallback: string): string {
+  const data = (error as { response?: { data?: { error?: string; message?: string } } })
+    ?.response?.data;
+  return data?.error || data?.message || fallback;
+}
+
+function aiMessageFromTurn(turn: AiHistoryTurn): Message {
+  return {
+    id: `ai-${Date.now()}`,
+    role: 'ai',
+    content: turn.message,
+    timestamp: new Date().toISOString(),
+  };
 }
 
 export const useConsultationStore = create<ConsultationState>((set, get) => ({
@@ -111,34 +169,50 @@ export const useConsultationStore = create<ConsultationState>((set, get) => ({
 
   setSelectedLanguage: (lang: string) => set({ selectedLanguage: lang }),
 
-  startConsultation: async (patientId: string, language: string) => {
+  // patientId is kept for backwards compatibility with callers — the API is
+  // me-scoped, so consultationApi.create derives the patient from the token.
+  startConsultation: async (_patientId: string, language: string) => {
     set({ isLoading: true, error: null, messages: [] });
     try {
-      const response = await consultationApi.create({ patientId, language });
-      const consultation: Consultation = response.data;
+      const createRes = await consultationApi.create({ language });
+      const { consultationId, status } = createRes.data.data as {
+        consultationId: string;
+        status: string;
+      };
+
+      const now = new Date().toISOString();
+      const consultation: Consultation = {
+        id: consultationId,
+        patientId: _patientId,
+        language,
+        status: mapStatus(status),
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Start the AI history-taking session; the greeting comes back directly.
+      const startRes = await aiHistoryApi.start(consultationId, language);
+      const turn = startRes.data.data as AiHistoryTurn;
+
       set({
         currentConsultation: consultation,
+        messages: [aiMessageFromTurn(turn)],
         isLoading: false,
         selectedLanguage: language,
       });
-      await get().loadMessages(consultation.id);
       return consultation;
     } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to start consultation';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: apiError(error, 'Failed to start consultation') });
       throw error;
     }
   },
 
   sendMessage: async (content: string) => {
-    const { currentConsultation, selectedLanguage } = get();
+    const { currentConsultation } = get();
     if (!currentConsultation) return;
 
-    const tempId = `temp-${Date.now()}`;
     const userMessage: Message = {
-      id: tempId,
+      id: `temp-${Date.now()}`,
       role: 'patient',
       content,
       timestamp: new Date().toISOString(),
@@ -158,44 +232,42 @@ export const useConsultationStore = create<ConsultationState>((set, get) => ({
     }));
 
     try {
-      const response = await aiApi.chat(
-        currentConsultation.id,
-        content,
-        selectedLanguage
-      );
-      const { aiMessage, consultationStatus } = response.data;
+      const response = await aiHistoryApi.continue(currentConsultation.id, content);
+      const turn = response.data.data as AiHistoryTurn;
 
       set((state) => ({
-        messages: [
-          ...state.messages.filter((m) => !m.isLoading),
-          {
-            id: aiMessage.id,
-            role: 'ai',
-            content: aiMessage.content,
-            timestamp: aiMessage.timestamp,
-          },
-        ],
+        messages: [...state.messages.filter((m) => !m.isLoading), aiMessageFromTurn(turn)],
         isSendingMessage: false,
         currentConsultation: state.currentConsultation
-          ? { ...state.currentConsultation, status: consultationStatus }
+          ? {
+              ...state.currentConsultation,
+              status: turn.isComplete
+                ? 'history_complete'
+                : state.currentConsultation.status,
+            }
           : null,
       }));
     } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to send message';
       set((state) => ({
         messages: state.messages.filter((m) => !m.isLoading),
         isSendingMessage: false,
-        error: message,
+        error: apiError(error, 'Failed to send message'),
       }));
     }
   },
 
   loadMessages: async (consultationId: string) => {
+    const { currentConsultation, messages, selectedLanguage } = get();
+    // The API has no raw-transcript endpoint; the conversation lives in this
+    // store. If we already hold this consultation's chat, keep it as-is.
+    if (currentConsultation?.id === consultationId && messages.length > 0) {
+      return;
+    }
     try {
-      const response = await consultationApi.getMessages(consultationId);
-      set({ messages: response.data });
+      // Otherwise (re)start the AI session to obtain a fresh greeting.
+      const response = await aiHistoryApi.start(consultationId, selectedLanguage);
+      const turn = response.data.data as AiHistoryTurn;
+      set({ messages: [aiMessageFromTurn(turn)] });
     } catch (error) {
       console.error('Failed to load messages:', error);
     }
@@ -207,7 +279,7 @@ export const useConsultationStore = create<ConsultationState>((set, get) => ({
 
     set({ isLoading: true });
     try {
-      await consultationApi.completeHistory(currentConsultation.id);
+      await aiHistoryApi.complete(currentConsultation.id);
       set((state) => ({
         currentConsultation: state.currentConsultation
           ? { ...state.currentConsultation, status: 'history_complete' }
@@ -215,24 +287,39 @@ export const useConsultationStore = create<ConsultationState>((set, get) => ({
         isLoading: false,
       }));
     } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to complete history';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: apiError(error, 'Failed to complete history') });
     }
   },
 
-  loadConsultations: async (patientId: string) => {
+  // patientId is accepted for backwards compatibility; the endpoint is me-scoped.
+  loadConsultations: async (patientId?: string) => {
     set({ isLoading: true });
     try {
-      const { patientApi } = await import('../api/endpoints');
-      const response = await patientApi.getConsultations(patientId);
-      set({ consultations: response.data, isLoading: false });
+      const response = await patientApi.getConsultations();
+      const { consultations } = response.data.data as {
+        consultations: ApiConsultationSummary[];
+      };
+
+      const mapped: Consultation[] = (consultations ?? []).map((c) => ({
+        id: c.id,
+        patientId: patientId ?? '',
+        language: get().selectedLanguage,
+        status: mapStatus(c.status),
+        createdAt: c.startedAt,
+        updatedAt: c.completedAt ?? c.startedAt,
+        doctor: c.doctor
+          ? {
+              id: c.doctor.id ?? '',
+              firstName: c.doctor.firstName,
+              lastName: c.doctor.lastName,
+              doctorType: c.doctor.doctorType ?? '',
+            }
+          : undefined,
+      }));
+
+      set({ consultations: mapped, isLoading: false });
     } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to load consultations';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: apiError(error, 'Failed to load consultations') });
     }
   },
 

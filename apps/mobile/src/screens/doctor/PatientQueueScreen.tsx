@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   StatusBar,
   RefreshControl,
+  SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { doctorApi } from '../../api/endpoints';
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE, SHADOWS } from '../../constants/theme';
@@ -21,41 +23,52 @@ type ConsultationType = 'TELECONSULT' | 'IN-PERSON' | 'HOME VISIT';
 interface QueuedPatient {
   id: string;
   patientName: string;
-  distance: string;
+  distance: string | null;
   consultationType: ConsultationType;
   aiChiefComplaint: string;
   requestedAt: Date;
 }
 
-const MOCK_QUEUE: QueuedPatient[] = [
-  {
-    id: 'q1',
-    patientName: 'John D.',
-    distance: '2.3 km',
-    consultationType: 'TELECONSULT',
-    aiChiefComplaint:
-      'Patient reports chest pain radiating to left arm, onset 30 minutes ago, severity 7/10.',
-    requestedAt: new Date(Date.now() - 4 * 60 * 1000 - 30 * 1000),
-  },
-  {
-    id: 'q2',
-    patientName: 'Ayanda M.',
-    distance: '0.8 km',
-    consultationType: 'IN-PERSON',
-    aiChiefComplaint:
-      'Patient presents with persistent headache for 3 days, associated with nausea and sensitivity to light.',
-    requestedAt: new Date(Date.now() - 12 * 60 * 1000),
-  },
-  {
-    id: 'q3',
-    patientName: 'Fatima K.',
-    distance: '5.1 km',
-    consultationType: 'HOME VISIT',
-    aiChiefComplaint:
-      'Elderly patient unable to ambulate. Reports falls, confusion, and reduced oral intake over the last 2 days.',
-    requestedAt: new Date(Date.now() - 2 * 60 * 1000),
-  },
-];
+/** Item shape returned by GET /doctors/me/patient-queue. */
+interface ApiQueueItem {
+  consultationId: string;
+  patientName: string;
+  consultationType: 'IN_PERSON' | 'TELECONSULT' | 'HOME_VISIT';
+  status: string;
+  startedAt: string;
+  waitTimeMinutes: number;
+  chiefComplaintSnippet: string;
+  distanceKm: number | null;
+  isAssignedToMe: boolean;
+}
+
+function mapConsultationType(type: ApiQueueItem['consultationType']): ConsultationType {
+  switch (type) {
+    case 'IN_PERSON':
+      return 'IN-PERSON';
+    case 'HOME_VISIT':
+      return 'HOME VISIT';
+    default:
+      return 'TELECONSULT';
+  }
+}
+
+function mapQueueItem(item: ApiQueueItem): QueuedPatient {
+  return {
+    id: item.consultationId,
+    patientName: item.patientName,
+    distance: item.distanceKm != null ? `${item.distanceKm.toFixed(1)} km` : null,
+    consultationType: mapConsultationType(item.consultationType),
+    aiChiefComplaint: item.chiefComplaintSnippet || 'History-taking in progress',
+    requestedAt: new Date(item.startedAt),
+  };
+}
+
+function extractApiError(err: unknown, fallback: string): string {
+  return (
+    (err as { response?: { data?: { error?: string } } })?.response?.data?.error || fallback
+  );
+}
 
 function getConsultationTypeColor(type: ConsultationType): string {
   switch (type) {
@@ -118,7 +131,9 @@ function PatientCard({
           </View>
           <View>
             <Text style={styles.patientName}>{item.patientName}</Text>
-            <Text style={styles.distanceText}>{item.distance} away</Text>
+            {item.distance != null && (
+              <Text style={styles.distanceText}>{item.distance} away</Text>
+            )}
           </View>
         </View>
         <View style={[styles.typeBadge, { backgroundColor: typeColor + '1A' }]}>
@@ -183,9 +198,11 @@ function PatientCard({
 
 export default function PatientQueueScreen({ navigation }: Props) {
   const { user } = useAuthStore();
-  const [queue, setQueue] = useState<QueuedPatient[]>(MOCK_QUEUE);
+  const [queue, setQueue] = useState<QueuedPatient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isOnline] = useState<boolean>(user?.isOnline ?? true);
+  const [isOnline] = useState<boolean>(user?.doctor?.isAvailable ?? false);
   const [tick, setTick] = useState(0);
   const [acceptingIds, setAcceptingIds] = useState<Set<string>>(new Set());
   const [decliningIds, setDecliningIds] = useState<Set<string>>(new Set());
@@ -193,7 +210,7 @@ export default function PatientQueueScreen({ navigation }: Props) {
   const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    fetchQueue();
+    fetchQueue(true);
 
     refreshIntervalRef.current = setInterval(() => {
       fetchQueue();
@@ -209,17 +226,24 @@ export default function PatientQueueScreen({ navigation }: Props) {
     };
   }, []);
 
-  async function fetchQueue() {
-    if (!user) return;
+  async function fetchQueue(showLoader = false) {
+    if (showLoader) {
+      setIsLoading(true);
+      setLoadError(null);
+    }
     try {
-      const response = await doctorApi.getPatientQueue(user.id);
-      const data = response.data;
-      if (Array.isArray(data) && data.length > 0) {
-        setQueue(data);
+      const response = await doctorApi.getPatientQueue();
+      const data = response.data.data as { queue?: ApiQueueItem[] };
+      setQueue((data?.queue ?? []).map(mapQueueItem));
+      setLoadError(null);
+    } catch (err: unknown) {
+      // Only surface the error prominently on the initial load; background
+      // refreshes keep showing the last known queue.
+      if (showLoader) {
+        setLoadError(extractApiError(err, 'Could not load the patient queue.'));
       }
-      // On error or empty response, keep existing mock data for development
-    } catch {
-      // Keep existing queue data; API may not be ready yet
+    } finally {
+      if (showLoader) setIsLoading(false);
     }
   }
 
@@ -231,13 +255,12 @@ export default function PatientQueueScreen({ navigation }: Props) {
 
   const handleAccept = useCallback(
     async (consultationId: string) => {
-      if (!user) return;
       setAcceptingIds((prev) => new Set(prev).add(consultationId));
       try {
-        await doctorApi.acceptPatient(user.id, consultationId);
+        await doctorApi.acceptPatient(consultationId);
         setQueue((prev) => prev.filter((p) => p.id !== consultationId));
-      } catch {
-        Alert.alert('Error', 'Could not accept patient. Please try again.');
+      } catch (err: unknown) {
+        Alert.alert('Error', extractApiError(err, 'Could not accept patient. Please try again.'));
       } finally {
         setAcceptingIds((prev) => {
           const next = new Set(prev);
@@ -246,7 +269,7 @@ export default function PatientQueueScreen({ navigation }: Props) {
         });
       }
     },
-    [user]
+    []
   );
 
   const handleDecline = useCallback(
@@ -269,13 +292,12 @@ export default function PatientQueueScreen({ navigation }: Props) {
   );
 
   async function confirmDecline(consultationId: string) {
-    if (!user) return;
     setDecliningIds((prev) => new Set(prev).add(consultationId));
     try {
-      await doctorApi.declinePatient(user.id, consultationId);
+      await doctorApi.declinePatient(consultationId);
       setQueue((prev) => prev.filter((p) => p.id !== consultationId));
-    } catch {
-      Alert.alert('Error', 'Could not decline patient. Please try again.');
+    } catch (err: unknown) {
+      Alert.alert('Error', extractApiError(err, 'Could not decline patient. Please try again.'));
     } finally {
       setDecliningIds((prev) => {
         const next = new Set(prev);
