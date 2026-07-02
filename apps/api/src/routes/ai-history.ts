@@ -199,12 +199,16 @@ async function runCompletionFlow(
 
   await prisma.consultation.update({
     where: { id: consultationId },
-    data: { status: 'DOCTOR_REVIEW' },
+    // Triage urgency stamped synchronously — the queue must be able to
+    // order this consultation the moment completion returns.
+    data: {
+      status: 'DOCTOR_REVIEW',
+      triageUrgency: structuredHistory.redFlagsIdentified ? 'URGENT' : 'ROUTINE',
+    },
   });
 
-  // Triage + dispatch to nearby doctors (fire-and-forget; unassigned only)
-  const urgency = structuredHistory.redFlagsIdentified ? 'URGENT' : 'ROUTINE';
-  void dispatchConsultation(consultationId, urgency);
+  // Dispatch push fan-out stays fire-and-forget (unassigned only)
+  void dispatchConsultation(consultationId, undefined);
 
   return { structuredHistory, diagnoses } as never;
 }

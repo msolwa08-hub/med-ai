@@ -50,6 +50,10 @@ export async function clinicalReasoningRoutes(fastify: FastifyInstance): Promise
           examinationFindings: {
             select: { vitalSigns: true, generalExam: true, systemicExam: true },
           },
+          investigations: {
+            select: { name: true, type: true, encryptedResult: true, resultDate: true },
+          },
+          patientId: true,
         },
       });
 
@@ -95,6 +99,74 @@ export async function clinicalReasoningRoutes(fastify: FastifyInstance): Promise
           if (parts.length) examinationFindings = parts.join('\n');
         }
 
+        // ── Close the diagnostic loop: investigation + lab results ─────────
+        // Ordered investigations (encrypted with the consultation key) and
+        // synced lab results (master-key encrypted) both feed the prompt so
+        // the differential revises on evidence, not just the history.
+        const resultLines: string[] = [];
+        for (const inv of consultation.investigations ?? []) {
+          if (!inv.encryptedResult) continue;
+          try {
+            const parsed = decryptJSON(inv.encryptedResult, dataKey) as {
+              result?: unknown;
+              metadata?: Record<string, string>;
+            };
+            if (parsed?.result) {
+              resultLines.push(`${inv.type} — ${inv.name}: ${typeof parsed.result === 'string' ? parsed.result : JSON.stringify(parsed.result)}`);
+            }
+          } catch {
+            // unreadable result — skip, never block reasoning
+          }
+        }
+        try {
+          const labs = await prisma.labResult.findMany({
+            where: { consultationId },
+            orderBy: { collectedAt: 'desc' },
+            take: 20,
+            select: { testName: true, encryptedResults: true, isAbnormal: true, collectedAt: true },
+          });
+          for (const lab of labs) {
+            try {
+              const values = decryptJSON(lab.encryptedResults) as unknown;
+              resultLines.push(
+                `LAB — ${lab.testName}${lab.isAbnormal ? ' (FLAGGED ABNORMAL)' : ''}: ${JSON.stringify(values).slice(0, 400)}`
+              );
+            } catch {
+              // skip unreadable lab rows
+            }
+          }
+        } catch {
+          // labs unavailable — proceed without
+        }
+        const investigationResults = resultLines.length ? resultLines.join('\n') : undefined;
+
+        // ── Problem list context: known active/chronic coded conditions ────
+        let priorConditions: string | undefined;
+        try {
+          const problems = await prisma.diagnosis.findMany({
+            where: {
+              patientId: consultation.patientId,
+              consultationId: { not: consultationId },
+              status: { in: ['ACTIVE', 'CHRONIC'] },
+            },
+            orderBy: { confirmedAt: 'desc' },
+            take: 20,
+            select: { icd10Code: true, label: true, status: true },
+          });
+          const seen = new Set<string>();
+          const lines = problems
+            .filter((d) => {
+              const key = (d.icd10Code ?? d.label).toUpperCase();
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            })
+            .map((d) => `- ${d.label}${d.icd10Code ? ` (${d.icd10Code})` : ''} [${d.status}]`);
+          priorConditions = lines.length ? lines.join('\n') : undefined;
+        } catch {
+          // problem list unavailable — proceed without
+        }
+
         // Patient age
         const dob = consultation.patient?.dateOfBirth
           ? new Date(consultation.patient.dateOfBirth)
@@ -114,6 +186,8 @@ export async function clinicalReasoningRoutes(fastify: FastifyInstance): Promise
           structuredHistory,
           examinationFindings,
           department,
+          investigationResults,
+          priorConditions,
         });
 
         // Reconcile: the reasoning pass reasons only from the summary and can
@@ -178,7 +252,14 @@ export async function clinicalReasoningRoutes(fastify: FastifyInstance): Promise
           userAgent: request.headers['user-agent'],
         });
 
-        return reply.send({ success: true, data: reasoning });
+        return reply.send({
+          success: true,
+          data: {
+            ...reasoning,
+            investigationsConsidered: resultLines.length,
+            priorConditionsConsidered: priorConditions ? priorConditions.split('\n').length : 0,
+          },
+        });
       } catch (err) {
         fastify.log.error(err, 'POST /clinical-reasoning error');
         return reply.status(500).send({

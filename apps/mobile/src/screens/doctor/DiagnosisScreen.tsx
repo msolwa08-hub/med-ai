@@ -160,18 +160,11 @@ export const DiagnosisScreen: React.FC = () => {
     setIsSaving(true);
     try {
       const [primary, ...differentials] = selectedDiagnoses;
-      await diagnosisApi.select(
-        consultationId,
-        primary.name,
-        [
-          notes,
-          differentials.length
-            ? `Differentials considered: ${differentials.map((d) => d.name).join(', ')}`
-            : '',
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      );
+      await diagnosisApi.select(consultationId, primary.name, {
+        icd10Code: primary.icdCode || undefined,
+        notes: notes || undefined,
+        additionalDiagnoses: differentials.map((d) => d.name),
+      });
       navigation.navigate('Investigations', { consultationId });
     } catch (err) {
       Alert.alert('Error', 'Failed to save diagnosis. Please try again.');

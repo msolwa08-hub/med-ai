@@ -395,11 +395,13 @@ export async function ogHistoryRoutes(fastify: FastifyInstance): Promise<void> {
           // Update consultation status
           await prisma.consultation.update({
             where: { id: consultationId },
-            data: { status: 'DOCTOR_REVIEW' },
+            // Triage urgency stamped synchronously — the queue must be able to
+            // order this consultation the moment completion returns.
+            data: { status: 'DOCTOR_REVIEW', triageUrgency: ogHistory.urgency },
           });
 
-          // Triage + dispatch to nearby doctors (fire-and-forget; unassigned only)
-          void dispatchConsultation(consultationId, ogHistory.urgency, fastify.log);
+          // Dispatch push fan-out stays fire-and-forget (unassigned only)
+          void dispatchConsultation(consultationId, undefined, fastify.log);
         } catch (err) {
           fastify.log.warn(err, 'Failed to encrypt/save O&G history');
         }

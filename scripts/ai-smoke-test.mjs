@@ -142,6 +142,21 @@ await step('doctor accepts dispatched consultation', async () => {
   expect(r.status === 200, `status ${r.status}: ${JSON.stringify(r.json).slice(0, 200)}`);
 });
 
+await step('stage investigation result (Troponin) before reasoning', async () => {
+  const inv = await call('POST', '/investigations', {
+    token: state.doctorToken,
+    body: { consultationId: state.consultationId, type: 'LAB', name: 'Troponin I', urgency: 'STAT' },
+  });
+  expect(inv.status === 200 || inv.status === 201, `order status ${inv.status}: ${JSON.stringify(inv.json).slice(0, 200)}`);
+  const invId = inv.json.data?.id ?? inv.json.data?.investigationId;
+  expect(invId, `no investigation id: ${JSON.stringify(inv.json).slice(0, 200)}`);
+  const res = await call('PUT', `/investigations/${invId}/result`, {
+    token: state.doctorToken,
+    body: { result: 'Troponin I ELEVATED at 2.3 ng/mL (ref <0.04) — consistent with myocardial injury' },
+  });
+  expect(res.status === 200, `result status ${res.status}: ${JSON.stringify(res.json).slice(0, 200)}`);
+});
+
 await step('specialty history readable by doctor (decrypted)', async () => {
   const r = await call('GET', `/specialty-history/${state.consultationId}`, {
     token: state.doctorToken,
@@ -162,6 +177,8 @@ await step('clinical reasoning (differentials + STG links)', async () => {
   expect(withReasoning.length === d.differentials.length, 'differentials missing reasoning chains');
   const stgLinked = d.differentials.filter((x) => x.stg?.available);
   expect(stgLinked.length > 0, 'no differentials linked to an STG entry — STG dataset/linkage regression');
+  expect((d.investigationsConsidered ?? 0) >= 1,
+    `diagnostic loop open — reasoning consumed ${d.investigationsConsidered} investigation results (expected >=1 after staging troponin)`);
   expect(d.urgency === 'URGENT' || d.urgency === 'EMERGENCY', `expected urgency reconciled to at least URGENT for a red-flagged cardiac case, got ${d.urgency}`);
   state.reasoningTop = d.differentials[0];
   return `${d.differentials.length} differentials (top: ${d.differentials[0].diagnosis} ${d.differentials[0].probability}%), ${stgLinked.length} STG-linked, urgency=${d.urgency}, ${d.recommendedInvestigations?.length} investigations`;
@@ -171,6 +188,22 @@ await step('reasoning persisted for diagnosis flow', async () => {
   const r = await call('GET', `/diagnosis/${state.consultationId}`, { token: state.doctorToken });
   expect(r.status === 200 && r.json.data?.diagnoses?.length > 0, `status ${r.status}`);
   return `${r.json.data.diagnoses.length} stored`;
+});
+
+await step('ICD-10 spine: confirm diagnosis → coded problem list', async () => {
+  const top = state.reasoningTop;
+  expect(top?.icd10Code, 'top differential has no ICD-10 code');
+  const sel = await call('PUT', `/diagnosis/${state.consultationId}/select`, {
+    token: state.doctorToken,
+    body: { selectedDiagnosis: top.diagnosis, icd10Code: top.icd10Code, notes: 'Confirmed after troponin review' },
+  });
+  expect(sel.status === 200, `select status ${sel.status}: ${JSON.stringify(sel.json).slice(0, 200)}`);
+
+  const probs = await call('GET', '/patients/me/problems', { token: state.patientToken });
+  expect(probs.status === 200, `problems status ${probs.status}`);
+  const entry = (probs.json.data?.problems ?? []).find((p) => p.icd10Code === top.icd10Code);
+  expect(entry, `confirmed ICD-10 ${top.icd10Code} not found in the patient problem list`);
+  return `problem list has ${top.diagnosis} (${top.icd10Code}) [${entry.status}]`;
 });
 
 // ── O&G history (separate AI API) ─────────────────────────────────────────────

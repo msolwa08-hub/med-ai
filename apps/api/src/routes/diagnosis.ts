@@ -186,6 +186,40 @@ export async function diagnosisRoutes(fastify: FastifyInstance): Promise<void> {
         },
       });
 
+      // ── ICD-10 spine: persist the confirmed diagnosis as coded record(s).
+      // Re-selection replaces this consultation's rows (idempotent). Chronic
+      // conditions are auto-flagged so the problem list carries them forward.
+      const CHRONIC_ICD_PREFIXES = ['I10', 'I11', 'I12', 'I13', 'E10', 'E11', 'B20', 'B24', 'Z21', 'J44', 'J45', 'G40', 'F20', 'F31', 'N18', 'I50', 'I25', 'E03', 'E05', 'M06'];
+      const chronicFor = (code: string | null | undefined) =>
+        !!code && CHRONIC_ICD_PREFIXES.some((p) => code.toUpperCase().startsWith(p));
+
+      await prisma.$transaction([
+        prisma.diagnosis.deleteMany({ where: { consultationId } }),
+        prisma.diagnosis.create({
+          data: {
+            consultationId,
+            patientId: consultation.patientId,
+            doctorId: doctor.id,
+            icd10Code: icd10Code ?? null,
+            label: selectedDiagnosis,
+            isPrimary: true,
+            status: chronicFor(icd10Code) ? 'CHRONIC' : 'ACTIVE',
+          },
+        }),
+        ...(additionalDiagnoses ?? []).map((label) =>
+          prisma.diagnosis.create({
+            data: {
+              consultationId,
+              patientId: consultation.patientId,
+              doctorId: doctor.id,
+              label,
+              isPrimary: false,
+              status: 'ACTIVE',
+            },
+          })
+        ),
+      ]);
+
       // Encrypt the selected diagnosis for ManagementPlan
       const encryptedDiagnosis = encryptField(diagnosisWithCode, dataKey);
 

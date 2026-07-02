@@ -295,8 +295,17 @@ export const diagnosisApi = {
   get: (consultationId: string) =>
     apiClient.get(`/diagnosis/${consultationId}`),
 
-  select: (consultationId: string, selectedDiagnosis: string, doctorNotes?: string) =>
-    apiClient.put(`/diagnosis/${consultationId}/select`, { selectedDiagnosis, doctorNotes }),
+  select: (
+    consultationId: string,
+    selectedDiagnosis: string,
+    opts?: { icd10Code?: string; notes?: string; additionalDiagnoses?: string[] }
+  ) =>
+    apiClient.put(`/diagnosis/${consultationId}/select`, {
+      selectedDiagnosis,
+      icd10Code: opts?.icd10Code,
+      notes: opts?.notes,
+      additionalDiagnoses: opts?.additionalDiagnoses,
+    }),
 };
 
 // ============================================================

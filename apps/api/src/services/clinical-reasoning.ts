@@ -158,6 +158,10 @@ export interface ReasoningInput {
   structuredHistory?: unknown;
   examinationFindings?: string;
   department?: string;
+  /** Decrypted investigation + lab results — closes the diagnostic loop. */
+  investigationResults?: string;
+  /** Patient's known active/chronic conditions from the ICD-10 problem list. */
+  priorConditions?: string;
 }
 
 export async function generateClinicalReasoning(
@@ -172,6 +176,8 @@ HISTORY SUMMARY:
 ${input.historySummary}
 ${input.structuredHistory ? `\nSTRUCTURED HISTORY:\n${JSON.stringify(input.structuredHistory, null, 2).slice(0, 4000)}` : ''}
 ${input.examinationFindings ? `\nEXAMINATION FINDINGS:\n${input.examinationFindings}` : ''}
+${input.investigationResults ? `\nINVESTIGATION & LAB RESULTS (weigh these heavily — they should CONFIRM or REFUTE differentials):\n${input.investigationResults}` : ''}
+${input.priorConditions ? `\nKNOWN ACTIVE/CHRONIC CONDITIONS (problem list):\n${input.priorConditions}` : ''}
 
 INSTRUCTIONS:
 - South African context: high HIV/TB prevalence, quadruple burden of disease; think common-things-first for SA

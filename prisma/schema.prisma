@@ -144,6 +144,13 @@ enum TriageUrgency {
   EMERGENCY
 }
 
+enum DiagnosisStatus {
+  ACTIVE
+  CHRONIC
+  RESOLVED
+  RULED_OUT
+}
+
 enum PatientLiteracyLevel {
   LOW // Simple yes/no questions
   MEDIUM // Everyday language
@@ -201,6 +208,7 @@ model Patient {
   labAccounts      PatientLabAccount[]
   labResults       LabResult[]
   payments         Payment[]
+  Diagnosis        Diagnosis[]
 
   @@index([userId])
   @@map("patients")
@@ -242,6 +250,7 @@ model Doctor {
   settings         DoctorSettings?
   incentiveScore   DoctorIncentiveScore?
   payments         Payment[]
+  Diagnosis        Diagnosis[]
 
   @@index([userId])
   @@index([hpcsaNumber])
@@ -295,6 +304,7 @@ model Consultation {
   reviews               Review[]
   prescriptions         Prescription[]
   labResults            LabResult[]
+  confirmedDiagnoses    Diagnosis[]
 
   @@index([patientId])
   @@index([doctorId])
@@ -687,6 +697,36 @@ model Payment {
   @@index([patientId])
   @@index([doctorId])
   @@map("payments")
+}
+
+// ─────────────────────────────────────────────────────────
+// Confirmed diagnoses — the ICD-10 spine of the record.
+// Every doctor-confirmed diagnosis becomes a coded row here; queried by
+// patient it IS the longitudinal problem list. icd10Code + label are
+// deliberately plaintext (they power STG linkage, claims export, and
+// chronic-disease queries — the reason the spine exists); free-text
+// clinical narrative stays in the encrypted MedicalHistory fields.
+// ─────────────────────────────────────────────────────────
+
+model Diagnosis {
+  id             String          @id @default(cuid())
+  consultationId String
+  consultation   Consultation    @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String?
+  doctor         Doctor?         @relation(fields: [doctorId], references: [id])
+  icd10Code      String? // nullable: additional/free-text diagnoses may lack a code
+  label          String
+  isPrimary      Boolean         @default(false)
+  status         DiagnosisStatus @default(ACTIVE)
+  confirmedAt    DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([patientId, status])
+  @@index([consultationId])
+  @@index([icd10Code])
+  @@map("diagnoses")
 }
 
 model AuditLog {

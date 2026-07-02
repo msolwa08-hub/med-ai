@@ -454,4 +454,60 @@ export async function patientRoutes(fastify: FastifyInstance): Promise<void> {
       }
     }
   );
+
+  // ----------------------------------------------------------
+  // GET /patients/me/problems — longitudinal ICD-10 problem list
+  // ----------------------------------------------------------
+  fastify.get(
+    '/patients/me/problems',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      try {
+        const userId = request.user!.sub;
+        const patient = await prisma.patient.findUnique({ where: { userId } });
+        if (!patient) {
+          return reply.status(404).send({
+            success: false,
+            error: 'Patient profile not found.',
+            code: 'PATIENT_NOT_FOUND',
+          });
+        }
+
+        const rows = await prisma.diagnosis.findMany({
+          where: { patientId: patient.id },
+          orderBy: { confirmedAt: 'desc' },
+          take: 200,
+          select: {
+            id: true,
+            icd10Code: true,
+            label: true,
+            isPrimary: true,
+            status: true,
+            confirmedAt: true,
+            consultationId: true,
+          },
+        });
+
+        // Collapse to the most recent entry per condition (code, else label)
+        const seen = new Set<string>();
+        const problems = rows.filter((d) => {
+          const key = (d.icd10Code ?? d.label).toUpperCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        return reply.send({
+          success: true,
+          data: {
+            problems,
+            chronicCount: problems.filter((p) => p.status === 'CHRONIC').length,
+          },
+        });
+      } catch (err) {
+        fastify.log.error(err, 'GET /patients/me/problems error');
+        return reply.status(500).send({ success: false, error: 'Internal server error.' });
+      }
+    }
+  );
 }
