@@ -21,6 +21,7 @@ import PaymentScreen from '../screens/patient/PaymentScreen';
 import PatientProfileSetupScreen from '../screens/patient/PatientProfileSetupScreen';
 import DepartmentSelectScreen from '../screens/patient/DepartmentSelectScreen';
 import SpecialtyHistoryScreen from '../screens/patient/SpecialtyHistoryScreen';
+import AntenatalFollowUpScreen from '../screens/patient/AntenatalFollowUpScreen';
 
 // ─── Param Lists ───────────────────────────────────────────────
 
@@ -53,6 +54,7 @@ export type PatientStackParamList = {
     language?: string;
     chiefComplaint?: string;
   };
+  AntenatalFollowUp: { consultationId: string; language?: string };
   EditPatientProfile: undefined;
   PatientProfileSetup: { language?: string };
   Payment: { consultationId: string; doctorName?: string };
@@ -133,6 +135,7 @@ export default function PatientNavigator() {
       <Stack.Screen name="LabResults" component={LabResultsScreen} />
       <Stack.Screen name="DepartmentSelect" component={DepartmentSelectScreen} />
       <Stack.Screen name="SpecialtyHistory" component={SpecialtyHistoryScreen} />
+      <Stack.Screen name="AntenatalFollowUp" component={AntenatalFollowUpScreen} />
       <Stack.Screen name="EditPatientProfile" component={EditPatientProfileScreen} />
       <Stack.Screen name="PatientProfileSetup" component={PatientProfileSetupScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />

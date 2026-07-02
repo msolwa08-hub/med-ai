@@ -18,6 +18,7 @@ import type { PatientStackParamList } from '../../navigation/PatientNavigator';
 type Option =
   | { kind: 'general' }
   | { kind: 'og' }
+  | { kind: 'anc-followup' }
   | { kind: 'specialty'; department: Department };
 
 interface DepartmentCard {
@@ -59,9 +60,16 @@ const CARDS: DepartmentCard[] = [
   },
   {
     option: { kind: 'og' },
-    label: "Women's Health (O&G)",
-    description: 'Pregnancy, periods, contraception, fertility',
+    label: "Women's Health (O&G) — First Visit",
+    description: 'New pregnancy or gynaecological concern',
     icon: 'woman-outline',
+    color: COLORS.systemPurple,
+  },
+  {
+    option: { kind: 'anc-followup' },
+    label: 'Antenatal Follow-Up Visit',
+    description: 'Already booked? Continue your pregnancy care',
+    icon: 'calendar-outline',
     color: COLORS.systemPurple,
   },
   {
@@ -99,6 +107,8 @@ export const DepartmentSelectScreen: React.FC = () => {
       navigation.replace('AIHistory', { consultationId, language });
     } else if (option.kind === 'og') {
       navigation.replace('OGHistory', { consultationId, language });
+    } else if (option.kind === 'anc-followup') {
+      navigation.replace('AntenatalFollowUp', { consultationId, language });
     } else {
       navigation.replace('SpecialtyHistory', {
         consultationId,

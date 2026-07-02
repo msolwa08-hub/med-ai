@@ -535,6 +535,24 @@ export const profileSetupApi = {
 };
 
 // ============================================================
+// Antenatal follow-up (returning ANC visits — separate from first O&G visit)
+// ============================================================
+
+export const antenatalFollowUpApi = {
+  start: (consultationId: string, language?: string) =>
+    apiClient.post('/antenatal-followup/start', { consultationId, language }),
+
+  continue: (consultationId: string, patientMessage: string) =>
+    apiClient.post('/antenatal-followup/continue', { consultationId, patientMessage }),
+
+  complete: (consultationId: string) =>
+    apiClient.post('/antenatal-followup/complete', { consultationId }),
+
+  getHistory: (consultationId: string) =>
+    apiClient.get(`/antenatal-followup/${consultationId}`),
+};
+
+// ============================================================
 // Payments
 // ============================================================
 
