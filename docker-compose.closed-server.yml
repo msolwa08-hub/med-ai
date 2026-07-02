@@ -1,0 +1,71 @@
+# MedAI — Profile A: Closed Server (private practice), production flavour.
+# Postgres + Redis + API on hardware the practice controls. See DEPLOYMENT.md.
+#
+#   docker compose -f docker-compose.closed-server.yml up -d --build
+#   docker compose -f docker-compose.closed-server.yml exec api npx prisma migrate deploy
+#
+# Differences from the dev docker-compose.yml: no source bind-mounts, no host
+# port exposure for Postgres/Redis (API-only network), NODE_ENV=production,
+# credentials come from apps/api/.env — nothing sensitive lives in this file.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: medai
+      POSTGRES_USER: postgres
+      # Set POSTGRES_PASSWORD in the shell env or a compose .env file —
+      # and use the same value inside apps/api/.env DATABASE_URL.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Deliberately NOT port-mapped: only the API container reaches Postgres.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - apps/api/.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/medai
+      REDIS_URL: redis://redis:6379
+      PAYMENT_ENFORCEMENT: "false" # closed-server: practice bills off-platform
+    ports:
+      # Bind to localhost only — terminate TLS with a reverse proxy
+      # (Caddy/nginx/Traefik) in front; never expose 3000 directly.
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:

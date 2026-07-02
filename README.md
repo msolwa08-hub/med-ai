@@ -107,6 +107,10 @@ npm run lint              # eslint where configured
 
 ## Deployment
 
+- **Production profiles** (start here): see [DEPLOYMENT.md](DEPLOYMENT.md) —
+  **Profile A: Closed Server** (private practice, `docker-compose.closed-server.yml`,
+  billing off-platform) vs **Profile B: Open Cloud** (marketplace on managed
+  services with `PAYMENT_ENFORCEMENT=true`).
 - **Vercel** (web CDN + serverless API): see [VERCEL-DEPLOY.md](VERCEL-DEPLOY.md).
   `vercel.json` builds `apps/web` to static assets and rewrites `/beta/*`,
   `/cockpit/*`, `/tools/*` and `/health` to the `api/[...path].ts` function.
