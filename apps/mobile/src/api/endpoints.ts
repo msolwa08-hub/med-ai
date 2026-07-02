@@ -444,6 +444,26 @@ export const documentsApi = {
 };
 
 // ============================================================
+// Unified investigation analysis (doctor) — labs, X-ray, ECG, USS
+// ============================================================
+
+export const analysisApi = {
+  analyze: (
+    consultationId: string,
+    payload: {
+      modality: 'LAB' | 'XRAY' | 'ECG' | 'ULTRASOUND';
+      name?: string;
+      reportText?: string;
+      imageBase64?: string;
+      imageMediaType?: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+      clinicalQuestion?: string;
+    }
+  ) => apiClient.post(`/analysis/${consultationId}`, payload),
+
+  list: (consultationId: string) => apiClient.get(`/analysis/${consultationId}`),
+};
+
+// ============================================================
 // Ultrasound AI (doctor)
 // ============================================================
 

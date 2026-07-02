@@ -206,6 +206,48 @@ await step('ICD-10 spine: confirm diagnosis → coded problem list', async () =>
   return `problem list has ${top.diagnosis} (${top.icd10Code}) [${entry.status}]`;
 });
 
+// ── Unified /analysis API: labs with critical-value flagging ─────────────────
+await step('unified analysis: critical K+ flagged, triage escalated', async () => {
+  const r = await call('POST', `/analysis/${state.consultationId}`, {
+    token: state.doctorToken,
+    body: {
+      modality: 'LAB',
+      name: 'U&E + Creatinine',
+      clinicalQuestion: 'Renal function and electrolytes before starting treatment',
+      reportText:
+        'UREA & ELECTROLYTES\nSodium 138 mmol/L (136-145)\nPotassium 7.1 mmol/L (3.5-5.1) *H*\nChloride 101 mmol/L (98-107)\nUrea 21.4 mmol/L (2.1-7.1) *H*\nCreatinine 486 umol/L (64-104) *H*\neGFR 11 mL/min/1.73m2',
+    },
+  });
+  expect(r.status === 200, `status ${r.status}: ${JSON.stringify(r.json).slice(0, 300)}`);
+  const d = r.json.data;
+  expect(Array.isArray(d.values) && d.values.length >= 4, `only ${d.values?.length} analytes extracted`);
+  const k = d.values.find((v) => /potassium|k\+/i.test(v.analyte));
+  expect(k?.flag === 'CRITICAL', `K+ 7.1 flagged ${k?.flag}, expected CRITICAL`);
+  expect(d.criticalFindings?.length >= 1, 'no critical findings surfaced for K+ 7.1 with AKI');
+  expect(d.urgency === 'URGENT' || d.urgency === 'EMERGENCY', `urgency=${d.urgency}`);
+  expect(d.investigationId, 'analysis not persisted as an investigation');
+  return `${d.values.length} analytes, K+=${k.flag}, urgency=${d.urgency}, triageEscalated=${d.triageEscalated}`;
+});
+
+await step('unified analysis: stored + listed, feeds reasoning loop', async () => {
+  const list = await call('GET', `/analysis/${state.consultationId}`, { token: state.doctorToken });
+  expect(list.status === 200 && list.json.data?.count >= 1, `list status ${list.status}, count=${list.json.data?.count}`);
+  const stored = list.json.data.analyses[0];
+  expect(stored.impression?.length > 10, 'stored analysis has no impression');
+
+  // The analysis persists into the same Investigation envelope the reasoning
+  // loop consumes — a fresh reasoning pass must now see >= 2 results
+  // (troponin + this panel).
+  const r = await call('POST', `/clinical-reasoning/${state.consultationId}`, {
+    token: state.doctorToken,
+    body: {},
+  });
+  expect(r.status === 200, `reasoning status ${r.status}`);
+  expect((r.json.data?.investigationsConsidered ?? 0) >= 2,
+    `reasoning consumed ${r.json.data?.investigationsConsidered} results, expected >=2 after unified analysis`);
+  return `listed ${list.json.data.count} analyses; reasoning now weighs ${r.json.data.investigationsConsidered} results`;
+});
+
 // ── C3: prescription safety gate + STG-driven management draft ───────────────
 await step('safety gate: warfarin+NSAID blocked with 409', async () => {
   const script = {
