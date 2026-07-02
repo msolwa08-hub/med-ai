@@ -56,6 +56,21 @@ await fastify.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 // PayFast ITN posts application/x-www-form-urlencoded
 await fastify.register(formbody);
 
+// Axios clients send Content-Type: application/json even on body-less POSTs;
+// treat an empty JSON body as {} instead of rejecting with 400.
+fastify.addContentTypeParser(
+  'application/json',
+  { parseAs: 'string' },
+  (_req, body, done) => {
+    if (body === '' || body === undefined) return done(null, {});
+    try {
+      done(null, JSON.parse(body as string));
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  }
+);
+
 await fastify.register(authRoutes);
 await fastify.register(patientRoutes);
 await fastify.register(doctorRoutes);

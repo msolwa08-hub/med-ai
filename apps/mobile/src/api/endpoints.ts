@@ -351,7 +351,7 @@ export const labsApi = {
   unlinkAccount: (accountId: string) =>
     apiClient.delete(`/labs/accounts/${accountId}`),
 
-  sync: () => apiClient.post('/labs/sync'),
+  sync: () => apiClient.post('/labs/sync', {}),
 
   getResults: () => apiClient.get('/labs/results'),
 
@@ -531,7 +531,7 @@ export const profileSetupApi = {
   continue: (userMessage: string) =>
     apiClient.post('/profile-setup/continue', { userMessage }),
 
-  complete: () => apiClient.post('/profile-setup/complete'),
+  complete: () => apiClient.post('/profile-setup/complete', {}),
 };
 
 // ============================================================
@@ -546,7 +546,7 @@ export const paymentsApi = {
     apiClient.get(`/payments/status/${consultationId}`),
 
   markCash: (consultationId: string) =>
-    apiClient.post(`/payments/cash/${consultationId}`),
+    apiClient.post(`/payments/cash/${consultationId}`, {}),
 };
 
 // ============================================================
@@ -555,7 +555,7 @@ export const paymentsApi = {
 
 export const clinicalReasoningApi = {
   generate: (consultationId: string) =>
-    apiClient.post(`/clinical-reasoning/${consultationId}`),
+    apiClient.post(`/clinical-reasoning/${consultationId}`, {}),
 };
 
 // ============================================================
@@ -568,7 +568,7 @@ export const emergencyApi = {
   updateMyProfile: (data: Record<string, unknown>) =>
     apiClient.put('/emergency/my-profile', data),
 
-  generateQr: () => apiClient.post('/emergency/generate-qr'),
+  generateQr: () => apiClient.post('/emergency/generate-qr', {}),
 
   syncFromConsultation: (consultationId: string) =>
     apiClient.post(`/emergency/sync-from-consultation/${consultationId}`),

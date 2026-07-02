@@ -22,7 +22,8 @@
     "typecheck": "tsc --noEmit -p apps/api/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json && tsc --noEmit -p packages/shared/tsconfig.json",
     "typecheck:mobile": "tsc --noEmit -p apps/mobile/tsconfig.json",
     "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "smoke": "node scripts/smoke-test.mjs"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

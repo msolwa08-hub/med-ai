@@ -160,12 +160,22 @@ export async function ogHistoryRoutes(fastify: FastifyInstance): Promise<void> {
 
       const patientName = consultation.patient?.firstName ?? 'there';
 
-      const sessionResponse = await startOGHistorySession(
+      let sessionResponse;
+      try {
+        sessionResponse = await startOGHistorySession(
         resolvedMode,
         patientName,
         saLanguage,
         context
       );
+      } catch (err) {
+        fastify.log.error(err, 'AI session call failed');
+        return reply.status(502).send({
+          success: false,
+          error: 'The AI assistant is temporarily unavailable. Please try again shortly.',
+          code: 'AI_UNAVAILABLE',
+        });
+      }
 
       const ts = new Date().toISOString();
       // Store session in memory
@@ -242,13 +252,23 @@ export async function ogHistoryRoutes(fastify: FastifyInstance): Promise<void> {
 
       const saLanguage = session.language as import('../types/index.js').SaLanguage;
 
-      const sessionResponse = await continueOGHistorySession(
+      let sessionResponse;
+      try {
+        sessionResponse = await continueOGHistorySession(
         session.conversationHistory,
         patientMessage,
         session.mode,
         saLanguage,
         session.context
       );
+      } catch (err) {
+        fastify.log.error(err, 'AI session call failed');
+        return reply.status(502).send({
+          success: false,
+          error: 'The AI assistant is temporarily unavailable. Please try again shortly.',
+          code: 'AI_UNAVAILABLE',
+        });
+      }
 
       session.conversationHistory.push({ role: 'assistant', content: sessionResponse.message, timestamp: new Date().toISOString() });
       session.isComplete = sessionResponse.isComplete;

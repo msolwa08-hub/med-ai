@@ -166,22 +166,24 @@ export async function documentsRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // ── POST /eml/lookup ────────────────────────────────────────────────────────
+  const EmlLookupSchema = z.object({
+    medicineName: z.string().min(1).max(200),
+    formulation: z.string().max(100).optional(),
+  });
+
   fastify.post(
     '/eml/lookup',
-    {
-      preHandler: [authenticate],
-      schema: {
-        body: z.object({
-          medicineName: z.string().min(1).max(200),
-          formulation: z.string().max(100).optional(),
-        }),
-      },
-    },
+    { preHandler: [authenticate] },
     async (request, reply) => {
-      const { medicineName, formulation } = request.body as {
-        medicineName: string;
-        formulation?: string;
-      };
+      const parsed = EmlLookupSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Validation failed',
+          details: parsed.error.flatten(),
+        });
+      }
+      const { medicineName, formulation } = parsed.data;
       try {
         const emlEntry = await emlLookup({ medicineName, formulation });
         return reply.send({

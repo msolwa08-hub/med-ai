@@ -170,13 +170,23 @@ export async function specialtyHistoryRoutes(fastify: FastifyInstance): Promise<
 
       const patientName = consultation.patient?.firstName ?? 'there';
 
-      const sessionResponse = await startSpecialtyHistorySession(
+      let sessionResponse;
+      try {
+        sessionResponse = await startSpecialtyHistorySession(
         department,
         system,
         patientName,
         saLanguage,
         context
       );
+      } catch (err) {
+        fastify.log.error(err, 'AI session call failed');
+        return reply.status(502).send({
+          success: false,
+          error: 'The AI assistant is temporarily unavailable. Please try again shortly.',
+          code: 'AI_UNAVAILABLE',
+        });
+      }
 
       const ts = new Date().toISOString();
       specialtySessions.set(consultationId, {
@@ -255,7 +265,9 @@ export async function specialtyHistoryRoutes(fastify: FastifyInstance): Promise<
         timestamp: new Date().toISOString(),
       });
 
-      const sessionResponse = await continueSpecialtyHistorySession(
+      let sessionResponse;
+      try {
+        sessionResponse = await continueSpecialtyHistorySession(
         session.conversationHistory,
         patientMessage,
         session.department,
@@ -263,6 +275,14 @@ export async function specialtyHistoryRoutes(fastify: FastifyInstance): Promise<
         session.language as SaLanguage,
         session.context
       );
+      } catch (err) {
+        fastify.log.error(err, 'AI session call failed');
+        return reply.status(502).send({
+          success: false,
+          error: 'The AI assistant is temporarily unavailable. Please try again shortly.',
+          code: 'AI_UNAVAILABLE',
+        });
+      }
 
       session.conversationHistory.push({
         role: 'assistant',

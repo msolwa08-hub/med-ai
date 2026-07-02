@@ -27,6 +27,21 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
   // PayFast ITN posts application/x-www-form-urlencoded
   await app.register(formbody);
 
+  // Axios clients send Content-Type: application/json even on body-less POSTs;
+  // treat an empty JSON body as {} instead of rejecting with 400.
+  app.addContentTypeParser(
+    'application/json',
+    { parseAs: 'string' },
+    (_req, body, done) => {
+      if (body === '' || body === undefined) return done(null, {});
+      try {
+        done(null, JSON.parse(body as string));
+      } catch (err) {
+        done(err as Error, undefined);
+      }
+    }
+  );
+
   // Health check
   app.get('/health', async () => ({ status: 'ok', env: betaConfig.NODE_ENV }));
 
