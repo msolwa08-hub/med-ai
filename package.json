@@ -24,7 +24,9 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "smoke": "node scripts/smoke-test.mjs",
-    "smoke:ai": "node scripts/ai-smoke-test.mjs"
+    "smoke:ai": "node scripts/ai-smoke-test.mjs",
+    "smoke:anc": "node scripts/anc-followup-smoke-test.mjs",
+    "smoke:payments": "node scripts/payment-smoke-test.mjs"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

@@ -5,7 +5,8 @@ import { authenticate } from '../middleware/authenticate.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { auditLog } from '../services/audit.service.js';
 import { checkPrescriptionSafety } from '../services/prescription-safety.js';
-import { decryptField, decryptJSON, decryptDataKey } from '../lib/encryption.js'
+import { checkPaymentGate, paymentRequiredBody } from '../services/payment-gate.js';
+import { decryptField, decryptJSON, decryptDataKey } from '../lib/encryption.js';
 import {
   createPrescription,
   getConsultationPrescriptions,
@@ -195,6 +196,12 @@ export async function prescriptionRoutes(fastify: FastifyInstance): Promise<void
             error: 'Cannot issue a prescription for a cancelled consultation.',
             code: 'CONSULTATION_CANCELLED',
           });
+        }
+
+        // ── Payment gate: scripts are a billable deliverable ──────────────
+        const gate = await checkPaymentGate(consultationId);
+        if (!gate.allowed) {
+          return reply.status(402).send(paymentRequiredBody(gate));
         }
 
         const result = await createPrescription({

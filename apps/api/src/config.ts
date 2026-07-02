@@ -72,6 +72,18 @@ const configSchema = z.object({
     .string()
     .default('false')
     .transform((v) => v.toLowerCase() === 'true'),
+
+  // Marketplace billing — when 'true', the billable deliverables of a
+  // consultation (prescription issuance, consultation completion) require a
+  // COMPLETE payment. Care itself (history, triage, dispatch, examination,
+  // reasoning, diagnosis) is NEVER payment-gated, and EMERGENCY-triaged
+  // consultations are exempt entirely. Leave off for closed-server private
+  // practices that bill via medical aid outside the app; turn on for the
+  // open-cloud marketplace deployment.
+  PAYMENT_ENFORCEMENT: z
+    .string()
+    .default('false')
+    .transform((v) => v.toLowerCase() === 'true'),
 });
 
 const _config = configSchema.safeParse(process.env);

@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { requireConsent } from '../middleware/consent.js';
 import { auditLog } from '../services/audit.service.js';
 import { Notifications } from '../services/notification.service.js';
+import { checkPaymentGate, paymentRequiredBody } from '../services/payment-gate.js';
 import {
   encryptJSON,
   decryptJSON,
@@ -365,6 +366,14 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
             error: `Invalid status transition from ${currentStatus} to ${newStatus}. Allowed: ${allowed.join(', ') || 'none'}.`,
             code: 'INVALID_STATUS_TRANSITION',
           });
+        }
+
+        // Completion is a billable deliverable — same gate as /complete
+        if (newStatus === 'COMPLETED') {
+          const gate = await checkPaymentGate(id);
+          if (!gate.allowed) {
+            return reply.status(402).send(paymentRequiredBody(gate));
+          }
         }
 
         const updated = await prisma.consultation.update({
@@ -992,6 +1001,12 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
             error: 'Cannot complete a cancelled consultation.',
             code: 'CONSULTATION_CANCELLED',
           });
+        }
+
+        // ── Payment gate: completion closes the billable visit ────────────
+        const gate = await checkPaymentGate(id);
+        if (!gate.allowed) {
+          return reply.status(402).send(paymentRequiredBody(gate));
         }
 
         const now = new Date();
