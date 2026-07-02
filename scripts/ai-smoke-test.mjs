@@ -47,16 +47,20 @@ await step('logins + fresh consultation', async () => {
   state.doctorToken = d.json.data.accessToken;
   const me = await call('GET', '/doctors/me', { token: state.doctorToken });
   state.doctorId = me.json.data?.id ?? me.json.data?.doctor?.id;
+  // Ensure the doctor is available with a fresh location (dispatch + TTL path)
+  await call('PUT', '/doctors/availability', {
+    token: state.doctorToken,
+    body: { isAvailable: true, lat: -26.2041, lng: 28.0473, radius: 25 },
+  });
+
+  // UNASSIGNED consultation with a booking location — exercises the dispatch
+  // engine: triage stamping, geo-filtered queue, push fan-out on completion.
   const c = await call('POST', '/consultations', {
     token: state.patientToken,
-    body: { language: 'en', consultationType: 'IN_PERSON', doctorId: state.doctorId },
+    body: { language: 'en', consultationType: 'IN_PERSON', patientLat: -26.19, patientLng: 28.04 },
   });
   state.consultationId = c.json.data?.id ?? c.json.data?.consultationId;
   expect(state.consultationId, 'no consultation');
-  await call('POST', '/doctors/me/accept-patient', {
-    token: state.doctorToken,
-    body: { consultationId: state.consultationId },
-  });
   // POPIA: the doctor may only read history / run reasoning with granted consent
   await call('POST', '/patients/me/consents', {
     token: state.patientToken,
@@ -116,6 +120,26 @@ await step('INTERNAL complete (structured extraction + encryption)', async () =>
   expect(d.structuredHistory?.chiefComplaint, 'no structured chiefComplaint');
   state.urgency = d.urgency;
   return `system=${d.system} urgency=${d.urgency} redFlags=${d.redFlags?.length ?? 0} summary="${d.clinicalSummary.slice(0, 60)}…"`;
+});
+
+await step('dispatch: queue shows triaged, geo-scoped entry', async () => {
+  const r = await call('GET', '/doctors/me/patient-queue', { token: state.doctorToken });
+  expect(r.status === 200, `status ${r.status}`);
+  const queue = r.json.data?.queue ?? [];
+  const entry = queue.find((q) => q.consultationId === state.consultationId);
+  expect(entry, 'completed consultation not visible in nearby doctor queue');
+  expect(entry.urgency === 'URGENT' || entry.urgency === 'EMERGENCY',
+    `expected triage urgency stamped (URGENT/EMERGENCY for this cardiac case), got ${entry.urgency}`);
+  expect(typeof entry.distanceKm === 'number', 'no doctor→patient distance in queue entry');
+  return `urgency=${entry.urgency}, ${entry.distanceKm}km away, position ${queue.indexOf(entry) + 1}/${queue.length}`;
+});
+
+await step('doctor accepts dispatched consultation', async () => {
+  const r = await call('POST', '/doctors/me/accept-patient', {
+    token: state.doctorToken,
+    body: { consultationId: state.consultationId },
+  });
+  expect(r.status === 200, `status ${r.status}: ${JSON.stringify(r.json).slice(0, 200)}`);
 });
 
 await step('specialty history readable by doctor (decrypted)', async () => {

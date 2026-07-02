@@ -5,7 +5,8 @@ import { authenticate } from '../middleware/authenticate.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { auditLog } from '../services/audit.service.js';
 import { decryptField } from '../lib/encryption.js';
-import { findNearbyDoctors, updateDoctorLocation } from '../services/geolocation.service.js';
+import { findNearbyDoctors, updateDoctorLocation, haversineDistance } from '../services/geolocation.service.js';
+import { rankDoctorsForPatient } from '../services/incentive.service.js';
 import { Notifications } from '../services/notification.service.js';
 import { getProfilePhotoUrl } from '../services/upload.service.js';
 import type { DoctorType } from '@prisma/client';
@@ -227,12 +228,22 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
           });
         }
 
-        const doctors = await findNearbyDoctors(
+        const nearby = await findNearbyDoctors(
           { lat, lng },
           radiusKm,
           doctorType,
           language
         );
+
+        // Quality-weighted ordering: incentive score + proximity + language
+        // match — not raw distance. Falls back to the unranked list if
+        // scoring fails (never block search on the ranking engine).
+        let doctors = nearby;
+        try {
+          doctors = await rankDoctorsForPatient(nearby, language);
+        } catch (rankErr) {
+          fastify.log.warn(rankErr, 'Doctor ranking failed — returning distance-ordered results');
+        }
 
         return reply.send({
           success: true,
@@ -423,7 +434,30 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
 
         const now = Date.now();
 
-        const queue = consultations.map((c) => {
+        // Geo-filter: unassigned consultations only surface to doctors whose
+        // service radius covers the patient's booking location. Assigned ones
+        // always show. Consultations without a location stay visible (legacy).
+        const inRange = consultations.filter((c) => {
+          if (c.doctorId === doctor.id) return true;
+          if (c.patientLat == null || c.patientLng == null) return true;
+          if (doctor.currentLat == null || doctor.currentLng == null) return true;
+          const km = haversineDistance(
+            { lat: doctor.currentLat, lng: doctor.currentLng },
+            { lat: c.patientLat, lng: c.patientLng }
+          );
+          return km <= doctor.availabilityRadius;
+        });
+
+        // Triage ordering: EMERGENCY > URGENT > SOON > ROUTINE, then longest wait
+        const URGENCY_RANK: Record<string, number> = { EMERGENCY: 3, URGENT: 2, SOON: 1, ROUTINE: 0 };
+        inRange.sort((a, b) => {
+          const ua = URGENCY_RANK[a.triageUrgency ?? 'ROUTINE'] ?? 0;
+          const ub = URGENCY_RANK[b.triageUrgency ?? 'ROUTINE'] ?? 0;
+          if (ub !== ua) return ub - ua;
+          return new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime();
+        });
+
+        const queue = inRange.map((c) => {
           // Privacy: first name + last initial + "."
           const patientName = `${c.patient.firstName} ${c.patient.lastName.charAt(0)}.`;
 
@@ -444,12 +478,19 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
             (now - new Date(c.startedAt).getTime()) / 60000
           );
 
-          // Distance calculation if doctor has a location
+          // Distance from doctor to the patient's booking location
           let distanceKm: number | null = null;
-          if (doctor.currentLat !== null && doctor.currentLng !== null) {
-            // Distance to patient is not stored at consultation level;
-            // leave null unless patient location data is available in the future
-            distanceKm = null;
+          if (
+            doctor.currentLat != null && doctor.currentLng != null &&
+            c.patientLat != null && c.patientLng != null
+          ) {
+            distanceKm =
+              Math.round(
+                haversineDistance(
+                  { lat: doctor.currentLat, lng: doctor.currentLng },
+                  { lat: c.patientLat, lng: c.patientLng }
+                ) * 10
+              ) / 10;
           }
 
           return {
@@ -461,6 +502,7 @@ export async function doctorRoutes(fastify: FastifyInstance): Promise<void> {
             waitTimeMinutes,
             chiefComplaintSnippet,
             distanceKm,
+            urgency: c.triageUrgency ?? 'ROUTINE',
             isAssignedToMe: c.doctorId === doctor.id,
           };
         });

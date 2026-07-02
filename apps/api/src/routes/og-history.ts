@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { auditLog } from '../services/audit.service.js';
+import { dispatchConsultation } from '../services/dispatch.service.js';
 import {
   encryptJSON,
   encryptField,
@@ -396,6 +397,9 @@ export async function ogHistoryRoutes(fastify: FastifyInstance): Promise<void> {
             where: { id: consultationId },
             data: { status: 'DOCTOR_REVIEW' },
           });
+
+          // Triage + dispatch to nearby doctors (fire-and-forget; unassigned only)
+          void dispatchConsultation(consultationId, ogHistory.urgency, fastify.log);
         } catch (err) {
           fastify.log.warn(err, 'Failed to encrypt/save O&G history');
         }

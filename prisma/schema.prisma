@@ -137,6 +137,13 @@ enum PaymentMethod {
   CASH
 }
 
+enum TriageUrgency {
+  ROUTINE
+  SOON
+  URGENT
+  EMERGENCY
+}
+
 enum PatientLiteracyLevel {
   LOW // Simple yes/no questions
   MEDIUM // Everyday language
@@ -266,6 +273,13 @@ model Consultation {
   consultationType ConsultationType   @default(IN_PERSON)
   // Per-consultation encryption key, itself encrypted with master key
   encryptedDataKey String
+  // Dispatch metadata — approximate patient location at booking (for matching
+  // to nearby doctors) and the AI history's urgency grade (for queue triage).
+  // Deliberately unencrypted: needed for geo-queries and queue ordering; holds
+  // no clinical narrative.
+  patientLat       Float?
+  patientLng       Float?
+  triageUrgency    TriageUrgency?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 

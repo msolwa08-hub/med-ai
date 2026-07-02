@@ -47,6 +47,10 @@ const configSchema = z.object({
   // Expo Push Notifications
   EXPO_ACCESS_TOKEN: z.string().optional(),
 
+  // Doctors drop out of nearby-search/dispatch if their availability was not
+  // refreshed within this window (prevents "ghost" doctors who closed the app)
+  AVAILABILITY_TTL_HOURS: z.coerce.number().positive().default(12),
+
   // Emergency QR profile signing (falls back to ENCRYPTION_KEY when unset)
   EMERGENCY_SECRET: z.string().optional(),
   APP_BASE_URL: z.string().optional(),

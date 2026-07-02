@@ -38,6 +38,8 @@ export interface ConsultationPayload {
   language: string;
   consultationType?: 'IN_PERSON' | 'TELECONSULT' | 'HOME_VISIT';
   doctorId?: string;
+  patientLat?: number;
+  patientLng?: number;
 }
 
 export interface DoctorAvailabilityPayload {

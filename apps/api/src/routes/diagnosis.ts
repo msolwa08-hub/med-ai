@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { decryptPhiJson } from '../lib/phi-json.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { auditLog } from '../services/audit.service.js';
 import { encryptField, decryptDataKey } from '../lib/encryption.js';
@@ -81,10 +82,15 @@ export async function diagnosisRoutes(fastify: FastifyInstance): Promise<void> {
         userAgent: request.headers['user-agent'],
       });
 
+      const diagnoses = decryptPhiJson<DiagnosisEntry[]>(
+        diff.diagnoses,
+        decryptDataKey(consultation.encryptedDataKey)
+      );
+
       return reply.send({
         success: true,
         data: {
-          diagnoses: diff.diagnoses as unknown as DiagnosisEntry[],
+          diagnoses,
           doctorReviewed: diff.doctorReviewed,
           doctorSelectedDiagnosis: diff.doctorSelectedDiagnosis,
           doctorNotes: diff.doctorNotes,
@@ -220,7 +226,7 @@ export async function diagnosisRoutes(fastify: FastifyInstance): Promise<void> {
         data: {
           id: updated.id,
           consultationId: updated.consultationId,
-          diagnoses: updated.diagnoses as unknown as DiagnosisEntry[],
+          diagnoses: decryptPhiJson<DiagnosisEntry[]>(updated.diagnoses, dataKey),
           doctorReviewed: updated.doctorReviewed,
           doctorSelectedDiagnosis: updated.doctorSelectedDiagnosis,
           doctorNotes: updated.doctorNotes,

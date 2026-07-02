@@ -25,6 +25,10 @@ const CreateConsultationSchema = z.object({
   language: z.string().min(1),
   consultationType: z.enum(['IN_PERSON', 'TELECONSULT', 'HOME_VISIT']).optional(),
   doctorId: z.string().optional(),
+  // Approximate booking location — powers dispatch to nearby doctors when
+  // the patient hasn't chosen one. Optional: booking works without it.
+  patientLat: z.number().min(-90).max(90).optional(),
+  patientLng: z.number().min(-180).max(180).optional(),
 });
 
 const UpdateStatusSchema = z.object({
@@ -195,7 +199,7 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
           });
         }
 
-        const { language, consultationType, doctorId } = parsed.data;
+        const { language, consultationType, doctorId, patientLat, patientLng } = parsed.data;
 
         const patient = await prisma.patient.findUnique({ where: { userId } });
         if (!patient) {
@@ -231,6 +235,8 @@ export async function consultationRoutes(fastify: FastifyInstance): Promise<void
             consultationType: (consultationType ?? 'IN_PERSON') as never,
             encryptedDataKey,
             status: 'HISTORY_TAKING',
+            patientLat: patientLat ?? null,
+            patientLng: patientLng ?? null,
             medicalHistory: {
               create: {
                 language: language as never,

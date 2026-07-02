@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import prisma from '../lib/prisma.js';
+import { dispatchConsultation } from '../services/dispatch.service.js';
+import { encryptPhiJson } from '../lib/phi-json.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { auditLog } from '../services/audit.service.js';
@@ -185,11 +187,11 @@ async function runCompletionFlow(
     where: { consultationId },
     create: {
       consultationId,
-      diagnoses: diagnoses as never,
+      diagnoses: encryptPhiJson(diagnoses, dataKey),
       aiModel: 'claude-haiku-4-5',
     },
     update: {
-      diagnoses: diagnoses as never,
+      diagnoses: encryptPhiJson(diagnoses, dataKey),
       aiModel: 'claude-haiku-4-5',
       generatedAt: new Date(),
     },
@@ -199,6 +201,10 @@ async function runCompletionFlow(
     where: { id: consultationId },
     data: { status: 'DOCTOR_REVIEW' },
   });
+
+  // Triage + dispatch to nearby doctors (fire-and-forget; unassigned only)
+  const urgency = structuredHistory.redFlagsIdentified ? 'URGENT' : 'ROUTINE';
+  void dispatchConsultation(consultationId, urgency);
 
   return { structuredHistory, diagnoses } as never;
 }

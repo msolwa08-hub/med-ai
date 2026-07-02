@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma.js';
+import { config } from '../config.js';
 import type { NearbyDoctor, GeoPoint } from '../types/index.js';
 import type { DoctorType } from '@prisma/client';
 
@@ -51,10 +52,17 @@ export async function findNearbyDoctors(
   const latDelta = radiusKm / 111;
   const lngDelta = radiusKm / (111 * Math.cos(toRad(location.lat)));
 
+  // Availability staleness guard: a doctor who toggled available and then
+  // disappeared should not stay matchable forever. updatedAt is refreshed by
+  // every availability PUT (and any profile change), so it works as a
+  // lightweight heartbeat.
+  const freshSince = new Date(Date.now() - config.AVAILABILITY_TTL_HOURS * 3600 * 1000);
+
   const doctors = await prisma.doctor.findMany({
     where: {
       isAvailable: true,
       hpcsaStatus: 'VERIFIED',
+      updatedAt: { gte: freshSince },
       currentLat: {
         gte: location.lat - latDelta,
         lte: location.lat + latDelta,

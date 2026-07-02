@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { requireConsent } from '../middleware/consent.js';
 import { auditLog } from '../services/audit.service.js';
 import { decryptField, decryptJSON, decryptDataKey } from '../lib/encryption.js';
+import { encryptPhiJson } from '../lib/phi-json.js';
 import {
   generateClinicalReasoning,
   type ClinicalReasoningPackage,
@@ -151,11 +152,11 @@ export async function clinicalReasoningRoutes(fastify: FastifyInstance): Promise
           where: { consultationId },
           create: {
             consultationId,
-            diagnoses: diagnosesForStorage as unknown as Prisma.InputJsonValue,
+            diagnoses: encryptPhiJson(diagnosesForStorage, dataKey),
             aiModel: reasoning.aiModel,
           },
           update: {
-            diagnoses: diagnosesForStorage as unknown as Prisma.InputJsonValue,
+            diagnoses: encryptPhiJson(diagnosesForStorage, dataKey),
             aiModel: reasoning.aiModel,
             generatedAt: new Date(),
             doctorReviewed: false,

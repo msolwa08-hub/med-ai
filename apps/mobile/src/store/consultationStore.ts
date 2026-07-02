@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import * as Location from 'expo-location';
 import { consultationApi, patientApi, aiHistoryApi } from '../api/endpoints';
 
 export interface Message {
@@ -174,7 +175,24 @@ export const useConsultationStore = create<ConsultationState>((set, get) => ({
   startConsultation: async (_patientId: string, language: string) => {
     set({ isLoading: true, error: null, messages: [] });
     try {
-      const createRes = await consultationApi.create({ language });
+      // Best-effort booking location — powers dispatch to nearby doctors.
+      // Never blocks booking: any failure just omits the coordinates.
+      let patientLat: number | undefined;
+      let patientLng: number | undefined;
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getLastKnownPositionAsync();
+          if (pos) {
+            patientLat = pos.coords.latitude;
+            patientLng = pos.coords.longitude;
+          }
+        }
+      } catch {
+        // proceed without location
+      }
+
+      const createRes = await consultationApi.create({ language, patientLat, patientLng });
       const { consultationId, status } = createRes.data.data as {
         consultationId: string;
         status: string;
