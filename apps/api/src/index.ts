@@ -31,6 +31,7 @@ import { profileSetupRoutes } from './routes/profile-setup.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { uploadRoutes } from './routes/upload.js';
 import { paymentRoutes } from './routes/payments.js';
+import { managementDraftRoutes } from './routes/management-draft.js';
 
 const fastify = Fastify({
   logger: {
@@ -97,6 +98,7 @@ await fastify.register(profileSetupRoutes);
 await fastify.register(notificationRoutes);
 await fastify.register(uploadRoutes);
 await fastify.register(paymentRoutes);
+await fastify.register(managementDraftRoutes);
 
 fastify.get('/health', async (_request, reply) => {
   const checks: Record<string, 'ok' | 'error'> = {};

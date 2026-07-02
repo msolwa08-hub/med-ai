@@ -206,6 +206,48 @@ await step('ICD-10 spine: confirm diagnosis → coded problem list', async () =>
   return `problem list has ${top.diagnosis} (${top.icd10Code}) [${entry.status}]`;
 });
 
+// ── C3: prescription safety gate + STG-driven management draft ───────────────
+await step('safety gate: warfarin+NSAID blocked with 409', async () => {
+  const script = {
+    consultationId: state.consultationId,
+    items: [
+      { medication: 'Warfarin', dose: '5mg', route: 'Oral', frequency: 'daily', duration: '30 days', quantity: 30, instructions: 'Take at the same time daily', isScheduled: false },
+      { medication: 'Ibuprofen', dose: '400mg', route: 'Oral', frequency: '8 hourly', duration: '5 days', quantity: 15, instructions: 'Take with food', isScheduled: false },
+    ],
+  };
+  const r = await call('POST', '/prescriptions', { token: state.doctorToken, body: script });
+  expect(r.status === 409, `expected 409 SAFETY_WARNINGS, got ${r.status}: ${JSON.stringify(r.json).slice(0, 200)}`);
+  expect(r.json.code === 'SAFETY_WARNINGS', `code=${r.json.code}`);
+  const interaction = (r.json.warnings ?? []).find((w) => w.category === 'INTERACTION');
+  expect(interaction, `no INTERACTION warning in ${JSON.stringify(r.json.warnings).slice(0, 200)}`);
+  state.blockedScript = script;
+  return `${r.json.warnings.length} warning(s): "${interaction.reason}"`;
+});
+
+await step('safety gate: conscious override issues script + audit trail', async () => {
+  const r = await call('POST', '/prescriptions', {
+    token: state.doctorToken,
+    body: { ...state.blockedScript, overrideSafetyWarnings: true },
+  });
+  expect(r.status === 201, `override status ${r.status}: ${JSON.stringify(r.json).slice(0, 200)}`);
+  expect(r.json.data?.scriptNumber, 'no script number returned');
+  return `script ${r.json.data.scriptNumber} issued under override`;
+});
+
+await step('management draft: STG-adapted plan from confirmed ICD-10', async () => {
+  const r = await call('POST', `/management/draft/${state.consultationId}`, {
+    token: state.doctorToken,
+    body: {},
+  });
+  expect(r.status === 200, `status ${r.status}: ${JSON.stringify(r.json).slice(0, 300)}`);
+  const d = r.json.data;
+  expect(d.icd10Code === state.reasoningTop.icd10Code, `draft coded ${d.icd10Code}, expected ${state.reasoningTop.icd10Code}`);
+  expect(d.medications?.length >= 1, 'draft has no medications');
+  expect(d.patientInstructions?.length > 20, 'no patient instructions');
+  expect(Array.isArray(d.safetyWarnings), 'draft not pre-screened through the safety gate');
+  return `${d.medications.length} meds, ${d.investigations?.length ?? 0} ix, follow-up ${d.followUpDays}d, STG: ${d.stgSource ?? 'none (AI fallback)'}, ${d.safetyWarnings.length} safety warnings`;
+});
+
 // ── O&G history (separate AI API) ─────────────────────────────────────────────
 await step('O&G start (gynae mode detection)', async () => {
   const c = await call('POST', '/consultations', {

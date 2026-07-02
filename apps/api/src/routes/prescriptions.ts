@@ -4,6 +4,8 @@ import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { auditLog } from '../services/audit.service.js';
+import { checkPrescriptionSafety } from '../services/prescription-safety.js';
+import { decryptField, decryptJSON, decryptDataKey } from '../lib/encryption.js'
 import {
   createPrescription,
   getConsultationPrescriptions,
@@ -34,6 +36,9 @@ const CreatePrescriptionSchema = z.object({
   isRepeat: z.boolean().default(false),
   repeatTotal: z.number().int().min(1).max(11).optional(),
   notes: z.string().max(2000).optional(),
+  // Safety warnings return 409; the doctor may consciously override.
+  // Every override is audit-logged.
+  overrideSafetyWarnings: z.boolean().default(false),
 });
 
 const ListPrescriptionsQuerySchema = z.object({
@@ -64,7 +69,7 @@ export async function prescriptionRoutes(fastify: FastifyInstance): Promise<void
           });
         }
 
-        const { consultationId, items, isRepeat, repeatTotal, notes } = parsed.data;
+        const { consultationId, items, isRepeat, repeatTotal, notes, overrideSafetyWarnings } = parsed.data;
 
         // Validate: scheduled items must include a schedule number
         for (const item of items) {
@@ -103,7 +108,14 @@ export async function prescriptionRoutes(fastify: FastifyInstance): Promise<void
         // Verify the consultation exists and the doctor is assigned to it
         const consultation = await prisma.consultation.findUnique({
           where: { id: consultationId },
-          select: { id: true, patientId: true, doctorId: true, status: true },
+          select: {
+            id: true,
+            patientId: true,
+            doctorId: true,
+            status: true,
+            encryptedDataKey: true,
+            medicalHistory: { select: { allergies: true, clinicalScores: true } },
+          },
         });
 
         if (!consultation) {
@@ -119,6 +131,61 @@ export async function prescriptionRoutes(fastify: FastifyInstance): Promise<void
             success: false,
             error: 'You are not the assigned doctor for this consultation.',
             code: 'FORBIDDEN',
+          });
+        }
+
+        // ── Safety gate: allergy / pregnancy / renal / interaction checks ──
+        let allergiesText: string | undefined;
+        let isPregnant = false;
+        try {
+          const dataKey = decryptDataKey(consultation.encryptedDataKey);
+          if (consultation.medicalHistory?.allergies) {
+            allergiesText = decryptField(consultation.medicalHistory.allergies, dataKey);
+          }
+          if (consultation.medicalHistory?.clinicalScores) {
+            const scores = decryptJSON(consultation.medicalHistory.clinicalScores, dataKey) as {
+              mode?: string;
+              gestationalAgeAtVisit?: string;
+            };
+            isPregnant = scores?.mode === 'OBSTETRIC' || !!scores?.gestationalAgeAtVisit;
+          }
+        } catch {
+          // Context unavailable — checks degrade gracefully to interaction-only
+        }
+
+        const problems = await prisma.diagnosis.findMany({
+          where: { patientId: consultation.patientId, status: { in: ['ACTIVE', 'CHRONIC'] } },
+          select: { icd10Code: true },
+          take: 50,
+        });
+
+        const safetyWarnings = checkPrescriptionSafety(
+          items.map((i) => i.medication),
+          {
+            allergiesText,
+            isPregnant,
+            problemCodes: problems.map((d) => d.icd10Code).filter((x): x is string => !!x),
+          }
+        );
+
+        if (safetyWarnings.length > 0 && !overrideSafetyWarnings) {
+          return reply.status(409).send({
+            success: false,
+            error: 'Prescription safety warnings — review and resubmit with overrideSafetyWarnings to proceed.',
+            code: 'SAFETY_WARNINGS',
+            warnings: safetyWarnings,
+          });
+        }
+
+        if (safetyWarnings.length > 0 && overrideSafetyWarnings) {
+          await auditLog({
+            userId,
+            action: 'PRESCRIPTION_SAFETY_OVERRIDE',
+            resource: 'Prescription',
+            resourceId: consultationId,
+            metadata: { warnings: safetyWarnings },
+            ipAddress: request.ip,
+            userAgent: request.headers['user-agent'],
           });
         }
 
