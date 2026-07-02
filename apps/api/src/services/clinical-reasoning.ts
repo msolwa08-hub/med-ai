@@ -22,6 +22,7 @@
 
 import { anthropic, CLAUDE_MODEL } from '../lib/claude.js';
 import { getSTGByICD10, searchSTGEntries } from './stg.service.js';
+import { extractJSON } from '../lib/json-extract.js';
 import type { STGSeedEntry } from '../data/stg-entries.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -175,7 +176,7 @@ Return ONLY valid JSON:
 
   const response = await anthropic.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: 3000,
+    max_tokens: 4096,
     temperature: 0,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -185,18 +186,11 @@ Return ONLY valid JSON:
     .map((b) => b.text ?? '')
     .join('');
 
-  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const jsonStr = fenceMatch ? fenceMatch[1] : text;
-  const start = jsonStr.indexOf('{');
-  const end = jsonStr.lastIndexOf('}');
-  if (start === -1 || end === -1) {
-    throw new Error('Clinical reasoning generation returned no JSON');
-  }
-
-  const parsed = JSON.parse(jsonStr.slice(start, end + 1)) as Omit<
+  // extractJSON strips fences and repairs truncated output
+  const parsed = extractJSON<Omit<
     ClinicalReasoningPackage,
     'generatedAt' | 'aiModel'
-  > & { differentials: Array<Omit<ReasonedDifferential, 'stg'>> };
+  > & { differentials: Array<Omit<ReasonedDifferential, 'stg'>> }>(text);
 
   // Link every differential to the SA STGs
   const differentials: ReasonedDifferential[] = (parsed.differentials ?? []).map((d) => ({
