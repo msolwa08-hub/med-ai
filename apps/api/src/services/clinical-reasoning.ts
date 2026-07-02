@@ -21,9 +21,9 @@
  */
 
 import { anthropic, CLAUDE_MODEL } from '../lib/claude.js';
-import { getSTGByICD10, searchSTGEntries } from './stg.service.js';
 import { extractJSON } from '../lib/json-extract.js';
-import type { STGSeedEntry } from '../data/stg-entries.js';
+import prisma from '../lib/prisma.js';
+import type { STGEntry as STGEntryRow } from '@prisma/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,40 +69,67 @@ export interface ClinicalReasoningPackage {
 }
 
 // ─── STG linkage ──────────────────────────────────────────────────────────────
+//
+// Queries the same STGEntry table the doctor-facing STG Lookup screen and
+// admin-managed /stg/seed endpoint use (see routes/stg.ts) — one live
+// dataset, so a guideline update reaches the AI reasoning tool immediately
+// with no redeploy, and reasoning never disagrees with manual lookup.
 
-function toStgLink(entry: STGSeedEntry | undefined): StgLink {
+function toStgLink(entry: STGEntryRow | null): StgLink {
   if (!entry) return { available: false };
+
+  const firstLine = Array.isArray(entry.firstLineTreatment)
+    ? (entry.firstLineTreatment as unknown as Record<string, string | undefined>[])
+    : [];
+  const investigations = Array.isArray(entry.investigations)
+    ? (entry.investigations as unknown as Record<string, string | undefined>[])
+    : [];
+
   return {
     available: true,
-    condition: entry.condition,
-    icdCode: entry.icdCode,
+    condition: entry.conditionName,
+    icdCode: entry.icd10Code,
     levelOfCare: entry.levelOfCare,
-    firstLineMedications: entry.firstLinemedications.slice(0, 4).map((m) => {
-      const med = m as unknown as Record<string, string | undefined>;
-      return {
-        medicine: med.medicine ?? med.name ?? 'See STG',
-        dose: med.dose ?? med.doseAdult,
-        duration: med.duration,
-      };
-    }),
-    keyInvestigations: entry.investigations.slice(0, 5).map((inv) => {
-      const i = inv as unknown as Record<string, string | undefined>;
-      return i.name ?? i.test ?? String(inv);
-    }),
-    referralCriteria: entry.referralCriteria.slice(0, 5),
-    nonPharmacological: entry.nonPharmacological.slice(0, 4),
+    firstLineMedications: firstLine.slice(0, 4).map((m) => ({
+      medicine: m.medication ?? m.name ?? 'See STG',
+      dose: m.dose,
+      duration: m.duration,
+    })),
+    keyInvestigations: investigations.slice(0, 5).map((i) => i.name ?? 'See STG'),
+    referralCriteria: (entry.referralCriteria ?? '')
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 5),
+    nonPharmacological: [],
   };
 }
 
 /** Look up an STG entry for a differential — exact ICD-10 first, then fuzzy name. */
-export function linkDifferentialToSTG(diagnosis: string, icd10Code: string): StgLink {
+export async function linkDifferentialToSTG(diagnosis: string, icd10Code: string): Promise<StgLink> {
   // Exact ICD-10 match (also try the 3-character category, e.g. J18 for J18.9)
-  const exact = getSTGByICD10(icd10Code) ?? getSTGByICD10(icd10Code.split('.')[0]);
-  if (exact) return toStgLink(exact);
+  if (icd10Code) {
+    const exact =
+      (await prisma.sTGEntry.findUnique({ where: { icd10Code } })) ??
+      (await prisma.sTGEntry.findUnique({ where: { icd10Code: icd10Code.split('.')[0] } }));
+    if (exact) return toStgLink(exact);
+  }
 
-  // Fuzzy condition-name match
-  const results = searchSTGEntries(diagnosis);
-  if (results.entries.length > 0) return toStgLink(results.entries[0]);
+  // Fuzzy condition-name match — same shape as GET /stg/search
+  const term = diagnosis.trim().toLowerCase();
+  if (term) {
+    const byName = await prisma.sTGEntry.findFirst({
+      where: {
+        OR: [
+          { conditionName: { contains: term, mode: 'insensitive' } },
+          { synonyms: { has: term } },
+          { category: { contains: term, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { conditionName: 'asc' },
+    });
+    if (byName) return toStgLink(byName);
+  }
 
   // Last resort: first meaningful word of the diagnosis (e.g. "pneumonia")
   const keyword = diagnosis
@@ -110,8 +137,11 @@ export function linkDifferentialToSTG(diagnosis: string, icd10Code: string): Stg
     .filter((w) => w.length > 4)
     .slice(-1)[0];
   if (keyword) {
-    const byKeyword = searchSTGEntries(keyword);
-    if (byKeyword.entries.length > 0) return toStgLink(byKeyword.entries[0]);
+    const byKeyword = await prisma.sTGEntry.findFirst({
+      where: { conditionName: { contains: keyword, mode: 'insensitive' } },
+      orderBy: { conditionName: 'asc' },
+    });
+    if (byKeyword) return toStgLink(byKeyword);
   }
 
   return { available: false };
@@ -192,11 +222,13 @@ Return ONLY valid JSON:
     'generatedAt' | 'aiModel'
   > & { differentials: Array<Omit<ReasonedDifferential, 'stg'>> }>(text);
 
-  // Link every differential to the SA STGs
-  const differentials: ReasonedDifferential[] = (parsed.differentials ?? []).map((d) => ({
-    ...d,
-    stg: linkDifferentialToSTG(d.diagnosis, d.icd10Code ?? ''),
-  }));
+  // Link every differential to the SA STGs (parallel — independent lookups)
+  const differentials: ReasonedDifferential[] = await Promise.all(
+    (parsed.differentials ?? []).map(async (d) => ({
+      ...d,
+      stg: await linkDifferentialToSTG(d.diagnosis, d.icd10Code ?? ''),
+    }))
+  );
 
   return {
     chiefComplaint: parsed.chiefComplaint ?? input.chiefComplaint,

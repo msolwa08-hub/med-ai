@@ -137,6 +137,8 @@ await step('clinical reasoning (differentials + STG links)', async () => {
   const withReasoning = d.differentials.filter((x) => x.reasoning && x.supportingFeatures?.length);
   expect(withReasoning.length === d.differentials.length, 'differentials missing reasoning chains');
   const stgLinked = d.differentials.filter((x) => x.stg?.available);
+  expect(stgLinked.length > 0, 'no differentials linked to an STG entry — STG dataset/linkage regression');
+  expect(d.urgency === 'URGENT' || d.urgency === 'EMERGENCY', `expected urgency reconciled to at least URGENT for a red-flagged cardiac case, got ${d.urgency}`);
   state.reasoningTop = d.differentials[0];
   return `${d.differentials.length} differentials (top: ${d.differentials[0].diagnosis} ${d.differentials[0].probability}%), ${stgLinked.length} STG-linked, urgency=${d.urgency}, ${d.recommendedInvestigations?.length} investigations`;
 });

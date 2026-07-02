@@ -2208,4 +2208,913 @@ export const STG_ENTRIES: STGSeedEntry[] = [
     ],
     specialPopulations: 'HIV+ patients: increased risk of psychosis; avoid drug interactions with ARVs. Cannabis use very high in SA youth — always a contributing factor to screen for.',
   },
+
+  // ============================================================
+  // CARDIOVASCULAR (extended)
+  // ============================================================
+  {
+    icdCode: 'I20.9',
+    condition: 'Stable Angina Pectoris',
+    category: 'Cardiovascular',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Aspirin', dose: '75-150mg', route: 'Oral', frequency: 'Once daily', duration: 'Lifelong', notes: 'Antiplatelet — secondary prevention' },
+      { name: 'Atorvastatin', dose: '40mg', route: 'Oral', frequency: 'Nightly', duration: 'Lifelong', notes: 'High-intensity statin regardless of baseline LDL' },
+      { name: 'Bisoprolol', dose: '2.5mg (titrate to 10mg)', route: 'Oral', frequency: 'Once daily', duration: 'Lifelong', notes: 'Beta-blocker — reduces angina frequency and myocardial O2 demand' },
+      { name: 'GTN spray', dose: '400-800mcg', route: 'Sublingual', frequency: 'PRN for chest pain', duration: 'PRN', notes: 'Advise sitting when using — risk of hypotension/syncope' },
+    ],
+    secondLineMedications: [
+      { name: 'Amlodipine', dose: '5-10mg', route: 'Oral', frequency: 'Once daily', duration: 'Lifelong', notes: 'Add if beta-blocker insufficient or contraindicated' },
+      { name: 'Isosorbide mononitrate', dose: '30-60mg', route: 'Oral', frequency: 'Once daily', duration: 'Lifelong', notes: 'Long-acting nitrate for refractory symptoms' },
+    ],
+    investigations: [
+      { name: 'ECG (resting)', timing: 'Immediate', notes: 'May be normal between episodes' },
+      { name: 'Troponin', timing: 'Immediate', notes: 'Exclude ACS if pain is current/recent (<24h)' },
+      { name: 'Fasting lipogram + glucose', timing: 'Same day' },
+      { name: 'FBC (exclude anaemia as precipitant)', timing: 'Same day' },
+      { name: 'Exercise ECG or stress echo', timing: 'Routine', notes: 'Risk stratification — refer if available locally' },
+    ],
+    referralCriteria: [
+      'Any current chest pain with ECG changes or raised troponin — treat as ACS, refer EMERGENCY',
+      'Angina at rest or crescendo pattern (unstable angina) — same-day referral',
+      'Angina despite optimal 3-drug therapy — cardiology for angiography',
+      'Left main or triple-vessel pattern suspected (angina + heart failure signs)',
+    ],
+    nonPharmacological: [
+      'Smoking cessation — single most important intervention',
+      'Structured exercise programme once stable',
+      'Weight and diabetes/BP control',
+      'Cardiac rehabilitation referral if available',
+    ],
+    followUpSchedule: '2-4 weeks after starting/titrating therapy, then 3-6 monthly',
+    patientEducation: [
+      'Stop what you are doing and rest at the first sign of chest pain',
+      'Use GTN spray while seated; call emergency services if pain persists >15 minutes despite GTN',
+      'This is different from a heart attack (ACS) but shares the same underlying disease — the medications reduce your risk of a future heart attack',
+    ],
+    specialPopulations: 'HIV on protease inhibitors: accelerated atherosclerosis — lower threshold for statin therapy. Diabetics may have atypical/silent presentations.',
+  },
+  {
+    icdCode: 'I21.9',
+    condition: 'Acute Coronary Syndrome (ACS) / Myocardial Infarction',
+    category: 'Cardiovascular',
+    saPrevalence: 'Common',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'Aspirin', dose: '300mg loading, then 75-150mg', route: 'Oral (chewed)', frequency: 'Stat then daily', duration: 'Lifelong', notes: 'Give immediately on suspicion — do not wait for ECG/troponin' },
+      { name: 'Clopidogrel', dose: '300-600mg loading, then 75mg', route: 'Oral', frequency: 'Stat then daily', duration: '12 months', notes: 'Dual antiplatelet therapy with aspirin' },
+      { name: 'GTN', dose: '400-800mcg', route: 'Sublingual', frequency: 'PRN, max 3 doses', duration: 'Acute', notes: 'Avoid if hypotensive or suspected right ventricular infarct' },
+      { name: 'Morphine', dose: '2.5-5mg', route: 'IV', frequency: 'Titrate to pain', duration: 'Acute', notes: 'For pain not relieved by nitrates' },
+    ],
+    investigations: [
+      { name: '12-lead ECG', timing: 'Immediate', notes: 'Within 10 minutes of first contact — repeat if initially normal and pain continues' },
+      { name: 'Troponin (serial)', timing: 'Immediate', notes: 'Repeat at 3-6h if first negative and high suspicion' },
+      { name: 'FBC, U&E, glucose, lipogram', timing: 'Immediate' },
+      { name: 'Chest X-ray', timing: 'Same day', notes: 'Exclude aortic dissection, assess for failure' },
+    ],
+    referralCriteria: [
+      'STEMI — IMMEDIATE emergency transfer for primary PCI or thrombolysis per local protocol; do not delay for investigations',
+      'NSTEMI/unstable angina with ongoing pain, dynamic ECG changes, or haemodynamic instability — emergency transfer',
+      'Any suspected ACS at a primary-care facility — stabilise and transfer without delay',
+    ],
+    nonPharmacological: [
+      'Bed rest and continuous monitoring during transfer',
+      'Oxygen only if SpO2 < 90%',
+      'Cardiac rehabilitation post-discharge',
+    ],
+    followUpSchedule: 'Cardiology follow-up 1-2 weeks post-discharge, then per cardiology plan',
+    patientEducation: [
+      'This is a medical emergency — every minute of delay matters ("time is muscle")',
+      'Call emergency services immediately for any recurrence of similar chest pain',
+      'Long-term medication (aspirin, statin, beta-blocker) is essential even once you feel well',
+    ],
+    specialPopulations: 'Diabetics and elderly may present atypically (dyspnoea, epigastric pain, confusion, without classic chest pain). HIV+ on ART: consider drug interactions before adding new agents.',
+  },
+  {
+    icdCode: 'I63.9',
+    condition: 'Cerebral Infarction (Ischaemic Stroke) / TIA',
+    category: 'Neurology',
+    saPrevalence: 'Common',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'Aspirin', dose: '300mg loading, then 75-150mg', route: 'Oral', frequency: 'Stat then daily', duration: 'Lifelong', notes: 'Only after haemorrhagic stroke excluded on CT' },
+      { name: 'Atorvastatin', dose: '40-80mg', route: 'Oral', frequency: 'Nightly', duration: 'Lifelong', notes: 'High-intensity statin for secondary prevention' },
+    ],
+    investigations: [
+      { name: 'CT brain (non-contrast)', timing: 'Immediate', notes: 'MUST exclude haemorrhage before any antiplatelet/thrombolysis' },
+      { name: 'Glucose (fingerstick)', timing: 'Immediate', notes: 'Hypoglycaemia is a key stroke mimic' },
+      { name: 'ECG', timing: 'Immediate', notes: 'Screen for atrial fibrillation' },
+      { name: 'FBC, U&E, clotting, lipogram', timing: 'Immediate' },
+      { name: 'Carotid Doppler / echo', timing: 'Routine', notes: 'Once stable — identify source' },
+    ],
+    referralCriteria: [
+      'Any suspected acute stroke — EMERGENCY transfer to a stroke-capable facility; thrombolysis window is <4.5 hours from symptom onset',
+      'TIA (resolved symptoms) — urgent same-day referral for CT and workup; high risk of stroke in following days',
+      'Deteriorating consciousness or signs of raised ICP',
+    ],
+    nonPharmacological: [
+      'FAST screening (Face, Arm, Speech, Time) — educate community and staff',
+      'Note exact time of symptom onset — critical for thrombolysis eligibility',
+      'Swallowing assessment before any oral intake (aspiration risk)',
+      'Early mobilisation and rehabilitation once stable',
+    ],
+    followUpSchedule: 'Stroke unit / neurology follow-up per discharge plan; BP and secondary prevention review at 2 weeks',
+    patientEducation: [
+      'FAST: Face drooping, Arm weakness, Speech difficulty = Time to call emergency services',
+      'Control blood pressure, diabetes, and stop smoking to prevent recurrence',
+      'Rehabilitation (physio/OT/speech therapy) significantly improves recovery — attend all sessions',
+    ],
+    specialPopulations: 'Young stroke (<45y): screen for HIV-associated vasculopathy, cardioembolic causes, hypercoagulable states. Pregnancy: consider cerebral venous thrombosis.',
+  },
+  {
+    icdCode: 'I26.9',
+    condition: 'Pulmonary Embolism / Deep Vein Thrombosis',
+    category: 'Cardiovascular',
+    saPrevalence: 'Common',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'Enoxaparin (LMWH)', dose: '1mg/kg', route: 'Subcutaneous', frequency: '12-hourly', duration: 'Bridge to oral anticoagulant', notes: 'Weight-based dosing; adjust for renal function' },
+      { name: 'Rivaroxaban', dose: '15mg 12-hourly for 21 days, then 20mg daily', route: 'Oral', frequency: 'As above', duration: '3-6 months minimum', notes: 'DOAC — avoid in severe renal impairment or pregnancy' },
+    ],
+    investigations: [
+      { name: 'D-dimer', timing: 'Immediate', notes: 'Only useful if low pre-test probability (Wells score) to rule out' },
+      { name: 'CT pulmonary angiogram', timing: 'Urgent', notes: 'Gold standard if PE suspected and D-dimer positive/high probability' },
+      { name: 'Doppler ultrasound leg', timing: 'Urgent', notes: 'For suspected DVT' },
+      { name: 'ECG, troponin, ABG', timing: 'Immediate', notes: 'Assess right heart strain and severity' },
+    ],
+    referralCriteria: [
+      'Suspected PE with haemodynamic instability (hypotension, severe hypoxia) — EMERGENCY, consider thrombolysis',
+      'Any suspected PE — same-day referral for imaging and anticoagulation',
+      'Proximal DVT — urgent referral to start anticoagulation same day',
+      'Anticoagulation contraindicated (active bleeding, recent surgery) — refer for IVC filter consideration',
+    ],
+    nonPharmacological: [
+      'Early mobilisation once anticoagulated (do not prescribe bed rest)',
+      'Compression stockings for DVT symptom relief',
+      'Identify and address provoking factors (immobility, malignancy, pregnancy, contraceptive pill)',
+    ],
+    followUpSchedule: '1 week, then monthly while on anticoagulation; haematology review if unprovoked or recurrent',
+    patientEducation: [
+      'Take anticoagulants exactly as prescribed — missed doses increase clot risk, extra doses increase bleeding risk',
+      'Seek urgent care for new chest pain, breathlessness, or coughing blood',
+      'Report any unusual bleeding or bruising',
+    ],
+    specialPopulations: 'Pregnancy: LMWH only, DOACs contraindicated. Combined oral contraceptive pill is a major provoking factor in young women — advise alternative contraception.',
+  },
+
+  // ============================================================
+  // NEUROLOGY (extended)
+  // ============================================================
+  {
+    icdCode: 'G43.9',
+    condition: 'Migraine',
+    category: 'Neurology',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Ibuprofen', dose: '400-600mg', route: 'Oral', frequency: 'At onset, may repeat once after 4-6h', duration: 'PRN (acute attack)', notes: 'Most effective taken early in the attack' },
+      { name: 'Paracetamol', dose: '1g', route: 'Oral', frequency: '6-hourly PRN', duration: 'PRN', notes: 'Combine with NSAID if not contraindicated' },
+      { name: 'Metoclopramide', dose: '10mg', route: 'Oral/IM', frequency: 'PRN with analgesia', duration: 'PRN', notes: 'For nausea; also promotes analgesic absorption' },
+    ],
+    secondLineMedications: [
+      { name: 'Propranolol', dose: '40mg (titrate to 80-160mg)', route: 'Oral', frequency: 'Once daily', duration: 'Prophylaxis, review at 6 months', notes: 'For >4 attacks/month; avoid in asthma' },
+      { name: 'Amitriptyline', dose: '10-25mg', route: 'Oral', frequency: 'Nightly', duration: 'Prophylaxis, review at 6 months', notes: 'Alternative prophylaxis, also helps sleep' },
+    ],
+    investigations: [
+      { name: 'Clinical diagnosis — investigations only if red flags present', timing: 'Routine' },
+      { name: 'CT/MRI brain', timing: 'Urgent', notes: 'Only if red flags: thunderclap onset, new neurological deficit, worst-ever headache, fever + neck stiffness' },
+    ],
+    referralCriteria: [
+      'Thunderclap headache (reaches maximum intensity <1 minute) — EMERGENCY, exclude subarachnoid haemorrhage',
+      'New focal neurological deficit, papilloedema, or reduced consciousness',
+      'Headache with fever and neck stiffness — exclude meningitis (high TB/cryptococcal risk in SA)',
+      'New headache pattern in HIV+ patient — lower threshold for imaging (toxoplasmosis, cryptococcoma)',
+      'Progressive headache unresponsive to standard prophylaxis',
+    ],
+    nonPharmacological: [
+      'Headache diary to identify triggers (sleep, foods, stress, hormonal)',
+      'Regular sleep and meal patterns',
+      'Avoid medication overuse (>10-15 days/month of analgesia can cause rebound headache)',
+    ],
+    followUpSchedule: '4-6 weeks after starting prophylaxis, then 6-monthly',
+    patientEducation: [
+      'Treat attacks early and adequately — waiting reduces treatment effectiveness',
+      'Limit acute painkiller use to avoid medication-overuse headache',
+      'Seek emergency care for any headache that is the "worst of your life" or comes on suddenly',
+    ],
+    specialPopulations: 'Pregnancy: paracetamol preferred; avoid NSAIDs in 3rd trimester. Combined oral contraceptive + migraine with aura: increased stroke risk — avoid, use alternative contraception.',
+  },
+  {
+    icdCode: 'G40.9',
+    condition: 'Epilepsy / Seizure Disorder',
+    category: 'Neurology',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Sodium valproate', dose: '200mg (titrate to 500-1000mg)', route: 'Oral', frequency: '12-hourly', duration: 'Lifelong or per neurology plan', notes: 'Avoid in women of childbearing age if possible — teratogenic' },
+      { name: 'Carbamazepine', dose: '100mg (titrate to 400-600mg)', route: 'Oral', frequency: '12-hourly', duration: 'Lifelong or per neurology plan', notes: 'First-line for focal seizures; check interactions with ARVs and rifampicin' },
+      { name: 'Diazepam', dose: '10mg', route: 'Rectal/IV', frequency: 'For status epilepticus, may repeat once', duration: 'Acute', notes: 'First-line for active seizure >5 minutes' },
+    ],
+    investigations: [
+      { name: 'Glucose (fingerstick)', timing: 'Immediate', notes: 'Exclude hypoglycaemia as cause' },
+      { name: 'EEG', timing: 'Routine', notes: 'Supports diagnosis and classification — refer if available' },
+      { name: 'CT/MRI brain', timing: 'Urgent', notes: 'First seizure, focal onset, or new deficit — exclude structural cause (incl. neurocysticercosis, common in SA)' },
+      { name: 'U&E, calcium, magnesium', timing: 'Same day' },
+      { name: 'HIV test', timing: 'Same day', notes: 'New seizures in adults — screen for HIV-related causes (toxoplasmosis, cryptococcus)' },
+    ],
+    referralCriteria: [
+      'Status epilepticus (seizure >5 minutes or repeated without recovery) — EMERGENCY',
+      'First seizure in an adult — refer for imaging and specialist assessment',
+      'Seizures not controlled on two appropriate first-line agents',
+      'Pregnancy in a woman with epilepsy — refer early for medication review',
+    ],
+    nonPharmacological: [
+      'Seizure first aid education for family: protect from injury, do not restrain, recovery position after',
+      'Driving restrictions per national guidelines until seizure-free for specified period',
+      'Avoid known triggers: sleep deprivation, alcohol, flashing lights (if photosensitive)',
+      'Medication adherence counselling — non-adherence is the leading cause of breakthrough seizures',
+    ],
+    followUpSchedule: '4-weekly until controlled, then 3-6 monthly',
+    patientEducation: [
+      'Take medication every day exactly as prescribed — never stop suddenly',
+      'Inform your doctor before pregnancy is planned',
+      'Wear a medical alert bracelet if possible',
+      'Epilepsy South Africa support line available',
+    ],
+    specialPopulations: 'HIV+: significant interactions between enzyme-inducing anticonvulsants (carbamazepine, phenytoin) and ARVs (especially efavirenz, protease inhibitors) — pharmacist/specialist input needed. Pregnancy: folic acid 5mg daily preconception, specialist co-management.',
+  },
+  {
+    icdCode: 'G03.9',
+    condition: 'Meningitis (Bacterial/Cryptococcal)',
+    category: 'Infectious Diseases',
+    saPrevalence: 'Common',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'Ceftriaxone', dose: '2g', route: 'IV', frequency: '12-hourly', duration: '10-14 days', notes: 'Empiric bacterial coverage — give immediately, do not wait for LP if delay anticipated' },
+      { name: 'Dexamethasone', dose: '10mg', route: 'IV', frequency: '6-hourly with/before first antibiotic dose', duration: '4 days', notes: 'Reduces neurological complications in bacterial meningitis' },
+      { name: 'Amphotericin B + Flucytosine', dose: 'Per weight-based protocol', route: 'IV/Oral', frequency: 'Daily', duration: '2 weeks induction', notes: 'For cryptococcal meningitis — common in advanced HIV; needs specialist/hospital management' },
+    ],
+    investigations: [
+      { name: 'Lumbar puncture', timing: 'Immediate', notes: 'Unless contraindicated (raised ICP signs, coagulopathy) — send for cell count, protein, glucose, gram stain, culture, cryptococcal antigen' },
+      { name: 'Blood cultures', timing: 'Immediate', notes: 'Before antibiotics if possible, but do not delay treatment' },
+      { name: 'HIV test + CD4', timing: 'Immediate', notes: 'Cryptococcal meningitis is an AIDS-defining illness' },
+      { name: 'CT brain', timing: 'Immediate', notes: 'Before LP if focal neurology, papilloedema, or reduced GCS' },
+    ],
+    referralCriteria: [
+      'Any suspected meningitis — EMERGENCY referral/admission; give first antibiotic dose before transfer if delay expected',
+      'Reduced level of consciousness or focal neurology',
+      'Signs of raised intracranial pressure',
+    ],
+    nonPharmacological: [
+      'Isolate suspected meningococcal cases pending confirmation (droplet precautions)',
+      'Contact tracing and prophylaxis for close contacts if meningococcal confirmed',
+    ],
+    followUpSchedule: 'Inpatient management; outpatient neurology/ID follow-up post-discharge, especially for cryptococcal cases requiring long-term fluconazole maintenance',
+    patientEducation: [
+      'This is a medical emergency requiring hospital admission',
+      'Household/close contacts may need preventive antibiotics — the hospital will advise',
+      'For HIV+ patients: this illness is a signal to start or optimise ART under specialist guidance',
+    ],
+    specialPopulations: 'HIV+/low CD4: cryptococcal meningitis is a leading cause — always test cryptococcal antigen. Neonates and infants: different empiric antibiotic cover (add ampicillin for Listeria) — refer immediately to paediatric services.',
+  },
+
+  // ============================================================
+  // RENAL / UROLOGY (extended)
+  // ============================================================
+  {
+    icdCode: 'N39.0',
+    condition: 'Urinary Tract Infection (Lower/Uncomplicated)',
+    category: 'Renal',
+    saPrevalence: 'Very Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Nitrofurantoin', dose: '100mg', route: 'Oral', frequency: '12-hourly', duration: '5 days', notes: 'First-line for uncomplicated cystitis; avoid if eGFR <45' },
+      { name: 'Fosfomycin', dose: '3g', route: 'Oral', frequency: 'Single dose', duration: 'Once', notes: 'Alternative single-dose option' },
+      { name: 'Ciprofloxacin', dose: '500mg', route: 'Oral', frequency: '12-hourly', duration: '7 days', notes: 'For pyelonephritis or complicated UTI, not first-line for simple cystitis' },
+    ],
+    investigations: [
+      { name: 'Urine dipstick', timing: 'Immediate', notes: 'Leucocytes + nitrites support diagnosis' },
+      { name: 'Midstream urine culture', timing: 'Same day', notes: 'Send if recurrent, pregnant, male, or treatment failure' },
+      { name: 'Pregnancy test', timing: 'Same day', notes: 'In all women of childbearing age' },
+    ],
+    referralCriteria: [
+      'Signs of pyelonephritis with sepsis (fever, rigors, flank pain + haemodynamic instability) — EMERGENCY',
+      'Pregnant with pyelonephritis — admit',
+      'Recurrent UTIs (>3/year) — refer for urological workup',
+      'Male with UTI and no clear cause — refer to exclude prostatic/structural cause',
+      'Failure to respond to 2 courses of appropriate antibiotics',
+    ],
+    nonPharmacological: [
+      'Increase oral fluid intake',
+      'Voiding after intercourse to reduce recurrence',
+      'Avoid unnecessary antibiotic use for asymptomatic bacteriuria (except in pregnancy)',
+    ],
+    followUpSchedule: 'Only if symptoms persist beyond 48-72h of treatment',
+    patientEducation: [
+      'Complete the full course even if symptoms improve quickly',
+      'Return if fever, back pain, or vomiting develop (suggests kidney involvement)',
+      'Drink plenty of water',
+    ],
+    specialPopulations: 'Pregnancy: treat all bacteriuria (even asymptomatic) — untreated UTI in pregnancy risks preterm labour; avoid ciprofloxacin and consider nitrofurantoin caution near term. Diabetics: lower threshold to treat, higher risk of complications.',
+  },
+  {
+    icdCode: 'N17.9',
+    condition: 'Acute Kidney Injury',
+    category: 'Renal',
+    saPrevalence: 'Common',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'IV fluids (0.9% saline)', dose: 'Per volume status', route: 'IV', frequency: 'Titrate to urine output/clinical status', duration: 'Until euvolaemic', notes: 'For pre-renal causes; avoid fluid overload' },
+      { name: 'Stop nephrotoxic drugs', dose: 'N/A', route: 'N/A', frequency: 'Immediate', duration: 'Until recovery', notes: 'NSAIDs, ACE-inhibitors/ARBs, aminoglycosides, tenofovir — review and hold' },
+    ],
+    investigations: [
+      { name: 'U&E, creatinine (serial)', timing: 'Immediate', notes: 'Stage per KDIGO criteria' },
+      { name: 'Urinalysis + urine microscopy', timing: 'Immediate' },
+      { name: 'Renal ultrasound', timing: 'Urgent', notes: 'Exclude obstruction (post-renal cause)' },
+      { name: 'Potassium + ECG', timing: 'Immediate', notes: 'Screen for life-threatening hyperkalaemia' },
+      { name: 'FBC, CK (if rhabdomyolysis suspected)', timing: 'Same day' },
+    ],
+    referralCriteria: [
+      'Hyperkalaemia with ECG changes, refractory acidosis, fluid overload with pulmonary oedema, or uraemic symptoms — EMERGENCY, dialysis may be needed',
+      'Obstruction identified on ultrasound — urgent urology referral',
+      'Any AKI not resolving with initial measures — nephrology referral',
+      'AKI in pregnancy',
+    ],
+    nonPharmacological: [
+      'Strict fluid balance monitoring',
+      'Daily weight',
+      'Dietary potassium restriction if hyperkalaemic',
+    ],
+    followUpSchedule: 'Daily U&E while inpatient; outpatient nephrology follow-up to confirm renal recovery',
+    patientEducation: [
+      'Avoid NSAIDs (e.g. ibuprofen) until your doctor confirms your kidney function has recovered',
+      'Stay well hydrated, especially in hot weather or with diarrhoeal illness',
+      'Some blood pressure and diabetes medications may need temporary adjustment',
+    ],
+    specialPopulations: 'HIV on tenofovir: known nephrotoxic — consider switching regimen. Pregnancy: pre-eclampsia is an important cause — check BP and proteinuria.',
+  },
+
+  // ============================================================
+  // ENDOCRINE (extended)
+  // ============================================================
+  {
+    icdCode: 'E05.9',
+    condition: 'Hyperthyroidism (Graves\' Disease / Thyrotoxicosis)',
+    category: 'Endocrine',
+    saPrevalence: 'Uncommon',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Carbimazole', dose: '15-40mg', route: 'Oral', frequency: 'Once daily', duration: '12-18 months typical course', notes: 'Titrate against TFTs; check FBC if fever/sore throat (agranulocytosis risk)' },
+      { name: 'Propranolol', dose: '40mg', route: 'Oral', frequency: '8-hourly', duration: 'Until euthyroid', notes: 'Symptom control (tremor, tachycardia, anxiety) while awaiting effect of carbimazole' },
+    ],
+    investigations: [
+      { name: 'TSH, free T4, free T3', timing: 'Same day' },
+      { name: 'TSH-receptor antibodies', timing: 'Routine', notes: 'Confirms Graves disease' },
+      { name: 'ECG', timing: 'Same day', notes: 'Screen for atrial fibrillation' },
+      { name: 'FBC (baseline before carbimazole)', timing: 'Same day' },
+    ],
+    referralCriteria: [
+      'Thyroid storm (fever, severe tachycardia, agitation/confusion, high-output failure) — EMERGENCY',
+      'Pregnancy with hyperthyroidism — specialist co-management required',
+      'Severe ophthalmopathy or large goitre with compressive symptoms',
+      'Not responding to medical therapy — consider radioiodine or surgery referral',
+    ],
+    nonPharmacological: [
+      'Avoid iodine-rich supplements/contrast unless directed',
+      'Smoking cessation (worsens thyroid eye disease)',
+    ],
+    followUpSchedule: 'TFTs every 4-6 weeks until stable, then 3-monthly',
+    patientEducation: [
+      'Report fever, mouth ulcers, or sore throat immediately while on carbimazole (rare but serious white cell side effect)',
+      'Treatment often takes 12-18 months — do not stop early without medical advice',
+    ],
+    specialPopulations: 'Pregnancy: carbimazole avoided in first trimester if possible (teratogenic) — propylthiouracil preferred; specialist input essential.',
+  },
+
+  // ============================================================
+  // HAEMATOLOGY
+  // ============================================================
+  {
+    icdCode: 'D50.9',
+    condition: 'Iron Deficiency Anaemia',
+    category: 'Haematology',
+    saPrevalence: 'Very Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Ferrous sulphate', dose: '200mg (65mg elemental iron)', route: 'Oral', frequency: 'Once to twice daily', duration: '3 months (continue 3 months after normalisation to replenish stores)', notes: 'Take with vitamin C source, avoid with tea/coffee/dairy' },
+    ],
+    investigations: [
+      { name: 'FBC + film', timing: 'Same day', notes: 'Microcytic hypochromic picture' },
+      { name: 'Ferritin, iron studies', timing: 'Same day', notes: 'Confirms iron deficiency vs anaemia of chronic disease' },
+      { name: 'Stool for occult blood / ova and parasites', timing: 'Routine', notes: 'Identify GIT source, incl. hookworm in endemic areas' },
+      { name: 'Menstrual history', timing: 'Immediate', notes: 'Common cause in women of childbearing age' },
+    ],
+    referralCriteria: [
+      'Severe anaemia (Hb <7g/dL) or symptomatic (dyspnoea, chest pain, syncope) — urgent referral, consider transfusion',
+      'No identifiable cause, or male/postmenopausal woman — refer for GI investigation (colonoscopy/gastroscopy) to exclude malignancy',
+      'Failure to respond to 4-6 weeks of oral iron',
+    ],
+    nonPharmacological: [
+      'Dietary counselling: iron-rich foods (red meat, legumes, fortified cereals)',
+      'Address underlying cause (heavy menstrual bleeding, dietary insufficiency, parasitic infection)',
+    ],
+    followUpSchedule: 'Repeat FBC at 4 weeks to confirm response (Hb rise ~1g/dL every 2-3 weeks)',
+    patientEducation: [
+      'Iron tablets can cause dark stools and constipation — this is expected',
+      'Take on an empty stomach if tolerated for best absorption; with food if it causes nausea',
+      'Complete the full course even after you feel better — stores need replenishing',
+    ],
+    specialPopulations: 'Pregnancy: routine iron + folic acid supplementation; screen for anaemia each trimester. Heavy menstrual bleeding: consider gynaecology referral for underlying cause (fibroids common in SA Black African women).',
+  },
+
+  // ============================================================
+  // RHEUMATOLOGY (extended)
+  // ============================================================
+  {
+    icdCode: 'M06.9',
+    condition: 'Rheumatoid Arthritis',
+    category: 'Rheumatology',
+    saPrevalence: 'Uncommon',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'Methotrexate', dose: '7.5-15mg', route: 'Oral', frequency: 'Once WEEKLY (not daily)', duration: 'Long-term per rheumatology plan', notes: 'DMARD — with folic acid 5mg on a different day; monitor FBC/LFTs' },
+      { name: 'Prednisone', dose: '5-15mg', route: 'Oral', frequency: 'Once daily', duration: 'Short-term bridge while DMARD takes effect', notes: 'Taper as soon as possible' },
+      { name: 'Ibuprofen', dose: '400mg', route: 'Oral', frequency: '8-hourly PRN', duration: 'PRN for flares', notes: 'Symptom relief only, not disease-modifying' },
+    ],
+    investigations: [
+      { name: 'Rheumatoid factor + anti-CCP', timing: 'Routine' },
+      { name: 'ESR/CRP', timing: 'Same day', notes: 'Disease activity monitoring' },
+      { name: 'FBC, U&E, LFTs', timing: 'Same day', notes: 'Baseline before DMARD, then monitored regularly' },
+      { name: 'Hand and foot X-rays', timing: 'Routine', notes: 'Baseline erosions' },
+      { name: 'Hepatitis B/C, TB screen', timing: 'Routine', notes: 'Before starting immunosuppression' },
+    ],
+    referralCriteria: [
+      'New suspected inflammatory arthritis — refer to rheumatology promptly; early DMARD treatment improves outcomes',
+      'Any patient starting/on DMARDs needs rheumatology oversight',
+      'Suspected extra-articular disease (lung, eye, vasculitis involvement)',
+    ],
+    nonPharmacological: [
+      'Physiotherapy and occupational therapy for joint protection',
+      'Regular exercise to maintain function',
+      'Smoking cessation (worsens RA severity and treatment response)',
+    ],
+    followUpSchedule: 'Monthly while titrating DMARD therapy, then 3-monthly once stable',
+    patientEducation: [
+      'Methotrexate is taken ONCE A WEEK, not daily — dosing errors can be dangerous',
+      'Avoid alcohol excess on methotrexate (liver toxicity risk)',
+      'Report fever or infection promptly — you are on immunosuppressive treatment',
+    ],
+    specialPopulations: 'TB screening mandatory before biologic therapy given high SA TB burden. Pregnancy: methotrexate is teratogenic — must stop 3 months before conception; alternative safer DMARDs used.',
+  },
+
+  // ============================================================
+  // PSYCHIATRY (extended)
+  // ============================================================
+  {
+    icdCode: 'F31.9',
+    condition: 'Bipolar Affective Disorder',
+    category: 'Psychiatry',
+    saPrevalence: 'Uncommon',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'Sodium valproate', dose: '250mg (titrate to 500-1000mg)', route: 'Oral', frequency: '12-hourly', duration: 'Long-term maintenance', notes: 'Mood stabiliser; avoid in women of childbearing potential unless no alternative — teratogenic' },
+      { name: 'Lithium carbonate', dose: '250mg (titrate per levels)', route: 'Oral', frequency: '12-hourly', duration: 'Long-term maintenance', notes: 'Gold-standard mood stabiliser; requires regular level, renal and thyroid monitoring — narrow therapeutic index' },
+      { name: 'Olanzapine', dose: '5-10mg', route: 'Oral', frequency: 'Nightly', duration: 'Acute mania, may continue as maintenance', notes: 'For acute manic episodes; monitor weight/metabolic profile' },
+    ],
+    investigations: [
+      { name: 'TFTs, U&E, creatinine', timing: 'Same day', notes: 'Baseline before lithium; monitor lithium levels 5 days after dose change then 3-monthly' },
+      { name: 'FBC, LFTs', timing: 'Same day', notes: 'Baseline before valproate' },
+      { name: 'Urine drug screen', timing: 'Same day', notes: 'Substance-induced mood episodes are an important differential' },
+    ],
+    referralCriteria: [
+      'Acute mania with psychosis, severe agitation, or risk to self/others — EMERGENCY, consider Mental Health Care Act assessment',
+      'Any new suspected bipolar disorder — refer to psychiatry for diagnosis confirmation and treatment initiation',
+      'On lithium with signs of toxicity (tremor, confusion, GI upset, ataxia) — urgent level check',
+      'Suicidal ideation during depressive phase',
+    ],
+    nonPharmacological: [
+      'Psychoeducation for patient and family about early warning signs of relapse',
+      'Regular sleep-wake routine — sleep disruption is a common trigger',
+      'Avoid alcohol and recreational substances',
+      'Structured psychotherapy (CBT/interpersonal) as adjunct once stable',
+    ],
+    followUpSchedule: 'Weekly during acute episode, then monthly once stable; lithium levels 3-monthly long-term',
+    patientEducation: [
+      'This is a lifelong condition managed with consistent medication — do not stop abruptly',
+      'Learn your personal early-warning signs of both mania and depression',
+      'Lithium requires regular blood tests — missing these can be dangerous',
+    ],
+    specialPopulations: 'Pregnancy: valproate contraindicated (teratogenic); lithium requires specialist risk-benefit discussion. HIV+: watch interactions between mood stabilisers and ART.',
+  },
+  {
+    icdCode: 'F43.1',
+    condition: 'Post-Traumatic Stress Disorder (PTSD)',
+    category: 'Psychiatry',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Sertraline', dose: '25-50mg (titrate to 200mg)', route: 'Oral', frequency: 'Once daily', duration: 'Minimum 12 months', notes: 'SSRI — first-line pharmacotherapy; start low given high SA trauma-exposure and comorbid anxiety' },
+    ],
+    investigations: [
+      { name: 'Clinical diagnosis (DSM/ICD criteria)', timing: 'Routine' },
+      { name: 'PHQ-9 and GAD-7', timing: 'Same day', notes: 'Screen for comorbid depression/anxiety, very common' },
+      { name: 'Substance use screen', timing: 'Same day', notes: 'High rates of self-medication with alcohol/substances' },
+    ],
+    referralCriteria: [
+      'Active suicidal ideation or self-harm — urgent psychiatric assessment',
+      'Not responding to first-line SSRI after 8-12 weeks at adequate dose',
+      'Significant dissociative symptoms or comorbid psychosis',
+      'Complex/prolonged trauma history — refer for trauma-focused psychotherapy (CBT/EMDR)',
+    ],
+    nonPharmacological: [
+      'Trauma-focused CBT or EMDR — first-line alongside/instead of medication where available',
+      'Grounding and safety-planning techniques',
+      'Peer support groups; community violence and GBV survivor support services',
+      'Avoid alcohol/substance use as coping — worsens outcomes',
+    ],
+    followUpSchedule: '2-weekly initially, then monthly once stabilising',
+    patientEducation: [
+      'PTSD is a treatable medical condition, not a personal weakness',
+      'Symptoms (flashbacks, avoidance, hyperarousal) often improve significantly with treatment',
+      'GBV/trauma support: local victim empowerment and SAPS support services',
+    ],
+    specialPopulations: 'High relevance in SA given community and gender-based violence exposure — routinely screen. Comorbid substance use very common — treat concurrently, not sequentially.',
+  },
+  {
+    icdCode: 'F10.20',
+    condition: 'Alcohol Use Disorder',
+    category: 'Psychiatry',
+    saPrevalence: 'Very Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Thiamine (Vitamin B1)', dose: '100mg', route: 'Oral/IM', frequency: 'Once to three times daily', duration: 'During detox and ongoing if malnourished', notes: 'Prevent Wernicke\'s encephalopathy — give BEFORE glucose in any unwell drinker' },
+      { name: 'Diazepam', dose: 'Per withdrawal scale (e.g. CIWA-Ar)', route: 'Oral', frequency: 'Reducing regimen', duration: '5-7 days', notes: 'For managed withdrawal — requires supervision, risk of seizures if untreated' },
+    ],
+    investigations: [
+      { name: 'AUDIT-C / AUDIT screening', timing: 'Same day' },
+      { name: 'LFTs, GGT, MCV', timing: 'Same day', notes: 'Supportive markers of chronic use' },
+      { name: 'HIV test', timing: 'Same day', notes: 'Alcohol use associated with higher HIV risk behaviour' },
+    ],
+    referralCriteria: [
+      'Signs of Wernicke\'s encephalopathy (confusion, ataxia, eye movement abnormality) — EMERGENCY, IV thiamine before glucose',
+      'Severe withdrawal risk (seizure history, delirium tremens) — admit for medically supervised detox',
+      'Failed outpatient attempts — refer to substance use rehabilitation programme',
+      'Comorbid severe mental illness or suicide risk',
+    ],
+    nonPharmacological: [
+      'Motivational interviewing — non-judgemental, patient-centred approach',
+      'Alcoholics Anonymous / community support groups',
+      'Address social drivers — many SA patients drink in context of unemployment, trauma, or social norms',
+      'Family involvement in recovery planning where appropriate',
+    ],
+    followUpSchedule: 'Weekly during active withdrawal management, then monthly',
+    patientEducation: [
+      'Never stop drinking abruptly without medical supervision if you drink heavily daily — withdrawal can be dangerous',
+      'Relapse is common and does not mean treatment has failed — return for support',
+      'SANCA (SA National Council on Alcoholism) and other local resources available',
+    ],
+    specialPopulations: 'Pregnancy: any alcohol use should prompt counselling to stop — fetal alcohol spectrum disorder is a major preventable cause of disability in SA. TB/HIV: alcohol reduces treatment adherence — integrate counselling with chronic disease care.',
+  },
+  {
+    icdCode: 'R45.851',
+    condition: 'Suicidal Ideation / Self-Harm Risk',
+    category: 'Psychiatry',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Treat underlying condition', dose: 'N/A', route: 'N/A', frequency: 'N/A', duration: 'N/A', notes: 'No medication treats suicidality itself — manage the underlying depression/psychosis/substance use and ensure immediate safety' },
+    ],
+    investigations: [
+      { name: 'Structured risk assessment', timing: 'Immediate', notes: 'Plan, means, intent, previous attempts, protective factors' },
+      { name: 'Substance use screen', timing: 'Immediate', notes: 'Alcohol/substance intoxication increases acute risk' },
+      { name: 'Mental state examination', timing: 'Immediate' },
+    ],
+    referralCriteria: [
+      'Active plan with means and intent, or recent attempt — EMERGENCY, do not leave patient unsupervised; arrange immediate psychiatric assessment (Mental Health Care Act 72-hour assessment framework applies if involuntary care needed)',
+      'Command hallucinations to self-harm',
+      'Any disclosure of suicidal ideation in a patient with access to lethal means (firearms, large medication supply, agricultural poisons) — urgent same-day assessment',
+    ],
+    nonPharmacological: [
+      'Means restriction counselling (remove/secure firearms, medications, poisons)',
+      'Safety planning with patient and, where appropriate, family',
+      'Provide crisis line numbers before the patient leaves: SADAG Suicide Crisis Line 0800 567 567, Lifeline 0861 322 322',
+      'Arrange close follow-up — the period immediately after a crisis contact carries elevated risk',
+    ],
+    followUpSchedule: 'Within 24-72 hours of any disclosed ideation; do not discharge without a follow-up plan',
+    patientEducation: [
+      'These thoughts are a symptom of a treatable condition, not a character flaw',
+      'Save crisis line numbers in your phone now',
+      'Tell a trusted person and agree on a plan if thoughts intensify',
+    ],
+    specialPopulations: 'Adolescents: involve caregivers per consent/confidentiality guidelines while maintaining rapport. Rural areas: plan for limited access to emergency psychiatric services — arrange transport and interim safety plan.',
+  },
+
+  // ============================================================
+  // PAEDIATRICS (extended)
+  // ============================================================
+  {
+    icdCode: 'H66.9',
+    condition: 'Acute Otitis Media (Child)',
+    category: 'ENT',
+    saPrevalence: 'Very Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Amoxicillin', dose: '40mg/kg/day (max 500mg/dose)', route: 'Oral', frequency: '8-hourly', duration: '5-7 days', notes: 'First-line; consider watchful waiting 48-72h in mild cases >2 years old' },
+      { name: 'Paracetamol', dose: '15mg/kg', route: 'Oral', frequency: '6-hourly PRN', duration: 'PRN', notes: 'Analgesia — pain is often the most distressing symptom' },
+      { name: 'Amoxicillin-clavulanate', dose: '40mg/kg/day amoxicillin component', route: 'Oral', frequency: '8-hourly', duration: '5-7 days', notes: 'If no improvement after 48-72h on amoxicillin' },
+    ],
+    investigations: [
+      { name: 'Otoscopy', timing: 'Immediate', notes: 'Bulging, erythematous tympanic membrane confirms diagnosis' },
+      { name: 'IMCI danger sign screen', timing: 'Immediate', notes: 'Exclude mastoiditis (post-auricular swelling/tenderness) and systemic sepsis' },
+    ],
+    referralCriteria: [
+      'Post-auricular swelling/tenderness (mastoiditis) — urgent referral',
+      'Facial nerve palsy or signs of intracranial complication — EMERGENCY',
+      'Recurrent otitis media (>3 episodes/6 months) — ENT referral for grommets assessment',
+      'Perforation with ongoing discharge >2 weeks',
+    ],
+    nonPharmacological: [
+      'Avoid smoke exposure at home — significant risk factor',
+      'Ensure completion of childhood immunisation schedule (pneumococcal, Hib reduce incidence)',
+    ],
+    followUpSchedule: '48-72h if not improving; routine review at course completion',
+    patientEducation: [
+      'Complete the full antibiotic course even if pain resolves quickly',
+      'Some ear discharge after perforation is normal and often provides pain relief',
+      'Return if fever persists beyond 48h of antibiotics or swelling develops behind the ear',
+    ],
+    specialPopulations: 'Recurrent AOM with hearing concerns — assess for hearing/speech delay and refer for audiology, particularly important for early childhood development.',
+  },
+  {
+    icdCode: 'R56.0',
+    condition: 'Febrile Seizure (Child)',
+    category: 'Paediatrics',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Paracetamol', dose: '15mg/kg', route: 'Oral/Rectal', frequency: '6-hourly PRN', duration: 'PRN for fever comfort', notes: 'Does NOT prevent recurrence — for comfort only' },
+      { name: 'Diazepam', dose: '0.5mg/kg', route: 'Rectal', frequency: 'If seizure >5 minutes, may repeat once', duration: 'Acute', notes: 'For prolonged seizure — most febrile seizures are brief and self-terminating' },
+    ],
+    investigations: [
+      { name: 'Identify fever source', timing: 'Immediate', notes: 'Full examination — ears, throat, chest, urine; the seizure itself rarely needs investigation if simple and child recovers fully' },
+      { name: 'Lumbar puncture', timing: 'Urgent', notes: 'Consider strongly in infants <12 months, or if any meningism/reduced consciousness — low threshold given TB/HIV context' },
+      { name: 'Glucose (fingerstick)', timing: 'Immediate' },
+    ],
+    referralCriteria: [
+      'Seizure lasting >5 minutes or recurring within the same illness (complex febrile seizure) — urgent assessment',
+      'Age <12 months, first seizure — lower threshold to refer/admit',
+      'Any focal features, incomplete recovery, or reduced consciousness after seizure — EMERGENCY',
+      'Signs of meningitis/encephalitis',
+    ],
+    nonPharmacological: [
+      'Seizure first aid: place in recovery position, protect from injury, do NOT put anything in the mouth',
+      'Reassurance — simple febrile seizures do not cause brain damage and most children outgrow the tendency by age 5-6',
+      'Manage the underlying fever source',
+    ],
+    followUpSchedule: 'Routine follow-up once source of fever treated; no long-term anticonvulsant needed for simple febrile seizures',
+    patientEducation: [
+      'Simple febrile seizures are frightening but usually harmless',
+      'They do not mean your child has epilepsy',
+      'Come back immediately if a seizure lasts more than 5 minutes or your child does not return to normal afterwards',
+    ],
+    specialPopulations: 'HIV-exposed/infected infants: lower threshold for LP to exclude CNS infection given higher baseline risk.',
+  },
+  {
+    icdCode: 'E43',
+    condition: 'Severe Acute Malnutrition (Child)',
+    category: 'Paediatrics',
+    saPrevalence: 'Common',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'Ready-to-use therapeutic food (RUTF)', dose: 'Per weight-based protocol', route: 'Oral', frequency: 'Divided doses through the day', duration: 'Until target weight/MUAC achieved', notes: 'Outpatient management for uncomplicated SAM' },
+      { name: 'Amoxicillin', dose: '15mg/kg', route: 'Oral', frequency: '8-hourly', duration: '5 days', notes: 'Routine antibiotic cover — infection often occult in SAM' },
+      { name: 'Vitamin A', dose: 'Age-based single dose', route: 'Oral', frequency: 'Once on admission', duration: 'Single dose', notes: 'Per EPI schedule if not given in last month' },
+    ],
+    investigations: [
+      { name: 'MUAC (mid-upper arm circumference) + weight-for-height', timing: 'Immediate', notes: 'Classifies severity' },
+      { name: 'IMCI danger sign screen', timing: 'Immediate' },
+      { name: 'Glucose (fingerstick)', timing: 'Immediate', notes: 'Hypoglycaemia common and dangerous in SAM' },
+      { name: 'HIV test', timing: 'Same day', notes: 'High co-prevalence' },
+    ],
+    referralCriteria: [
+      'SAM with any danger sign (oedema of both feet, unable to feed, lethargy, shock) — EMERGENCY admission for inpatient stabilisation (WHO 10-step protocol)',
+      'Failure to gain weight on outpatient RUTF programme',
+      'Complicated SAM (with medical complications) always requires inpatient care',
+    ],
+    nonPharmacological: [
+      'Caregiver education on feeding practices and food preparation',
+      'Link to social support: child support grant, food security programmes',
+      'Growth monitoring via Road to Health Book at every visit',
+    ],
+    followUpSchedule: 'Weekly outpatient review during RUTF treatment until recovery criteria met',
+    patientEducation: [
+      'Continue breastfeeding alongside therapeutic feeding if the child is still breastfeeding',
+      'RUTF is a medical food — do not share with other family members',
+      'Attend every follow-up weighing — this tracks recovery closely',
+    ],
+    specialPopulations: 'HIV-exposed/infected: nutritional needs and complication risk are higher — closer monitoring required. Refeeding syndrome risk in severe cases — cautious, protocol-driven feeding advancement.',
+  },
+
+  // ============================================================
+  // ENT (extended)
+  // ============================================================
+  {
+    icdCode: 'J01.9',
+    condition: 'Acute Sinusitis (Bacterial)',
+    category: 'ENT',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Amoxicillin', dose: '500mg-1g', route: 'Oral', frequency: '8-hourly', duration: '7 days', notes: 'Reserve antibiotics for symptoms >10 days, severe onset, or worsening after initial improvement ("double sickening")' },
+      { name: 'Saline nasal irrigation', dose: 'As needed', route: 'Intranasal', frequency: '2-3 times daily', duration: 'Throughout illness', notes: 'Effective symptomatic measure, use first-line' },
+      { name: 'Intranasal corticosteroid (e.g. mometasone)', dose: '2 sprays/nostril', route: 'Intranasal', frequency: 'Once daily', duration: '2-4 weeks', notes: 'Reduces inflammation and symptom duration' },
+    ],
+    investigations: [
+      { name: 'Clinical diagnosis', timing: 'Routine', notes: 'Imaging not routinely needed for uncomplicated cases' },
+      { name: 'CT sinuses', timing: 'Urgent', notes: 'Only if complication suspected or recurrent/chronic disease' },
+    ],
+    referralCriteria: [
+      'Periorbital/orbital swelling, visual changes, severe headache, or altered consciousness (suggesting orbital or intracranial complication) — EMERGENCY',
+      'Symptoms persisting despite appropriate antibiotic course',
+      'Recurrent acute sinusitis (>3-4 episodes/year) — ENT referral',
+      'Unilateral symptoms with blood-stained discharge — exclude malignancy',
+    ],
+    nonPharmacological: [
+      'Steam inhalation for symptomatic relief',
+      'Adequate hydration',
+      'Avoid smoking/smoke exposure',
+    ],
+    followUpSchedule: 'Only if not improving after 7-10 days of treatment',
+    patientEducation: [
+      'Most sinusitis is viral and resolves without antibiotics within 7-10 days',
+      'Antibiotics are only needed for severe, prolonged, or worsening symptoms',
+      'Return urgently if facial swelling, eye symptoms, or severe headache develop',
+    ],
+    specialPopulations: 'HIV+/immunocompromised: consider invasive fungal sinusitis if severe or atypical — lower threshold for imaging and ENT referral.',
+  },
+  {
+    icdCode: 'J03.9',
+    condition: 'Acute Tonsillitis / Pharyngitis',
+    category: 'ENT',
+    saPrevalence: 'Very Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Penicillin V', dose: '500mg (child: 250mg)', route: 'Oral', frequency: '12-hourly', duration: '10 days', notes: 'Full 10-day course needed to prevent rheumatic fever — critical in SA given ongoing RHD burden' },
+      { name: 'Paracetamol', dose: '1g (child: 15mg/kg)', route: 'Oral', frequency: '6-hourly PRN', duration: 'PRN', notes: 'Pain and fever relief' },
+    ],
+    investigations: [
+      { name: 'Centor/McIsaac criteria', timing: 'Immediate', notes: 'Fever, tonsillar exudate, tender anterior nodes, absence of cough — guides antibiotic decision' },
+      { name: 'Throat swab/rapid strep test', timing: 'Same day', notes: 'If available — confirms Group A Streptococcus' },
+    ],
+    referralCriteria: [
+      'Trismus, drooling, muffled "hot potato" voice, or uvular deviation (peritonsillar abscess/quinsy) — EMERGENCY',
+      'Stridor or airway compromise — EMERGENCY',
+      'Recurrent tonsillitis (>7 episodes in 1 year) — ENT referral for tonsillectomy assessment',
+    ],
+    nonPharmacological: [
+      'Warm salt-water gargles for symptomatic relief',
+      'Adequate fluid intake',
+      'Rest until fever settles',
+    ],
+    followUpSchedule: 'Return if not improving in 48-72h or if worsening',
+    patientEducation: [
+      'Complete the FULL 10-day antibiotic course even once you feel better — this is essential to prevent rheumatic fever, which remains common in South Africa',
+      'Return urgently if you develop difficulty swallowing your own saliva or difficulty breathing',
+    ],
+    specialPopulations: 'Children in SA remain at meaningful risk of rheumatic fever/rheumatic heart disease — always complete full penicillin course for confirmed/probable streptococcal tonsillitis.',
+  },
+  {
+    icdCode: 'R04.0',
+    condition: 'Epistaxis (Nosebleed)',
+    category: 'ENT',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'Topical tranexamic acid or phenylephrine spray', dose: 'Per product', route: 'Intranasal', frequency: 'Applied during first aid', duration: 'Acute', notes: 'Assists haemostasis if simple pressure insufficient' },
+      { name: 'Nasal packing (anterior)', dose: 'N/A', route: 'Intranasal', frequency: 'Once', duration: '24-48h', notes: 'If direct pressure fails after 15-20 minutes' },
+    ],
+    investigations: [
+      { name: 'Blood pressure', timing: 'Immediate', notes: 'Hypertension is a common contributing factor' },
+      { name: 'FBC + clotting screen', timing: 'Same day', notes: 'If recurrent, severe, or on anticoagulants' },
+      { name: 'Review anticoagulant/antiplatelet medications', timing: 'Immediate' },
+    ],
+    referralCriteria: [
+      'Bleeding not controlled after 20-30 minutes of correct first aid and packing — ENT/emergency referral',
+      'Posterior bleed suspected (bleeding into throat, not controlled by anterior pressure) — urgent referral',
+      'Signs of significant blood loss (dizziness, tachycardia, hypotension) — EMERGENCY',
+      'Recurrent epistaxis — refer for nasal examination to exclude structural/vascular lesion',
+    ],
+    nonPharmacological: [
+      'Correct first aid: sit forward (not lean back), pinch the soft lower part of the nose firmly for 15-20 minutes continuously, ice pack to bridge of nose',
+      'Avoid nose-picking and forceful nose-blowing after an episode',
+      'Humidify air in dry environments to prevent recurrence',
+    ],
+    followUpSchedule: 'Only if recurrent or if packing was placed (removal/review in 24-48h)',
+    patientEducation: [
+      'Lean forward, not backward, to avoid swallowing blood',
+      'Apply firm continuous pressure for the full 15-20 minutes — releasing early is the most common reason first aid fails',
+      'Control blood pressure if hypertensive — this reduces recurrence',
+    ],
+    specialPopulations: 'On anticoagulants (warfarin, DOACs): do not stop without specialist advice, but bleeding risk is higher — lower threshold for ENT referral.',
+  },
+
+  // ============================================================
+  // SURGERY
+  // ============================================================
+  {
+    icdCode: 'K80.9',
+    condition: 'Acute Cholecystitis / Cholelithiasis',
+    category: 'Surgical',
+    saPrevalence: 'Common',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'Ceftriaxone + Metronidazole', dose: '1-2g IV + 500mg IV', route: 'IV', frequency: '24-hourly + 8-hourly', duration: 'Until surgery or clinical resolution', notes: 'Empiric antibiotic cover pending source control' },
+      { name: 'Morphine', dose: '2.5-5mg', route: 'IV', frequency: 'Titrate to pain', duration: 'Acute', notes: 'Adequate analgesia — does not mask surgical signs when used appropriately' },
+    ],
+    investigations: [
+      { name: 'Abdominal ultrasound', timing: 'Urgent', notes: 'First-line — gallstones, wall thickening, pericholecystic fluid' },
+      { name: 'FBC, LFTs, lipase/amylase', timing: 'Immediate', notes: 'Raised lipase suggests concurrent pancreatitis; deranged LFTs suggest CBD stone' },
+      { name: 'CRP', timing: 'Same day' },
+    ],
+    referralCriteria: [
+      'Any suspected acute cholecystitis — refer for surgical assessment; early cholecystectomy (within 72h) is preferred management',
+      'Signs of complications: perforation, empyema, ascending cholangitis (fever + jaundice + pain = Charcot\'s triad) — EMERGENCY',
+      'Deranged LFTs suggesting common bile duct stone — needs ERCP/surgical workup',
+    ],
+    nonPharmacological: [
+      'Nil by mouth pending surgical assessment',
+      'IV fluid resuscitation as needed',
+    ],
+    followUpSchedule: 'Surgical follow-up post-cholecystectomy at 2 weeks',
+    patientEducation: [
+      'This usually requires surgery (gallbladder removal) — medication alone does not cure gallstone disease',
+      'Low-fat diet may reduce symptom frequency while awaiting surgery',
+      'Return urgently if you develop yellow skin/eyes or worsening pain',
+    ],
+    specialPopulations: 'Pregnancy: ultrasound is safe; surgery deferred to 2nd trimester where possible unless complicated. Diabetics: higher risk of emphysematous cholecystitis — more aggressive workup.',
+  },
+  {
+    icdCode: 'K56.6',
+    condition: 'Intestinal Obstruction',
+    category: 'Surgical',
+    saPrevalence: 'Common',
+    levelOfCare: 'Secondary',
+    firstLinemedications: [
+      { name: 'IV fluids (0.9% saline + KCl)', dose: 'Per deficit + maintenance', route: 'IV', frequency: 'Continuous, reassess', duration: 'Until surgery/resolution', notes: 'Correct dehydration and electrolyte losses from vomiting' },
+      { name: 'Nasogastric tube decompression', dose: 'N/A', route: 'NG', frequency: 'Continuous free drainage', duration: 'Until obstruction resolves/surgery', notes: '"Drip and suck" — mainstay of initial management' },
+    ],
+    investigations: [
+      { name: 'Erect chest + supine/erect abdominal X-ray', timing: 'Immediate', notes: 'Dilated bowel loops, air-fluid levels' },
+      { name: 'CT abdomen', timing: 'Urgent', notes: 'Identifies transition point and cause (adhesions, hernia, malignancy, volvulus)' },
+      { name: 'U&E, FBC, lactate', timing: 'Immediate', notes: 'Rising lactate suggests bowel ischaemia — surgical emergency' },
+    ],
+    referralCriteria: [
+      'Any suspected bowel obstruction — refer for surgical assessment same-day minimum',
+      'Signs of strangulation/ischaemia: severe constant pain, peritonism, fever, raised lactate — EMERGENCY, needs urgent theatre',
+      'Complete obstruction (absolute constipation, no flatus) — urgent surgical review',
+      'Closed-loop obstruction on imaging',
+    ],
+    nonPharmacological: [
+      'Nil by mouth',
+      'Strict fluid balance and hourly monitoring while awaiting/undergoing conservative management',
+    ],
+    followUpSchedule: 'Inpatient management; surgical follow-up post-discharge per procedure performed',
+    patientEducation: [
+      'This condition often requires hospital admission and sometimes surgery',
+      'The nasogastric tube helps relieve pressure and nausea — it is uncomfortable but important',
+      'Report increasing pain, fever, or reduced urine output immediately',
+    ],
+    specialPopulations: 'Elderly: higher risk of malignant cause — thorough workup. Previous abdominal surgery: adhesions are the most common cause. Hernia-related: examine all hernial orifices in every abdominal pain presentation.',
+  },
+  {
+    icdCode: 'K40.9',
+    condition: 'Inguinal Hernia',
+    category: 'Surgical',
+    saPrevalence: 'Common',
+    levelOfCare: 'Primary',
+    firstLinemedications: [
+      { name: 'No medication cures a hernia', dose: 'N/A', route: 'N/A', frequency: 'N/A', duration: 'N/A', notes: 'Analgesia only (e.g. paracetamol) if symptomatic; definitive treatment is surgical' },
+    ],
+    investigations: [
+      { name: 'Clinical examination (standing and lying, cough impulse)', timing: 'Immediate', notes: 'Usually sufficient for diagnosis' },
+      { name: 'Ultrasound groin', timing: 'Routine', notes: 'If diagnosis uncertain or to distinguish from other groin swellings' },
+    ],
+    referralCriteria: [
+      'Irreducible (incarcerated) hernia — urgent surgical referral same day',
+      'Signs of strangulation (severe pain, erythema, systemic illness, overlying skin changes) — EMERGENCY, needs immediate theatre',
+      'Any symptomatic reducible hernia — elective surgical referral (repair reduces future strangulation risk)',
+      'Asymptomatic, easily reducible hernia in a frail patient — discuss watchful waiting vs elective repair',
+    ],
+    nonPharmacological: [
+      'Avoid heavy lifting/straining while awaiting surgical repair',
+      'Manage constipation and chronic cough (risk factors for recurrence/progression)',
+    ],
+    followUpSchedule: 'Surgical follow-up 2 weeks post-repair',
+    patientEducation: [
+      'A hernia will not resolve on its own and generally worsens over time',
+      'Seek EMERGENCY care immediately if the lump becomes painful, red, or cannot be pushed back in — this can mean the bowel is trapped and its blood supply cut off',
+    ],
+    specialPopulations: 'Chronic cough (TB is common in SA) and prostatic straining are important contributing factors to identify and treat to reduce recurrence risk.',
+  },
 ];

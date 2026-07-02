@@ -11,6 +11,12 @@ import {
   type ClinicalReasoningPackage,
 } from '../services/clinical-reasoning.js';
 
+type UrgencyLevel = 'ROUTINE' | 'SOON' | 'URGENT' | 'EMERGENCY';
+const URGENCY_RANK: Record<UrgencyLevel, number> = { ROUTINE: 0, SOON: 1, URGENT: 2, EMERGENCY: 3 };
+function rankUrgency(level: UrgencyLevel): number {
+  return URGENCY_RANK[level] ?? 0;
+}
+
 export async function clinicalReasoningRoutes(fastify: FastifyInstance): Promise<void> {
   // ----------------------------------------------------------
   // POST /clinical-reasoning/:consultationId
@@ -94,7 +100,10 @@ export async function clinicalReasoningRoutes(fastify: FastifyInstance): Promise
           : new Date('1990-01-01');
         const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000));
 
-        const department = (structuredHistory as { department?: string } | undefined)?.department;
+        const historyResult = structuredHistory as
+          | { department?: string; urgency?: UrgencyLevel; redFlags?: string[] }
+          | undefined;
+        const department = historyResult?.department;
 
         const reasoning: ClinicalReasoningPackage = await generateClinicalReasoning({
           age,
@@ -105,6 +114,23 @@ export async function clinicalReasoningRoutes(fastify: FastifyInstance): Promise
           examinationFindings,
           department,
         });
+
+        // Reconcile: the reasoning pass reasons only from the summary and can
+        // under-call urgency relative to the structured history-taking pass
+        // (which has the full transcript and dedicated red-flag detection).
+        // Never let reasoning silently downgrade a history-flagged urgency.
+        if (historyResult?.urgency && rankUrgency(historyResult.urgency) > rankUrgency(reasoning.urgency)) {
+          reasoning.urgency = historyResult.urgency;
+        }
+        if (historyResult?.redFlags?.length) {
+          const seen = new Set(reasoning.redFlags.map((f) => f.toLowerCase()));
+          for (const flag of historyResult.redFlags) {
+            if (!seen.has(flag.toLowerCase())) {
+              reasoning.redFlags.push(flag);
+              seen.add(flag.toLowerCase());
+            }
+          }
+        }
 
         // Persist so GET /diagnosis/:consultationId also surfaces it.
         // Each entry carries icdCode (legacy shape) alongside the full
