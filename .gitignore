@@ -19,3 +19,8 @@ dist-beta
 
 # Beta encrypted session store
 .beta-data/
+
+# Mobile store credentials — never commit
+apps/mobile/play-store-service-account.json
+apps/mobile/*.p8
+apps/mobile/*.keystore

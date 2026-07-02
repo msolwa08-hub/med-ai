@@ -143,7 +143,9 @@ EMERGENCY_SECRET=<dedicated HMAC secret for emergency QR links>
 - [ ] Lab providers issued their per-provider webhook HMAC secrets
 - [ ] Information Officer registered with the Information Regulator (POPIA);
       breach-notification runbook in place
-- [ ] Mobile app built with EAS pointing at the production `API_URL`
+- [ ] Mobile app built and submitted via EAS — see
+      [apps/mobile/MOBILE-BUILD.md](apps/mobile/MOBILE-BUILD.md) — with the
+      production profile pointing at the production `API_URL`
 
 ---
 

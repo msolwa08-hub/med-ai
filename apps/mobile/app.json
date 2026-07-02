@@ -6,6 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "runtimeVersion": { "policy": "appVersion" },
+    "updates": {
+      "url": "https://u.expo.dev/medai-project-id",
+      "fallbackToCacheTimeout": 0
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -19,7 +24,8 @@
         "NSLocationWhenInUseUsageDescription": "MedAI needs your location to find nearby doctors.",
         "NSLocationAlwaysUsageDescription": "MedAI needs your location to connect you with nearby doctors.",
         "NSCameraUsageDescription": "MedAI needs camera access to upload medical documents.",
-        "NSMicrophoneUsageDescription": "MedAI needs microphone access for voice consultations."
+        "NSMicrophoneUsageDescription": "MedAI needs microphone access for voice consultations.",
+        "NSPhotoLibraryUsageDescription": "MedAI needs photo library access to upload medical documents and profile photos."
       }
     },
     "android": {
