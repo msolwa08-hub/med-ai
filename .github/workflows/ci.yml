@@ -65,6 +65,7 @@ jobs:
           - 6379:6379
     env:
       DATABASE_URL: postgresql://postgres:password@localhost:5432/medai_test
+      DIRECT_URL: postgresql://postgres:password@localhost:5432/medai_test
       REDIS_URL: redis://localhost:6379
       JWT_SECRET: test-secret-minimum-32-characters-long
       JWT_REFRESH_SECRET: test-refresh-secret-minimum-32-chars
@@ -79,10 +80,11 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build --workspace=packages/shared
-      - run: npx prisma migrate deploy
+      - run: npx prisma migrate deploy --schema=../../prisma/schema.prisma
         working-directory: apps/api
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/medai_test
+          DIRECT_URL: postgresql://postgres:password@localhost:5432/medai_test
       - run: npm test --workspace=apps/api --if-present
 
   security-scan:
@@ -96,7 +98,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: node scripts/audit-check.mjs
       - name: Check for secrets
         uses: trufflesecurity/trufflehog@main
         with:
