@@ -40,7 +40,28 @@ export interface HistorySummary {
   messages: { role: string; content: string }[];
 }
 
+export interface AssistField {
+  key: string;
+  label: string;
+  value: string;
+  hint?: string;
+}
+
+export interface AssistTurn {
+  role: 'assistant' | 'user';
+  content: string;
+}
+
+export interface AssistResponse {
+  updates: Record<string, string>;
+  nextQuestion: string;
+  done: boolean;
+}
+
 export const toolsApi = {
+  assist: (key: string, input: { dept: string; section: string; fields: AssistField[]; transcript: AssistTurn[] }) =>
+    post<AssistResponse>('/tools/assist', key, input),
+
   validate: async (key: string): Promise<boolean> => {
     try {
       await post('/tools/validate', key, {});

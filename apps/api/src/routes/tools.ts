@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { validateToolsKey } from '../lib/beta-config.js';
 import { betaEngine } from '../services/beta-engine.js';
 import { betaStore } from '../services/beta-store.js';
+import { toolsAssist, type AssistRequest } from '../services/tools-assist.js';
 import {
   generateDischargeSummary,
   generateReferralLetter,
@@ -30,6 +31,29 @@ export async function toolsRoutes(app: FastifyInstance) {
   app.post('/tools/validate', async (req, reply) => {
     if (!authTools(req)) return unauth(reply);
     return reply.send({ valid: true });
+  });
+
+  // AI-assisted sequential logging: the AI asks one question at a time,
+  // extracts structured field values from freeform answers, and prompts
+  // for anything missed — instead of manual form filling.
+  app.post('/tools/assist', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<AssistRequest>;
+    if (!body.dept || !body.section || !Array.isArray(body.fields)) {
+      return reply.status(400).send({ error: 'dept, section, and fields are required' });
+    }
+    try {
+      const result = await toolsAssist.step({
+        dept: body.dept,
+        section: body.section,
+        fields: body.fields,
+        transcript: Array.isArray(body.transcript) ? body.transcript : [],
+      });
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Assist request failed' });
+    }
   });
 
   // AI History session: start (for patient-facing URL)

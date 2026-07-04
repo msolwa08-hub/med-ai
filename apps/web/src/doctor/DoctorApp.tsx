@@ -56,7 +56,7 @@ export function DoctorApp({ onBack }: Props) {
 
   if (selectedId) {
     return (
-      <div className="min-h-screen bg-slate-900 p-4">
+      <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-3xl mx-auto">
           <ConsultWorkspace
             doctorKey={key}
@@ -69,31 +69,31 @@ export function DoctorApp({ onBack }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center gap-3">
-        <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors mr-2">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+        <button onClick={onBack} className="text-gray-500 hover:text-gray-900 transition-colors mr-2">
           ←
         </button>
         <img src="/medai-icon.svg" alt="" className="w-7 h-7" />
-        <span className="text-white font-semibold">Doctor Cockpit</span>
+        <span className="text-gray-900 font-semibold">Doctor Cockpit</span>
         <button
           onClick={loadData}
           disabled={loading}
-          className="ml-auto text-slate-400 hover:text-white text-sm transition-colors"
+          className="ml-auto text-gray-500 hover:text-gray-900 text-sm transition-colors"
         >
           {loading ? '...' : '↻ Refresh'}
         </button>
       </header>
 
-      <div className="flex border-b border-slate-700 bg-slate-800">
+      <div className="flex border-b border-gray-200 bg-white">
         {(['sessions', 'analytics'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-5 py-3 text-sm font-medium transition-colors capitalize ${
               tab === t
-                ? 'text-white border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-white'
+                ? 'text-teal-700 border-b-2 border-teal-500'
+                : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             {t}

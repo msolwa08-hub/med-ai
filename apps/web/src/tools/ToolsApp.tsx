@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { AccessKeyGate } from '../components/AccessKeyGate';
-import { toolsApi, type Problem, type RoundNote, type HistorySession, type HistorySummary } from './toolsApi';
+import { toolsApi, type Problem, type RoundNote, type HistorySession, type HistorySummary, type AssistField } from './toolsApi';
 import { storage } from '../storage';
 import { formatRoundNote } from './formatDocs';
+import { AssistPanel } from './AssistPanel';
 
 // ─── Department config ──────────────────────────────────────────────────────
 
@@ -84,6 +85,61 @@ interface Patient {
 
 type Tab = 'intake' | 'history' | 'assessment' | 'problems' | 'round' | 'formulas' | 'documents' | 'specialist';
 
+// ─── AI-assisted logging field specs ────────────────────────────────────────
+// One spec per data-entry section: the AssistPanel drives a one-question-at-a-
+// time conversation and fills these fields from the intern's freeform answers.
+
+function intakeAssistFields(d: IntakeData, dept: DeptId): AssistField[] {
+  const base: AssistField[] = [
+    { key: 'name', label: 'Full Name', value: d.name },
+    { key: 'age', label: 'Age', value: d.age },
+    { key: 'sex', label: 'Sex', value: d.sex, hint: 'Male, Female or Other' },
+    { key: 'ward', label: 'Ward', value: d.ward },
+    { key: 'bed', label: 'Bed', value: d.bed },
+    { key: 'admissionDate', label: 'Admission Date', value: d.admissionDate },
+    { key: 'allergies', label: 'Allergies', value: d.allergies, hint: 'NKDA or list' },
+    { key: 'admissionDiagnosis', label: 'Admission Diagnosis', value: d.admissionDiagnosis },
+  ];
+  if (dept === 'og') {
+    base.push(
+      { key: 'gestationalAge', label: 'Gestational Age', value: d.gestationalAge ?? '' },
+      { key: 'gravida', label: 'Gravida', value: d.gravida ?? '' },
+      { key: 'para', label: 'Para', value: d.para ?? '' },
+      { key: 'lmp', label: 'LMP', value: d.lmp ?? '' },
+    );
+  }
+  return base;
+}
+
+function historyAssistFields(d: HistoryData): AssistField[] {
+  return [
+    { key: 'chiefComplaint', label: 'Chief Complaint', value: d.chiefComplaint },
+    { key: 'hpi', label: 'History of Presenting Illness', value: d.hpi, hint: 'SOCRATES' },
+    { key: 'pmh', label: 'Past Medical History', value: d.pmh },
+    { key: 'medications', label: 'Medications', value: d.medications },
+    { key: 'familyHistory', label: 'Family History', value: d.familyHistory },
+    { key: 'socialHistory', label: 'Social History', value: d.socialHistory },
+    { key: 'ros', label: 'Review of Systems', value: d.ros },
+  ];
+}
+
+function assessmentAssistFields(d: AssessmentData): AssistField[] {
+  return [
+    { key: 'vitals', label: 'Vitals', value: d.vitals, hint: 'BP, HR, RR, Temp, SpO2' },
+    { key: 'examination', label: 'Examination Findings', value: d.examination },
+    { key: 'investigations', label: 'Investigations', value: d.investigations, hint: 'bloods, imaging, other results' },
+    { key: 'dayOfAdmission', label: 'Day of Admission', value: d.dayOfAdmission },
+  ];
+}
+
+function roundAssistFields(d: RoundData): AssistField[] {
+  return [
+    { key: 'subjective', label: 'Subjective / Overnight Events', value: d.subjective },
+    { key: 'plan', label: 'Plan for Today', value: d.plan },
+    { key: 'pending', label: 'Pending Results / Tasks', value: d.pending },
+  ];
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function uid() {
@@ -111,7 +167,7 @@ function newPatient(dept: DeptId): Patient {
 // ─── Shared UI components ────────────────────────────────────────────────────
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="block text-xs font-medium text-slate-400 mb-1">{children}</label>;
+  return <label className="block text-xs font-medium text-gray-500 mb-1">{children}</label>;
 }
 
 function TextInput({
@@ -124,7 +180,7 @@ function TextInput({
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 ${className}`}
+      className={`w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 ${className}`}
     />
   );
 }
@@ -140,7 +196,7 @@ function TextArea({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+      className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
     />
   );
 }
@@ -154,7 +210,7 @@ function AiBtn({
     <button
       onClick={onClick}
       disabled={loading}
-      className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+      className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
     >
       {loading ? (
         <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -169,13 +225,13 @@ function AiBtn({
 
 function DocOutput({ text, onCopy }: { text: string; onCopy: () => void }) {
   return (
-    <div className="mt-3 bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
-      <div className="flex justify-end px-3 py-1.5 border-b border-slate-700">
-        <button onClick={onCopy} className="text-xs text-slate-400 hover:text-white transition-colors">
+    <div className="mt-3 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+      <div className="flex justify-end px-3 py-1.5 border-b border-gray-200">
+        <button onClick={onCopy} className="text-xs text-gray-500 hover:text-gray-900 transition-colors">
           Copy
         </button>
       </div>
-      <pre className="text-xs text-slate-200 p-4 whitespace-pre-wrap leading-relaxed overflow-auto max-h-72">
+      <pre className="text-xs text-gray-700 p-4 whitespace-pre-wrap leading-relaxed overflow-auto max-h-72">
         {text}
       </pre>
     </div>
@@ -184,14 +240,14 @@ function DocOutput({ text, onCopy }: { text: string; onCopy: () => void }) {
 
 function Disclaimer({ text }: { text: string }) {
   return (
-    <p className="mt-2 text-xs text-amber-500/80 bg-amber-950/30 border border-amber-900/40 rounded px-3 py-2">
+    <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
       ⚠️ {text}
     </p>
   );
 }
 
 function SectionHead({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{children}</h3>;
+  return <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{children}</h3>;
 }
 
 function copy(text: string) {
@@ -202,22 +258,22 @@ function copy(text: string) {
 
 function DeptSelector({ onSelect }: { onSelect: (d: DeptId) => void }) {
   const colorMap: Record<string, string> = {
-    blue: 'bg-blue-900/40 border-blue-700/50 hover:border-blue-500',
-    indigo: 'bg-indigo-900/40 border-indigo-700/50 hover:border-indigo-500',
-    pink: 'bg-pink-900/40 border-pink-700/50 hover:border-pink-500',
-    orange: 'bg-orange-900/40 border-orange-700/50 hover:border-orange-500',
-    red: 'bg-red-900/40 border-red-700/50 hover:border-red-500',
-    rose: 'bg-rose-900/40 border-rose-700/50 hover:border-rose-500',
-    purple: 'bg-purple-900/40 border-purple-700/50 hover:border-purple-500',
-    teal: 'bg-teal-900/40 border-teal-700/50 hover:border-teal-500',
+    blue: 'bg-blue-50 border-blue-200 hover:border-blue-400',
+    indigo: 'bg-indigo-50 border-indigo-200 hover:border-indigo-400',
+    pink: 'bg-pink-50 border-pink-200 hover:border-pink-400',
+    orange: 'bg-orange-50 border-orange-200 hover:border-orange-400',
+    red: 'bg-red-50 border-red-200 hover:border-red-400',
+    rose: 'bg-rose-50 border-rose-200 hover:border-rose-400',
+    purple: 'bg-purple-50 border-purple-200 hover:border-purple-400',
+    teal: 'bg-teal-50 border-teal-200 hover:border-teal-400',
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
       <div className="mb-10 text-center">
         <img src="/medai-icon.svg" alt="" className="w-12 h-12 mx-auto mb-4" />
-        <h1 className="text-white text-2xl font-bold">Intern Tools</h1>
-        <p className="text-slate-400 text-sm mt-2">Select your department to get started</p>
+        <h1 className="text-gray-900 text-2xl font-bold">Intern Tools</h1>
+        <p className="text-gray-500 text-sm mt-2">Select your department to get started</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-3xl">
         {DEPARTMENTS.map(d => (
@@ -227,8 +283,8 @@ function DeptSelector({ onSelect }: { onSelect: (d: DeptId) => void }) {
             className={`${colorMap[d.color]} border rounded-2xl p-5 text-center transition-all duration-150 cursor-pointer group`}
           >
             <div className="text-3xl mb-2">{d.icon}</div>
-            <p className="text-white font-medium text-sm">{d.label}</p>
-            <p className="text-slate-500 text-xs mt-0.5">{d.abbr}</p>
+            <p className="text-gray-800 font-medium text-sm">{d.label}</p>
+            <p className="text-gray-400 text-xs mt-0.5">{d.abbr}</p>
           </button>
         ))}
       </div>
@@ -238,8 +294,9 @@ function DeptSelector({ onSelect }: { onSelect: (d: DeptId) => void }) {
 
 // ─── INTAKE TAB ─────────────────────────────────────────────────────────────
 
-function IntakeTab({ patient, dept, onChange }: {
+function IntakeTab({ patient, toolsKey, dept, onChange }: {
   patient: Patient;
+  toolsKey: string;
   dept: DeptId;
   onChange: (patch: Partial<IntakeData>) => void;
 }) {
@@ -247,9 +304,13 @@ function IntakeTab({ patient, dept, onChange }: {
 
   return (
     <div className="space-y-5">
-      <div className="bg-blue-950/30 border border-blue-900/40 rounded-lg px-4 py-3 text-xs text-blue-300">
-        📋 Department-specific form template — upload your ward forms to customise this intake sheet.
-      </div>
+      <AssistPanel
+        toolsKey={toolsKey}
+        dept={dept}
+        section="Intake"
+        fields={intakeAssistFields(d, dept)}
+        onUpdates={u => onChange(u as Partial<IntakeData>)}
+      />
 
       <SectionHead>Patient Demographics</SectionHead>
       <div className="grid grid-cols-2 gap-3">
@@ -266,7 +327,7 @@ function IntakeTab({ patient, dept, onChange }: {
           <select
             value={d.sex}
             onChange={e => onChange({ sex: e.target.value })}
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-teal-500"
           >
             <option value="">Select</option>
             <option value="Male">Male</option>
@@ -454,10 +515,18 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
 
   return (
     <div className="space-y-5">
+      <AssistPanel
+        toolsKey={toolsKey}
+        dept={dept}
+        section="History"
+        fields={historyAssistFields(patient.history)}
+        onUpdates={u => onChange(u as Partial<HistoryData>)}
+      />
+
       {/* AI History Section */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
         <SectionHead>AI-Assisted History Taking</SectionHead>
-        <p className="text-slate-400 text-xs mb-4">
+        <p className="text-gray-500 text-xs mb-4">
           Start an AI session for the patient to complete their history. Share the link, then import when done.
         </p>
 
@@ -466,13 +535,13 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
         </div>
 
         {patientUrl && (
-          <div className="bg-slate-900 rounded-lg p-3 border border-slate-700 mb-3">
-            <p className="text-xs text-slate-400 mb-1">Share this link with the patient:</p>
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-3">
+            <p className="text-xs text-gray-500 mb-1">Share this link with the patient:</p>
             <div className="flex items-center gap-2">
-              <code className="text-blue-300 text-xs flex-1 break-all">{patientUrl}</code>
+              <code className="text-teal-700 text-xs flex-1 break-all">{patientUrl}</code>
               <button
                 onClick={() => copy(patientUrl)}
-                className="text-xs text-slate-400 hover:text-white shrink-0 bg-slate-700 px-2 py-1 rounded"
+                className="text-xs text-gray-500 hover:text-gray-900 shrink-0 bg-gray-100 px-2 py-1 rounded"
               >
                 Copy
               </button>
@@ -480,8 +549,8 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
           </div>
         )}
 
-        <div className="border-t border-slate-700 pt-3 mt-3">
-          <p className="text-xs text-slate-400 mb-2">Import completed history by session ID:</p>
+        <div className="border-t border-gray-200 pt-3 mt-3">
+          <p className="text-xs text-gray-500 mb-2">Import completed history by session ID:</p>
           <div className="flex gap-2">
             <TextInput
               value={importId}
@@ -501,12 +570,12 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
         {err && <p className="text-red-400 text-xs mt-2">{err}</p>}
 
         {histSummary && (
-          <div className="mt-3 bg-emerald-950/30 border border-emerald-900/40 rounded-lg p-3">
-            <p className="text-xs font-medium text-emerald-300 mb-1">
+          <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <p className="text-xs font-medium text-emerald-700 mb-1">
               {histSummary.completed ? '✓ History imported' : '⏳ Session in progress'}
             </p>
             {histSummary.summary && (
-              <p className="text-xs text-slate-300 leading-relaxed">{histSummary.summary}</p>
+              <p className="text-xs text-gray-600 leading-relaxed">{histSummary.summary}</p>
             )}
           </div>
         )}
@@ -567,9 +636,10 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
 
 // ─── ASSESSMENT TAB ──────────────────────────────────────────────────────────
 
-function AssessmentTab({ patient, toolsKey, onChange, onAdmNote }: {
+function AssessmentTab({ patient, toolsKey, dept, onChange, onAdmNote }: {
   patient: Patient;
   toolsKey: string;
+  dept: DeptId;
   onChange: (patch: Partial<AssessmentData>) => void;
   onAdmNote: (note: string) => void;
 }) {
@@ -599,6 +669,14 @@ function AssessmentTab({ patient, toolsKey, onChange, onAdmNote }: {
 
   return (
     <div className="space-y-4">
+      <AssistPanel
+        toolsKey={toolsKey}
+        dept={dept}
+        section="Assessment"
+        fields={assessmentAssistFields(patient.assessment)}
+        onUpdates={u => onChange(u as Partial<AssessmentData>)}
+      />
+
       <div>
         <Label>Day of Admission</Label>
         <TextInput
@@ -673,9 +751,9 @@ function ProblemsTab({ problems, onChange }: {
   }
 
   const statusColors: Record<string, string> = {
-    active: 'bg-red-900 text-red-300',
-    resolving: 'bg-yellow-900 text-yellow-300',
-    resolved: 'bg-green-900 text-green-300',
+    active: 'bg-red-100 text-red-700',
+    resolving: 'bg-yellow-100 text-yellow-700',
+    resolved: 'bg-emerald-50 text-emerald-700',
   };
 
   return (
@@ -684,14 +762,14 @@ function ProblemsTab({ problems, onChange }: {
         <SectionHead>Problem List</SectionHead>
         <button
           onClick={addProblem}
-          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          className="text-sm text-teal-600 hover:text-teal-700 transition-colors"
         >
           + Add Problem
         </button>
       </div>
 
       {problems.length === 0 && (
-        <div className="text-center py-10 text-slate-500">
+        <div className="text-center py-10 text-gray-400">
           <p className="text-3xl mb-2">📋</p>
           <p className="text-sm">No problems added yet</p>
           <p className="text-xs mt-1">Click "Add Problem" to start your problem-based plan</p>
@@ -699,9 +777,9 @@ function ProblemsTab({ problems, onChange }: {
       )}
 
       {problems.map((p, idx) => (
-        <div key={p.id} className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-3">
+        <div key={p.id} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <div className="flex items-start gap-3">
-            <span className="text-slate-500 text-sm font-mono mt-2 shrink-0">{idx + 1}.</span>
+            <span className="text-gray-400 text-sm font-mono mt-2 shrink-0">{idx + 1}.</span>
             <div className="flex-1 space-y-3">
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -717,7 +795,7 @@ function ProblemsTab({ problems, onChange }: {
                   <select
                     value={p.status}
                     onChange={e => updateProblem(p.id, { status: e.target.value as Problem['status'] })}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white focus:outline-none"
+                    className="w-full bg-white border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900 focus:outline-none"
                   >
                     <option value="active">Active</option>
                     <option value="resolving">Resolving</option>
@@ -745,7 +823,7 @@ function ProblemsTab({ problems, onChange }: {
                 {p.differentials.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {p.differentials.map((d, i) => (
-                      <span key={i} className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">{d}</span>
+                      <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{d}</span>
                     ))}
                   </div>
                 )}
@@ -762,7 +840,7 @@ function ProblemsTab({ problems, onChange }: {
                 {p.management.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {p.management.map((m, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                      <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
                         <input type="checkbox" className="mt-0.5 accent-blue-500" />
                         {m}
                       </li>
@@ -773,7 +851,7 @@ function ProblemsTab({ problems, onChange }: {
             </div>
             <button
               onClick={() => removeProblem(p.id)}
-              className="text-slate-600 hover:text-red-400 transition-colors text-lg shrink-0"
+              className="text-gray-400 hover:text-red-400 transition-colors text-lg shrink-0"
             >
               ×
             </button>
@@ -837,9 +915,17 @@ function RoundTab({ patient, toolsKey, dept, onChange }: {
 
   return (
     <div className="space-y-5">
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+      <AssistPanel
+        toolsKey={toolsKey}
+        dept={dept}
+        section="Ward Round"
+        fields={roundAssistFields(rd)}
+        onUpdates={u => onChange(u as Partial<RoundData>)}
+      />
+
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
         <SectionHead>Daily Round Note</SectionHead>
-        <p className="text-slate-400 text-xs mb-4">
+        <p className="text-gray-500 text-xs mb-4">
           Auto-generated half-page ward round summary (SOAP format, ≤25 lines) from your patient data.
         </p>
 
@@ -878,7 +964,7 @@ function RoundTab({ patient, toolsKey, dept, onChange }: {
           {noteText && (
             <button
               onClick={() => copy(noteText)}
-              className="text-sm text-slate-400 hover:text-white border border-slate-600 px-4 py-2 rounded-lg transition-colors"
+              className="text-sm text-gray-500 hover:text-gray-900 border border-gray-300 px-4 py-2 rounded-lg transition-colors"
             >
               Copy
             </button>
@@ -886,7 +972,7 @@ function RoundTab({ patient, toolsKey, dept, onChange }: {
           {noteText && (
             <button
               onClick={() => window.print()}
-              className="text-sm text-slate-400 hover:text-white border border-slate-600 px-4 py-2 rounded-lg transition-colors"
+              className="text-sm text-gray-500 hover:text-gray-900 border border-gray-300 px-4 py-2 rounded-lg transition-colors"
             >
               Print
             </button>
@@ -897,8 +983,8 @@ function RoundTab({ patient, toolsKey, dept, onChange }: {
       </div>
 
       {noteText && (
-        <div className="bg-white rounded-xl border border-slate-300 p-5 shadow-sm print:shadow-none">
-          <pre className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-mono">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm print:shadow-none">
+          <pre className="text-xs text-gray-900 whitespace-pre-wrap leading-relaxed font-mono">
             {noteText}
           </pre>
         </div>
@@ -972,8 +1058,8 @@ function FormulasTab({ dept }: { dept: DeptId }) {
               onClick={() => setCalc(calc === c.id ? '' : c.id)}
               className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
                 calc === c.id
-                  ? 'bg-blue-600 border-blue-500 text-white'
-                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
+                  ? 'bg-teal-600 border-teal-500 text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
               }`}
             >
               {c.label}
@@ -992,8 +1078,8 @@ function FormulasTab({ dept }: { dept: DeptId }) {
                 onClick={() => setCalc(calc === c.id ? '' : c.id)}
                 className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
                   calc === c.id
-                    ? 'bg-blue-600 border-blue-500 text-white'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-300'
+                    ? 'bg-teal-600 border-teal-500 text-white'
+                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-600'
                 }`}
               >
                 {c.label}
@@ -1082,7 +1168,7 @@ function DocumentsTab({ patient, toolsKey, dept }: {
       {docs.map(d =>
         results[d.id] ? (
           <div key={d.id}>
-            <p className="text-xs font-medium text-slate-400 mb-1">{d.label}</p>
+            <p className="text-xs font-medium text-gray-500 mb-1">{d.label}</p>
             <DocOutput text={results[d.id]} onCopy={() => copy(results[d.id])} />
           </div>
         ) : null
@@ -1105,7 +1191,7 @@ function SpecialistTab({ patient, toolsKey, dept }: {
 
   if (dept !== 'og') {
     return (
-      <div className="text-center py-16 text-slate-500">
+      <div className="text-center py-16 text-gray-400">
         <p className="text-4xl mb-3">🏷️</p>
         <p>Specialist tab is currently available for O&G.</p>
         <p className="text-sm mt-1">More specialties coming soon.</p>
@@ -1143,7 +1229,7 @@ function SpecialistTab({ patient, toolsKey, dept }: {
             key={m}
             onClick={() => setMode(m)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              mode === m ? 'bg-pink-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              mode === m ? 'bg-pink-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
             }`}
           >
             {m === 'obs' ? '🤱 Obstetrics' : '⚕️ Gynaecology'}
@@ -1163,8 +1249,8 @@ function SpecialistTab({ patient, toolsKey, dept }: {
 
 function CalcCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-      <h4 className="text-sm font-semibold text-white mb-3">{title}</h4>
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <h4 className="text-sm font-semibold text-gray-900 mb-3">{title}</h4>
       {children}
     </div>
   );
@@ -1173,7 +1259,7 @@ function CalcCard({ title, children }: { title: string; children: React.ReactNod
 function Row({ label, children }: { label: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 py-1">
-      <span className="text-xs text-slate-400 w-40 shrink-0">{label}</span>
+      <span className="text-xs text-gray-500 w-40 shrink-0">{label}</span>
       <div className="flex-1">{children}</div>
     </div>
   );
@@ -1190,15 +1276,15 @@ function NumInput({ value, onChange, min, max, placeholder }: {
       min={min}
       max={max}
       placeholder={placeholder ?? '0'}
-      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-teal-500"
     />
   );
 }
 
 function Result({ label, value, color = 'blue' }: { label: string; value: string; color?: string }) {
-  const c = { blue: 'text-blue-300', green: 'text-green-300', yellow: 'text-yellow-300', red: 'text-red-300', pink: 'text-pink-300' };
+  const c = { blue: 'text-teal-700', green: 'text-emerald-700', yellow: 'text-yellow-600', red: 'text-red-600', pink: 'text-pink-600' };
   return (
-    <div className={`mt-3 text-sm font-medium ${c[color as keyof typeof c] ?? 'text-blue-300'}`}>
+    <div className={`mt-3 text-sm font-medium ${c[color as keyof typeof c] ?? 'text-teal-700'}`}>
       {label}: {value}
     </div>
   );
@@ -1254,7 +1340,7 @@ function GFRCalc() {
       <Row label="Creatinine (µmol/L)"><NumInput value={cr} onChange={setCr} /></Row>
       <Row label="Age (years)"><NumInput value={age} onChange={setAge} /></Row>
       <Row label="Sex">
-        <select value={sex} onChange={e => setSex(e.target.value as 'M' | 'F')} className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm text-white">
+        <select value={sex} onChange={e => setSex(e.target.value as 'M' | 'F')} className="bg-white border border-gray-300 rounded px-2 py-1 text-sm text-gray-900">
           <option value="M">Male</option>
           <option value="F">Female</option>
         </select>
@@ -1323,7 +1409,7 @@ function HEARTCalc() {
   const risk = score <= 3 ? 'Low' : score <= 6 ? 'Moderate' : 'High';
   return (
     <CalcCard title="HEART Score (Chest Pain)">
-      <p className="text-xs text-slate-500 mb-2">Each component scored 0-2</p>
+      <p className="text-xs text-gray-400 mb-2">Each component scored 0-2</p>
       {[
         ['History (0-2)', h, setH],
         ['ECG (0-2)', e, setE],
@@ -1421,7 +1507,7 @@ function PHQ9Calc() {
     <CalcCard title="PHQ-9 Depression Screen">
       {items.map((item, i) => (
         <Row key={i} label={`${i + 1}. ${item}`}>
-          <select value={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = Number(e.target.value); setScores(ns); }} className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+          <select value={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = Number(e.target.value); setScores(ns); }} className="bg-white border border-gray-300 rounded px-2 py-1 text-xs text-gray-900">
             <option value={0}>0 - Not at all</option>
             <option value={1}>1 - Several days</option>
             <option value={2}>2 - More than half</option>
@@ -1506,11 +1592,11 @@ function EddGaCalc() {
   return (
     <CalcCard title="EDD / Gestational Age">
       <Row label="LMP Date">
-        <input type="date" value={lmp} onChange={e => setLmp(e.target.value)} className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm text-white w-full" />
+        <input type="date" value={lmp} onChange={e => setLmp(e.target.value)} className="bg-white border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 w-full" />
       </Row>
       {gaByLmp && <Result label="GA by LMP" value={gaByLmp} color="pink" />}
       {eddByLmp && <Result label="EDD by LMP (Naegele)" value={eddByLmp} color="pink" />}
-      <div className="mt-3 border-t border-slate-700 pt-3">
+      <div className="mt-3 border-t border-gray-200 pt-3">
         <Row label="US GA (days)"><NumInput value={usDays} onChange={setUsDays} placeholder="e.g. 200" /></Row>
         {usDays !== '' && Number(usDays) > 0 && (
           <Result label="GA from US" value={`${Math.floor(Number(usDays) / 7)}+${Number(usDays) % 7} weeks`} color="pink" />
@@ -1554,7 +1640,7 @@ function MEOWSCalc() {
       <Row label="HR (/min)"><NumInput value={hr} onChange={setHr} /></Row>
       <Row label="Temp (°C)"><NumInput value={temp} onChange={setTemp} /></Row>
       <Row label="AVPU">
-        <select value={avpu} onChange={e => setAvpu(e.target.value)} className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm text-white">
+        <select value={avpu} onChange={e => setAvpu(e.target.value)} className="bg-white border border-gray-300 rounded px-2 py-1 text-sm text-gray-900">
           <option value="A">Alert</option>
           <option value="V">Voice</option>
           <option value="P">Pain</option>
@@ -1586,7 +1672,7 @@ function EPDSCalc() {
     <CalcCard title="EPDS (Edinburgh Postnatal Depression Scale)">
       {items.map((item, i) => (
         <Row key={i} label={`${i + 1}. ${item}`}>
-          <select value={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = Number(e.target.value); setScores(ns); }} className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-xs text-white w-full">
+          <select value={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = Number(e.target.value); setScores(ns); }} className="bg-white border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 w-full">
             <option value={0}>0</option><option value={1}>1</option>
             <option value={2}>2</option><option value={3}>3</option>
           </select>
@@ -1607,7 +1693,7 @@ function RMICalc() {
   const risk = rmi < 200 ? 'Low' : rmi < 1000 ? 'Moderate' : 'High';
   return (
     <CalcCard title="RMI (Risk of Malignancy Index)">
-      <p className="text-xs text-slate-500 mb-2">RMI = US score × M × CA-125</p>
+      <p className="text-xs text-gray-400 mb-2">RMI = US score × M × CA-125</p>
       <Row label="US score (0/1/3)"><NumInput value={us} onChange={setUs} min={0} max={3} /></Row>
       <Row label="Postmenopausal">
         <input type="checkbox" checked={meno === 1} onChange={e => setMeno(e.target.checked ? 1 : 0)} className="accent-blue-500 w-4 h-4" />
@@ -1658,13 +1744,13 @@ function PCOSHormonesCalc() {
       <Row label="FSH (IU/L)"><NumInput value={fsh} onChange={setFsh} placeholder="e.g. 5" /></Row>
       {ratio && <Result label="LH:FSH Ratio" value={`${ratio} ${Number(ratio) > 2 ? '(Elevated — PCOS pattern)' : '(Normal)'}`} color={Number(ratio) > 2 ? 'yellow' : 'green'} />}
 
-      <div className="mt-3 border-t border-slate-700 pt-3">
+      <div className="mt-3 border-t border-gray-200 pt-3">
         <Row label="Total Testosterone (nmol/L)"><NumInput value={testo} onChange={setTesto} /></Row>
         <Row label="SHBG (nmol/L)"><NumInput value={shbg} onChange={setShbg} /></Row>
         {fai && <Result label="FAI (Free Androgen Index)" value={`${fai}% ${Number(fai) > 4.5 ? '(Elevated)' : '(Normal)'}`} color={Number(fai) > 4.5 ? 'yellow' : 'green'} />}
       </div>
 
-      <div className="mt-3 border-t border-slate-700 pt-3">
+      <div className="mt-3 border-t border-gray-200 pt-3">
         <Row label="Fasting Insulin (pmol/L)"><NumInput value={insulin} onChange={setInsulin} /></Row>
         <Row label="Fasting Glucose (mmol/L)"><NumInput value={glucose} onChange={setGlucose} /></Row>
         {homa && <Result label="HOMA-IR" value={`${homa} ${Number(homa) > 2.5 ? '(Insulin Resistance)' : '(Normal)'}`} color={Number(homa) > 2.5 ? 'yellow' : 'green'} />}
@@ -1700,7 +1786,7 @@ function EctopicCalc() {
           color={riseOk ? 'green' : 'red'}
         />
       )}
-      <div className="mt-3 border-t border-slate-700 pt-3">
+      <div className="mt-3 border-t border-gray-200 pt-3">
         <Row label="Progesterone (nmol/L)"><NumInput value={prog} onChange={setProg} placeholder="e.g. 15" /></Row>
         {Number(hcg1) > 0 && Number(prog) > 0 && (
           <Result
@@ -1730,14 +1816,14 @@ function FertilityCalc() {
         <Result label="Ovulation" value={ovConfirmed ? 'Confirmed (P ≥16)' : 'Uncertain (P <16 — anovulatory?)'} color={ovConfirmed ? 'green' : 'yellow'} />
       )}
 
-      <div className="mt-3 border-t border-slate-700 pt-3">
+      <div className="mt-3 border-t border-gray-200 pt-3">
         <Row label="AMH (pmol/L)"><NumInput value={amh} onChange={setAmh} placeholder="e.g. 14" /></Row>
         {Number(amh) > 0 && (
           <Result label="Ovarian Reserve (AMH)" value={ovarianReserve} color={ovarianReserve === 'Normal' ? 'green' : ovarianReserve === 'Low' ? 'red' : 'yellow'} />
         )}
       </div>
 
-      <div className="mt-3 border-t border-slate-700 pt-3">
+      <div className="mt-3 border-t border-gray-200 pt-3">
         <Row label="Day 3 FSH (IU/L)"><NumInput value={day3Fsh} onChange={setDay3Fsh} placeholder="e.g. 7" /></Row>
         {Number(day3Fsh) > 0 && (
           <Result label="Day 3 FSH" value={fshNormal ? 'Normal (<10 IU/L)' : 'Elevated (≥10) — reduced reserve'} color={fshNormal ? 'green' : 'red'} />
@@ -1821,23 +1907,23 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   ] as { id: Tab; label: string; show?: boolean }[]).filter(t => t.show !== false);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">←</button>
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
+        <button onClick={onBack} className="text-gray-500 hover:text-gray-900 transition-colors">←</button>
         <img src="/medai-icon.svg" alt="" className="w-7 h-7" />
-        <span className="text-white font-semibold">Intern Tools</span>
-        <span className="text-slate-500 text-sm">·</span>
+        <span className="text-gray-900 font-semibold">Intern Tools</span>
+        <span className="text-gray-400 text-sm">·</span>
         <button
           onClick={() => setDept(null)}
-          className="text-sm text-slate-400 hover:text-white bg-slate-700 px-2 py-0.5 rounded transition-colors"
+          className="text-sm text-gray-500 hover:text-gray-900 bg-gray-100 px-2 py-0.5 rounded transition-colors"
         >
           {deptInfo.icon} {deptInfo.label}
         </button>
         <div className="flex-1" />
         <button
           onClick={addPatient}
-          className="text-sm bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors"
+          className="text-sm bg-teal-600 hover:bg-teal-500 text-white px-3 py-1.5 rounded-lg transition-colors"
         >
           + Patient
         </button>
@@ -1846,7 +1932,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — patient list */}
         {patients.length > 1 && (
-          <aside className="w-48 bg-slate-850 border-r border-slate-700 overflow-y-auto shrink-0 bg-slate-900">
+          <aside className="w-48 border-r border-gray-200 overflow-y-auto shrink-0 bg-gray-50">
             <div className="p-2 space-y-1">
               {patients.map((p, i) => (
                 <div key={p.id} className="flex items-center gap-1">
@@ -1854,8 +1940,8 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     onClick={() => { setActivePatientId(p.id); setActiveTab('intake'); }}
                     className={`flex-1 text-left text-xs px-2 py-2 rounded-lg transition-colors truncate ${
                       activePatientId === p.id
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-800'
+                        ? 'bg-teal-600 text-white'
+                        : 'text-gray-600 hover:bg-white'
                     }`}
                   >
                     {p.intake.name || `Patient ${i + 1}`}
@@ -1863,7 +1949,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                   {patients.length > 1 && (
                     <button
                       onClick={() => removePatient(p.id)}
-                      className="text-slate-600 hover:text-red-400 px-1"
+                      className="text-gray-400 hover:text-red-400 px-1"
                     >
                       ×
                     </button>
@@ -1877,15 +1963,15 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs */}
-          <div className="bg-slate-800 border-b border-slate-700 flex overflow-x-auto shrink-0">
+          <div className="bg-white border-b border-gray-200 flex overflow-x-auto shrink-0">
             {tabs.map(t => (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
                 className={`px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
                   activeTab === t.id
-                    ? 'text-white border-b-2 border-blue-500 bg-slate-700/40'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'text-teal-700 border-b-2 border-teal-500 bg-teal-50'
+                    : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 {t.label}
@@ -1900,6 +1986,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 {activeTab === 'intake' && (
                   <IntakeTab
                     patient={activePatient}
+                    toolsKey={key}
                     dept={dept}
                     onChange={patch => updatePatient(activePatient.id, { intake: { ...activePatient.intake, ...patch } })}
                   />
@@ -1916,6 +2003,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                   <AssessmentTab
                     patient={activePatient}
                     toolsKey={key}
+                    dept={dept}
                     onChange={patch => updatePatient(activePatient.id, { assessment: { ...activePatient.assessment, ...patch } })}
                     onAdmNote={note => updatePatient(activePatient.id, { admissionNote: note })}
                   />
@@ -1943,10 +2031,10 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 )}
               </>
             ) : (
-              <div className="text-center py-16 text-slate-500">
+              <div className="text-center py-16 text-gray-400">
                 <p className="text-4xl mb-3">👤</p>
                 <p>No patient selected</p>
-                <button onClick={addPatient} className="mt-3 text-blue-400 text-sm hover:text-blue-300">
+                <button onClick={addPatient} className="mt-3 text-teal-600 text-sm hover:text-teal-700">
                   + Add patient
                 </button>
               </div>

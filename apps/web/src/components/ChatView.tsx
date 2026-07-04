@@ -62,15 +62,15 @@ export default function ChatView({ sessionId }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
-      <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center gap-3">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
         <img src="/medai-icon.svg" alt="MedAI" className="w-8 h-8" />
         <div>
-          <h1 className="text-white font-semibold text-sm">MedAI Patient History</h1>
-          <p className="text-slate-400 text-xs">AI-assisted medical history taking</p>
+          <h1 className="text-gray-900 font-semibold text-sm">MedAI Patient History</h1>
+          <p className="text-gray-500 text-xs">AI-assisted medical history taking</p>
         </div>
         {completed && (
-          <span className="ml-auto bg-green-600 text-white text-xs px-2 py-1 rounded-full">
+          <span className="ml-auto bg-emerald-600 text-white text-xs px-2 py-1 rounded-full">
             Completed
           </span>
         )}
@@ -82,8 +82,8 @@ export default function ChatView({ sessionId }: Props) {
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                 m.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-sm'
-                  : 'bg-slate-700 text-slate-100 rounded-bl-sm'
+                  ? 'bg-teal-600 text-white rounded-br-sm'
+                  : 'bg-gray-100 text-gray-800 rounded-bl-sm'
               }`}
             >
               {m.content.replace(/```json[\s\S]*?```/g, '').trim()}
@@ -92,19 +92,19 @@ export default function ChatView({ sessionId }: Props) {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-700 rounded-2xl rounded-bl-sm px-4 py-3">
+            <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
         )}
         {completed && (
-          <div className="bg-green-900/40 border border-green-700 rounded-xl p-4 text-center">
-            <p className="text-green-300 text-sm font-medium">History taking complete</p>
-            <p className="text-green-400/70 text-xs mt-1">Your doctor can now review your history.</p>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+            <p className="text-emerald-700 text-sm font-medium">History taking complete</p>
+            <p className="text-emerald-600/70 text-xs mt-1">Your doctor can now review your history.</p>
           </div>
         )}
         {error && <p className="text-red-400 text-sm text-center">{error}</p>}
@@ -112,24 +112,24 @@ export default function ChatView({ sessionId }: Props) {
       </div>
 
       {!completed && (
-        <div className="bg-slate-800 border-t border-slate-700 p-4">
+        <div className="bg-white border-t border-gray-200 p-4">
           <div className="max-w-2xl mx-auto flex gap-3">
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
               placeholder="Type your response..."
-              className="flex-1 bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
             <button
               onClick={send}
               disabled={loading || !input.trim()}
-              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-5 py-3 rounded-xl font-medium text-sm transition-colors"
+              className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-5 py-3 rounded-xl font-medium text-sm transition-colors"
             >
               Send
             </button>
           </div>
-          <p className="text-slate-600 text-xs text-center mt-2">
+          <p className="text-gray-400 text-xs text-center mt-2">
             This is an AI assistant. Provide accurate information for the best care.
           </p>
         </div>

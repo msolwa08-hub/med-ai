@@ -33,7 +33,7 @@ export function ConsultWorkspace({ doctorKey, sessionId, onBack }: Props) {
       .finally(() => setLoading(false));
   }, [sessionId, doctorKey]);
 
-  if (loading) return <div className="text-slate-400 text-center py-16">Loading...</div>;
+  if (loading) return <div className="text-gray-500 text-center py-16">Loading...</div>;
   if (error) return <div className="text-red-400 text-center py-16">{error}</div>;
   if (!session) return null;
 
