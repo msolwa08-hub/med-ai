@@ -167,10 +167,10 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
 
   const busy = loading || scanning;
   const chipStyle: Record<CapturedField['confidence'], string> = {
-    spoken: 'bg-white text-teal-700 border-teal-200',
-    high: 'bg-white text-emerald-700 border-emerald-200',
-    medium: 'bg-amber-50 text-amber-700 border-amber-300',
-    low: 'bg-red-50 text-red-700 border-red-300',
+    spoken: 'bg-teal-50 text-teal-700 border-teal-100',
+    high: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    medium: 'bg-amber-50 text-amber-700 border-amber-200',
+    low: 'bg-red-50 text-red-700 border-red-200',
   };
   const chipMark: Record<CapturedField['confidence'], string> = {
     spoken: '✓',
@@ -180,14 +180,14 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
   };
 
   return (
-    <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 space-y-3">
+    <div className="bg-white border border-gray-100 rounded-3xl shadow-sm px-6 py-7 sm:px-8 space-y-5">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h3 className="text-xs font-semibold text-teal-700 uppercase tracking-wider flex items-center gap-1.5">
-          <span aria-hidden>✨</span> AI-assisted logging — {section}
+        <h3 className="text-[11px] font-semibold text-teal-600 uppercase tracking-[0.14em]">
+          {section}
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {captured.length > 0 && (
-            <span className="text-[11px] text-teal-600">{captured.length} field{captured.length === 1 ? '' : 's'} captured</span>
+            <span className="text-xs text-gray-400">{captured.length} captured</span>
           )}
           <input
             ref={fileRef}
@@ -200,7 +200,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="text-xs bg-white hover:bg-teal-100 disabled:opacity-40 text-teal-700 border border-teal-300 px-3 py-1.5 rounded-lg font-medium transition-colors"
+            className="text-[13px] bg-gray-50 hover:bg-teal-50 disabled:opacity-40 text-teal-700 px-3.5 py-1.5 rounded-full font-medium transition-colors"
             title="Photograph the doctor's handwritten notes — the AI reads them and fills the form, flagging anything it can't decipher"
           >
             {scanning ? 'Reading handwriting…' : '📷 Scan notes'}
@@ -208,41 +208,40 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
         </div>
       </div>
 
-      {scanNote && (
-        <p className="text-xs text-teal-700 bg-white border border-teal-100 rounded-lg px-3 py-2">
-          📷 {scanNote}
-        </p>
-      )}
-
       {error ? (
-        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{error}</p>
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">{error}</p>
       ) : (
-        <div className={`text-sm leading-relaxed rounded-lg px-4 py-3 border ${done ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-white border-teal-100 text-gray-800'}`}>
+        <p className={`text-xl sm:text-2xl font-medium leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-gray-900'}`}>
           {busy && !question ? (
-            <span className="text-gray-400">{scanning ? 'Reading the handwriting…' : 'Preparing first question…'}</span>
+            <span className="text-gray-300">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
           ) : (
             <>{done ? '✓ ' : ''}{question}</>
           )}
-        </div>
+        </p>
+      )}
+
+      {scanNote && (
+        <p className="text-[13px] text-gray-500 leading-relaxed">📷 {scanNote}</p>
       )}
 
       {!done && !error && (
-        <div className="flex gap-2">
+        <div className="relative">
           <input
             ref={inputRef}
             value={answer}
             onChange={e => setAnswer(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') submit(); }}
             disabled={busy}
-            placeholder={busy ? 'Working…' : 'Answer in your own words — the form fills itself'}
-            className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:opacity-60"
+            placeholder={busy ? 'Working…' : 'Just answer naturally'}
+            className="w-full bg-gray-50 border border-transparent rounded-full pl-5 pr-14 py-3.5 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-teal-400 focus:ring-4 focus:ring-teal-500/10 disabled:opacity-60 transition-all"
           />
           <button
             onClick={submit}
             disabled={busy || !answer.trim()}
-            className="bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors"
+            aria-label="Send"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-teal-600 hover:bg-teal-500 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
           >
-            {busy ? '…' : 'Send'}
+            {busy ? '…' : '↑'}
           </button>
         </div>
       )}
@@ -253,7 +252,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
             <span
               key={c.key}
               title={c.note ?? (c.confidence === 'medium' ? 'Read from handwriting — verify' : c.confidence === 'low' ? 'Barely legible — check this' : undefined)}
-              className={`text-[11px] border rounded-full px-2 py-0.5 ${chipStyle[c.confidence]}`}
+              className={`text-[11px] border rounded-full px-2.5 py-1 ${chipStyle[c.confidence]}`}
             >
               {chipMark[c.confidence]} {c.label}
               {c.confidence === 'medium' && ' — verify'}

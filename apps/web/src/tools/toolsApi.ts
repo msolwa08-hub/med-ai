@@ -45,6 +45,11 @@ export interface AssistField {
   label: string;
   value: string;
   hint?: string;
+  // Presentation-only (ignored by the API): how the field renders in the
+  // details list when tapped for manual editing.
+  kind?: 'text' | 'textarea' | 'select';
+  options?: string[];
+  placeholder?: string;
 }
 
 export interface AssistTurn {

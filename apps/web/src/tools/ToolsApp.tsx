@@ -4,6 +4,7 @@ import { toolsApi, type Problem, type RoundNote, type HistorySession, type Histo
 import { storage } from '../storage';
 import { formatRoundNote } from './formatDocs';
 import { AssistPanel } from './AssistPanel';
+import { DetailsList } from './DetailsList';
 
 // ─── Department config ──────────────────────────────────────────────────────
 
@@ -91,21 +92,45 @@ type Tab = 'intake' | 'history' | 'assessment' | 'problems' | 'round' | 'formula
 
 function intakeAssistFields(d: IntakeData, dept: DeptId): AssistField[] {
   const base: AssistField[] = [
-    { key: 'name', label: 'Full Name', value: d.name },
-    { key: 'age', label: 'Age', value: d.age },
-    { key: 'sex', label: 'Sex', value: d.sex, hint: 'Male, Female or Other' },
-    { key: 'ward', label: 'Ward', value: d.ward },
-    { key: 'bed', label: 'Bed', value: d.bed },
+    { key: 'name', label: 'Full Name', value: d.name, placeholder: 'Patient name' },
+    { key: 'age', label: 'Age', value: d.age, placeholder: 'e.g. 34 years' },
+    { key: 'sex', label: 'Sex', value: d.sex, hint: 'Male, Female or Other', kind: 'select', options: ['Male', 'Female', 'Other'] },
+    { key: 'ward', label: 'Ward', value: d.ward, placeholder: 'Ward name' },
+    { key: 'bed', label: 'Bed', value: d.bed, placeholder: 'Bed number' },
     { key: 'admissionDate', label: 'Admission Date', value: d.admissionDate },
-    { key: 'allergies', label: 'Allergies', value: d.allergies, hint: 'NKDA or list' },
-    { key: 'admissionDiagnosis', label: 'Admission Diagnosis', value: d.admissionDiagnosis },
+    { key: 'allergies', label: 'Allergies', value: d.allergies, hint: 'NKDA or list', placeholder: 'NKDA or list' },
+    { key: 'admissionDiagnosis', label: 'Admission Diagnosis', value: d.admissionDiagnosis, placeholder: 'Working diagnosis on admission' },
   ];
   if (dept === 'og') {
     base.push(
-      { key: 'gestationalAge', label: 'Gestational Age', value: d.gestationalAge ?? '' },
-      { key: 'gravida', label: 'Gravida', value: d.gravida ?? '' },
-      { key: 'para', label: 'Para', value: d.para ?? '' },
-      { key: 'lmp', label: 'LMP', value: d.lmp ?? '' },
+      { key: 'gestationalAge', label: 'Gestational Age', value: d.gestationalAge ?? '', placeholder: 'e.g. 32+4 weeks' },
+      { key: 'lmp', label: 'LMP', value: d.lmp ?? '', placeholder: 'Last menstrual period' },
+      { key: 'gravida', label: 'Gravida', value: d.gravida ?? '', placeholder: 'G?' },
+      { key: 'para', label: 'Para', value: d.para ?? '', placeholder: 'P?' },
+    );
+  }
+  if (dept === 'paeds') {
+    base.push(
+      { key: 'weight', label: 'Weight (kg)', value: d.weight ?? '', placeholder: 'kg' },
+      { key: 'immunisations', label: 'Immunisations', value: d.immunisations ?? '', placeholder: 'Up to date / Behind / Unknown' },
+      { key: 'birthHistory', label: 'Birth History', value: d.birthHistory ?? '', placeholder: 'Term/preterm, mode of delivery' },
+      { key: 'caregiver', label: 'Caregiver', value: d.caregiver ?? '', placeholder: 'Parent/guardian name' },
+    );
+  }
+  if (dept === 'icu') {
+    base.push(
+      { key: 'icuDay', label: 'ICU Day', value: d.icuDay ?? '', placeholder: 'Day of ICU admission' },
+      { key: 'ventilator', label: 'Ventilator', value: d.ventilator ?? '', placeholder: 'Mode / settings' },
+      { key: 'lines', label: 'Lines / Drains', value: d.lines ?? '', placeholder: 'CVC, art line, IDC, drains' },
+      { key: 'vasopressors', label: 'Vasopressors', value: d.vasopressors ?? '', placeholder: 'None / agent + dose' },
+    );
+  }
+  if (dept === 'ortho') {
+    base.push(
+      { key: 'procedure', label: 'Injury / Procedure', value: d.procedure ?? '', placeholder: 'Fracture / joint / procedure' },
+      { key: 'popDay', label: 'Post-op Day', value: d.popDay ?? '', placeholder: 'Day post-op (if applicable)' },
+      { key: 'immobilisation', label: 'Immobilisation', value: d.immobilisation ?? '', placeholder: 'POP, backslab, brace, etc.' },
+      { key: 'dvtProphylaxis', label: 'DVT Prophylaxis', value: d.dvtProphylaxis ?? '', placeholder: 'LMWH / TED stockings / etc.' },
     );
   }
   return base;
@@ -113,30 +138,30 @@ function intakeAssistFields(d: IntakeData, dept: DeptId): AssistField[] {
 
 function historyAssistFields(d: HistoryData): AssistField[] {
   return [
-    { key: 'chiefComplaint', label: 'Chief Complaint', value: d.chiefComplaint },
-    { key: 'hpi', label: 'History of Presenting Illness', value: d.hpi, hint: 'SOCRATES' },
-    { key: 'pmh', label: 'Past Medical History', value: d.pmh },
-    { key: 'medications', label: 'Medications', value: d.medications },
-    { key: 'familyHistory', label: 'Family History', value: d.familyHistory },
-    { key: 'socialHistory', label: 'Social History', value: d.socialHistory },
-    { key: 'ros', label: 'Review of Systems', value: d.ros },
+    { key: 'chiefComplaint', label: 'Chief Complaint', value: d.chiefComplaint, placeholder: 'Main presenting complaint' },
+    { key: 'hpi', label: 'Presenting Illness', value: d.hpi, hint: 'SOCRATES', kind: 'textarea', placeholder: 'SOCRATES: Site, Onset, Character, Radiation…' },
+    { key: 'pmh', label: 'Past Medical History', value: d.pmh, kind: 'textarea', placeholder: 'Chronic conditions, previous hospitalisations, surgeries' },
+    { key: 'medications', label: 'Medications', value: d.medications, kind: 'textarea', placeholder: 'Include herbal/traditional medicines' },
+    { key: 'familyHistory', label: 'Family History', value: d.familyHistory, kind: 'textarea', placeholder: 'Relevant family history' },
+    { key: 'socialHistory', label: 'Social History', value: d.socialHistory, kind: 'textarea', placeholder: 'Occupation, smoking, alcohol, home situation' },
+    { key: 'ros', label: 'Review of Systems', value: d.ros, kind: 'textarea', placeholder: 'Relevant positive and negative findings' },
   ];
 }
 
 function assessmentAssistFields(d: AssessmentData): AssistField[] {
   return [
-    { key: 'vitals', label: 'Vitals', value: d.vitals, hint: 'BP, HR, RR, Temp, SpO2' },
-    { key: 'examination', label: 'Examination Findings', value: d.examination },
-    { key: 'investigations', label: 'Investigations', value: d.investigations, hint: 'bloods, imaging, other results' },
-    { key: 'dayOfAdmission', label: 'Day of Admission', value: d.dayOfAdmission },
+    { key: 'dayOfAdmission', label: 'Day of Admission', value: d.dayOfAdmission, placeholder: 'e.g. 1' },
+    { key: 'vitals', label: 'Vitals', value: d.vitals, hint: 'BP, HR, RR, Temp, SpO2', kind: 'textarea', placeholder: 'Temp / BP / HR / RR / SpO2 / GCS / MEOWS' },
+    { key: 'examination', label: 'Examination', value: d.examination, kind: 'textarea', placeholder: 'General, CVS, Respiratory, Abdomen, Neuro' },
+    { key: 'investigations', label: 'Investigations', value: d.investigations, hint: 'bloods, imaging, other results', kind: 'textarea', placeholder: 'Lab results, imaging, ECG findings' },
   ];
 }
 
 function roundAssistFields(d: RoundData): AssistField[] {
   return [
-    { key: 'subjective', label: 'Subjective / Overnight Events', value: d.subjective },
-    { key: 'plan', label: 'Plan for Today', value: d.plan },
-    { key: 'pending', label: 'Pending Results / Tasks', value: d.pending },
+    { key: 'subjective', label: 'Subjective', value: d.subjective, kind: 'textarea', placeholder: 'How does the patient feel? Any new complaints?' },
+    { key: 'plan', label: 'Plan for Today', value: d.plan, kind: 'textarea', placeholder: 'Active management for today' },
+    { key: 'pending', label: 'Pending', value: d.pending, kind: 'textarea', placeholder: 'Awaiting results, consults, procedures' },
   ];
 }
 
@@ -301,157 +326,22 @@ function IntakeTab({ patient, toolsKey, dept, onChange }: {
   onChange: (patch: Partial<IntakeData>) => void;
 }) {
   const d = patient.intake;
+  const fields = intakeAssistFields(d, dept);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <AssistPanel
         toolsKey={toolsKey}
         dept={dept}
         section="Intake"
-        fields={intakeAssistFields(d, dept)}
+        fields={fields}
         onUpdates={u => onChange(u as Partial<IntakeData>)}
       />
 
-      <SectionHead>Patient Demographics</SectionHead>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <Label>Full Name</Label>
-          <TextInput value={d.name} onChange={v => onChange({ name: v })} placeholder="Patient name" />
-        </div>
-        <div>
-          <Label>Age</Label>
-          <TextInput value={d.age} onChange={v => onChange({ age: v })} placeholder="e.g. 34 years" />
-        </div>
-        <div>
-          <Label>Sex</Label>
-          <select
-            value={d.sex}
-            onChange={e => onChange({ sex: e.target.value })}
-            className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-teal-500"
-          >
-            <option value="">Select</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div>
-          <Label>Ward</Label>
-          <TextInput value={d.ward} onChange={v => onChange({ ward: v })} placeholder="Ward name" />
-        </div>
-        <div>
-          <Label>Bed</Label>
-          <TextInput value={d.bed} onChange={v => onChange({ bed: v })} placeholder="Bed number" />
-        </div>
-        <div>
-          <Label>Admission Date</Label>
-          <TextInput value={d.admissionDate} onChange={v => onChange({ admissionDate: v })} />
-        </div>
-        <div>
-          <Label>Allergies</Label>
-          <TextInput value={d.allergies} onChange={v => onChange({ allergies: v })} placeholder="NKDA or list" />
-        </div>
-        <div className="col-span-2">
-          <Label>Admission Diagnosis</Label>
-          <TextInput value={d.admissionDiagnosis} onChange={v => onChange({ admissionDiagnosis: v })} placeholder="Working diagnosis on admission" />
-        </div>
+      <div>
+        <SectionHead>Details</SectionHead>
+        <DetailsList fields={fields} onEdit={(key, value) => onChange({ [key]: value })} />
       </div>
-
-      {(dept === 'og') && (
-        <>
-          <SectionHead>O&G Details</SectionHead>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Gestational Age</Label>
-              <TextInput value={d.gestationalAge ?? ''} onChange={v => onChange({ gestationalAge: v })} placeholder="e.g. 32+4 weeks" />
-            </div>
-            <div>
-              <Label>LMP</Label>
-              <TextInput value={d.lmp ?? ''} onChange={v => onChange({ lmp: v })} placeholder="Last menstrual period" />
-            </div>
-            <div>
-              <Label>Gravida</Label>
-              <TextInput value={d.gravida ?? ''} onChange={v => onChange({ gravida: v })} placeholder="G?" />
-            </div>
-            <div>
-              <Label>Para</Label>
-              <TextInput value={d.para ?? ''} onChange={v => onChange({ para: v })} placeholder="P?" />
-            </div>
-          </div>
-        </>
-      )}
-
-      {(dept === 'paeds') && (
-        <>
-          <SectionHead>Paediatric Details</SectionHead>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Weight (kg)</Label>
-              <TextInput value={d.weight ?? ''} onChange={v => onChange({ weight: v })} placeholder="kg" />
-            </div>
-            <div>
-              <Label>Immunisation Status</Label>
-              <TextInput value={d.immunisations ?? ''} onChange={v => onChange({ immunisations: v })} placeholder="Up to date / Behind / Unknown" />
-            </div>
-            <div>
-              <Label>Birth History</Label>
-              <TextInput value={d.birthHistory ?? ''} onChange={v => onChange({ birthHistory: v })} placeholder="Term/preterm, mode of delivery" />
-            </div>
-            <div>
-              <Label>Caregiver</Label>
-              <TextInput value={d.caregiver ?? ''} onChange={v => onChange({ caregiver: v })} placeholder="Parent/guardian name" />
-            </div>
-          </div>
-        </>
-      )}
-
-      {(dept === 'icu') && (
-        <>
-          <SectionHead>ICU Details</SectionHead>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>ICU Day</Label>
-              <TextInput value={d.icuDay ?? ''} onChange={v => onChange({ icuDay: v })} placeholder="Day of ICU admission" />
-            </div>
-            <div>
-              <Label>Ventilator</Label>
-              <TextInput value={d.ventilator ?? ''} onChange={v => onChange({ ventilator: v })} placeholder="Mode / settings" />
-            </div>
-            <div>
-              <Label>Lines / Drains</Label>
-              <TextInput value={d.lines ?? ''} onChange={v => onChange({ lines: v })} placeholder="CVC, art line, IDC, drains" />
-            </div>
-            <div>
-              <Label>Vasopressors</Label>
-              <TextInput value={d.vasopressors ?? ''} onChange={v => onChange({ vasopressors: v })} placeholder="None / agent + dose" />
-            </div>
-          </div>
-        </>
-      )}
-
-      {(dept === 'ortho') && (
-        <>
-          <SectionHead>Orthopaedic Details</SectionHead>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Injury / Procedure</Label>
-              <TextInput value={d.procedure ?? ''} onChange={v => onChange({ procedure: v })} placeholder="Fracture / joint / procedure" />
-            </div>
-            <div>
-              <Label>Post-op Day</Label>
-              <TextInput value={d.popDay ?? ''} onChange={v => onChange({ popDay: v })} placeholder="Day post-op (if applicable)" />
-            </div>
-            <div>
-              <Label>Immobilisation</Label>
-              <TextInput value={d.immobilisation ?? ''} onChange={v => onChange({ immobilisation: v })} placeholder="POP, backslab, brace, etc." />
-            </div>
-            <div>
-              <Label>DVT Prophylaxis</Label>
-              <TextInput value={d.dvtProphylaxis ?? ''} onChange={v => onChange({ dvtProphylaxis: v })} placeholder="LMWH / TED stockings / etc." />
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }
@@ -523,8 +413,16 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
         onUpdates={u => onChange(u as Partial<HistoryData>)}
       />
 
+      <div>
+        <SectionHead>Details</SectionHead>
+        <DetailsList
+          fields={historyAssistFields(patient.history)}
+          onEdit={(key, value) => onChange({ [key]: value } as Partial<HistoryData>)}
+        />
+      </div>
+
       {/* AI History Section */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
         <SectionHead>AI-Assisted History Taking</SectionHead>
         <p className="text-gray-500 text-xs mb-4">
           Start an AI session for the patient to complete their history. Share the link, then import when done.
@@ -580,56 +478,6 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
           </div>
         )}
       </div>
-
-      {/* Manual history fields */}
-      <SectionHead>Manual History Entry</SectionHead>
-      <div>
-        <Label>Chief Complaint</Label>
-        <TextInput
-          value={patient.history.chiefComplaint}
-          onChange={v => onChange({ chiefComplaint: v })}
-          placeholder="Main presenting complaint"
-        />
-      </div>
-      <div>
-        <Label>History of Present Illness</Label>
-        <TextArea
-          value={patient.history.hpi}
-          onChange={v => onChange({ hpi: v })}
-          placeholder="SOCRATES: Site, Onset, Character, Radiation, Associations, Time, Exacerbating/relieving, Severity"
-          rows={4}
-        />
-      </div>
-      <div>
-        <Label>Past Medical History</Label>
-        <TextArea
-          value={patient.history.pmh}
-          onChange={v => onChange({ pmh: v })}
-          placeholder="Chronic conditions, previous hospitalisations, surgeries"
-        />
-      </div>
-      <div>
-        <Label>Current Medications</Label>
-        <TextArea
-          value={patient.history.medications}
-          onChange={v => onChange({ medications: v })}
-          placeholder="Include herbal/traditional medicines"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>Family History</Label>
-          <TextArea value={patient.history.familyHistory} onChange={v => onChange({ familyHistory: v })} placeholder="Relevant family history" />
-        </div>
-        <div>
-          <Label>Social History</Label>
-          <TextArea value={patient.history.socialHistory} onChange={v => onChange({ socialHistory: v })} placeholder="Occupation, smoking, alcohol, home situation" />
-        </div>
-      </div>
-      <div>
-        <Label>Review of Systems</Label>
-        <TextArea value={patient.history.ros} onChange={v => onChange({ ros: v })} placeholder="Relevant positive and negative findings" />
-      </div>
     </div>
   );
 }
@@ -678,38 +526,10 @@ function AssessmentTab({ patient, toolsKey, dept, onChange, onAdmNote }: {
       />
 
       <div>
-        <Label>Day of Admission</Label>
-        <TextInput
-          value={patient.assessment.dayOfAdmission}
-          onChange={v => onChange({ dayOfAdmission: v })}
-          placeholder="e.g. 1"
-        />
-      </div>
-      <div>
-        <Label>Vitals</Label>
-        <TextArea
-          value={patient.assessment.vitals}
-          onChange={v => onChange({ vitals: v })}
-          placeholder="Temp / BP / HR / RR / SpO2 / GCS / MEOWS"
-          rows={2}
-        />
-      </div>
-      <div>
-        <Label>Examination Findings</Label>
-        <TextArea
-          value={patient.assessment.examination}
-          onChange={v => onChange({ examination: v })}
-          placeholder="General, CVS, Respiratory, Abdomen, Neuro, other systems"
-          rows={4}
-        />
-      </div>
-      <div>
-        <Label>Investigations</Label>
-        <TextArea
-          value={patient.assessment.investigations}
-          onChange={v => onChange({ investigations: v })}
-          placeholder="Lab results, imaging, ECG findings"
-          rows={3}
+        <SectionHead>Details</SectionHead>
+        <DetailsList
+          fields={assessmentAssistFields(patient.assessment)}
+          onEdit={(key, value) => onChange({ [key]: value } as Partial<AssessmentData>)}
         />
       </div>
 
@@ -923,41 +743,19 @@ function RoundTab({ patient, toolsKey, dept, onChange }: {
         onUpdates={u => onChange(u as Partial<RoundData>)}
       />
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <div>
+        <SectionHead>Details</SectionHead>
+        <DetailsList
+          fields={roundAssistFields(rd)}
+          onEdit={(key, value) => onChange({ [key]: value } as Partial<RoundData>)}
+        />
+      </div>
+
+      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
         <SectionHead>Daily Round Note</SectionHead>
         <p className="text-gray-500 text-xs mb-4">
           Auto-generated half-page ward round summary (SOAP format, ≤25 lines) from your patient data.
         </p>
-
-        <div className="space-y-3 mb-4">
-          <div>
-            <Label>Subjective (patient's report today)</Label>
-            <TextArea
-              value={rd.subjective}
-              onChange={v => onChange({ subjective: v })}
-              placeholder="How does the patient feel? Any new complaints?"
-              rows={2}
-            />
-          </div>
-          <div>
-            <Label>Today's Plan</Label>
-            <TextArea
-              value={rd.plan}
-              onChange={v => onChange({ plan: v })}
-              placeholder="Active management for today"
-              rows={2}
-            />
-          </div>
-          <div>
-            <Label>Pending</Label>
-            <TextArea
-              value={rd.pending}
-              onChange={v => onChange({ pending: v })}
-              placeholder="Awaiting results, consults, procedures"
-              rows={2}
-            />
-          </div>
-        </div>
 
         <div className="flex gap-3">
           <AiBtn onClick={generate} loading={loading} label="Generate Ward Round Note" />
@@ -1980,9 +1778,9 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           </div>
 
           {/* Tab content */}
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex-1 overflow-y-auto px-5 py-8">
             {activePatient ? (
-              <>
+              <div className="max-w-3xl mx-auto">
                 {activeTab === 'intake' && (
                   <IntakeTab
                     patient={activePatient}
@@ -2029,7 +1827,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 {activeTab === 'specialist' && (
                   <SpecialistTab patient={activePatient} toolsKey={key} dept={dept} />
                 )}
-              </>
+              </div>
             ) : (
               <div className="text-center py-16 text-gray-400">
                 <p className="text-4xl mb-3">👤</p>
