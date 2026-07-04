@@ -22,4 +22,28 @@
     background-color: #cbd5e1;
     border-radius: 4px;
   }
+
+  /* Assist-flow motion: question entrance + row glow when the AI fills a field */
+  @keyframes question-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes field-fill {
+    0% { background-color: rgb(153 246 228 / 0.55); } /* teal-200 */
+    100% { background-color: transparent; }
+  }
+  .animate-question-in {
+    animation: question-in 0.35s ease-out both;
+  }
+  .animate-field-fill {
+    animation: field-fill 1.6s ease-out both;
+  }
+  .animate-chip-in {
+    animation: question-in 0.3s ease-out both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-question-in, .animate-field-fill, .animate-chip-in {
+      animation: none;
+    }
+  }
 }

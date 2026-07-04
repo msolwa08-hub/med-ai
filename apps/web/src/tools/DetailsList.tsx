@@ -34,16 +34,31 @@ function Row({ field, editing, onStart, onDone, onEdit }: {
   onEdit: (value: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(null);
+  const [flash, setFlash] = useState(false);
+  const prevValue = useRef(field.value);
 
   useEffect(() => {
     if (editing) inputRef.current?.focus();
   }, [editing]);
 
+  // Glow softly when the value changes from outside the row (AI fill / scan),
+  // but not while the intern is typing in it.
+  useEffect(() => {
+    if (field.value !== prevValue.current) {
+      prevValue.current = field.value;
+      if (!editing && field.value) {
+        setFlash(true);
+        const t = setTimeout(() => setFlash(false), 1700);
+        return () => clearTimeout(t);
+      }
+    }
+  }, [field.value, editing]);
+
   const kind = field.kind ?? 'text';
 
   return (
     <div
-      className={`px-5 py-3.5 flex gap-4 cursor-pointer transition-colors ${editing ? 'bg-teal-50/40' : 'hover:bg-gray-50/70'} ${kind === 'textarea' ? 'items-start' : 'items-center'}`}
+      className={`px-5 py-3.5 flex gap-4 cursor-pointer transition-colors ${editing ? 'bg-teal-50/40' : 'hover:bg-gray-50/70'} ${kind === 'textarea' ? 'items-start' : 'items-center'} ${flash ? 'animate-field-fill' : ''}`}
       onClick={() => { if (!editing) onStart(); }}
     >
       <div className={`w-36 sm:w-44 shrink-0 text-[13px] text-gray-500 ${kind === 'textarea' ? 'pt-1' : ''}`}>

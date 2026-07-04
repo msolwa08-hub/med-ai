@@ -211,7 +211,10 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
       {error ? (
         <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">{error}</p>
       ) : (
-        <p className={`text-xl sm:text-2xl font-medium leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-gray-900'}`}>
+        <p
+          key={question || '__pending__'}
+          className={`animate-question-in text-xl sm:text-2xl font-medium leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-gray-900'}`}
+        >
           {busy && !question ? (
             <span className="text-gray-300">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
           ) : (
@@ -252,7 +255,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
             <span
               key={c.key}
               title={c.note ?? (c.confidence === 'medium' ? 'Read from handwriting — verify' : c.confidence === 'low' ? 'Barely legible — check this' : undefined)}
-              className={`text-[11px] border rounded-full px-2.5 py-1 ${chipStyle[c.confidence]}`}
+              className={`animate-chip-in text-[11px] border rounded-full px-2.5 py-1 ${chipStyle[c.confidence]}`}
             >
               {chipMark[c.confidence]} {c.label}
               {c.confidence === 'medium' && ' — verify'}
