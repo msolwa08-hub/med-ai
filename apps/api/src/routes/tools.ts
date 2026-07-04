@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { validateToolsKey } from '../lib/beta-config.js';
 import { betaEngine } from '../services/beta-engine.js';
 import { betaStore } from '../services/beta-store.js';
-import { toolsAssist, type AssistRequest } from '../services/tools-assist.js';
+import { toolsAssist, type AssistRequest, type ScanRequest } from '../services/tools-assist.js';
 import {
   generateDischargeSummary,
   generateReferralLetter,
@@ -53,6 +53,32 @@ export async function toolsRoutes(app: FastifyInstance) {
     } catch (err) {
       app.log.error(err);
       return reply.status(500).send({ error: 'Assist request failed' });
+    }
+  });
+
+  // Photo scan of handwritten notes: vision model reads the doctor's
+  // handwriting, fills fields with per-field confidence, and flags what it
+  // couldn't decipher so the intern (or the assist conversation) fills the gaps.
+  app.post('/tools/scan-notes', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<ScanRequest>;
+    if (!body.dept || !body.section || !Array.isArray(body.fields) || !body.imageBase64) {
+      return reply.status(400).send({ error: 'dept, section, fields, and imageBase64 are required' });
+    }
+    const mediaType =
+      body.mediaType === 'image/png' || body.mediaType === 'image/webp' ? body.mediaType : 'image/jpeg';
+    try {
+      const result = await toolsAssist.scanNotes({
+        dept: body.dept,
+        section: body.section,
+        fields: body.fields,
+        imageBase64: body.imageBase64,
+        mediaType,
+      });
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Scan request failed' });
     }
   });
 

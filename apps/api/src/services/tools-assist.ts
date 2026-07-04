@@ -70,7 +70,107 @@ RESPONSE FORMAT — reply with ONLY a JSON object, no prose before or after:
 "updates" must contain only fields whose value you extracted or corrected from the intern's LAST message (empty object on the first turn). Normalise dates to YYYY-MM-DD and keep clinical values verbatim.`;
 }
 
+// ─── Photo scan of handwritten notes ────────────────────────────────────────
+
+export type ScanConfidence = 'high' | 'medium' | 'low';
+
+export interface ScanFieldResult {
+  value: string;
+  confidence: ScanConfidence;
+  note?: string; // e.g. "could be 'Lasix' or 'Losec' — dose suggests Lasix"
+}
+
+export interface ScanRequest {
+  dept: string;
+  section: string;
+  fields: AssistField[];
+  imageBase64: string; // raw base64, no data: prefix
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
+}
+
+export interface ScanResponse {
+  results: Record<string, ScanFieldResult>;
+  unreadable: string[]; // field keys present in the notes but not decipherable
+  overallNote: string;
+}
+
+function buildScanPrompt(req: ScanRequest): string {
+  const deptLabel = DEPT_LABELS[req.dept] ?? req.dept;
+  const fieldList = req.fields
+    .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (expected: ${f.hint})` : ''}`)
+    .join('\n');
+
+  return `You are MedAI Scribe reading a photo of HANDWRITTEN clinical notes from a South African ${deptLabel} ward, to fill the "${req.section}" section of a patient record.
+
+FIELDS TO EXTRACT:
+${fieldList}
+
+DOCTORS' HANDWRITING IS POOR — you are specifically built for this:
+- Use clinical context to decode scrawl: a drug name near "40mg OD" narrows the possibilities; a number after "BP" is a blood pressure.
+- Expand standard clinical shorthand (c/o, Hx, PMHx, Rx, NKDA, BD/TDS/QID, SOB, #NOF) into the field value where appropriate.
+- Expect South African clinical conventions and drug names.
+- NEVER silently guess. Every extracted value carries a confidence:
+  - "high": clearly legible or unambiguous from context
+  - "medium": readable but plausibly wrong — the intern must verify
+  - "low": barely legible; your best reconstruction, likely wrong
+- If a field's content is present in the notes but you cannot decipher it at all, list its key under "unreadable" instead of inventing a value.
+- If a field simply is not in the notes, omit it entirely (not unreadable, just absent).
+- For medium/low confidence, add a short "note" saying what else it could read as, so the intern can verify quickly (e.g. "could be 'Lasix' or 'Losec' — 40mg OD suggests Lasix").
+
+RESPONSE — ONLY a JSON object, no prose:
+{
+  "results": { "<fieldKey>": { "value": "...", "confidence": "high|medium|low", "note": "..." }, ... },
+  "unreadable": ["<fieldKey>", ...],
+  "overallNote": "<one line: legibility of the note overall, anything the intern should double-check>"
+}`;
+}
+
 export class ToolsAssistEngine {
+  async scanNotes(req: ScanRequest): Promise<ScanResponse> {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: req.mediaType, data: req.imageBase64 },
+            },
+            { type: 'text', text: buildScanPrompt(req) },
+          ],
+        },
+      ],
+    });
+
+    const text = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map(b => b.text)
+      .join('');
+
+    const parsed = extractJSON<Partial<ScanResponse>>(text);
+    const allowed = new Set(req.fields.map(f => f.key));
+
+    const results: Record<string, ScanFieldResult> = {};
+    for (const [k, v] of Object.entries(parsed?.results ?? {})) {
+      if (!allowed.has(k) || !v || typeof v.value !== 'string') continue;
+      const confidence: ScanConfidence =
+        v.confidence === 'high' || v.confidence === 'medium' || v.confidence === 'low' ? v.confidence : 'low';
+      results[k] = { value: v.value, confidence, note: typeof v.note === 'string' ? v.note : undefined };
+    }
+
+    const unreadable = Array.isArray(parsed?.unreadable)
+      ? parsed.unreadable.filter((k): k is string => typeof k === 'string' && allowed.has(k) && !(k in results))
+      : [];
+
+    return {
+      results,
+      unreadable,
+      overallNote: typeof parsed?.overallNote === 'string' ? parsed.overallNote : '',
+    };
+  }
+
   async step(req: AssistRequest): Promise<AssistResponse> {
     const system = buildSystemPrompt(req);
 

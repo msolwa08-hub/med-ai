@@ -58,9 +58,26 @@ export interface AssistResponse {
   done: boolean;
 }
 
+export type ScanConfidence = 'high' | 'medium' | 'low';
+
+export interface ScanFieldResult {
+  value: string;
+  confidence: ScanConfidence;
+  note?: string;
+}
+
+export interface ScanResponse {
+  results: Record<string, ScanFieldResult>;
+  unreadable: string[];
+  overallNote: string;
+}
+
 export const toolsApi = {
   assist: (key: string, input: { dept: string; section: string; fields: AssistField[]; transcript: AssistTurn[] }) =>
     post<AssistResponse>('/tools/assist', key, input),
+
+  scanNotes: (key: string, input: { dept: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string }) =>
+    post<ScanResponse>('/tools/scan-notes', key, input),
 
   validate: async (key: string): Promise<boolean> => {
     try {

@@ -12,6 +12,9 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
     logger: {
       level: betaConfig.NODE_ENV === 'production' ? 'info' : 'debug',
     },
+    // Photo scans of handwritten notes arrive as base64 JSON (~33% overhead
+    // on a downscaled JPEG); the default 1 MiB limit is too small for them.
+    bodyLimit: 12 * 1024 * 1024,
   });
 
   await app.register(cors, {
