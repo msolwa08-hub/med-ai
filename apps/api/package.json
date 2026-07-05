@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "build:beta": "tsc -p tsconfig.json",
+    "build:beta": "tsc -p tsconfig.beta.json",
     "start": "node dist/index.js",
     "start:beta": "node dist/beta-server.js",
     "db:generate": "prisma generate --schema=../../prisma/schema.prisma",
