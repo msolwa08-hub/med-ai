@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { api } from '../api';
+import { api, ApiError } from '../api';
 import { storage } from '../storage';
 
 interface Message {
@@ -12,53 +12,131 @@ interface Props {
 }
 
 export default function ChatView({ sessionId }: Props) {
+  // The live session id: starts as the ?s= link value (may be empty when the
+  // patient arrives via the landing card) and is replaced by whatever
+  // /beta/start returns.
+  const [activeSessionId, setActiveSessionId] = useState(sessionId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [starting, setStarting] = useState(true);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState('');
-  const [betaKey, setBetaKey] = useState(storage.getBetaKey() || 'MEDAI-BETA-DEV');
+  const [needsKey, setNeedsKey] = useState(false);
+  const [keyInput, setKeyInput] = useState('');
+  const [betaKey, setBetaKey] = useState(storage.getBetaKey());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    loadSession();
+    void loadSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  async function loadSession() {
+  function rememberSession(id: string) {
+    setActiveSessionId(id);
+    // Put the session in the URL so a refresh resumes instead of restarting.
+    const url = new URL(window.location.href);
+    url.searchParams.set('s', id);
+    window.history.replaceState({}, '', url.toString());
+  }
+
+  async function startNewSession(key: string) {
+    setStarting(true);
+    setError('');
     try {
-      const session = await api.getSession(sessionId);
-      setMessages(session.messages as Message[]);
-      if (session.status === 'completed') setCompleted(true);
-    } catch {
-      // New session — start with a greeting message
-      try {
-        const result = await api.startSession(betaKey, {});
-        setMessages([{ role: 'assistant', content: result.message }]);
-      } catch (e) {
-        setError('Could not connect to MedAI server.');
+      const result = await api.startSession(key, {});
+      rememberSession(result.sessionId);
+      setMessages([{ role: 'assistant', content: result.message }]);
+      setNeedsKey(false);
+      storage.setBetaKey(key);
+      setBetaKey(key);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        setNeedsKey(true);
+        setError(key ? 'That access key was not recognised — please check it and try again.' : '');
+      } else {
+        setError('Could not connect to MedAI. Check your internet connection and try again.');
       }
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function loadSession() {
+    if (sessionId) {
+      try {
+        const session = await api.getSession(sessionId);
+        setActiveSessionId(sessionId);
+        setMessages(session.messages as Message[]);
+        if (session.status === 'completed') setCompleted(true);
+        setStarting(false);
+        return;
+      } catch {
+        // Expired/unknown link — fall through and start fresh below.
+      }
+    }
+    if (betaKey) {
+      await startNewSession(betaKey);
+    } else {
+      setNeedsKey(true);
+      setStarting(false);
     }
   }
 
   async function send() {
-    if (!input.trim() || loading || completed) return;
+    if (!input.trim() || loading || completed || !activeSessionId) return;
     const userMsg = input.trim();
+    const priorMessages = messages;
     setInput('');
+    setError('');
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setLoading(true);
     try {
-      const result = await api.chat(betaKey, sessionId, userMsg);
+      // Send the transcript along so the server can rebuild the session if it
+      // restarted since the last turn.
+      const result = await api.chat(betaKey, activeSessionId, userMsg, priorMessages);
       setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
       if (result.completed) setCompleted(true);
     } catch {
-      setError('Failed to send message. Please try again.');
+      // Give the patient their message back so nothing they typed is lost.
+      setMessages(priorMessages);
+      setInput(userMsg);
+      setError('That message did not go through — press Send to try again.');
     } finally {
       setLoading(false);
     }
+  }
+
+  if (needsKey) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-8 w-full max-w-sm text-center">
+          <img src="/medai-icon.svg" alt="MedAI" className="w-12 h-12 mx-auto mb-4" />
+          <h2 className="text-gray-900 text-xl font-semibold mb-1">MedAI Patient History</h2>
+          <p className="text-gray-500 text-sm mb-6">Enter the access key your clinic gave you.</p>
+          <input
+            value={keyInput}
+            onChange={e => setKeyInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && keyInput.trim() && startNewSession(keyInput.trim())}
+            placeholder="Access key"
+            autoFocus
+            className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 mb-3"
+          />
+          <button
+            onClick={() => keyInput.trim() && startNewSession(keyInput.trim())}
+            disabled={!keyInput.trim() || starting}
+            className="w-full bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
+          >
+            {starting ? 'Starting…' : 'Start'}
+          </button>
+          {error && <p className="text-red-500 text-xs mt-3">{error}</p>}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -77,6 +155,16 @@ export default function ChatView({ sessionId }: Props) {
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-2xl mx-auto w-full">
+        {starting && messages.length === 0 && (
+          <div className="text-center py-16 text-gray-400">
+            <div className="flex justify-center gap-1 mb-3">
+              <div className="w-2 h-2 bg-teal-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-teal-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-teal-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <p className="text-sm">Getting ready…</p>
+          </div>
+        )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
@@ -107,7 +195,19 @@ export default function ChatView({ sessionId }: Props) {
             <p className="text-emerald-600/70 text-xs mt-1">Your doctor can now review your history.</p>
           </div>
         )}
-        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+        {error && !starting && (
+          <div className="text-center">
+            <p className="text-red-500 text-sm">{error}</p>
+            {messages.length === 0 && (
+              <button
+                onClick={() => (betaKey ? startNewSession(betaKey) : setNeedsKey(true))}
+                className="mt-2 text-teal-600 text-sm hover:text-teal-700 font-medium"
+              >
+                Try again
+              </button>
+            )}
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -119,11 +219,12 @@ export default function ChatView({ sessionId }: Props) {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
               placeholder="Type your response..."
-              className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              disabled={starting || !activeSessionId}
+              className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
             />
             <button
               onClick={send}
-              disabled={loading || !input.trim()}
+              disabled={loading || starting || !input.trim() || !activeSessionId}
               className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-5 py-3 rounded-xl font-medium text-sm transition-colors"
             >
               Send

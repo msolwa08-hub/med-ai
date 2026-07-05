@@ -77,7 +77,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
     });
   }
 
-  async function step(nextTranscript: AssistTurn[], fieldsOverride?: AssistField[]) {
+  async function step(nextTranscript: AssistTurn[], fieldsOverride?: AssistField[], failedAnswer?: string) {
     setLoading(true);
     setError(null);
     try {
@@ -96,6 +96,9 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
       setDone(res.done);
       if (!res.done) setTimeout(() => inputRef.current?.focus(), 50);
     } catch {
+      // Give the intern their answer back — a failed call must never eat what
+      // they typed.
+      if (failedAnswer) setAnswer(failedAnswer);
       setError('AI assist is unavailable right now — you can fill the form below directly.');
     } finally {
       setLoading(false);
@@ -113,7 +116,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
     const text = answer.trim();
     if (!text || loading || done) return;
     setAnswer('');
-    void step([...transcript, { role: 'user', content: text }]);
+    void step([...transcript, { role: 'user', content: text }], undefined, text);
   }
 
   async function scanPhoto(file: File) {
@@ -193,7 +196,6 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
             ref={fileRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) void scanPhoto(f); }}
           />

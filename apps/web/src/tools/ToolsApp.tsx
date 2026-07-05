@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { AccessKeyGate } from '../components/AccessKeyGate';
 import { toolsApi, type Problem, type RoundNote, type HistorySession, type HistorySummary, type AssistField, type SafetyWarning } from './toolsApi';
 import { storage } from '../storage';
@@ -592,19 +592,28 @@ function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
         history: patient.history,
         assessment: patient.assessment,
       });
-      const suggested: Problem[] = res.problems.map(p => ({
-        id: uid(),
-        problem: p.problem,
-        workingDx: p.workingDx,
-        differentials: p.differentials,
-        management: p.management,
-        status: 'active',
-        icd10: p.icd10,
-        stgCondition: p.stgCondition,
-      }));
+      // Don't duplicate problems already on the list — re-clicking Suggest
+      // should refine, not multiply.
+      const existing = new Set(problems.map(p => p.problem.trim().toLowerCase()));
+      const suggested: Problem[] = res.problems
+        .filter(p => !existing.has(p.problem.trim().toLowerCase()))
+        .map(p => ({
+          id: uid(),
+          problem: p.problem,
+          workingDx: p.workingDx,
+          differentials: p.differentials,
+          management: p.management,
+          status: 'active',
+          icd10: p.icd10,
+          stgCondition: p.stgCondition,
+        }));
       onChange([...problems, ...suggested]);
       setWarnings(res.safety);
-      setAiNote(res.note);
+      setAiNote(
+        suggested.length === 0 && res.problems.length > 0
+          ? 'No new problems — the suggestions matched what is already on the list.'
+          : res.note
+      );
     } catch {
       setErr('Could not generate the problem list — check the record has enough detail, or add problems manually.');
     } finally {
@@ -1890,11 +1899,24 @@ function FertilityCalc() {
 // ─── MAIN TOOLS APP ──────────────────────────────────────────────────────────
 
 export function ToolsApp({ onBack }: { onBack: () => void }) {
+  // Hydrate the whole working set from localStorage so a refresh, tab
+  // discard, or phone-browser eviction never loses a round's worth of data.
+  const persisted = useRef(storage.getToolsState()).current;
   const [key, setKey] = useState(storage.getToolsKey());
-  const [dept, setDept] = useState<DeptId | null>(null);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [activePatientId, setActivePatientId] = useState<string | null>(null);
+  const [dept, setDept] = useState<DeptId | null>(
+    (persisted?.dept as DeptId | null) ?? null
+  );
+  const [patients, setPatients] = useState<Patient[]>(
+    (persisted?.patients as Patient[] | undefined) ?? []
+  );
+  const [activePatientId, setActivePatientId] = useState<string | null>(
+    persisted?.activePatientId ?? null
+  );
   const [activeTab, setActiveTab] = useState<Tab>('intake');
+
+  useEffect(() => {
+    storage.setToolsState({ dept, patients, activePatientId });
+  }, [dept, patients, activePatientId]);
 
   function handleKey(k: string) {
     storage.setToolsKey(k);
@@ -1903,10 +1925,15 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
 
   function selectDept(d: DeptId) {
     setDept(d);
-    // Create initial patient
-    const p = newPatient(d);
-    setPatients([p]);
-    setActivePatientId(p.id);
+    // Keep existing patients when returning to a department; only seed the
+    // first patient on a genuinely empty board.
+    if (patients.length === 0) {
+      const p = newPatient(d);
+      setPatients([p]);
+      setActivePatientId(p.id);
+    } else if (!activePatientId) {
+      setActivePatientId(patients[0].id);
+    }
   }
 
   function addPatient() {
@@ -2039,6 +2066,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
               <div className="max-w-3xl mx-auto">
                 {activeTab === 'intake' && (
                   <IntakeTab
+                    key={activePatient.id}
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
@@ -2047,6 +2075,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 )}
                 {activeTab === 'history' && (
                   <HistoryTab
+                    key={activePatient.id}
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
@@ -2055,6 +2084,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 )}
                 {activeTab === 'assessment' && (
                   <AssessmentTab
+                    key={activePatient.id}
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
@@ -2064,6 +2094,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 )}
                 {activeTab === 'problems' && (
                   <ProblemsTab
+                    key={activePatient.id}
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
@@ -2073,6 +2104,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 )}
                 {activeTab === 'round' && (
                   <RoundTab
+                    key={activePatient.id}
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
@@ -2087,10 +2119,10 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 )}
                 {activeTab === 'formulas' && <FormulasTab dept={dept} patient={activePatient} />}
                 {activeTab === 'documents' && (
-                  <DocumentsTab patient={activePatient} toolsKey={key} dept={dept} />
+                  <DocumentsTab key={activePatient.id} patient={activePatient} toolsKey={key} dept={dept} />
                 )}
                 {activeTab === 'specialist' && (
-                  <SpecialistTab patient={activePatient} toolsKey={key} dept={dept} />
+                  <SpecialistTab key={activePatient.id} patient={activePatient} toolsKey={key} dept={dept} />
                 )}
               </div>
             ) : (
