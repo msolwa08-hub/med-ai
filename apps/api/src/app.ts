@@ -67,9 +67,12 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
       prefix: '/',
     });
 
-    // SPA fallback — serve index.html for all non-API routes
+    // SPA fallback — serve index.html for all non-API routes. API routes live
+    // under /beta/*, /tools/*, /cockpit/* — but the bare /tools (etc.) paths
+    // are SPA pages the runbook hands out, so only exclude the deeper paths.
     app.setNotFoundHandler(async (req, reply) => {
-      if (req.url.startsWith('/beta') || req.url.startsWith('/tools') || req.url.startsWith('/cockpit') || req.url.startsWith('/health')) {
+      const url = req.url.split('?')[0];
+      if (url.startsWith('/beta/') || url.startsWith('/tools/') || url.startsWith('/cockpit/') || url === '/health') {
         return reply.status(404).send({ error: 'Not found' });
       }
       return reply.sendFile('index.html');

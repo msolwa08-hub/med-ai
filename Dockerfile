@@ -22,7 +22,6 @@ RUN npm run build:web \
 
 # Runtime config
 ENV NODE_ENV=production
-ENV WEB_DIST_PATH=/app/apps/web/dist
 # PORT is provided by the host (Render/Railway set it automatically)
 
-CMD ["node", "apps/api/dist-beta/server.js"]
+CMD ["node", "apps/api/dist/beta-server.js"]
