@@ -165,34 +165,49 @@ function historyAssistFields(d: HistoryData, dept: DeptId, subDept?: string): As
     { key: 'chiefComplaint', label: 'Chief Complaint', value: d.chiefComplaint, placeholder: 'Main presenting complaint' },
     { key: 'hpi', label: 'Presenting Illness', value: d.hpi, hint: 'SOCRATES', kind: 'textarea', placeholder: 'SOCRATES: Site, Onset, Character, Radiation…' },
     { key: 'pmh', label: 'Past Medical History', value: d.pmh, kind: 'textarea', placeholder: 'Chronic conditions, previous hospitalisations, surgeries' },
+    // High SA prevalence, broadly clinically relevant regardless of specialty
+    // (sepsis workup, TB co-screening, drug interactions with ART) — asked
+    // for every department, not just O&G.
+    { key: 'hivStatus', label: 'HIV Status', value: d.hivStatus ?? '', hint: 'ask non-judgementally; if positive: ART regimen, adherence, last viral load/CD4', placeholder: 'Negative / Positive on ART (regimen, adherence) / Unknown — offer testing' },
     { key: 'medications', label: 'Medications', value: d.medications, kind: 'textarea', placeholder: 'Include herbal/traditional medicines' },
     { key: 'familyHistory', label: 'Family History', value: d.familyHistory, kind: 'textarea', placeholder: 'Relevant family history' },
     { key: 'socialHistory', label: 'Social History', value: d.socialHistory, kind: 'textarea', placeholder: 'Occupation, smoking, alcohol, home situation' },
     { key: 'ros', label: 'Review of Systems', value: d.ros, kind: 'textarea', placeholder: 'Relevant positive and negative findings' },
   ];
   if (dept === 'og') {
-    base.splice(2, 0,
+    // Built in the intended reading order, then inserted once (right after
+    // Past Medical History) — avoids fragile re-computed splice indices.
+    const ogFields: AssistField[] = [
       { key: 'obstetricHistory', label: 'Obstetric History', value: d.obstetricHistory ?? '', kind: 'textarea', hint: 'each pregnancy: year, outcome, mode of delivery, complications, birth weight', placeholder: 'G/P detail: outcomes, modes of delivery, complications' },
-    );
+    ];
+    if (subDept !== 'gynae') {
+      // Relevant across the whole pregnancy journey (antenatal, labour,
+      // postnatal) — not just the booking visit.
+      ogFields.push(
+        { key: 'antenatalVisits', label: 'Antenatal Visits', value: d.antenatalVisits ?? '', hint: 'how many ANC visits this pregnancy? compare against BANC-Plus (8 contacts)', placeholder: 'Number of visits + gestation at booking' },
+        { key: 'supplementation', label: 'Supplementation', value: d.supplementation ?? '', hint: 'ferrous sulfate + folic acid, calcium — confirm actually taken, not just prescribed', placeholder: 'e.g. FeSO4 + folic acid daily, adherent; calcium since 20wks' },
+      );
+    }
     if (subDept === 'labour') {
-      base.splice(3, 0,
+      ogFields.push(
         { key: 'onsetOfLabour', label: 'Onset of Labour', value: d.onsetOfLabour ?? '', hint: 'spontaneous vs induced, time of onset', placeholder: 'e.g. spontaneous, contractions since 04:00' },
       );
     } else if (subDept === 'postnatal') {
-      base.splice(3, 0,
+      ogFields.push(
         { key: 'deliverySummary', label: 'Delivery Summary', value: d.deliverySummary ?? '', kind: 'textarea', hint: 'mode, indication if operative, complications, blood loss', placeholder: 'Mode of delivery, indication, complications, EBL' },
       );
     } else if (subDept === 'gynae') {
       // Not necessarily a current pregnancy — antenatal course this visit doesn't apply.
-      base.splice(3, 0,
+      ogFields.push(
         { key: 'gynaeHistory', label: 'Gynae History', value: d.gynaeHistory ?? '', kind: 'textarea', hint: 'menstrual history, contraception, pap smears, gynae surgery', placeholder: 'Menstrual Hx, contraception, pap smears, previous gynae surgery' },
       );
     } else {
-      base.splice(3, 0,
+      ogFields.push(
         { key: 'antenatalCare', label: 'Antenatal Care', value: d.antenatalCare ?? '', kind: 'textarea', hint: 'booking, visits, scans, issues this pregnancy', placeholder: 'Booking GA, visits, scans, problems this pregnancy' },
         { key: 'gynaeHistory', label: 'Gynae History', value: d.gynaeHistory ?? '', kind: 'textarea', hint: 'menstrual history, contraception, pap smears, gynae surgery', placeholder: 'Menstrual Hx, contraception, pap smears, previous gynae surgery' },
       );
     }
+    base.splice(3, 0, ...ogFields);
   }
   if (dept === 'paeds') {
     if (subDept === 'neonatal') {
@@ -215,7 +230,7 @@ function historyAssistFields(d: HistoryData, dept: DeptId, subDept?: string): As
     );
   }
   if (dept === 'surgery' || dept === 'ortho') {
-    base.splice(4, 0,
+    base.splice(5, 0,
       { key: 'lastMeal', label: 'Last Oral Intake', value: d.lastMeal ?? '', hint: 'NPO status for theatre', placeholder: 'Time of last food/fluids' },
       { key: 'anaestheticHistory', label: 'Anaesthetic History', value: d.anaestheticHistory ?? '', hint: 'previous GA/spinal, complications, airway issues', placeholder: 'Previous GA/spinal, complications' },
     );
@@ -322,6 +337,7 @@ function roundAssistFields(d: RoundData): AssistField[] {
 // asks about contractions, not generic pain).
 function patientContext(p: Patient, dept: DeptId, subDept?: string): string {
   const i = p.intake;
+  const h = p.history;
   const subDeptLabel = subDept ? SUB_DEPARTMENTS[dept]?.find(s => s.id === subDept)?.label : undefined;
   const bits = [
     [i.age, i.sex].filter(Boolean).join(' '),
@@ -329,9 +345,11 @@ function patientContext(p: Patient, dept: DeptId, subDept?: string): string {
     dept === 'og' && (i.gravida || i.para) ? `G${i.gravida || '?'}P${i.para || '?'}` : '',
     dept === 'og' && i.gestationalAge ? `EGA ${i.gestationalAge}` : '',
     dept === 'og' && i.lmp ? `LMP ${i.lmp}` : '',
+    dept === 'og' && h.antenatalVisits ? `ANC visits: ${h.antenatalVisits}` : '',
     dept === 'paeds' && i.weight ? `${i.weight}kg` : '',
     i.admissionDiagnosis ? `admitted with ${i.admissionDiagnosis}` : '',
     i.allergies ? `allergies: ${i.allergies}` : '',
+    h.hivStatus ? `HIV: ${h.hivStatus}` : '',
   ].filter(Boolean);
   return bits.join(', ');
 }
@@ -1187,15 +1205,23 @@ function suggestCalculators(patient: Patient): Array<{ calc: string; reason: str
   ]
     .filter(Boolean)
     .join(' \n ');
-  if (!text.trim()) return [];
+
   const seen = new Set<string>();
   const out: Array<{ calc: string; reason: string }> = [];
-  for (const t of CALC_TRIGGERS) {
-    if (seen.has(t.calc)) continue;
-    if (t.pattern.test(text)) {
-      seen.add(t.calc);
-      out.push({ calc: t.calc, reason: t.reason });
+  if (text.trim()) {
+    for (const t of CALC_TRIGGERS) {
+      if (seen.has(t.calc)) continue;
+      if (t.pattern.test(text)) {
+        seen.add(t.calc);
+        out.push({ calc: t.calc, reason: t.reason });
+      }
     }
+  }
+  // Direct (non-freetext) trigger: any pregnancy with a gestational age on
+  // record should get the BANC-Plus schedule check surfaced, not just when
+  // the word "antenatal" happens to appear somewhere.
+  if (patient.intake.gestationalAge && !seen.has('ancschedule')) {
+    out.push({ calc: 'ancschedule', reason: 'gestational age on record' });
   }
   return out;
 }
@@ -1216,6 +1242,7 @@ function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient }) {
     crb65: <CRB65Calc />,
     phq9: <PHQ9Calc />,
     bishop: <BishopCalc />,
+    ancschedule: <ANCScheduleCalc />,
     apgar: <APGARCalc />,
     eddga: <EddGaCalc />,
     meows: <MEOWSCalc />,
@@ -1240,6 +1267,7 @@ function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient }) {
     { id: 'crb65', label: 'CRB-65', depts: ['medicine', 'emergency'] },
     { id: 'phq9', label: 'PHQ-9', depts: ['medicine', 'psych', 'emergency'] },
     { id: 'bishop', label: 'Bishop Score', depts: ['og'] },
+    { id: 'ancschedule', label: 'ANC Schedule (BANC-Plus)', depts: ['og'] },
     { id: 'apgar', label: 'APGAR', depts: ['og', 'paeds'] },
     { id: 'eddga', label: 'EDD / GA', depts: ['og'] },
     { id: 'meows', label: 'MEOWS', depts: ['og'] },
@@ -1884,6 +1912,43 @@ function EddGaCalc() {
           <Result label="GA from US" value={`${Math.floor(Number(usDays) / 7)}+${Number(usDays) % 7} weeks`} color="pink" />
         )}
       </div>
+    </CalcCard>
+  );
+}
+
+// SA DoH Basic Antenatal Care Plus (BANC-Plus) contact schedule — the target
+// gestational week for each of the 8 recommended antenatal contacts.
+const BANC_PLUS_CONTACTS = [12, 20, 26, 30, 34, 36, 38, 40];
+
+function ANCScheduleCalc() {
+  const [gaWeeks, setGaWeeks] = useState<number | ''>('');
+  const [visits, setVisits] = useState<number | ''>('');
+  const ga = Number(gaWeeks);
+  const v = Number(visits);
+  const assessed = gaWeeks !== '' && visits !== '';
+
+  const expected = ga > 0 ? BANC_PLUS_CONTACTS.filter(w => w <= ga).length : 0;
+  const behind = assessed && v < expected;
+  const nextMilestone = BANC_PLUS_CONTACTS.find(w => w > ga);
+
+  return (
+    <CalcCard title="Antenatal Visit Schedule (BANC-Plus)">
+      <Row label="Gestational Age (weeks)"><NumInput value={gaWeeks} onChange={setGaWeeks} placeholder="e.g. 28" /></Row>
+      <Row label="Visits so far"><NumInput value={visits} onChange={setVisits} placeholder="e.g. 2" /></Row>
+      {assessed && (
+        <>
+          <Result
+            label="BANC-Plus"
+            value={behind ? `Behind — expected ${expected}, has had ${v}` : `On track (${v}/${expected} expected by now)`}
+            color={behind ? 'red' : 'green'}
+          />
+          <p className="text-xs text-gray-500 leading-relaxed mt-2">
+            SA BANC-Plus targets 8 contacts: booking (ideally by 12 weeks), then {BANC_PLUS_CONTACTS.slice(1).join(', ')} weeks.
+            {behind && ' Explore barriers to attendance (distance, cost, awareness) rather than just noting non-attendance — and use this visit to catch up risk-screening (BP, urine, Hb, syphilis/HIV re-test if indicated).'}
+            {nextMilestone && !behind && ` Next scheduled contact around ${nextMilestone} weeks.`}
+          </p>
+        </>
+      )}
     </CalcCard>
   );
 }

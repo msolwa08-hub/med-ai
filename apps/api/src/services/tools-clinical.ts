@@ -15,7 +15,9 @@ const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 function stgMatches(clinicalText: string, limit = 4): STGSeedEntry[] {
   const text = clinicalText.toLowerCase();
   const scored = STG_ENTRIES.map(entry => {
-    const words = entry.condition.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 3);
+    // >3 alone drops real 3-letter clinical anchors that matter a lot here —
+    // HIV, ART, TB, PID, DVT, UTI — so keep those explicitly even at length 3.
+    const words = entry.condition.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 3);
     let score = 0;
     for (const w of words) if (text.includes(w)) score++;
     if (text.includes(entry.condition.toLowerCase())) score += 5;
@@ -89,8 +91,11 @@ RULES:
 - One problem per genuinely separate clinical issue (max 6), most urgent first. Include significant abnormal findings (e.g. deranged creatinine -> "AKI?") not just the admission diagnosis.
 - workingDx: single most likely diagnosis. differentials: 2-4 realistic alternatives, dangerous ones first.
 - management: 3-6 concrete numbered-style steps with doses where an STG entry applies; tag "stgCondition" with the matched guideline's condition name when used, and include its icd10 code.
+- ESSENTIAL MEDICINES LIST (EML): prefer agents on the SA National EML (Core list) available at this level of care; if the best agent is Complementary-list or not EML-listed, say so explicitly in the management step (e.g. "not on PHC EML — refer/motivate") rather than silently prescribing outside formulary.
 - POLYPHARMACY & INTERACTIONS: the patient's current medications are: "${currentMeds || 'none recorded'}". Do not propose agents that clash with these or with the recorded allergies; if unavoidable, note the precaution inside the management step.
 - Consider AKI risk whenever nephrotoxics, sepsis, hypovolaemia or contrast appear.
+- HIV: if HIV status is positive or unknown, always raise it as its own problem — ART regimen/adherence and viral load if positive (PMTCT if pregnant); offer/repeat testing if unknown or not done this pregnancy. Never skip this because the admission reason is unrelated.
+- ANTENATAL CARE QUALITY (when pregnant): if the number of antenatal visits recorded is fewer than expected for the gestational age under the SA BANC-Plus schedule (contacts at booking, ~20, 26, 30, 34, 36, 38, 40 weeks), flag this as a problem ("booked late" / "sub-optimal antenatal care") and escalate other pregnancy risk-screening accordingly. If iron/folate/calcium supplementation is not confirmed as taken, note it as a gap to address, not just to prescribe.
 
 RESPOND with ONLY JSON:
 {
