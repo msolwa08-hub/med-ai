@@ -21,6 +21,24 @@ const DEPARTMENTS = [
 
 type DeptId = (typeof DEPARTMENTS)[number]['id'];
 
+// Ward/unit within a department — only configured where the clinical picture
+// actually changes enough to matter (an antenatal patient and a labour-ward
+// patient are both "O&G" but need entirely different questions and exam
+// fields). Departments without an entry here skip straight to the patient
+// view, same as before.
+const SUB_DEPARTMENTS: Partial<Record<DeptId, { id: string; label: string; icon: string }[]>> = {
+  og: [
+    { id: 'antenatal', label: 'Antenatal Ward', icon: '🤰' },
+    { id: 'labour', label: 'Labour Ward', icon: '👶' },
+    { id: 'postnatal', label: 'Postnatal Ward', icon: '🍼' },
+    { id: 'gynae', label: 'Gynaecology', icon: '⚕️' },
+  ],
+  paeds: [
+    { id: 'general', label: 'General Paediatrics', icon: '🏥' },
+    { id: 'neonatal', label: 'Neonatal / Nursery', icon: '👶' },
+  ],
+};
+
 // ─── Patient data interfaces ────────────────────────────────────────────────
 
 interface IntakeData {
@@ -142,7 +160,7 @@ function intakeAssistFields(d: IntakeData, dept: DeptId): AssistField[] {
   return base;
 }
 
-function historyAssistFields(d: HistoryData, dept: DeptId): AssistField[] {
+function historyAssistFields(d: HistoryData, dept: DeptId, subDept?: string): AssistField[] {
   const base: AssistField[] = [
     { key: 'chiefComplaint', label: 'Chief Complaint', value: d.chiefComplaint, placeholder: 'Main presenting complaint' },
     { key: 'hpi', label: 'Presenting Illness', value: d.hpi, hint: 'SOCRATES', kind: 'textarea', placeholder: 'SOCRATES: Site, Onset, Character, Radiation…' },
@@ -155,15 +173,39 @@ function historyAssistFields(d: HistoryData, dept: DeptId): AssistField[] {
   if (dept === 'og') {
     base.splice(2, 0,
       { key: 'obstetricHistory', label: 'Obstetric History', value: d.obstetricHistory ?? '', kind: 'textarea', hint: 'each pregnancy: year, outcome, mode of delivery, complications, birth weight', placeholder: 'G/P detail: outcomes, modes of delivery, complications' },
-      { key: 'antenatalCare', label: 'Antenatal Care', value: d.antenatalCare ?? '', kind: 'textarea', hint: 'booking, visits, scans, issues this pregnancy', placeholder: 'Booking GA, visits, scans, problems this pregnancy' },
-      { key: 'gynaeHistory', label: 'Gynae History', value: d.gynaeHistory ?? '', kind: 'textarea', hint: 'menstrual history, contraception, pap smears, gynae surgery', placeholder: 'Menstrual Hx, contraception, pap smears, previous gynae surgery' },
     );
+    if (subDept === 'labour') {
+      base.splice(3, 0,
+        { key: 'onsetOfLabour', label: 'Onset of Labour', value: d.onsetOfLabour ?? '', hint: 'spontaneous vs induced, time of onset', placeholder: 'e.g. spontaneous, contractions since 04:00' },
+      );
+    } else if (subDept === 'postnatal') {
+      base.splice(3, 0,
+        { key: 'deliverySummary', label: 'Delivery Summary', value: d.deliverySummary ?? '', kind: 'textarea', hint: 'mode, indication if operative, complications, blood loss', placeholder: 'Mode of delivery, indication, complications, EBL' },
+      );
+    } else if (subDept === 'gynae') {
+      // Not necessarily a current pregnancy — antenatal course this visit doesn't apply.
+      base.splice(3, 0,
+        { key: 'gynaeHistory', label: 'Gynae History', value: d.gynaeHistory ?? '', kind: 'textarea', hint: 'menstrual history, contraception, pap smears, gynae surgery', placeholder: 'Menstrual Hx, contraception, pap smears, previous gynae surgery' },
+      );
+    } else {
+      base.splice(3, 0,
+        { key: 'antenatalCare', label: 'Antenatal Care', value: d.antenatalCare ?? '', kind: 'textarea', hint: 'booking, visits, scans, issues this pregnancy', placeholder: 'Booking GA, visits, scans, problems this pregnancy' },
+        { key: 'gynaeHistory', label: 'Gynae History', value: d.gynaeHistory ?? '', kind: 'textarea', hint: 'menstrual history, contraception, pap smears, gynae surgery', placeholder: 'Menstrual Hx, contraception, pap smears, previous gynae surgery' },
+      );
+    }
   }
   if (dept === 'paeds') {
-    base.splice(2, 0,
-      { key: 'development', label: 'Development', value: d.development ?? '', kind: 'textarea', hint: 'milestones appropriate for age?', placeholder: 'Gross motor, fine motor, language, social — for age' },
-      { key: 'feeding', label: 'Feeding / Nutrition', value: d.feeding ?? '', kind: 'textarea', hint: 'breast/formula/solids, appetite', placeholder: 'Feeding pattern, appetite, recent changes' },
-    );
+    if (subDept === 'neonatal') {
+      base.splice(2, 0,
+        { key: 'birthDetails', label: 'Birth Details', value: d.birthDetails ?? '', kind: 'textarea', hint: 'gestation at birth, mode of delivery, birth weight, APGAR scores', placeholder: 'GA at birth, delivery mode, birth weight, APGAR 1/5min' },
+        { key: 'feeding', label: 'Feeding', value: d.feeding ?? '', kind: 'textarea', hint: 'breast/formula/NG, volumes, tolerance', placeholder: 'Feed type, volumes, tolerance' },
+      );
+    } else {
+      base.splice(2, 0,
+        { key: 'development', label: 'Development', value: d.development ?? '', kind: 'textarea', hint: 'milestones appropriate for age?', placeholder: 'Gross motor, fine motor, language, social — for age' },
+        { key: 'feeding', label: 'Feeding / Nutrition', value: d.feeding ?? '', kind: 'textarea', hint: 'breast/formula/solids, appetite', placeholder: 'Feeding pattern, appetite, recent changes' },
+      );
+    }
   }
   if (dept === 'psych') {
     base.splice(2, 0,
@@ -181,7 +223,7 @@ function historyAssistFields(d: HistoryData, dept: DeptId): AssistField[] {
   return base;
 }
 
-function assessmentAssistFields(d: AssessmentData, dept: DeptId): AssistField[] {
+function assessmentAssistFields(d: AssessmentData, dept: DeptId, subDept?: string): AssistField[] {
   const base: AssistField[] = [
     { key: 'dayOfAdmission', label: 'Day of Admission', value: d.dayOfAdmission, placeholder: 'e.g. 1' },
     { key: 'vitals', label: 'Vitals', value: d.vitals, hint: 'BP, HR, RR, Temp, SpO2', kind: 'textarea', placeholder: 'Temp / BP / HR / RR / SpO2 / GCS / MEOWS' },
@@ -189,19 +231,58 @@ function assessmentAssistFields(d: AssessmentData, dept: DeptId): AssistField[] 
     { key: 'investigations', label: 'Investigations', value: d.investigations, hint: 'bloods, imaging, other results', kind: 'textarea', placeholder: 'Lab results, imaging, ECG findings' },
   ];
   if (dept === 'og') {
-    base.splice(3, 0,
-      { key: 'sfh', label: 'SFH', value: d.sfh ?? '', hint: 'symphysis-fundal height in cm vs gestation', placeholder: 'e.g. 34cm — consistent with dates' },
-      { key: 'lieAndPresentation', label: 'Lie & Presentation', value: d.lieAndPresentation ?? '', hint: "Leopold's maneuvers: lie, presentation, engagement in fifths", placeholder: 'e.g. longitudinal lie, cephalic, 3/5 palpable' },
-      { key: 'fetalHeart', label: 'Fetal Heart', value: d.fetalHeart ?? '', hint: 'rate and where heard, or CTG summary', placeholder: 'e.g. FHR 142 bpm, left lower quadrant' },
-      { key: 'contractions', label: 'Contractions', value: d.contractions ?? '', hint: 'frequency, duration, strength — or none', placeholder: 'e.g. 2 in 10, moderate — or none palpated' },
-      { key: 'vaginalExam', label: 'Vaginal Exam', value: d.vaginalExam ?? '', hint: 'only if indicated: dilation, effacement, station, membranes', placeholder: 'If indicated: dilation / effacement / station / membranes' },
-    );
+    if (subDept === 'postnatal') {
+      // Pregnancy has ended — obstetric-exam fields (SFH/lie/FHR/contractions)
+      // no longer apply; replace with the postnatal-specific exam.
+      base.splice(3, 0,
+        { key: 'modeAndTimeOfDelivery', label: 'Mode & Time of Delivery', value: d.modeAndTimeOfDelivery ?? '', placeholder: 'e.g. NVD 03:40, or LSCS 14:20' },
+        { key: 'uterineInvolution', label: 'Uterine Involution', value: d.uterineInvolution ?? '', hint: 'fundal height postnatally, well contracted?', placeholder: 'e.g. fundus 2 finger-breadths below umbilicus, well contracted' },
+        { key: 'lochia', label: 'Lochia', value: d.lochia ?? '', hint: 'amount, colour, odour', placeholder: 'e.g. moderate, rubra, no odour' },
+        { key: 'perineumOrWound', label: 'Perineum / Wound', value: d.perineumOrWound ?? '', hint: 'perineal tear/episiotomy or LSCS wound', placeholder: 'Intact / tear grade / episiotomy / wound condition' },
+        { key: 'breastfeedingStatus', label: 'Breastfeeding', value: d.breastfeedingStatus ?? '', placeholder: 'Latching well / difficulties / formula' },
+      );
+    } else if (subDept === 'gynae') {
+      // Not assumed pregnant — pelvic/bimanual exam replaces the obstetric routine.
+      base.splice(3, 0,
+        { key: 'pregnancyStatus', label: 'Pregnancy Status', value: d.pregnancyStatus ?? '', hint: 'confirm if relevant, e.g. urine/serum bHCG', placeholder: 'Confirmed not pregnant / bHCG pending / positive' },
+        { key: 'bleedingPattern', label: 'Bleeding Pattern', value: d.bleedingPattern ?? '', hint: 'timing vs cycle, amount, duration', placeholder: 'e.g. intermenstrual, heavy, 5 days' },
+        { key: 'pelvicExam', label: 'Pelvic Exam', value: d.pelvicExam ?? '', kind: 'textarea', hint: 'speculum + bimanual: masses, tenderness, discharge, cervical findings', placeholder: 'Speculum and bimanual findings' },
+      );
+    } else if (subDept === 'labour') {
+      base.splice(3, 0,
+        { key: 'lieAndPresentation', label: 'Lie & Presentation', value: d.lieAndPresentation ?? '', hint: "Leopold's maneuvers: lie, presentation, engagement in fifths", placeholder: 'e.g. longitudinal lie, cephalic, 2/5 palpable' },
+        { key: 'contractions', label: 'Contractions', value: d.contractions ?? '', hint: 'frequency per 10 min, duration, strength', placeholder: 'e.g. 4 in 10, strong, 45sec' },
+        { key: 'ctgAndLiquor', label: 'CTG & Liquor', value: d.ctgAndLiquor ?? '', hint: 'CTG trace category, liquor colour if membranes ruptured', placeholder: 'CTG: reassuring/non-reassuring; liquor clear/meconium' },
+        { key: 'vaginalExam', label: 'Vaginal Exam', value: d.vaginalExam ?? '', hint: 'dilation, effacement, station, membranes — central here, not optional', placeholder: 'Dilation / effacement / station / membranes' },
+        { key: 'analgesia', label: 'Analgesia', value: d.analgesia ?? '', placeholder: 'e.g. Entonox, pethidine, epidural — or none' },
+      );
+    } else {
+      // Antenatal (or no sub-department chosen): standard obstetric routine,
+      // plus pre-eclampsia risk-screen fields.
+      base.splice(3, 0,
+        { key: 'sfh', label: 'SFH', value: d.sfh ?? '', hint: 'symphysis-fundal height in cm vs gestation', placeholder: 'e.g. 34cm — consistent with dates' },
+        { key: 'lieAndPresentation', label: 'Lie & Presentation', value: d.lieAndPresentation ?? '', hint: "Leopold's maneuvers: lie, presentation, engagement in fifths", placeholder: 'e.g. longitudinal lie, cephalic, 3/5 palpable' },
+        { key: 'fetalHeart', label: 'Fetal Heart', value: d.fetalHeart ?? '', hint: 'rate and where heard, or CTG summary', placeholder: 'e.g. FHR 142 bpm, left lower quadrant' },
+        { key: 'contractions', label: 'Contractions', value: d.contractions ?? '', hint: 'any tightenings? frequency, duration, strength — or none', placeholder: 'e.g. 2 in 10, moderate — or none' },
+        { key: 'oedemaAndReflexes', label: 'Oedema & Reflexes', value: d.oedemaAndReflexes ?? '', hint: 'facial/pedal/sacral oedema, reflexes — pre-eclampsia screen', placeholder: 'e.g. mild pedal oedema, reflexes normal' },
+        { key: 'urineDipstick', label: 'Urine Dipstick', value: d.urineDipstick ?? '', hint: 'proteinuria — pre-eclampsia screen', placeholder: 'e.g. protein 2+, no glucose' },
+        { key: 'vaginalExam', label: 'Vaginal Exam', value: d.vaginalExam ?? '', hint: 'only if indicated: dilation, effacement, station, membranes', placeholder: 'If indicated: dilation / effacement / station / membranes' },
+      );
+    }
   }
   if (dept === 'paeds') {
-    base.splice(3, 0,
-      { key: 'growth', label: 'Growth Parameters', value: d.growth ?? '', hint: 'weight, height, head circumference with centiles; MUAC', placeholder: 'Weight/height/HC + centiles, MUAC' },
-      { key: 'hydration', label: 'Hydration Status', value: d.hydration ?? '', hint: 'fontanelle, turgor, mucous membranes, cap refill', placeholder: 'Hydration assessment findings' },
-    );
+    if (subDept === 'neonatal') {
+      base.splice(3, 0,
+        { key: 'growth', label: 'Growth Parameters', value: d.growth ?? '', hint: 'weight, length, head circumference with centiles', placeholder: 'Weight/length/HC + centiles' },
+        { key: 'jaundice', label: 'Jaundice', value: d.jaundice ?? '', hint: 'visible extent, transcutaneous/serum bilirubin, phototherapy', placeholder: 'e.g. jaundiced to trunk, TcB 220, on phototherapy' },
+        { key: 'hydration', label: 'Hydration Status', value: d.hydration ?? '', hint: 'fontanelle, turgor, mucous membranes, cap refill', placeholder: 'Hydration assessment findings' },
+      );
+    } else {
+      base.splice(3, 0,
+        { key: 'growth', label: 'Growth Parameters', value: d.growth ?? '', hint: 'weight, height, head circumference with centiles; MUAC', placeholder: 'Weight/height/HC + centiles, MUAC' },
+        { key: 'hydration', label: 'Hydration Status', value: d.hydration ?? '', hint: 'fontanelle, turgor, mucous membranes, cap refill', placeholder: 'Hydration assessment findings' },
+      );
+    }
   }
   if (dept === 'psych') {
     base.splice(3, 0,
@@ -239,10 +320,12 @@ function roundAssistFields(d: RoundData): AssistField[] {
 // One line about THIS patient, sent with every assist/scan call so the AI
 // asks specialty- and situation-appropriate questions (e.g. at EGA 32+4 it
 // asks about contractions, not generic pain).
-function patientContext(p: Patient, dept: DeptId): string {
+function patientContext(p: Patient, dept: DeptId, subDept?: string): string {
   const i = p.intake;
+  const subDeptLabel = subDept ? SUB_DEPARTMENTS[dept]?.find(s => s.id === subDept)?.label : undefined;
   const bits = [
     [i.age, i.sex].filter(Boolean).join(' '),
+    subDeptLabel ? `on ${subDeptLabel}` : '',
     dept === 'og' && (i.gravida || i.para) ? `G${i.gravida || '?'}P${i.para || '?'}` : '',
     dept === 'og' && i.gestationalAge ? `EGA ${i.gestationalAge}` : '',
     dept === 'og' && i.lmp ? `LMP ${i.lmp}` : '',
@@ -405,12 +488,51 @@ function DeptSelector({ onSelect }: { onSelect: (d: DeptId) => void }) {
   );
 }
 
+// ─── SUB-DEPARTMENT SELECTOR ────────────────────────────────────────────────
+// A second, ward-level pick inside a department where the clinical picture
+// genuinely differs (labour vs antenatal vs postnatal vs gynae within O&G) —
+// this choice narrows both the exam fields shown and the AI's questioning.
+
+function SubDeptSelector({ dept, options, onSelect, onBack }: {
+  dept: DeptId;
+  options: { id: string; label: string; icon: string }[];
+  onSelect: (s: string) => void;
+  onBack: () => void;
+}) {
+  const deptInfo = DEPARTMENTS.find(d => d.id === dept)!;
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+      <div className="mb-10 text-center">
+        <button onClick={onBack} className="text-gray-400 hover:text-gray-600 text-sm mb-4 transition-colors">
+          ← Back to departments
+        </button>
+        <div className="text-3xl mb-3">{deptInfo.icon}</div>
+        <h1 className="text-gray-900 text-2xl font-bold">{deptInfo.label}</h1>
+        <p className="text-gray-500 text-sm mt-2">Which ward or unit is this patient on?</p>
+      </div>
+      <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
+        {options.map(s => (
+          <button
+            key={s.id}
+            onClick={() => onSelect(s.id)}
+            className="bg-white border border-gray-200 hover:border-teal-400 hover:bg-teal-50/40 rounded-2xl p-5 text-center transition-all duration-150 cursor-pointer shadow-sm"
+          >
+            <div className="text-3xl mb-2">{s.icon}</div>
+            <p className="text-gray-800 font-medium text-sm">{s.label}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── INTAKE TAB ─────────────────────────────────────────────────────────────
 
-function IntakeTab({ patient, toolsKey, dept, onChange }: {
+function IntakeTab({ patient, toolsKey, dept, subDept, onChange }: {
   patient: Patient;
   toolsKey: string;
   dept: DeptId;
+  subDept?: string;
   onChange: (patch: Partial<IntakeData>) => void;
 }) {
   const d = patient.intake;
@@ -421,9 +543,10 @@ function IntakeTab({ patient, toolsKey, dept, onChange }: {
       <AssistPanel
         toolsKey={toolsKey}
         dept={dept}
+        subDept={subDept}
         section="Intake"
         fields={fields}
-        context={patientContext(patient, dept)}
+        context={patientContext(patient, dept, subDept)}
         onUpdates={u => onChange(u as Partial<IntakeData>)}
       />
 
@@ -437,10 +560,11 @@ function IntakeTab({ patient, toolsKey, dept, onChange }: {
 
 // ─── HISTORY TAB ─────────────────────────────────────────────────────────────
 
-function HistoryTab({ patient, toolsKey, dept, onChange }: {
+function HistoryTab({ patient, toolsKey, dept, subDept, onChange }: {
   patient: Patient;
   toolsKey: string;
   dept: DeptId;
+  subDept?: string;
   onChange: (patch: Partial<HistoryData>) => void;
 }) {
   const [starting, setStarting] = useState(false);
@@ -497,16 +621,17 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
       <AssistPanel
         toolsKey={toolsKey}
         dept={dept}
+        subDept={subDept}
         section="History"
-        fields={historyAssistFields(patient.history, dept)}
-        context={patientContext(patient, dept)}
+        fields={historyAssistFields(patient.history, dept, subDept)}
+        context={patientContext(patient, dept, subDept)}
         onUpdates={u => onChange(u as Partial<HistoryData>)}
       />
 
       <div>
         <SectionHead>Details</SectionHead>
         <DetailsList
-          fields={historyAssistFields(patient.history, dept)}
+          fields={historyAssistFields(patient.history, dept, subDept)}
           onEdit={(key, value) => onChange({ [key]: value } as Partial<HistoryData>)}
         />
       </div>
@@ -574,10 +699,11 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
 
 // ─── ASSESSMENT TAB ──────────────────────────────────────────────────────────
 
-function AssessmentTab({ patient, toolsKey, dept, onChange, onAdmNote }: {
+function AssessmentTab({ patient, toolsKey, dept, subDept, onChange, onAdmNote }: {
   patient: Patient;
   toolsKey: string;
   dept: DeptId;
+  subDept?: string;
   onChange: (patch: Partial<AssessmentData>) => void;
   onAdmNote: (note: string) => void;
 }) {
@@ -610,16 +736,17 @@ function AssessmentTab({ patient, toolsKey, dept, onChange, onAdmNote }: {
       <AssistPanel
         toolsKey={toolsKey}
         dept={dept}
+        subDept={subDept}
         section="Assessment"
-        fields={assessmentAssistFields(patient.assessment, dept)}
-        context={patientContext(patient, dept)}
+        fields={assessmentAssistFields(patient.assessment, dept, subDept)}
+        context={patientContext(patient, dept, subDept)}
         onUpdates={u => onChange(u as Partial<AssessmentData>)}
       />
 
       <div>
         <SectionHead>Details</SectionHead>
         <DetailsList
-          fields={assessmentAssistFields(patient.assessment, dept)}
+          fields={assessmentAssistFields(patient.assessment, dept, subDept)}
           onEdit={(key, value) => onChange({ [key]: value } as Partial<AssessmentData>)}
         />
       </div>
@@ -899,10 +1026,11 @@ function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
 
 // ─── ROUND TAB ──────────────────────────────────────────────────────────────
 
-function RoundTab({ patient, toolsKey, dept, onChange, onLog }: {
+function RoundTab({ patient, toolsKey, dept, subDept, onChange, onLog }: {
   patient: Patient;
   toolsKey: string;
   dept: DeptId;
+  subDept?: string;
   onChange: (patch: Partial<RoundData>) => void;
   onLog: (note: string) => void;
 }) {
@@ -949,9 +1077,10 @@ function RoundTab({ patient, toolsKey, dept, onChange, onLog }: {
       <AssistPanel
         toolsKey={toolsKey}
         dept={dept}
+        subDept={subDept}
         section="Ward Round"
         fields={roundAssistFields(rd)}
-        context={patientContext(patient, dept)}
+        context={patientContext(patient, dept, subDept)}
         onUpdates={u => onChange(u as Partial<RoundData>)}
       />
 
@@ -1996,6 +2125,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   const [dept, setDept] = useState<DeptId | null>(
     (persisted?.dept as DeptId | null) ?? null
   );
+  const [subDept, setSubDept] = useState<string | null>(persisted?.subDept ?? null);
   const [patients, setPatients] = useState<Patient[]>(
     (persisted?.patients as Patient[] | undefined) ?? []
   );
@@ -2005,18 +2135,15 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('intake');
 
   useEffect(() => {
-    storage.setToolsState({ dept, patients, activePatientId });
-  }, [dept, patients, activePatientId]);
+    storage.setToolsState({ dept, subDept, patients, activePatientId });
+  }, [dept, subDept, patients, activePatientId]);
 
   function handleKey(k: string) {
     storage.setToolsKey(k);
     setKey(k);
   }
 
-  function selectDept(d: DeptId) {
-    setDept(d);
-    // Keep existing patients when returning to a department; only seed the
-    // first patient on a genuinely empty board.
+  function ensurePatient(d: DeptId) {
     if (patients.length === 0) {
       const p = newPatient(d);
       setPatients([p]);
@@ -2024,6 +2151,18 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
     } else if (!activePatientId) {
       setActivePatientId(patients[0].id);
     }
+  }
+
+  function selectDept(d: DeptId) {
+    setDept(d);
+    setSubDept(null);
+    // Departments without sub-departments skip straight to the patient view.
+    if (!SUB_DEPARTMENTS[d]) ensurePatient(d);
+  }
+
+  function selectSubDept(s: string) {
+    setSubDept(s);
+    if (dept) ensurePatient(dept);
   }
 
   function addPatient() {
@@ -2063,8 +2202,21 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
     return <DeptSelector onSelect={selectDept} />;
   }
 
+  const subDeptOptions = SUB_DEPARTMENTS[dept];
+  if (subDeptOptions && !subDept) {
+    return (
+      <SubDeptSelector
+        dept={dept}
+        options={subDeptOptions}
+        onSelect={selectSubDept}
+        onBack={() => setDept(null)}
+      />
+    );
+  }
+
   const activePatient = patients.find(p => p.id === activePatientId);
   const deptInfo = DEPARTMENTS.find(d => d.id === dept)!;
+  const subDeptInfo = subDept ? subDeptOptions?.find(s => s.id === subDept) : undefined;
 
   const tabs = ([
     { id: 'intake' as Tab, label: 'Intake' },
@@ -2091,6 +2243,15 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         >
           {deptInfo.icon} {deptInfo.label}
         </button>
+        {subDeptInfo && (
+          <button
+            onClick={() => setSubDept(null)}
+            className="text-sm text-teal-700 hover:text-teal-900 bg-teal-50 px-2 py-0.5 rounded transition-colors"
+            title="Change ward/unit"
+          >
+            {subDeptInfo.icon} {subDeptInfo.label}
+          </button>
+        )}
         <div className="flex-1" />
         <button
           onClick={addPatient}
@@ -2160,6 +2321,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
+                    subDept={subDept ?? undefined}
                     onChange={patch => updatePatient(activePatient.id, { intake: { ...activePatient.intake, ...patch } })}
                   />
                 )}
@@ -2169,6 +2331,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
+                    subDept={subDept ?? undefined}
                     onChange={patch => updatePatient(activePatient.id, { history: { ...activePatient.history, ...patch } })}
                   />
                 )}
@@ -2178,6 +2341,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
+                    subDept={subDept ?? undefined}
                     onChange={patch => updatePatient(activePatient.id, { assessment: { ...activePatient.assessment, ...patch } })}
                     onAdmNote={note => updatePatient(activePatient.id, { admissionNote: note })}
                   />
@@ -2198,6 +2362,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
+                    subDept={subDept ?? undefined}
                     onChange={patch => updatePatient(activePatient.id, { roundData: { ...activePatient.roundData, ...patch } })}
                     onLog={note => updatePatient(activePatient.id, {
                       progressLog: [

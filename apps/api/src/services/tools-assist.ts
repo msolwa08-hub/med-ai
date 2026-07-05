@@ -29,6 +29,8 @@ export interface AssistTurn {
 
 export interface AssistRequest {
   dept: string;
+  /** Ward/unit within the department (e.g. og:labour vs og:antenatal) — narrows the discipline guidance further. */
+  subDept?: string;
   section: string; // e.g. "Intake", "History", "Assessment", "Ward Round"
   fields: AssistField[];
   transcript: AssistTurn[];
@@ -48,6 +50,27 @@ const DEPT_CLINICAL_GUIDANCE: Record<string, string> = {
   ortho: 'Orthopaedic discipline: mechanism of injury, neurovascular status distal to any injury (pulses, sensation, motor, capillary refill), weight-bearing status, and immobilisation.',
 };
 
+// Ward-level refinement within a department — a labour-ward patient and an
+// antenatal-clinic patient are both "O&G" but need entirely different
+// questioning. Keyed as "<deptId>:<subDeptId>"; falls back to the plain
+// DEPT_CLINICAL_GUIDANCE above when no sub-department is selected or matched.
+const SUBDEPT_CLINICAL_GUIDANCE: Record<string, string> = {
+  'og:antenatal': 'Antenatal ward: this is a booked, usually not-yet-labouring pregnancy. Focus on risk-screening — BP trend and proteinuria (pre-eclampsia), symphysis-fundal height growth trend, fetal movements, and any bleeding/leaking. Vaginal exam is NOT routine here — only if there is a specific indication (bleeding, ?ROM, ?labour). Frame contractions as "any tightenings?" rather than assuming labour.',
+  'og:labour': 'Labour ward: this patient IS in labour — treat contractions, cervical dilation/effacement/station, and membrane/liquor status as core, expected findings, not "if indicated". Ask about frequency and strength of contractions, CTG/fetal monitoring trace, analgesia given, and progress on the partogram. Vaginal exam findings are central here, not optional.',
+  'og:postnatal': 'Postnatal ward: the pregnancy has ended — do NOT ask about fetal heart, Leopold\'s, or contractions. Instead ask about mode of delivery and when, perineal/wound condition, lochia (amount, colour, odour), uterine involution (fundal height postnatally, is it well contracted), breastfeeding, and the baby\'s wellbeing.',
+  'og:gynae': 'Gynaecology ward: not assumed pregnant — confirm pregnancy status if relevant (e.g. ?ectopic) rather than asking obstetric-routine questions by default. Focus on menstrual/bleeding pattern, pelvic pain characteristics, and pelvic/bimanual/speculum exam findings (masses, tenderness, discharge, cervical findings) instead of SFH/Leopold\'s/fetal heart.',
+  'paeds:general': 'General paediatric ward: age-appropriate developmental milestones, feeding pattern, and immunisation status as usual.',
+  'paeds:neonatal': 'Neonatal/nursery: this is a newborn — do NOT ask about developmental milestones (too early). Instead ask birth details (gestation at birth, birth weight, delivery mode, APGAR scores), current feeding (breast/formula/NG, volumes, tolerance), jaundice (visible extent, phototherapy), and neonatal reflexes/tone for a baby this age.',
+};
+
+function clinicalGuidanceFor(dept: string, subDept?: string): string | undefined {
+  if (subDept) {
+    const specific = SUBDEPT_CLINICAL_GUIDANCE[`${dept}:${subDept}`];
+    if (specific) return specific;
+  }
+  return DEPT_CLINICAL_GUIDANCE[dept];
+}
+
 export interface AssistResponse {
   updates: Record<string, string>;
   nextQuestion: string;
@@ -59,7 +82,7 @@ function buildSystemPrompt(req: AssistRequest): string {
   const fieldList = req.fields
     .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (${f.hint})` : ''} — ${f.value ? `already recorded: "${f.value}"` : 'MISSING'}`)
     .join('\n');
-  const guidance = DEPT_CLINICAL_GUIDANCE[req.dept];
+  const guidance = clinicalGuidanceFor(req.dept, req.subDept);
 
   return `You are MedAI Scribe, an AI assistant helping a busy hospital intern on a South African ${deptLabel} ward log the "${req.section}" section of a patient record — hands-busy, eyes-off-the-screen.
 ${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE: ${guidance}\n` : ''}
@@ -97,6 +120,7 @@ export interface ScanFieldResult {
 
 export interface ScanRequest {
   dept: string;
+  subDept?: string;
   section: string;
   fields: AssistField[];
   imageBase64: string; // raw base64, no data: prefix
@@ -115,7 +139,7 @@ function buildScanPrompt(req: ScanRequest): string {
   const fieldList = req.fields
     .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (expected: ${f.hint})` : ''}`)
     .join('\n');
-  const guidance = DEPT_CLINICAL_GUIDANCE[req.dept];
+  const guidance = clinicalGuidanceFor(req.dept, req.subDept);
 
   return `You are MedAI Scribe reading a photo of HANDWRITTEN clinical notes from a South African ${deptLabel} ward, to fill the "${req.section}" section of a patient record.
 ${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE (expect this kind of shorthand in the notes): ${guidance}\n` : ''}

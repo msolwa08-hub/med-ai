@@ -38,9 +38,11 @@ async function downscaleImage(file: File, maxDim = 1800): Promise<{ base64: stri
 // notes), and the structured form fills itself. Scanned values carry a
 // per-field confidence; whatever the scan couldn't read, the conversation
 // follows up on.
-export function AssistPanel({ toolsKey, dept, section, fields, onUpdates, context }: {
+export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdates, context }: {
   toolsKey: string;
   dept: string;
+  /** Ward/unit within the department (e.g. "labour" vs "antenatal" within O&G). */
+  subDept?: string;
   section: string;
   fields: AssistField[];
   onUpdates: (updates: Record<string, string>) => void;
@@ -85,6 +87,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates, contex
     try {
       const res = await toolsApi.assist(toolsKey, {
         dept,
+        subDept,
         section,
         fields: fieldsOverride ?? fieldsRef.current,
         transcript: nextTranscript,
@@ -130,6 +133,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates, contex
       const { base64, mediaType } = await downscaleImage(file);
       const res = await toolsApi.scanNotes(toolsKey, {
         dept,
+        subDept,
         section,
         fields: fieldsRef.current,
         imageBase64: base64,

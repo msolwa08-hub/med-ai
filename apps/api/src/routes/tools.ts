@@ -51,6 +51,7 @@ export async function toolsRoutes(app: FastifyInstance) {
     try {
       const result = await toolsAssist.step({
         dept: body.dept,
+        subDept: typeof body.subDept === 'string' ? body.subDept : undefined,
         section: body.section,
         fields: body.fields,
         transcript: Array.isArray(body.transcript) ? body.transcript : [],
@@ -77,6 +78,7 @@ export async function toolsRoutes(app: FastifyInstance) {
     try {
       const result = await toolsAssist.scanNotes({
         dept: body.dept,
+        subDept: typeof body.subDept === 'string' ? body.subDept : undefined,
         section: body.section,
         fields: body.fields,
         imageBase64: body.imageBase64,

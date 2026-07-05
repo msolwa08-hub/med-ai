@@ -5,6 +5,7 @@ const TOOLS_STATE = 'medai_tools_state_v1';
 
 export interface ToolsPersistedState {
   dept: string | null;
+  subDept?: string | null;
   patients: unknown[];
   activePatientId: string | null;
 }
