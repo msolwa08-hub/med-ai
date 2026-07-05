@@ -1,8 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
+import { protocolStore } from './protocol-store.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
+
+// Best-matching excerpt from this facility's own uploaded protocols, if any —
+// layered above the generic discipline guidance below. Built from whatever
+// clinical text we have at this point (context line + fields + transcript so
+// far); cheap enough to run on every turn.
+function facilityProtocolBlock(dept: string, queryText: string): string {
+  const matches = protocolStore.match(queryText, dept, 1);
+  if (matches.length === 0) return '';
+  return `\nTHIS FACILITY'S OWN PROTOCOL (uploaded locally — follow it over generic guidance where it gives a specific instruction): [${matches[0].title}] ${matches[0].excerpt}\n`;
+}
 
 const DEPT_LABELS: Record<string, string> = {
   medicine: 'General Medicine',
@@ -83,9 +94,11 @@ function buildSystemPrompt(req: AssistRequest): string {
     .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (${f.hint})` : ''} — ${f.value ? `already recorded: "${f.value}"` : 'MISSING'}`)
     .join('\n');
   const guidance = clinicalGuidanceFor(req.dept, req.subDept);
+  const queryText = [req.context, ...req.fields.map(f => `${f.label} ${f.value}`), ...req.transcript.map(t => t.content)].join(' ');
+  const protocolBlock = facilityProtocolBlock(req.dept, queryText);
 
   return `You are MedAI Scribe, an AI assistant helping a busy hospital intern on a South African ${deptLabel} ward log the "${req.section}" section of a patient record — hands-busy, eyes-off-the-screen.
-${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE: ${guidance}\n` : ''}
+${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE: ${guidance}\n` : ''}${protocolBlock}
 THE FIELDS TO CAPTURE:
 ${fieldList}
 
@@ -140,9 +153,10 @@ function buildScanPrompt(req: ScanRequest): string {
     .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (expected: ${f.hint})` : ''}`)
     .join('\n');
   const guidance = clinicalGuidanceFor(req.dept, req.subDept);
+  const protocolBlock = facilityProtocolBlock(req.dept, [req.context, ...req.fields.map(f => f.label)].join(' '));
 
   return `You are MedAI Scribe reading a photo of HANDWRITTEN clinical notes from a South African ${deptLabel} ward, to fill the "${req.section}" section of a patient record.
-${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE (expect this kind of shorthand in the notes): ${guidance}\n` : ''}
+${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE (expect this kind of shorthand in the notes): ${guidance}\n` : ''}${protocolBlock}
 
 FIELDS TO EXTRACT:
 ${fieldList}

@@ -21,6 +21,7 @@ export interface Problem {
   status: 'active' | 'resolving' | 'resolved';
   icd10?: string;
   stgCondition?: string;
+  protocolTitle?: string;
 }
 
 export interface RoundNote {
@@ -91,6 +92,7 @@ export interface SuggestedProblem {
   workingDx: string;
   icd10?: string;
   stgCondition?: string;
+  protocolTitle?: string;
   differentials: string[];
   management: string[];
 }
@@ -107,6 +109,16 @@ export interface InteractionCheckResponse {
   polypharmacy: boolean;
 }
 
+export interface HospitalProtocolSummary {
+  id: string;
+  dept: string;
+  title: string;
+  sourceFilename?: string;
+  charCount: number;
+  chunkCount: number;
+  uploadedAt: string;
+}
+
 export const toolsApi = {
   assist: (key: string, input: { dept: string; subDept?: string; section: string; fields: AssistField[]; transcript: AssistTurn[]; context?: string }) =>
     post<AssistResponse>('/tools/assist', key, input),
@@ -119,6 +131,27 @@ export const toolsApi = {
 
   scanNotes: (key: string, input: { dept: string; subDept?: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string; context?: string }) =>
     post<ScanResponse>('/tools/scan-notes', key, input),
+
+  listProtocols: (key: string, dept: string) =>
+    get<{ protocols: HospitalProtocolSummary[] }>(`/tools/protocols?dept=${encodeURIComponent(dept)}`, key),
+
+  addProtocolText: (key: string, input: { dept: string; title: string; content: string }) =>
+    post<HospitalProtocolSummary>('/tools/protocols', key, input),
+
+  uploadProtocolFile: async (key: string, input: { dept: string; title: string; file: File }): Promise<HospitalProtocolSummary> => {
+    const form = new FormData();
+    form.append('dept', input.dept);
+    form.append('title', input.title);
+    form.append('file', input.file);
+    const res = await fetch('/tools/protocols/upload', { method: 'POST', headers: { 'x-tools-key': key }, body: form });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json() as Promise<HospitalProtocolSummary>;
+  },
+
+  deleteProtocol: async (key: string, id: string): Promise<void> => {
+    const res = await fetch(`/tools/protocols/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'x-tools-key': key } });
+    if (!res.ok) throw new Error(await res.text());
+  },
 
   validate: async (key: string): Promise<boolean> => {
     try {

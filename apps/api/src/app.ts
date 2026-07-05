@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import formbody from '@fastify/formbody';
+import multipart from '@fastify/multipart';
 import { betaRoutes } from './routes/beta.js';
 import { cockpitRoutes } from './routes/cockpit.js';
 import { toolsRoutes } from './routes/tools.js';
@@ -29,6 +30,11 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
 
   // PayFast ITN posts application/x-www-form-urlencoded
   await app.register(formbody);
+
+  // Hospital protocol document uploads (PDF/text)
+  await app.register(multipart, {
+    limits: { fileSize: 15 * 1024 * 1024 },
+  });
 
   // Axios clients send Content-Type: application/json even on body-less POSTs;
   // treat an empty JSON body as {} instead of rejecting with 400.

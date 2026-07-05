@@ -3,6 +3,7 @@ import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
 import { STG_ENTRIES, type STGSeedEntry } from '../data/stg-entries.js';
 import { checkPrescriptionSafety, type SafetyWarning } from './prescription-safety.js';
+import { protocolStore } from './protocol-store.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
@@ -52,6 +53,7 @@ export interface SuggestedProblem {
   workingDx: string;
   icd10?: string;
   stgCondition?: string;
+  protocolTitle?: string;
   differentials: string[];
   management: string[];
 }
@@ -79,6 +81,11 @@ export async function suggestProblems(s: PatientSnapshot): Promise<SuggestProble
     ? `RELEVANT SA STANDARD TREATMENT GUIDELINES (anchor management to these, cite the condition name):\n${stg.map(compactSTG).join('\n')}`
     : 'No STG entry matched — use standard SA hospital-level practice and say so in the note.';
 
+  const protocolMatches = protocolStore.match(clinical, s.dept);
+  const protocolBlock = protocolMatches.length
+    ? `THIS FACILITY'S OWN PROTOCOL (uploaded locally — where it gives a specific instruction, FOLLOW IT over the generic STG above and set "protocolTitle" to its title; local protocols reflect this hospital's actual formulary/resources):\n${protocolMatches.map(m => `- [${m.title}]: ${m.excerpt}`).join('\n')}`
+    : '';
+
   const currentMeds = s.history.medications ?? '';
 
   const prompt = `You are MedAI Scribe generating a problem-based assessment for a South African hospital intern. From the patient record below, produce a concise, clinically-ordered problem list.
@@ -86,11 +93,12 @@ export async function suggestProblems(s: PatientSnapshot): Promise<SuggestProble
 ${clinical}
 
 ${stgBlock}
-
+${protocolBlock ? `\n${protocolBlock}\n` : ''}
 RULES:
 - One problem per genuinely separate clinical issue (max 6), most urgent first. Include significant abnormal findings (e.g. deranged creatinine -> "AKI?") not just the admission diagnosis.
 - workingDx: single most likely diagnosis. differentials: 2-4 realistic alternatives, dangerous ones first.
 - management: 3-6 concrete numbered-style steps with doses where an STG entry applies; tag "stgCondition" with the matched guideline's condition name when used, and include its icd10 code.
+- FACILITY PROTOCOL OVERRIDES STG: if this facility's own uploaded protocol (above, if present) conflicts with or refines the generic STG for a problem, follow the facility protocol and set "protocolTitle" to its title instead of (or alongside) "stgCondition".
 - ESSENTIAL MEDICINES LIST (EML): prefer agents on the SA National EML (Core list) available at this level of care; if the best agent is Complementary-list or not EML-listed, say so explicitly in the management step (e.g. "not on PHC EML — refer/motivate") rather than silently prescribing outside formulary.
 - POLYPHARMACY & INTERACTIONS: the patient's current medications are: "${currentMeds || 'none recorded'}". Do not propose agents that clash with these or with the recorded allergies; if unavoidable, note the precaution inside the management step.
 - Consider AKI risk whenever nephrotoxics, sepsis, hypovolaemia or contrast appear.
@@ -99,7 +107,7 @@ RULES:
 
 RESPOND with ONLY JSON:
 {
-  "problems": [{ "problem": "...", "workingDx": "...", "icd10": "...", "stgCondition": "...", "differentials": ["..."], "management": ["..."] }],
+  "problems": [{ "problem": "...", "workingDx": "...", "icd10": "...", "stgCondition": "...", "protocolTitle": "...", "differentials": ["..."], "management": ["..."] }],
   "note": "<one line: anything the intern must not miss>"
 }`;
 
@@ -122,6 +130,7 @@ RESPOND with ONLY JSON:
       workingDx: typeof p.workingDx === 'string' ? p.workingDx : '',
       icd10: typeof p.icd10 === 'string' ? p.icd10 : undefined,
       stgCondition: typeof p.stgCondition === 'string' ? p.stgCondition : undefined,
+      protocolTitle: typeof p.protocolTitle === 'string' ? p.protocolTitle : undefined,
       differentials: Array.isArray(p.differentials) ? p.differentials.filter((d): d is string => typeof d === 'string') : [],
       management: Array.isArray(p.management) ? p.management.filter((m): m is string => typeof m === 'string') : [],
     }));

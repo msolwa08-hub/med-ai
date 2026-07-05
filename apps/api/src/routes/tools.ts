@@ -9,6 +9,8 @@ import {
   type PatientSnapshot,
   type InteractionCheckInput,
 } from '../services/tools-clinical.js';
+import { protocolStore, type HospitalProtocol } from '../services/protocol-store.js';
+import { extractTextFromFile } from '../lib/extract-text.js';
 import {
   generateDischargeSummary,
   generateReferralLetter,
@@ -119,6 +121,96 @@ export async function toolsRoutes(app: FastifyInstance) {
     if (!authTools(req)) return unauth(reply);
     const body = (req.body ?? {}) as InteractionCheckInput;
     return reply.send(interactionCheck(body));
+  });
+
+  // ─── Hospital protocols ────────────────────────────────────────────────────
+  // A facility's own protocols, plugged in as a resource: uploaded once, then
+  // retrieved (keyword match, same approach as STG retrieval) into every
+  // assist conversation, photo scan, and problem-suggestion call for that
+  // department — and instructed to override the generic SA STG where the two
+  // disagree. In-memory only, same as the rest of the beta server's state.
+
+  function protocolSummary(p: HospitalProtocol) {
+    return {
+      id: p.id,
+      dept: p.dept,
+      title: p.title,
+      sourceFilename: p.sourceFilename,
+      charCount: p.charCount,
+      chunkCount: p.chunks.length,
+      uploadedAt: p.uploadedAt,
+    };
+  }
+
+  app.get('/tools/protocols', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const { dept } = req.query as { dept?: string };
+    return reply.send({ protocols: protocolStore.list(dept).map(protocolSummary) });
+  });
+
+  // Paste-in text — always available, no file parsing required.
+  app.post('/tools/protocols', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<{ dept: string; title: string; content: string }>;
+    if (!body.dept || !body.title?.trim() || !body.content?.trim()) {
+      return reply.status(400).send({ error: 'dept, title, and content are required' });
+    }
+    const protocol = protocolStore.add({ dept: body.dept, title: body.title.trim(), content: body.content });
+    return reply.send(protocolSummary(protocol));
+  });
+
+  // File upload — PDF (parsed via pdf-parse) or plain text/markdown.
+  app.post('/tools/protocols/upload', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    let dept = '';
+    let title = '';
+    let fileBuffer: Buffer | null = null;
+    let filename = '';
+    let mimetype = '';
+    try {
+      for await (const part of req.parts()) {
+        if (part.type === 'file') {
+          fileBuffer = await part.toBuffer();
+          filename = part.filename;
+          mimetype = part.mimetype;
+        } else if (part.fieldname === 'dept') {
+          dept = String(part.value);
+        } else if (part.fieldname === 'title') {
+          title = String(part.value);
+        }
+      }
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(400).send({ error: 'Failed to read the upload' });
+    }
+    if (!dept || !fileBuffer) {
+      return reply.status(400).send({ error: 'dept and a file are required' });
+    }
+    try {
+      const content = await extractTextFromFile(fileBuffer, filename, mimetype);
+      if (!content.trim()) {
+        return reply
+          .status(422)
+          .send({ error: 'Could not extract any text from that file — try pasting the text directly instead.' });
+      }
+      const protocol = protocolStore.add({
+        dept,
+        title: title.trim() || filename || 'Untitled protocol',
+        content,
+        sourceFilename: filename,
+      });
+      return reply.send(protocolSummary(protocol));
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Failed to process the uploaded file' });
+    }
+  });
+
+  app.delete('/tools/protocols/:id', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const { id } = req.params as { id: string };
+    if (!protocolStore.remove(id)) return reply.status(404).send({ error: 'Protocol not found' });
+    return reply.send({ removed: true });
   });
 
   // AI History session: start (for patient-facing URL)
