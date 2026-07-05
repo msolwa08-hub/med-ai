@@ -50,6 +50,8 @@ interface HistoryData {
   ros: string;
   importedSessionId?: string;
   importedSummary?: string;
+  // dept-specific fields (obstetric Hx, MSE risk, development, ...)
+  [key: string]: string | undefined;
 }
 
 interface AssessmentData {
@@ -57,6 +59,8 @@ interface AssessmentData {
   examination: string;
   investigations: string;
   dayOfAdmission: string;
+  // dept-specific fields (SFH, Leopold's, FHR, MSE, primary survey, ...)
+  [key: string]: string | undefined;
 }
 
 interface RoundData {
@@ -138,8 +142,8 @@ function intakeAssistFields(d: IntakeData, dept: DeptId): AssistField[] {
   return base;
 }
 
-function historyAssistFields(d: HistoryData): AssistField[] {
-  return [
+function historyAssistFields(d: HistoryData, dept: DeptId): AssistField[] {
+  const base: AssistField[] = [
     { key: 'chiefComplaint', label: 'Chief Complaint', value: d.chiefComplaint, placeholder: 'Main presenting complaint' },
     { key: 'hpi', label: 'Presenting Illness', value: d.hpi, hint: 'SOCRATES', kind: 'textarea', placeholder: 'SOCRATES: Site, Onset, Character, Radiation…' },
     { key: 'pmh', label: 'Past Medical History', value: d.pmh, kind: 'textarea', placeholder: 'Chronic conditions, previous hospitalisations, surgeries' },
@@ -148,15 +152,80 @@ function historyAssistFields(d: HistoryData): AssistField[] {
     { key: 'socialHistory', label: 'Social History', value: d.socialHistory, kind: 'textarea', placeholder: 'Occupation, smoking, alcohol, home situation' },
     { key: 'ros', label: 'Review of Systems', value: d.ros, kind: 'textarea', placeholder: 'Relevant positive and negative findings' },
   ];
+  if (dept === 'og') {
+    base.splice(2, 0,
+      { key: 'obstetricHistory', label: 'Obstetric History', value: d.obstetricHistory ?? '', kind: 'textarea', hint: 'each pregnancy: year, outcome, mode of delivery, complications, birth weight', placeholder: 'G/P detail: outcomes, modes of delivery, complications' },
+      { key: 'antenatalCare', label: 'Antenatal Care', value: d.antenatalCare ?? '', kind: 'textarea', hint: 'booking, visits, scans, issues this pregnancy', placeholder: 'Booking GA, visits, scans, problems this pregnancy' },
+      { key: 'gynaeHistory', label: 'Gynae History', value: d.gynaeHistory ?? '', kind: 'textarea', hint: 'menstrual history, contraception, pap smears, gynae surgery', placeholder: 'Menstrual Hx, contraception, pap smears, previous gynae surgery' },
+    );
+  }
+  if (dept === 'paeds') {
+    base.splice(2, 0,
+      { key: 'development', label: 'Development', value: d.development ?? '', kind: 'textarea', hint: 'milestones appropriate for age?', placeholder: 'Gross motor, fine motor, language, social — for age' },
+      { key: 'feeding', label: 'Feeding / Nutrition', value: d.feeding ?? '', kind: 'textarea', hint: 'breast/formula/solids, appetite', placeholder: 'Feeding pattern, appetite, recent changes' },
+    );
+  }
+  if (dept === 'psych') {
+    base.splice(2, 0,
+      { key: 'psychHistory', label: 'Psychiatric History', value: d.psychHistory ?? '', kind: 'textarea', hint: 'previous episodes, admissions, suicide attempts, treatments', placeholder: 'Previous episodes, admissions, attempts, treatments' },
+      { key: 'substanceUse', label: 'Substance Use', value: d.substanceUse ?? '', kind: 'textarea', hint: 'alcohol, cannabis, stimulants — amount, duration, last use', placeholder: 'Substances, amounts, duration, last use' },
+      { key: 'collateral', label: 'Collateral History', value: d.collateral ?? '', kind: 'textarea', hint: 'from family/friends — note the source', placeholder: 'Collateral from family/carer (name the source)' },
+    );
+  }
+  if (dept === 'surgery' || dept === 'ortho') {
+    base.splice(4, 0,
+      { key: 'lastMeal', label: 'Last Oral Intake', value: d.lastMeal ?? '', hint: 'NPO status for theatre', placeholder: 'Time of last food/fluids' },
+      { key: 'anaestheticHistory', label: 'Anaesthetic History', value: d.anaestheticHistory ?? '', hint: 'previous GA/spinal, complications, airway issues', placeholder: 'Previous GA/spinal, complications' },
+    );
+  }
+  return base;
 }
 
-function assessmentAssistFields(d: AssessmentData): AssistField[] {
-  return [
+function assessmentAssistFields(d: AssessmentData, dept: DeptId): AssistField[] {
+  const base: AssistField[] = [
     { key: 'dayOfAdmission', label: 'Day of Admission', value: d.dayOfAdmission, placeholder: 'e.g. 1' },
     { key: 'vitals', label: 'Vitals', value: d.vitals, hint: 'BP, HR, RR, Temp, SpO2', kind: 'textarea', placeholder: 'Temp / BP / HR / RR / SpO2 / GCS / MEOWS' },
     { key: 'examination', label: 'Examination', value: d.examination, kind: 'textarea', placeholder: 'General, CVS, Respiratory, Abdomen, Neuro' },
     { key: 'investigations', label: 'Investigations', value: d.investigations, hint: 'bloods, imaging, other results', kind: 'textarea', placeholder: 'Lab results, imaging, ECG findings' },
   ];
+  if (dept === 'og') {
+    base.splice(3, 0,
+      { key: 'sfh', label: 'SFH', value: d.sfh ?? '', hint: 'symphysis-fundal height in cm vs gestation', placeholder: 'e.g. 34cm — consistent with dates' },
+      { key: 'lieAndPresentation', label: 'Lie & Presentation', value: d.lieAndPresentation ?? '', hint: "Leopold's maneuvers: lie, presentation, engagement in fifths", placeholder: 'e.g. longitudinal lie, cephalic, 3/5 palpable' },
+      { key: 'fetalHeart', label: 'Fetal Heart', value: d.fetalHeart ?? '', hint: 'rate and where heard, or CTG summary', placeholder: 'e.g. FHR 142 bpm, left lower quadrant' },
+      { key: 'contractions', label: 'Contractions', value: d.contractions ?? '', hint: 'frequency, duration, strength — or none', placeholder: 'e.g. 2 in 10, moderate — or none palpated' },
+      { key: 'vaginalExam', label: 'Vaginal Exam', value: d.vaginalExam ?? '', hint: 'only if indicated: dilation, effacement, station, membranes', placeholder: 'If indicated: dilation / effacement / station / membranes' },
+    );
+  }
+  if (dept === 'paeds') {
+    base.splice(3, 0,
+      { key: 'growth', label: 'Growth Parameters', value: d.growth ?? '', hint: 'weight, height, head circumference with centiles; MUAC', placeholder: 'Weight/height/HC + centiles, MUAC' },
+      { key: 'hydration', label: 'Hydration Status', value: d.hydration ?? '', hint: 'fontanelle, turgor, mucous membranes, cap refill', placeholder: 'Hydration assessment findings' },
+    );
+  }
+  if (dept === 'psych') {
+    base.splice(3, 0,
+      { key: 'mse', label: 'Mental State Exam', value: d.mse ?? '', kind: 'textarea', hint: 'appearance, behaviour, speech, mood/affect, thought, perception, cognition, insight', placeholder: 'MSE domains in order' },
+      { key: 'riskAssessment', label: 'Risk Assessment', value: d.riskAssessment ?? '', kind: 'textarea', hint: 'suicide, harm to others, self-neglect — with protective factors', placeholder: 'Risk to self / others / self-neglect + protective factors' },
+    );
+  }
+  if (dept === 'icu') {
+    base.splice(3, 0,
+      { key: 'ventSettings', label: 'Ventilation', value: d.ventSettings ?? '', hint: 'mode, FiO2, PEEP, latest ABG', placeholder: 'e.g. SIMV, FiO2 0.4, PEEP 8 — ABG: …' },
+      { key: 'haemodynamics', label: 'Haemodynamics', value: d.haemodynamics ?? '', hint: 'MAP, vasopressor agents and doses, lactate', placeholder: 'MAP, pressor doses, lactate trend' },
+    );
+  }
+  if (dept === 'emergency') {
+    base.splice(1, 0,
+      { key: 'primarySurvey', label: 'Primary Survey', value: d.primarySurvey ?? '', kind: 'textarea', hint: 'ABCDE with interventions', placeholder: 'A: … B: … C: … D: … E: …' },
+    );
+  }
+  if (dept === 'ortho') {
+    base.splice(3, 0,
+      { key: 'neurovascular', label: 'Neurovascular Status', value: d.neurovascular ?? '', hint: 'distal pulses, sensation, motor, capillary refill', placeholder: 'Pulses / sensation / motor / cap refill distal to injury' },
+    );
+  }
+  return base;
 }
 
 function roundAssistFields(d: RoundData): AssistField[] {
@@ -165,6 +234,23 @@ function roundAssistFields(d: RoundData): AssistField[] {
     { key: 'plan', label: 'Plan for Today', value: d.plan, kind: 'textarea', placeholder: 'Active management for today' },
     { key: 'pending', label: 'Pending', value: d.pending, kind: 'textarea', placeholder: 'Awaiting results, consults, procedures' },
   ];
+}
+
+// One line about THIS patient, sent with every assist/scan call so the AI
+// asks specialty- and situation-appropriate questions (e.g. at EGA 32+4 it
+// asks about contractions, not generic pain).
+function patientContext(p: Patient, dept: DeptId): string {
+  const i = p.intake;
+  const bits = [
+    [i.age, i.sex].filter(Boolean).join(' '),
+    dept === 'og' && (i.gravida || i.para) ? `G${i.gravida || '?'}P${i.para || '?'}` : '',
+    dept === 'og' && i.gestationalAge ? `EGA ${i.gestationalAge}` : '',
+    dept === 'og' && i.lmp ? `LMP ${i.lmp}` : '',
+    dept === 'paeds' && i.weight ? `${i.weight}kg` : '',
+    i.admissionDiagnosis ? `admitted with ${i.admissionDiagnosis}` : '',
+    i.allergies ? `allergies: ${i.allergies}` : '',
+  ].filter(Boolean);
+  return bits.join(', ');
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -337,6 +423,7 @@ function IntakeTab({ patient, toolsKey, dept, onChange }: {
         dept={dept}
         section="Intake"
         fields={fields}
+        context={patientContext(patient, dept)}
         onUpdates={u => onChange(u as Partial<IntakeData>)}
       />
 
@@ -411,14 +498,15 @@ function HistoryTab({ patient, toolsKey, dept, onChange }: {
         toolsKey={toolsKey}
         dept={dept}
         section="History"
-        fields={historyAssistFields(patient.history)}
+        fields={historyAssistFields(patient.history, dept)}
+        context={patientContext(patient, dept)}
         onUpdates={u => onChange(u as Partial<HistoryData>)}
       />
 
       <div>
         <SectionHead>Details</SectionHead>
         <DetailsList
-          fields={historyAssistFields(patient.history)}
+          fields={historyAssistFields(patient.history, dept)}
           onEdit={(key, value) => onChange({ [key]: value } as Partial<HistoryData>)}
         />
       </div>
@@ -523,14 +611,15 @@ function AssessmentTab({ patient, toolsKey, dept, onChange, onAdmNote }: {
         toolsKey={toolsKey}
         dept={dept}
         section="Assessment"
-        fields={assessmentAssistFields(patient.assessment)}
+        fields={assessmentAssistFields(patient.assessment, dept)}
+        context={patientContext(patient, dept)}
         onUpdates={u => onChange(u as Partial<AssessmentData>)}
       />
 
       <div>
         <SectionHead>Details</SectionHead>
         <DetailsList
-          fields={assessmentAssistFields(patient.assessment)}
+          fields={assessmentAssistFields(patient.assessment, dept)}
           onEdit={(key, value) => onChange({ [key]: value } as Partial<AssessmentData>)}
         />
       </div>
@@ -862,6 +951,7 @@ function RoundTab({ patient, toolsKey, dept, onChange, onLog }: {
         dept={dept}
         section="Ward Round"
         fields={roundAssistFields(rd)}
+        context={patientContext(patient, dept)}
         onUpdates={u => onChange(u as Partial<RoundData>)}
       />
 

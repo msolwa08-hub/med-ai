@@ -54,6 +54,7 @@ export async function toolsRoutes(app: FastifyInstance) {
         section: body.section,
         fields: body.fields,
         transcript: Array.isArray(body.transcript) ? body.transcript : [],
+        context: typeof body.context === 'string' ? body.context : undefined,
       });
       return reply.send(result);
     } catch (err) {
@@ -80,6 +81,7 @@ export async function toolsRoutes(app: FastifyInstance) {
         fields: body.fields,
         imageBase64: body.imageBase64,
         mediaType,
+        context: typeof body.context === 'string' ? body.context : undefined,
       });
       return reply.send(result);
     } catch (err) {

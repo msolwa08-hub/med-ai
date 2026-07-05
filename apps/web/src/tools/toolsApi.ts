@@ -108,7 +108,7 @@ export interface InteractionCheckResponse {
 }
 
 export const toolsApi = {
-  assist: (key: string, input: { dept: string; section: string; fields: AssistField[]; transcript: AssistTurn[] }) =>
+  assist: (key: string, input: { dept: string; section: string; fields: AssistField[]; transcript: AssistTurn[]; context?: string }) =>
     post<AssistResponse>('/tools/assist', key, input),
 
   suggestProblems: (key: string, input: { dept: string; intake: unknown; history: unknown; assessment: unknown }) =>
@@ -117,7 +117,7 @@ export const toolsApi = {
   interactionCheck: (key: string, input: { medicationsText?: string; allergiesText?: string; plannedLines?: string[]; problemCodes?: string[] }) =>
     post<InteractionCheckResponse>('/tools/interaction-check', key, input),
 
-  scanNotes: (key: string, input: { dept: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string }) =>
+  scanNotes: (key: string, input: { dept: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string; context?: string }) =>
     post<ScanResponse>('/tools/scan-notes', key, input),
 
   validate: async (key: string): Promise<boolean> => {

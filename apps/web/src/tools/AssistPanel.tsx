@@ -38,12 +38,14 @@ async function downscaleImage(file: File, maxDim = 1800): Promise<{ base64: stri
 // notes), and the structured form fills itself. Scanned values carry a
 // per-field confidence; whatever the scan couldn't read, the conversation
 // follows up on.
-export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
+export function AssistPanel({ toolsKey, dept, section, fields, onUpdates, context }: {
   toolsKey: string;
   dept: string;
   section: string;
   fields: AssistField[];
   onUpdates: (updates: Record<string, string>) => void;
+  /** One-line patient context (age/sex, EGA, diagnosis) so the AI asks about THIS patient. */
+  context?: string;
 }) {
   const [transcript, setTranscript] = useState<AssistTurn[]>([]);
   const [question, setQuestion] = useState<string>('');
@@ -86,6 +88,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
         section,
         fields: fieldsOverride ?? fieldsRef.current,
         transcript: nextTranscript,
+        context,
       });
       if (Object.keys(res.updates).length > 0) {
         onUpdates(res.updates);
@@ -131,6 +134,7 @@ export function AssistPanel({ toolsKey, dept, section, fields, onUpdates }: {
         fields: fieldsRef.current,
         imageBase64: base64,
         mediaType,
+        context,
       });
 
       const updates: Record<string, string> = {};

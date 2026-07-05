@@ -32,7 +32,21 @@ export interface AssistRequest {
   section: string; // e.g. "Intake", "History", "Assessment", "Ward Round"
   fields: AssistField[];
   transcript: AssistTurn[];
+  /** One-line patient context (age/sex, EGA, working diagnosis) so questions adapt to THIS patient. */
+  context?: string;
 }
+
+// How each specialty actually works a patient up — injected into the prompt so
+// the AI asks like a registrar of that discipline, not a generic form-filler.
+const DEPT_CLINICAL_GUIDANCE: Record<string, string> = {
+  og: 'Obstetric discipline: anchor questions to gestational age (EGA/LMP). Examination follows the obstetric routine — SFH in cm vs dates, Leopold\'s maneuvers (lie, presentation, engagement in fifths), fetal heart rate and where heard, contractions, then PV exam only if indicated (dilation, effacement, station, membranes). History covers gravidity/parity detail, previous deliveries and modes, antenatal course, and gynae background (menstrual, contraception, pap smears).',
+  paeds: 'Paediatric discipline: everything is age-adjusted. Ask weight-based and centile-based questions (growth curves, MUAC), developmental milestones for age, feeding/nutrition, immunisation status per EPI schedule, and always consider the caregiver as historian.',
+  psych: 'Psychiatric discipline: history includes previous episodes/admissions, suicide attempts, substance use, forensic and collateral history. Examination is the MSE — appearance, behaviour, speech, mood/affect, thought form and content, perception, cognition, insight/judgement — plus an explicit risk assessment (self-harm, harm to others, self-neglect).',
+  icu: 'Critical-care discipline: think in organ systems and support levels — ventilation mode/FiO2/PEEP with ABG correlation, haemodynamics with vasopressor doses, renal output/RRT, sedation scores, lines and their days in situ.',
+  emergency: 'Emergency discipline: primary survey first (ABCDE with interventions), then focused secondary survey. Time-critical framing — onset times, mechanism of injury where relevant.',
+  surgery: 'Surgical discipline: operative readiness matters — last oral intake (NPO status), anaesthetic history and previous GA complications, anticoagulants, and focused examination of the operative site.',
+  ortho: 'Orthopaedic discipline: mechanism of injury, neurovascular status distal to any injury (pulses, sensation, motor, capillary refill), weight-bearing status, and immobilisation.',
+};
 
 export interface AssistResponse {
   updates: Record<string, string>;
@@ -45,9 +59,10 @@ function buildSystemPrompt(req: AssistRequest): string {
   const fieldList = req.fields
     .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (${f.hint})` : ''} — ${f.value ? `already recorded: "${f.value}"` : 'MISSING'}`)
     .join('\n');
+  const guidance = DEPT_CLINICAL_GUIDANCE[req.dept];
 
   return `You are MedAI Scribe, an AI assistant helping a busy hospital intern on a South African ${deptLabel} ward log the "${req.section}" section of a patient record — hands-busy, eyes-off-the-screen.
-
+${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE: ${guidance}\n` : ''}
 THE FIELDS TO CAPTURE:
 ${fieldList}
 
@@ -86,6 +101,7 @@ export interface ScanRequest {
   fields: AssistField[];
   imageBase64: string; // raw base64, no data: prefix
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
+  context?: string;
 }
 
 export interface ScanResponse {
@@ -99,8 +115,10 @@ function buildScanPrompt(req: ScanRequest): string {
   const fieldList = req.fields
     .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (expected: ${f.hint})` : ''}`)
     .join('\n');
+  const guidance = DEPT_CLINICAL_GUIDANCE[req.dept];
 
   return `You are MedAI Scribe reading a photo of HANDWRITTEN clinical notes from a South African ${deptLabel} ward, to fill the "${req.section}" section of a patient record.
+${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE (expect this kind of shorthand in the notes): ${guidance}\n` : ''}
 
 FIELDS TO EXTRACT:
 ${fieldList}
