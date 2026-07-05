@@ -19,6 +19,8 @@ export interface Problem {
   differentials: string[];
   management: string[];
   status: 'active' | 'resolving' | 'resolved';
+  icd10?: string;
+  stgCondition?: string;
 }
 
 export interface RoundNote {
@@ -77,9 +79,43 @@ export interface ScanResponse {
   overallNote: string;
 }
 
+export interface SafetyWarning {
+  severity: 'BLOCK' | 'WARN';
+  drug: string;
+  category: 'ALLERGY' | 'PREGNANCY' | 'RENAL' | 'INTERACTION';
+  reason: string;
+}
+
+export interface SuggestedProblem {
+  problem: string;
+  workingDx: string;
+  icd10?: string;
+  stgCondition?: string;
+  differentials: string[];
+  management: string[];
+}
+
+export interface SuggestProblemsResponse {
+  problems: SuggestedProblem[];
+  safety: SafetyWarning[];
+  note: string;
+}
+
+export interface InteractionCheckResponse {
+  warnings: SafetyWarning[];
+  medCount: number;
+  polypharmacy: boolean;
+}
+
 export const toolsApi = {
   assist: (key: string, input: { dept: string; section: string; fields: AssistField[]; transcript: AssistTurn[] }) =>
     post<AssistResponse>('/tools/assist', key, input),
+
+  suggestProblems: (key: string, input: { dept: string; intake: unknown; history: unknown; assessment: unknown }) =>
+    post<SuggestProblemsResponse>('/tools/suggest-problems', key, input),
+
+  interactionCheck: (key: string, input: { medicationsText?: string; allergiesText?: string; plannedLines?: string[]; problemCodes?: string[] }) =>
+    post<InteractionCheckResponse>('/tools/interaction-check', key, input),
 
   scanNotes: (key: string, input: { dept: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string }) =>
     post<ScanResponse>('/tools/scan-notes', key, input),

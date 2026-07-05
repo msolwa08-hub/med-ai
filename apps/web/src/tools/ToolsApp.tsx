@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { AccessKeyGate } from '../components/AccessKeyGate';
-import { toolsApi, type Problem, type RoundNote, type HistorySession, type HistorySummary, type AssistField } from './toolsApi';
+import { toolsApi, type Problem, type RoundNote, type HistorySession, type HistorySummary, type AssistField, type SafetyWarning } from './toolsApi';
 import { storage } from '../storage';
 import { formatRoundNote } from './formatDocs';
 import { AssistPanel } from './AssistPanel';
@@ -73,6 +73,8 @@ interface Patient {
   assessment: AssessmentData;
   problems: Problem[];
   roundData: RoundData;
+  // one entry per generated ward-round note — the record's day-by-day story
+  progressLog?: { date: string; note: string }[];
   // generated docs
   admissionNote?: string;
   wardNote?: string;
@@ -544,10 +546,93 @@ function AssessmentTab({ patient, toolsKey, dept, onChange, onAdmNote }: {
 
 // ─── PROBLEMS TAB ────────────────────────────────────────────────────────────
 
-function ProblemsTab({ problems, onChange }: {
+function SafetyBanner({ warnings }: { warnings: SafetyWarning[] }) {
+  if (warnings.length === 0) return null;
+  return (
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-2">
+      <SectionHead>Medication Safety</SectionHead>
+      {warnings.map((w, i) => (
+        <div
+          key={i}
+          className={`text-[13px] rounded-xl px-4 py-2.5 border ${
+            w.severity === 'BLOCK'
+              ? 'bg-red-50 border-red-200 text-red-800'
+              : 'bg-amber-50 border-amber-200 text-amber-800'
+          }`}
+        >
+          <span className="font-semibold">{w.severity === 'BLOCK' ? '⛔' : '⚠️'} {w.drug}</span>
+          <span className="text-[11px] uppercase tracking-wide ml-2 opacity-60">{w.category}</span>
+          <p className="mt-0.5 leading-relaxed">{w.reason}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
+  patient: Patient;
+  toolsKey: string;
+  dept: DeptId;
   problems: Problem[];
   onChange: (problems: Problem[]) => void;
 }) {
+  const [suggesting, setSuggesting] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [warnings, setWarnings] = useState<SafetyWarning[]>([]);
+  const [aiNote, setAiNote] = useState('');
+  const [err, setErr] = useState('');
+
+  async function suggest() {
+    setSuggesting(true);
+    setErr('');
+    try {
+      const res = await toolsApi.suggestProblems(toolsKey, {
+        dept,
+        intake: patient.intake,
+        history: patient.history,
+        assessment: patient.assessment,
+      });
+      const suggested: Problem[] = res.problems.map(p => ({
+        id: uid(),
+        problem: p.problem,
+        workingDx: p.workingDx,
+        differentials: p.differentials,
+        management: p.management,
+        status: 'active',
+        icd10: p.icd10,
+        stgCondition: p.stgCondition,
+      }));
+      onChange([...problems, ...suggested]);
+      setWarnings(res.safety);
+      setAiNote(res.note);
+    } catch {
+      setErr('Could not generate the problem list — check the record has enough detail, or add problems manually.');
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
+  async function checkInteractions() {
+    setChecking(true);
+    setErr('');
+    try {
+      const res = await toolsApi.interactionCheck(toolsKey, {
+        medicationsText: patient.history.medications,
+        allergiesText: patient.intake.allergies,
+        plannedLines: problems.flatMap(p => p.management),
+        problemCodes: problems.map(p => p.icd10 ?? ''),
+      });
+      setWarnings(res.warnings);
+      if (res.warnings.length === 0) {
+        setAiNote(`No interactions found across ${res.medCount} current medication${res.medCount === 1 ? '' : 's'} and the planned management.`);
+      }
+    } catch {
+      setErr('Interaction check failed.');
+    } finally {
+      setChecking(false);
+    }
+  }
+
   function addProblem() {
     onChange([
       ...problems,
@@ -578,21 +663,39 @@ function ProblemsTab({ problems, onChange }: {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <SectionHead>Problem List</SectionHead>
-        <button
-          onClick={addProblem}
-          className="text-sm text-teal-600 hover:text-teal-700 transition-colors"
-        >
-          + Add Problem
-        </button>
+        <div className="flex items-center gap-3">
+          <AiBtn onClick={suggest} loading={suggesting} label="Suggest from assessment" />
+          <button
+            onClick={checkInteractions}
+            disabled={checking}
+            className="text-[13px] bg-gray-50 hover:bg-amber-50 disabled:opacity-40 text-amber-700 px-3.5 py-2 rounded-full font-medium transition-colors"
+          >
+            {checking ? 'Checking…' : '⚠️ Check interactions'}
+          </button>
+          <button
+            onClick={addProblem}
+            className="text-sm text-teal-600 hover:text-teal-700 transition-colors"
+          >
+            + Add Problem
+          </button>
+        </div>
       </div>
+
+      {err && <p className="text-red-500 text-xs">{err}</p>}
+      {aiNote && (
+        <p className="text-[13px] text-teal-800 bg-teal-50 border border-teal-100 rounded-xl px-4 py-2.5">
+          {aiNote}
+        </p>
+      )}
+      <SafetyBanner warnings={warnings} />
 
       {problems.length === 0 && (
         <div className="text-center py-10 text-gray-400">
           <p className="text-3xl mb-2">📋</p>
           <p className="text-sm">No problems added yet</p>
-          <p className="text-xs mt-1">Click "Add Problem" to start your problem-based plan</p>
+          <p className="text-xs mt-1">"Suggest from assessment" builds one from the record — or add problems manually</p>
         </div>
       )}
 
@@ -677,10 +780,18 @@ function ProblemsTab({ problems, onChange }: {
             </button>
           </div>
 
-          <div className="flex">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[p.status]}`}>
               {p.status}
             </span>
+            {p.stgCondition && (
+              <span
+                className="text-xs px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-100"
+                title="Management anchored to this SA Standard Treatment Guideline entry"
+              >
+                📖 STG: {p.stgCondition}{p.icd10 ? ` · ${p.icd10}` : ''}
+              </span>
+            )}
           </div>
         </div>
       ))}
@@ -690,11 +801,12 @@ function ProblemsTab({ problems, onChange }: {
 
 // ─── ROUND TAB ──────────────────────────────────────────────────────────────
 
-function RoundTab({ patient, toolsKey, dept, onChange }: {
+function RoundTab({ patient, toolsKey, dept, onChange, onLog }: {
   patient: Patient;
   toolsKey: string;
   dept: DeptId;
   onChange: (patch: Partial<RoundData>) => void;
+  onLog: (note: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
@@ -724,6 +836,7 @@ function RoundTab({ patient, toolsKey, dept, onChange }: {
         pending: rd.pending,
       });
       onChange({ generatedNote: result });
+      onLog(formatRoundNote(result));
     } catch {
       setErr('Failed to generate round note.');
     } finally {
@@ -787,19 +900,86 @@ function RoundTab({ patient, toolsKey, dept, onChange }: {
           </pre>
         </div>
       )}
+
+      {(patient.progressLog?.length ?? 0) > 0 && (
+        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+          <SectionHead>Progress ({patient.progressLog!.length} round{patient.progressLog!.length === 1 ? '' : 's'})</SectionHead>
+          <div className="space-y-2">
+            {[...patient.progressLog!].reverse().map((entry, i) => (
+              <details key={i} className="group border border-gray-100 rounded-xl overflow-hidden">
+                <summary className="cursor-pointer px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center justify-between">
+                  <span>🗓 {entry.date} — round note</span>
+                  <span className="text-gray-300 group-open:rotate-90 transition-transform">›</span>
+                </summary>
+                <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-mono px-4 py-3 border-t border-gray-100 bg-gray-50/60">
+                  {entry.note}
+                </pre>
+              </details>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── FORMULAS TAB ───────────────────────────────────────────────────────────
 
-function FormulasTab({ dept }: { dept: DeptId }) {
+// Keyword-driven calculator suggestions: scan the record (diagnosis,
+// differentials, investigations, examination) and surface the scores that are
+// actually relevant to this patient.
+const CALC_TRIGGERS: Array<{ calc: string; pattern: RegExp; reason: string }> = [
+  { calc: 'aki', pattern: /\baki\b|acute kidney|creatinine|oligur|anuri|renal (failure|impair|injur)|urea/i, reason: 'renal function mentioned' },
+  { calc: 'gfr', pattern: /\baki\b|creatinine|renal|kidney|ckd|nephro/i, reason: 'renal function mentioned' },
+  { calc: 'heart', pattern: /chest pain|\bacs\b|troponin|angina|\bstemi\b|\bnstemi\b/i, reason: 'possible cardiac chest pain' },
+  { calc: 'crb65', pattern: /pneumonia|\bcap\b|consolidat/i, reason: 'pneumonia severity' },
+  { calc: 'wellspe', pattern: /pulmonary embol|\bpe\b(?![a-z])|pleuritic/i, reason: 'PE in the differential' },
+  { calc: 'wellsdvt', pattern: /\bdvt\b|deep vein|leg swelling|calf (pain|swelling)/i, reason: 'DVT in the differential' },
+  { calc: 'qsofa', pattern: /sepsis|septic|infection.*hypotens|\bsirs\b/i, reason: 'sepsis screen' },
+  { calc: 'sofa', pattern: /sepsis|septic shock|organ (failure|dysfunction)/i, reason: 'organ dysfunction' },
+  { calc: 'gcs', pattern: /\bgcs\b|head injur|reduced (loc|level of consciousness)|unconscious|confus/i, reason: 'consciousness assessment' },
+  { calc: 'phq9', pattern: /depress|low mood|suicid/i, reason: 'mood screen' },
+  { calc: 'eddga', pattern: /pregnan|gestation|antenatal|\blmp\b/i, reason: 'pregnancy dating' },
+  { calc: 'meows', pattern: /pregnan|obstetric|antenatal/i, reason: 'obstetric early warning' },
+  { calc: 'epds', pattern: /postnatal|postpartum|puerperal/i, reason: 'postnatal mood screen' },
+  { calc: 'ectopic', pattern: /ectopic|\bpv bleed|amenorrhoea.*pain/i, reason: 'possible ectopic' },
+  { calc: 'bishop', pattern: /induction|labour|labor/i, reason: 'labour assessment' },
+  { calc: 'bmi', pattern: /obes|overweight|malnutri|underweight/i, reason: 'weight assessment' },
+];
+
+function suggestCalculators(patient: Patient): Array<{ calc: string; reason: string }> {
+  const text = [
+    patient.intake.admissionDiagnosis,
+    patient.history.chiefComplaint,
+    patient.history.hpi,
+    patient.history.pmh,
+    patient.assessment.examination,
+    patient.assessment.investigations,
+    ...patient.problems.flatMap(p => [p.problem, p.workingDx, ...p.differentials]),
+  ]
+    .filter(Boolean)
+    .join(' \n ');
+  if (!text.trim()) return [];
+  const seen = new Set<string>();
+  const out: Array<{ calc: string; reason: string }> = [];
+  for (const t of CALC_TRIGGERS) {
+    if (seen.has(t.calc)) continue;
+    if (t.pattern.test(text)) {
+      seen.add(t.calc);
+      out.push({ calc: t.calc, reason: t.reason });
+    }
+  }
+  return out;
+}
+
+function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient }) {
   const [calc, setCalc] = useState('');
 
   const calcs: Record<string, React.ReactNode> = {
     gcs: <GCSCalc />,
     bmi: <BMICalc />,
     gfr: <GFRCalc />,
+    aki: <AKICalc />,
     qsofa: <QSOFACalc />,
     sofa: <SOFACalc />,
     heart: <HEARTCalc />,
@@ -823,6 +1003,7 @@ function FormulasTab({ dept }: { dept: DeptId }) {
     { id: 'gcs', label: 'GCS', depts: ['medicine', 'surgery', 'icu', 'emergency', 'ortho'] },
     { id: 'bmi', label: 'BMI', depts: ['medicine', 'surgery', 'og', 'paeds', 'icu', 'emergency', 'psych', 'ortho'] },
     { id: 'gfr', label: 'eGFR (CKD-EPI)', depts: ['medicine', 'surgery', 'icu', 'emergency'] },
+    { id: 'aki', label: 'AKI (KDIGO)', depts: ['medicine', 'surgery', 'icu', 'emergency', 'ortho'] },
     { id: 'qsofa', label: 'qSOFA', depts: ['medicine', 'surgery', 'icu', 'emergency'] },
     { id: 'sofa', label: 'SOFA', depts: ['icu'] },
     { id: 'heart', label: 'HEART Score', depts: ['medicine', 'emergency'] },
@@ -844,9 +1025,35 @@ function FormulasTab({ dept }: { dept: DeptId }) {
 
   const relevant = allCalcs.filter(c => c.depts.includes(dept));
   const others = allCalcs.filter(c => !c.depts.includes(dept));
+  const suggested = suggestCalculators(patient)
+    .map(s => ({ ...s, meta: allCalcs.find(c => c.id === s.calc) }))
+    .filter(s => s.meta);
 
   return (
     <div className="space-y-4">
+      {suggested.length > 0 && (
+        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+          <SectionHead>Suggested for this patient</SectionHead>
+          <div className="flex flex-wrap gap-2">
+            {suggested.map(s => (
+              <button
+                key={s.calc}
+                onClick={() => setCalc(calc === s.calc ? '' : s.calc)}
+                title={`Suggested because: ${s.reason}`}
+                className={`text-sm px-3.5 py-2 rounded-full border transition-colors ${
+                  calc === s.calc
+                    ? 'bg-teal-600 border-teal-500 text-white'
+                    : 'bg-teal-50 border-teal-200 text-teal-800 hover:border-teal-400'
+                }`}
+              >
+                ✨ {s.meta!.label}
+                <span className={`ml-1.5 text-[11px] ${calc === s.calc ? 'text-teal-100' : 'text-teal-600/70'}`}>{s.reason}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div>
         <SectionHead>Recommended for {DEPARTMENTS.find(d => d.id === dept)?.label}</SectionHead>
         <div className="flex flex-wrap gap-2">
@@ -1144,6 +1351,55 @@ function GFRCalc() {
         </select>
       </Row>
       {gfr > 0 && <Result label="eGFR" value={`${gfr.toFixed(0)} mL/min/1.73m² — CKD ${stage}`} color={gfr >= 60 ? 'green' : gfr >= 30 ? 'yellow' : 'red'} />}
+    </CalcCard>
+  );
+}
+
+function AKICalc() {
+  const [baseline, setBaseline] = useState<number | ''>('');
+  const [current, setCurrent] = useState<number | ''>('');
+  const [urine, setUrine] = useState<number | ''>('');
+  const [hours, setHours] = useState<number | ''>('');
+  const b = Number(baseline);
+  const c = Number(current);
+  const u = Number(urine);
+  const h = Number(hours);
+
+  // KDIGO staging: creatinine criterion and urine-output criterion — take the worse.
+  let crStage = 0;
+  if (b > 0 && c > 0) {
+    const ratio = c / b;
+    if (ratio >= 3 || c >= 353.6) crStage = 3;
+    else if (ratio >= 2) crStage = 2;
+    else if (ratio >= 1.5 || c - b >= 26.5) crStage = 1;
+  }
+  let uoStage = 0;
+  if (u > 0 && h > 0) {
+    if (u < 0.3 && h >= 24) uoStage = 3;
+    else if (u < 0.5 && h >= 12) uoStage = 2;
+    else if (u < 0.5 && h >= 6) uoStage = 1;
+  }
+  const stage = Math.max(crStage, uoStage);
+  const assessed = (b > 0 && c > 0) || (u > 0 && h > 0);
+  const advice =
+    stage === 0
+      ? 'No AKI by KDIGO criteria on these values'
+      : `KDIGO Stage ${stage} AKI — hold nephrotoxics (NSAIDs, ACE-i/ARB, aminoglycosides, contrast), review drug doses for renal clearance, strict fluid balance${stage >= 2 ? ', urgent senior review' : ''}${stage === 3 ? ', consider dialysis referral criteria' : ''}`;
+
+  return (
+    <CalcCard title="AKI Staging (KDIGO)">
+      <Row label="Baseline creatinine (µmol/L)"><NumInput value={baseline} onChange={setBaseline} placeholder="e.g. 80" /></Row>
+      <Row label="Current creatinine (µmol/L)"><NumInput value={current} onChange={setCurrent} placeholder="e.g. 160" /></Row>
+      <Row label="Urine output (mL/kg/h)"><NumInput value={urine} onChange={setUrine} placeholder="optional" /></Row>
+      <Row label="Over how many hours"><NumInput value={hours} onChange={setHours} placeholder="optional" /></Row>
+      {assessed && (
+        <Result
+          label="KDIGO"
+          value={stage === 0 ? 'No AKI' : `Stage ${stage} AKI`}
+          color={stage === 0 ? 'green' : stage === 1 ? 'yellow' : 'red'}
+        />
+      )}
+      {assessed && <p className="text-xs text-gray-500 leading-relaxed mt-2">{advice}</p>}
     </CalcCard>
   );
 }
@@ -1808,6 +2064,9 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 )}
                 {activeTab === 'problems' && (
                   <ProblemsTab
+                    patient={activePatient}
+                    toolsKey={key}
+                    dept={dept}
                     problems={activePatient.problems}
                     onChange={problems => updatePatient(activePatient.id, { problems })}
                   />
@@ -1818,9 +2077,15 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     toolsKey={key}
                     dept={dept}
                     onChange={patch => updatePatient(activePatient.id, { roundData: { ...activePatient.roundData, ...patch } })}
+                    onLog={note => updatePatient(activePatient.id, {
+                      progressLog: [
+                        ...(activePatient.progressLog ?? []),
+                        { date: new Date().toISOString().slice(0, 10), note },
+                      ],
+                    })}
                   />
                 )}
-                {activeTab === 'formulas' && <FormulasTab dept={dept} />}
+                {activeTab === 'formulas' && <FormulasTab dept={dept} patient={activePatient} />}
                 {activeTab === 'documents' && (
                   <DocumentsTab patient={activePatient} toolsKey={key} dept={dept} />
                 )}

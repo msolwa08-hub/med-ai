@@ -4,6 +4,12 @@ import { betaEngine } from '../services/beta-engine.js';
 import { betaStore } from '../services/beta-store.js';
 import { toolsAssist, type AssistRequest, type ScanRequest } from '../services/tools-assist.js';
 import {
+  suggestProblems,
+  interactionCheck,
+  type PatientSnapshot,
+  type InteractionCheckInput,
+} from '../services/tools-clinical.js';
+import {
   generateDischargeSummary,
   generateReferralLetter,
   generateWardNote,
@@ -80,6 +86,35 @@ export async function toolsRoutes(app: FastifyInstance) {
       app.log.error(err);
       return reply.status(500).send({ error: 'Scan request failed' });
     }
+  });
+
+  // AI problem list: STG-anchored management with a deterministic
+  // interaction/allergy safety net over current meds + proposed plans.
+  app.post('/tools/suggest-problems', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<PatientSnapshot>;
+    if (!body.dept || !body.intake || !body.history || !body.assessment) {
+      return reply.status(400).send({ error: 'dept, intake, history, and assessment are required' });
+    }
+    try {
+      const result = await suggestProblems({
+        dept: body.dept,
+        intake: body.intake,
+        history: body.history,
+        assessment: body.assessment,
+      });
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Problem suggestion failed' });
+    }
+  });
+
+  // Deterministic polypharmacy + interaction check (no AI call).
+  app.post('/tools/interaction-check', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = (req.body ?? {}) as InteractionCheckInput;
+    return reply.send(interactionCheck(body));
   });
 
   // AI History session: start (for patient-facing URL)
