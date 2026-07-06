@@ -181,6 +181,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     dept={dept}
                     subDept={subDept ?? undefined}
                     onChange={patch => updatePatient(activePatient.id, { history: { ...activePatient.history, ...patch } })}
+                    onPatient={patch => updatePatient(activePatient.id, patch)}
                   />
                 )}
                 {activeTab === 'assessment' && (
@@ -192,6 +193,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     subDept={subDept ?? undefined}
                     onChange={patch => updatePatient(activePatient.id, { assessment: { ...activePatient.assessment, ...patch } })}
                     onAdmNote={note => updatePatient(activePatient.id, { admissionNote: note })}
+                    onPatient={patch => updatePatient(activePatient.id, patch)}
                   />
                 )}
                 {activeTab === 'problems' && (
@@ -218,6 +220,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                         { date: new Date().toISOString().slice(0, 10), note },
                       ],
                     })}
+                    onPatient={patch => updatePatient(activePatient.id, patch)}
                   />
                 )}
                 {activeTab === 'formulas' && <FormulasTab dept={dept} patient={activePatient} />}

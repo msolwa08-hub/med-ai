@@ -1,11 +1,57 @@
-import { useState } from 'react';
-import { toolsApi, type Problem, type SafetyWarning } from '../toolsApi';
+import { useEffect, useRef, useState } from 'react';
+import { toolsApi, type Problem, type SafetyWarning, type ScreeningPrompt } from '../toolsApi';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
 import { uid } from '../lib/patient';
 import { AiBtn, Label, SectionHead, TextArea, TextInput } from '../components/ui';
+import { treatmentSetsFor } from '../config/treatmentSets';
+import { TreatmentSetCard } from '../components/TreatmentSetCard';
+import { WhyButton } from '../components/WhyButton';
 
 // ─── PROBLEMS TAB ────────────────────────────────────────────────────────────
+
+// Category → card colouring for screening prompts. Muted -50 backgrounds so
+// four categories scan at a glance without shouting.
+const SCREENING_STYLE: Record<ScreeningPrompt['category'], { card: string; chip: string }> = {
+  monitoring: { card: 'bg-sky-50 border-sky-100', chip: 'bg-sky-100 text-sky-800' },
+  prophylaxis: { card: 'bg-violet-50 border-violet-100', chip: 'bg-violet-100 text-violet-800' },
+  investigation: { card: 'bg-indigo-50 border-indigo-100', chip: 'bg-indigo-100 text-indigo-800' },
+  safety: { card: 'bg-red-50 border-red-100', chip: 'bg-red-100 text-red-800' },
+};
+
+function ScreeningPanel({ prompts, loading }: { prompts: ScreeningPrompt[]; loading: boolean }) {
+  if (!loading && prompts.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <SectionHead>Screening & don’t-forget prompts</SectionHead>
+      {loading && prompts.length === 0 && (
+        <p className="text-xs text-gray-400">Checking the problem list for screening gaps…</p>
+      )}
+      {prompts.map((s, i) => {
+        const style = SCREENING_STYLE[s.category] ?? SCREENING_STYLE.monitoring;
+        return (
+          <div key={i} className={`border rounded-2xl px-4 py-3 space-y-1.5 ${style.card}`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-[10px] uppercase tracking-wide font-semibold rounded-full px-2 py-0.5 ${style.chip}`}>
+                {s.category}
+              </span>
+              <span className="text-[13px] font-medium text-gray-800">{s.trigger}</span>
+              <WhyButton why={s.why} />
+            </div>
+            <ul className="space-y-0.5">
+              {s.prompts.map((p, j) => (
+                <li key={j} className="text-[13px] text-gray-700 flex gap-2">
+                  <span className="text-gray-400 shrink-0">•</span>
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function SafetyBanner({ warnings }: { warnings: SafetyWarning[] }) {
   if (warnings.length === 0) return null;
@@ -42,6 +88,49 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
   const [warnings, setWarnings] = useState<SafetyWarning[]>([]);
   const [aiNote, setAiNote] = useState('');
   const [err, setErr] = useState('');
+  const [screening, setScreening] = useState<ScreeningPrompt[]>([]);
+  const [screeningLoading, setScreeningLoading] = useState(false);
+
+  // ── Screening prompts — refreshed (debounced) whenever the problems change ─
+  const problemLines = problems
+    .map(p => [p.problem, p.workingDx].filter(Boolean).join(' — '))
+    .filter(Boolean);
+  const problemsText = problemLines.join('\n');
+  const screeningSeq = useRef(0);
+
+  useEffect(() => {
+    if (problemLines.length === 0) {
+      setScreening([]);
+      setScreeningLoading(false);
+      return;
+    }
+    const seq = ++screeningSeq.current;
+    setScreeningLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await toolsApi.screening(toolsKey, problemLines);
+        if (screeningSeq.current === seq) setScreening(res.screening);
+      } catch {
+        // Quiet — screening prompts are supplementary, never blocking.
+      } finally {
+        if (screeningSeq.current === seq) setScreeningLoading(false);
+      }
+    }, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [problemsText, toolsKey]);
+
+  // ── Protocol treatment sets matched to the problem list ────────────────────
+  const matchedSets = treatmentSetsFor(problemsText);
+
+  function addToPlan(setPattern: RegExp, lines: string[]) {
+    // Append into the management of the problem that triggered the card
+    // (first match), falling back to the first problem.
+    const target =
+      problems.find(p => setPattern.test([p.problem, p.workingDx].filter(Boolean).join(' — '))) ?? problems[0];
+    if (!target) return;
+    onChange(problems.map(p => (p.id === target.id ? { ...p, management: [...p.management, ...lines] } : p)));
+  }
 
   async function suggest() {
     setSuggesting(true);
@@ -161,6 +250,16 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
         </p>
       )}
       <SafetyBanner warnings={warnings} />
+      <ScreeningPanel prompts={screening} loading={screeningLoading} />
+
+      {matchedSets.length > 0 && (
+        <div className="space-y-3">
+          <SectionHead>Protocol sets — tap off what doesn’t apply</SectionHead>
+          {matchedSets.map(s => (
+            <TreatmentSetCard key={s.id} set={s} onAdd={lines => addToPlan(s.pattern, lines)} />
+          ))}
+        </div>
+      )}
 
       {problems.length === 0 && (
         <div className="text-center py-10 text-gray-400">

@@ -1,4 +1,4 @@
-import type { AssistField, Problem, RoundNote } from '../toolsApi';
+import type { AssistField, Problem, RoundNote, WardRoundUpdate } from '../toolsApi';
 
 // ─── Patient data interfaces ────────────────────────────────────────────────
 
@@ -49,6 +49,36 @@ export interface RoundData {
   generatedNote?: RoundNote;
 }
 
+// ─── Structured-input persistence (all ADDITIVE + optional so previously ────
+// saved patients keep loading unchanged). Raw block/chip selections are kept
+// per patient so re-opening restores them; the serialized text they produced
+// already lives in the record string fields the AI endpoints consume.
+
+export interface CascadePersist {
+  selections: Record<string, string[]>;
+  customNote: string;
+  /** Last serialized text written into the record — replaced on next change. */
+  lastText?: string;
+}
+
+export interface SmartBlockPersist {
+  state: Record<string, string | boolean | undefined>;
+  customNote: string;
+  lastText?: string;
+}
+
+export interface ExamChecklistPersist {
+  checked: Record<string, boolean>;
+  customNote: string;
+  lastText?: string;
+}
+
+export interface ImageFinding {
+  modality: string;
+  injectText: string;
+  date: string;
+}
+
 export interface Patient {
   id: string;
   intake: IntakeData;
@@ -58,6 +88,14 @@ export interface Patient {
   roundData: RoundData;
   // one entry per generated ward-round note — the record's day-by-day story
   progressLog?: { date: string; note: string }[];
+  // structured zero-typing inputs (all optional — backward compatible)
+  activeCascadeId?: string;
+  cascades?: Record<string, CascadePersist>;
+  smartBlocks?: Record<string, SmartBlockPersist>;
+  examChecklist?: ExamChecklistPersist;
+  imageFindings?: ImageFinding[];
+  // saved HOD-round syntheses, oldest first
+  rounds?: WardRoundUpdate[];
   // generated docs
   admissionNote?: string;
   wardNote?: string;
