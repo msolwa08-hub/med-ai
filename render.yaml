@@ -3,15 +3,20 @@
 # Render reads this file, builds the Dockerfile, and asks you for the secrets
 # marked "sync: false" below.
 #
-# Persistence: the free Postgres below is auto-provisioned and wired in as
-# DATABASE_URL — sessions and uploaded hospital protocols then survive
-# redeploys and free-tier sleeps. (Render free Postgres expires after ~30
-# days; if it lapses, the app degrades gracefully to memory-only mode.)
+# Persistence is OPTIONAL and manual (not auto-provisioned): Render's free
+# tier allows only ONE free Postgres database per account, so this Blueprint
+# does not try to create one for you — that would collide with any free
+# database you already have elsewhere and fail the whole deploy. To enable
+# durable sessions/protocols, create (or reuse) a Postgres database yourself
+# and paste its connection string into DATABASE_URL below. Leave it blank and
+# the app runs exactly as before: memory-only, client-replay/localStorage
+# fallback, nothing broken.
 #
 # Marketplace/dispatch: JWT secrets are auto-generated below. The last gate is
 # ENCRYPTION_KEY (must be EXACTLY 64 hex chars — generate with
-# `openssl rand -hex 32` and add it in the Render dashboard). Until it is set,
-# the marketplace routes stay unmounted and the app runs exactly as before.
+# `openssl rand -hex 32` and add it in the Render dashboard). Until DATABASE_URL
+# AND ENCRYPTION_KEY are both set, the marketplace routes stay unmounted and
+# the app runs exactly as before.
 
 services:
   - type: web
@@ -38,17 +43,11 @@ services:
         sync: false # Your name, e.g. "Dr. Smith" — shown in AI greeting and summaries
       - key: BETA_PRACTICE_NAME
         sync: false # Your practice name, e.g. "Cape Town City Practice"
-      - key: DATABASE_URL # durable sessions + protocols (and half the marketplace gate)
-        fromDatabase:
-          name: medai-beta-db
-          property: connectionString
+      - key: DATABASE_URL
+        sync: false # OPTIONAL — paste a Postgres connection string to enable durable sessions/protocols; leave blank for memory-only mode
       - key: JWT_SECRET # marketplace auth — auto-generated
         generateValue: true
       - key: JWT_REFRESH_SECRET # marketplace auth — auto-generated
         generateValue: true
       # ENCRYPTION_KEY is intentionally NOT listed: add it manually in the
       # dashboard (64 hex chars) when you want to switch the marketplace on.
-
-databases:
-  - name: medai-beta-db
-    plan: free # expires after ~30 days on the free tier; app degrades gracefully
