@@ -1,0 +1,90 @@
+import { useState } from 'react';
+import { DEPARTMENTS, type DeptId } from '../config/departments';
+import type { Patient } from '../fields/types';
+import { CALCULATORS, suggestCalculators } from '../calculators';
+import { SectionHead } from '../components/ui';
+
+// ─── FORMULAS TAB ───────────────────────────────────────────────────────────
+
+export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient }) {
+  const [calc, setCalc] = useState('');
+
+  const relevant = CALCULATORS.filter(c => c.depts.includes(dept));
+  const others = CALCULATORS.filter(c => !c.depts.includes(dept));
+  const suggested = suggestCalculators(patient)
+    .map(s => ({ ...s, meta: CALCULATORS.find(c => c.id === s.calc) }))
+    .filter(s => s.meta);
+
+  const ActiveCalc = calc ? CALCULATORS.find(c => c.id === calc)?.component : undefined;
+
+  return (
+    <div className="space-y-4">
+      {suggested.length > 0 && (
+        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+          <SectionHead>Suggested for this patient</SectionHead>
+          <div className="flex flex-wrap gap-2">
+            {suggested.map(s => (
+              <button
+                key={s.calc}
+                onClick={() => setCalc(calc === s.calc ? '' : s.calc)}
+                title={`Suggested because: ${s.reason}`}
+                className={`text-sm px-3.5 py-2 rounded-full border transition-colors ${
+                  calc === s.calc
+                    ? 'bg-teal-600 border-teal-500 text-white'
+                    : 'bg-teal-50 border-teal-200 text-teal-800 hover:border-teal-400'
+                }`}
+              >
+                ✨ {s.meta!.label}
+                <span className={`ml-1.5 text-[11px] ${calc === s.calc ? 'text-teal-100' : 'text-teal-600/70'}`}>{s.reason}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <SectionHead>Recommended for {DEPARTMENTS.find(d => d.id === dept)?.label}</SectionHead>
+        <div className="flex flex-wrap gap-2">
+          {relevant.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setCalc(calc === c.id ? '' : c.id)}
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                calc === c.id
+                  ? 'bg-teal-600 border-teal-500 text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {others.length > 0 && (
+        <div>
+          <SectionHead>Other Calculators</SectionHead>
+          <div className="flex flex-wrap gap-2">
+            {others.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setCalc(calc === c.id ? '' : c.id)}
+                className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                  calc === c.id
+                    ? 'bg-teal-600 border-teal-500 text-white'
+                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {calc && ActiveCalc && (
+        <div className="mt-2"><ActiveCalc /></div>
+      )}
+    </div>
+  );
+}
