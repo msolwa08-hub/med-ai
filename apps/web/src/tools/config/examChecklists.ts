@@ -51,8 +51,10 @@ function universalVitals(presentingText: string): ChecklistSection {
 }
 
 // ── Per-department blocks ────────────────────────────────────────────────────
+// A department's block is either a fixed section or (where the ward changes
+// the exam entirely — O&G, Paeds) a function of the selected sub-department.
 
-const DEPT_SECTIONS: Record<DeptId, ChecklistSection> = {
+const DEPT_SECTIONS: Record<DeptId, ChecklistSection | ((subDept?: string) => ChecklistSection)> = {
   medicine: {
     id: 'dept-medicine',
     title: 'General medicine screen',
@@ -75,27 +77,113 @@ const DEPT_SECTIONS: Record<DeptId, ChecklistSection> = {
       item('surg-scars', 'Scars / previous surgery noted', 'Adhesions from previous surgery are the commonest cause of small bowel obstruction.'),
     ],
   },
-  og: {
-    id: 'dept-og',
-    title: 'Obstetric screen',
-    items: [
-      item('og-sfh', 'SFH measured (cm)', 'Symphysis-fundal height is the growth screen — a lag of >2cm from gestation flags restriction, a lead flags multiples/polyhydramnios.', true),
-      item('og-leopolds', 'Lie & presentation (Leopold’s)', 'A breech or transverse lie discovered in labour is an emergency that was findable weeks earlier.', true),
-      item('og-fh', 'Fetal heart heard & rate documented', 'The FH is the fetal vital sign — "FH not documented" is indefensible in any obstetric note.', true),
-      item('og-reflexes', 'Reflexes + clonus if hypertensive', 'Hyperreflexia and clonus are the bedside signs of imminent eclampsia — check them in every hypertensive pregnancy.'),
-      item('og-oedema', 'Oedema (face/hands) if hypertensive', 'Facial and hand oedema with hypertension raises pre-eclampsia; dependent ankle oedema alone is normal in pregnancy.'),
-    ],
+  og: (subDept?: string): ChecklistSection => {
+    if (subDept === 'labour') {
+      return {
+        id: 'dept-og-labour',
+        title: 'Labour ward — intrapartum routine',
+        items: [
+          item('og-lab-palp', 'Abdominal palpation BEFORE the VE (fifths above brim)', 'Descent in fifths palpable abdominally is the caput-proof measure of progress — a VE without a preceding palpation can call "descent" when the head has not moved, only swelled.', true),
+          item('og-lab-ve', 'VE complete: dilation, effacement, station, membranes/liquor, caput, moulding, position', 'A VE that records only "4cm" wastes the exam and the infection risk it cost — every element changes the plan: moulding flags CPD, position explains slow progress, liquor grades fetal risk.', true),
+          item('og-lab-partogram', 'Findings PLOTTED on the partogram', 'An unplotted labour is an unmonitored labour. The alert line assumes 1cm/hr in active labour; crossing the ACTION line (4h later) mandates a district-level decision — ARM/oxytocin if no CPD, or CS/transfer. The lines only work if the Xs go on in real time.', true),
+          item('og-lab-fhr', 'FHR after a contraction — half-hourly in active labour, after each contraction in 2nd stage', 'Late decelerations are only audible in the minute AFTER a contraction — listening between contractions is how fetal distress is missed on a "monitored" labour.', true),
+          item('og-lab-liquor', 'Liquor colour recorded at every assessment', 'Fresh thick meconium upgrades surveillance to continuous CTG and warns the neonatal resus team before the delivery, not after it.'),
+          item('og-lab-bladder', 'Bladder emptied / urine charted 2-hourly', 'A full bladder obstructs descent during labour and causes atony (PPH) after it — catheterise if she cannot void.'),
+          item('og-lab-obs', 'Maternal obs on the partogram (BP + pulse hourly, temp 4-hourly)', 'The partogram monitors the mother too — a rising pulse is the earliest sign of concealed haemorrhage, sepsis or uterine rupture in labour.', true),
+        ],
+      };
+    }
+    if (subDept === 'postnatal') {
+      return {
+        id: 'dept-og-postnatal',
+        title: 'Postnatal check — by mode of delivery',
+        items: [
+          item('og-pn-mode', 'Mode of delivery + day post delivery framed at the top', 'The whole postnatal exam branches on the mode: perineum vs wound, VTE risk, next-pregnancy counselling — and every finding has a day-specific norm.', true),
+          item('og-pn-fundus', 'Fundus palpated (height + tone)', 'A boggy or high uterus is atony or retained products — the bedside screen for the secondary PPH that happens after everyone relaxed.', true),
+          item('og-pn-lochia', 'Lochia inspected on the pad (amount, colour, odour)', 'Look, don’t ask — heavy or offensive lochia is PPH or endometritis declaring itself, and patients under-report both.', true),
+          item('og-pn-perineum', 'Perineum inspected (post-NVD/assisted): repair intact, no haematoma, tear GRADED', 'A 3rd/4th degree tear managed as a "tear" becomes faecal incontinence — grading buys laxatives, physio and a direct continence question at follow-up. Severe pain + swelling = haematoma until looked at.'),
+          item('og-pn-wound', 'CS wound inspected (post-CS)', 'Wound sepsis declares itself around day 3 — exactly when she is being discharged; EMCS carries a higher sepsis risk than ELCS, so the emergency section earns a closer look.'),
+          item('og-pn-vte', 'Calves checked + thromboprophylaxis chart reviewed (esp. post-CS)', 'Pregnancy plus surgery is the highest-risk VTE combination on the ward — thromboembolism is a leading cause of maternal death in the SA confidential enquiries.', true),
+          item('og-pn-breasts', 'Breasts + latch OBSERVED', 'Watching one feed catches the poor latch behind "baby cries all the time" — engorgement vs mastitis diverge from day 3.'),
+          item('og-pn-bladder', 'Voided since delivery?', 'Retention hides after epidurals and instrumental deliveries — an overdistended bladder today is a floppy bladder for months.'),
+          item('og-pn-mood', 'Mood screened (EPDS) before discharge', 'Postnatal depression hides behind "just tired" — EPDS ≥13 or ANY self-harm thought is a referral, not reassurance. The legitimate psych exception on an obstetric ward.', true),
+        ],
+      };
+    }
+    if (subDept === 'gynae') {
+      return {
+        id: 'dept-og-gynae',
+        title: 'Gynae screen',
+        items: [
+          item('og-gyn-preg', 'Pregnancy test result IN the notes', 'Every woman of reproductive age with bleeding or pain is an ectopic until the test is negative — "probably not pregnant" has killed patients a urine test would have saved.', true),
+          item('og-gyn-quant', 'Bleeding QUANTIFIED (pads/day, clots, flooding)', '"Heavy PV bleed" is not a measurement — pads per day and clot size grade urgency, transfusion risk and response to treatment.', true),
+          item('og-gyn-speculum', 'Speculum: os open/closed, products, source of bleeding', 'Products in an open os cause pain, bleeding and vagal shock — removing them at speculum is both diagnosis and treatment.', true),
+          item('og-gyn-bimanual', 'Bimanual: uterine size, cervical motion tenderness, adnexae', 'Cervical excitation plus adnexal tenderness is ectopic or PID until excluded — the bimanual is where the acute gynae differential actually splits.', true),
+          item('og-gyn-abdo', 'Abdomen examined for peritonism', 'The ruptured ectopic and the ruptured cyst present as an acute abdomen — guarding with a positive pregnancy test books theatre, not a scan queue.'),
+        ],
+      };
+    }
+    // Antenatal ward (or no sub-department chosen).
+    return {
+      id: 'dept-og',
+      title: 'Antenatal / obstetric screen',
+      items: [
+        item('og-sfh', 'SFH measured AND plotted on the chart', 'One SFH value means little — the curve is the growth screen: flattening or crossing centiles flags restriction, a lead flags multiples/polyhydramnios. >2-3cm off dates → ultrasound.', true),
+        item('og-leopolds', 'Lie & presentation (Leopold’s)', 'A breech or transverse lie discovered in labour is an emergency that was findable weeks earlier — from 36w it buys ECV or a planned CS.', true),
+        item('og-fh', 'Fetal heart heard & rate documented', 'The FH is the fetal vital sign — "FH not documented" is indefensible in any obstetric note.', true),
+        item('og-fm', 'Fetal movements asked about (every visit from 28w)', 'Reduced movements is the commonest last presentation before stillbirth — the answer is a CTG today, never reassurance without one.', true),
+        item('og-bp-trend', 'BP compared against the BOOKING baseline', 'A rise of ≥15 diastolic from booking matters even below 140/90 — pre-eclampsia is a trend diagnosis, and the booking BP is the trend’s anchor.', true),
+        item('og-reflexes', 'Reflexes + clonus if hypertensive', 'Hyperreflexia and clonus are the bedside signs of imminent eclampsia — check them in every hypertensive pregnancy.'),
+        item('og-oedema', 'Oedema (face/hands) if hypertensive', 'Facial and hand oedema with hypertension raises pre-eclampsia; dependent ankle oedema alone is normal in pregnancy.'),
+      ],
+    };
   },
-  paeds: {
-    id: 'dept-paeds',
-    title: 'Paediatric screen',
-    items: [
-      item('paeds-weight', 'Weight PLOTTED on growth chart', 'A weight written but not plotted misses the fall across centiles — plotting is what turns a number into a diagnosis.', true),
-      item('paeds-fontanelle', 'Fontanelle assessed', 'Bulging → raised ICP/meningitis; sunken → dehydration. Two seconds of palpation, two major diagnoses.'),
-      item('paeds-hydration', 'Hydration signs (turgor, mucous membranes, cap refill, eyes)', 'IMCI classifies dehydration on these signs — they decide oral vs IV rehydration.', true),
-      item('paeds-rtc', 'Road-to-Health card SEEN', 'The card is the child’s medical record: immunisations, growth, previous weights. "Card not seen" is a data gap to close, not a checkbox to skip.', true),
-      item('paeds-imci', 'IMCI danger signs screened', 'Unable to drink, vomits everything, convulsions, lethargy — any one reclassifies the child as severe.', true),
-    ],
+  paeds: (subDept?: string): ChecklistSection => {
+    if (subDept === 'neonatal') {
+      return {
+        id: 'dept-paeds-neonatal',
+        title: 'Neonatal daily check',
+        items: [
+          item('paeds-neo-weight', 'Weight today vs birth weight (% change computed)', 'Up to 10% loss is physiological and regained by day 10-14 — beyond that is a feeding failure or sodium problem to work up, not to watch.', true),
+          item('paeds-neo-jaundice', 'Jaundice assessed in daylight + anchored to HOURS of life', 'Jaundice within 24h of life is ALWAYS pathological (haemolysis until proven otherwise), and a bilirubin means nothing without the hour it was taken — the phototherapy lines are hour-specific.', true),
+          item('paeds-neo-feeding', 'Feed observed + volumes computed per kg', 'The prescription is ml/kg/day, and "feeding well" is not a number — a neonate refusing feeds is septic until proven otherwise.', true),
+          item('paeds-neo-temp', 'Axillary temperature — hypothermia actively excluded', 'Neonates get COLD with sepsis more often than they get febrile — hypothermia is a danger sign, not a nursing footnote.', true),
+          item('paeds-neo-umbi', 'Umbilicus inspected', 'Peri-umbilical redness or pus is a portal straight into the portal vein — omphalitis is neonatal sepsis with a visible front door.'),
+          item('paeds-neo-fontanelle', 'Fontanelle + tone/handling assessed', 'Bulging fontanelle, floppiness or irritable handling are the neonate’s meningism — the classic signs simply don’t exist at this age.'),
+          item('paeds-neo-discharge', 'Pre-discharge: red reflex + hips (Ortolani/Barlow) + pulses', 'Cataract, retinoblastoma, DDH and coarctation are all silent, all findable in two minutes, and all much worse when found late — the discharge exam is a screening programme.'),
+        ],
+      };
+    }
+    if (subDept === 'malnutrition') {
+      return {
+        id: 'dept-paeds-sam',
+        title: 'SAM corner — WHO ten-steps check',
+        items: [
+          item('paeds-sam-anthro', 'Weight, WHZ plotted, MUAC, oedema GRADED (+/++/+++)', 'The diagnosis and the discharge criteria both live in these numbers — and in oedematous SAM the weight goes DOWN as the child improves; grade the oedema or misread the trend.', true),
+          item('paeds-sam-glucose', 'Glucose checked NOW', 'Step 1 of the WHO ten steps: hypoglycaemia kills SAM children in the first 48h, and it presents as nothing more than quietness — check it, feed 2-hourly, recheck.', true),
+          item('paeds-sam-temp', 'Temperature — hypothermia excluded', 'Step 2: hypothermia in SAM is both a killer in itself and a sign of sepsis or hypoglycaemia — kangaroo-warm the child and hunt the cause.', true),
+          item('paeds-sam-hydration', 'Hydration assessed CAUTIOUSLY (ReSoMal, not IV)', 'Every dehydration sign is mimicked by SAM itself (sunken eyes, slow pinch) — over-diagnosing it and giving IV fluids causes heart failure; rehydrate orally with ReSoMal, IV only in true shock.', true),
+          item('paeds-sam-infection', 'Infection screen despite no fever', 'SAM children mount no fever and no white count — the WHO steps give ALL of them broad-spectrum antibiotics because the exam cannot exclude sepsis here.', true),
+          item('paeds-sam-appetite', 'Appetite test with RUTF done', 'The appetite test is the triage between inpatient F-75 and outpatient RUTF — a failed appetite IS a complication.'),
+          item('paeds-sam-eyes-skin', 'Eyes (vitamin A signs) + skin/dermatosis + mouth checked', 'Bitot’s spots and corneal clouding are hours from perforation without vitamin A; kwashiorkor dermatosis weeps, infects, and loses fluid like a burn.'),
+        ],
+      };
+    }
+    // General paediatric ward (or no sub-department chosen).
+    return {
+      id: 'dept-paeds',
+      title: 'Paediatric screen',
+      items: [
+        item('paeds-imci', 'IMCI danger signs screened: unable to drink/breastfeed, vomits everything, convulsions, lethargic/unconscious', 'The four general danger signs come FIRST in every sick child — any one reclassifies as severe: admit and treat, do not send home. Document "screened negative" explicitly.', true),
+        item('paeds-weight', 'Weight PLOTTED on the RTHB growth curve (with centile)', 'A weight written but not plotted misses the fall across centiles — plotting against the child’s own previous weights is what turns a number into a diagnosis.', true),
+        item('paeds-muac', 'MUAC measured (6-59 months)', 'MUAC <11.5cm = SAM even when weight-for-age looks acceptable — ten seconds of tape catches the wasted child the scale flatters.', true),
+        item('paeds-rtc', 'RTHB (Road to Health Book) SEEN — growth, immunisation, HIV/TB pages', 'The book is the child’s medical record: growth trend, EPI doses, PCR results, TB exposure. "Book not seen" is a data gap to close, not a checkbox to skip.', true),
+        item('paeds-epi', 'Immunisations checked against the SA EPI schedule for age', 'Birth (BCG, OPV0), 6w (OPV1, RV1, hexavalent-1, PCV1), 10w (hexavalent-2), 14w (hexavalent-3, PCV2, RV2), 6m (measles-1), 9m (PCV3), 12m (measles-2), 18m (hexavalent booster) — every admission is a catch-up opportunity.', true),
+        item('paeds-hydration', 'Hydration signs (sunken eyes, skin pinch, drinking behaviour)', 'IMCI classifies dehydration on these exact signs — they choose Plan A/B/C: home fluids vs supervised ORS vs IV.', true),
+        item('paeds-fontanelle', 'Fontanelle assessed (infants)', 'Bulging → raised ICP/meningitis; sunken → dehydration. Two seconds of palpation, two major diagnoses.'),
+        item('paeds-tb-hiv', 'TB contact + HIV status established', 'The two great mimics of SA paediatrics — a household TB contact makes a child <5 TPT-eligible even when well, and an HIV-exposed child with no documented test needs one this visit.'),
+      ],
+    };
   },
   icu: {
     id: 'dept-icu',
@@ -148,6 +236,8 @@ interface AdaptiveRule {
   pattern: RegExp;
   title: string;
   items: ChecklistItem[];
+  /** Restrict the rule to these departments; omit = applies everywhere. */
+  depts?: DeptId[];
 }
 
 const ADAPTIVE_RULES: AdaptiveRule[] = [
@@ -210,6 +300,30 @@ const ADAPTIVE_RULES: AdaptiveRule[] = [
     ],
   },
   {
+    id: 'adapt-rfm',
+    pattern: /reduced fetal movement|decreased fetal movement|\bRFM\b|baby (is )?not moving|no fetal movement/i,
+    title: 'Reduced fetal movements — targeted',
+    depts: ['og', 'emergency'],
+    items: [
+      item('rfm-ctg', 'CTG done — not just FH auscultated', 'RFM is the commonest last presentation before stillbirth; a single auscultated FH proves the fetus is alive NOW, only a CTG (or BPP) says whether it is compensating — do it within the hour.', true),
+      item('rfm-sfh', 'SFH re-measured and checked against the chart', 'RFM plus a lagging SFH curve is growth restriction presenting itself — the two findings together escalate to ultrasound and delivery planning.', true),
+      item('rfm-risk', 'Risk review: BP, proteinuria, previous stillbirth, diabetes, post-term', 'RFM in a hypertensive, diabetic or post-term pregnancy is a different conversation from RFM in a low-risk one — the same complaint, a lower threshold to act.'),
+      item('rfm-plan', 'Documented plan if CTG normal: recurrence advice + follow-up', '"CTG normal, reassured, discharged" without recurrence advice is how the second, fatal episode stays at home — she must know to come back the same day it happens again.', true),
+    ],
+  },
+  {
+    id: 'adapt-aph',
+    pattern: /praevia|previa|abruption|antepartum h(a)?emorrhage|\bAPH\b/i,
+    title: 'Antepartum haemorrhage — targeted',
+    depts: ['og', 'emergency'],
+    items: [
+      item('aph-no-ve', 'NO digital VE until praevia excluded on ultrasound', 'A finger through a praevia converts spotting into an exsanguinating haemorrhage — the placental site comes from the scan (or prior anomaly scan), never from the examining finger.', true),
+      item('aph-tone', 'Uterine tone + tenderness palpated', 'A woody, tender uterus is abruption — where the blood loss you can see badly underestimates the blood loss that is concealed.', true),
+      item('aph-fh', 'Fetal heart / CTG immediately', 'In abruption the fetus deteriorates before the mother’s vitals move — fetal state is the earliest severity marker.', true),
+      item('aph-bloods', 'IV access + crossmatch + Rh status sent', 'APH can become massive transfusion in minutes, and every Rh-negative mother with APH needs anti-D — the bloods buy both options now.', true),
+    ],
+  },
+  {
     id: 'adapt-sob',
     pattern: /short(ness)? of breath|\bSOB\b|dyspn|difficulty breathing/i,
     title: 'SOB — targeted',
@@ -225,11 +339,13 @@ const ADAPTIVE_RULES: AdaptiveRule[] = [
 
 // ── Builder ──────────────────────────────────────────────────────────────────
 
-export function examChecklistFor(dept: DeptId, _subDept: string | undefined, presentingText: string): ChecklistSection[] {
+export function examChecklistFor(dept: DeptId, subDept: string | undefined, presentingText: string): ChecklistSection[] {
   const sections: ChecklistSection[] = [universalVitals(presentingText)];
-  const deptSection = DEPT_SECTIONS[dept];
+  const raw = DEPT_SECTIONS[dept];
+  const deptSection = typeof raw === 'function' ? raw(subDept) : raw;
   if (deptSection) sections.push(deptSection);
   for (const rule of ADAPTIVE_RULES) {
+    if (rule.depts && !rule.depts.includes(dept)) continue;
     if (rule.pattern.test(presentingText)) {
       sections.push({ id: rule.id, title: rule.title, items: rule.items });
     }

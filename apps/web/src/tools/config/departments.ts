@@ -34,5 +34,9 @@ export const SUB_DEPARTMENTS: Partial<Record<DeptId, SubDeptOption[]>> = {
   paeds: [
     { id: 'general', label: 'General Paediatrics', icon: '🏥' },
     { id: 'neonatal', label: 'Neonatal / Nursery', icon: '👶' },
+    // SA district/regional hospitals run a dedicated SAM corner — the WHO ten
+    // steps (F-75 first, cautious fluids, hypoglycaemia/hypothermia vigilance)
+    // differ enough from general-ward care to earn their own silo.
+    { id: 'malnutrition', label: 'Malnutrition / SAM Corner', icon: '🍲' },
   ],
 };
