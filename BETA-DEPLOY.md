@@ -35,11 +35,13 @@ When you're done you'll have:
 
 ---
 
-## Step 3 — Fill in 4 values (2 min)
+## Step 3 — Fill in the values (2 min)
 
 Render will ask you for the values below. The first is your secret key; the
 access keys are the "passwords" people type to get into each part of the app —
-change them later if you like.
+change them later if you like. `render.yaml` auto-provisions a free Postgres
+database and a couple of secrets for you, so most fields below are the only
+manual typing required.
 
 | Variable | What to paste | Notes |
 |---|---|---|
@@ -50,7 +52,18 @@ change them later if you like.
 | `BETA_DOCTOR_NAME` | e.g. `Dr. Smith` | Your name — shown in the AI greeting and summaries |
 | `BETA_PRACTICE_NAME` | e.g. `Cape Town City Practice` | Your practice name — shown throughout the app |
 
+`DATABASE_URL`, `JWT_SECRET`, and `JWT_REFRESH_SECRET` are filled in
+automatically — Render creates the free database and generates those secrets
+for you, no typing needed.
+
 Tap **Save** / **Deploy**.
+
+> **Optional — turn on the doctor-dispatch marketplace ("nearby doctors"):**
+> the code for this ships in every deploy but stays switched off until you add
+> one more variable: `ENCRYPTION_KEY`, exactly 64 hex characters. Generate one
+> with `openssl rand -hex 32` (or ask me to generate one for you), paste it in
+> under Environment, and redeploy. Leave it unset and the app runs exactly as
+> described below — nothing else changes.
 
 ---
 
@@ -86,10 +99,12 @@ pick the specialty, generate).
 - **Keys = access + cost.** Anyone with the URL *and* a valid key can use it and
   spend your Anthropic credits, so don't post the keys publicly. Change them any
   time: Render dashboard → your service → **Environment** → edit → save.
-- **Saved data:** sessions are encrypted and now survive restarts. On the free
-  plan, a *new build* still clears them (the disk is temporary). For permanent
-  storage, add a Render persistent disk and set `BETA_DATA_DIR` to it plus a
-  strong `BETA_DATA_KEY` — ask me when you want that.
+- **Saved data:** sessions and any hospital protocols you upload are stored in
+  the free Postgres database Render created in Step 2, so they now survive
+  restarts *and* new builds/redeploys. The one caveat: Render's free Postgres
+  expires after about 30 days — if that happens the app doesn't break, it just
+  quietly drops back to memory-only mode (data stops persisting) until you
+  create a fresh free database and point `DATABASE_URL` at it.
 - **Region:** Frankfurt (closest free Render region to South Africa).
 
 ---
