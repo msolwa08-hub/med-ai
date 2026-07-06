@@ -119,6 +119,67 @@ export interface HospitalProtocolSummary {
   uploadedAt: string;
 }
 
+export type ImageModality =
+  | 'ecg'
+  | 'ctg'
+  | 'cxr'
+  | 'xray'
+  | 'ultrasound'
+  | 'ct'
+  | 'eeg'
+  | 'abg'
+  | 'wound'
+  | 'other';
+
+export interface ImageAnalysisResult {
+  modality: ImageModality;
+  technicalQuality: string;
+  findings: string[];
+  impression: string;
+  redFlags: string[];
+  confidence: ScanConfidence;
+  injectText: string;
+  disclaimer: string;
+}
+
+export interface WardRoundUpdate {
+  date: string;
+  onHistory: string;
+  onExamination: string;
+  suggestedInvestigations: string[];
+  suggestedManagement: string[];
+  consultantLogicExplanation: string;
+}
+
+export interface ScreeningPrompt {
+  trigger: string;
+  category: 'monitoring' | 'prophylaxis' | 'investigation' | 'safety';
+  prompts: string[];
+  why: string;
+}
+
+export interface WardRoundDeltaResponse extends WardRoundUpdate {
+  screening: ScreeningPrompt[];
+  safety: SafetyWarning[];
+  disclaimer: string;
+}
+
+export type LegalFormType = 'mhca-72hr' | 'j88' | 'surgical-consent';
+
+export interface LegalFormSection {
+  heading: string;
+  content: string;
+  status: 'prefilled' | 'requires-input' | 'requires-examination';
+}
+
+export interface LegalFormDraft {
+  formTitle: string;
+  sections: LegalFormSection[];
+  missingInfo: string[];
+  legalNotes: string[];
+  disclaimer: string;
+}
+
 export const toolsApi = {
   assist: (key: string, input: { dept: string; subDept?: string; section: string; fields: AssistField[]; transcript: AssistTurn[]; context?: string }) =>
     post<AssistResponse>('/tools/assist', key, input),
@@ -131,6 +192,18 @@ export const toolsApi = {
 
   scanNotes: (key: string, input: { dept: string; subDept?: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string; context?: string }) =>
     post<ScanResponse>('/tools/scan-notes', key, input),
+
+  analyzeImage: (key: string, input: { dept: string; subDept?: string; modality: ImageModality; imageBase64: string; mediaType: string; context?: string }) =>
+    post<ImageAnalysisResult>('/tools/analyze-image', key, input),
+
+  wardRoundDelta: (key: string, input: { dept: string; subDept?: string; patientContext: string; problems: string[]; medications?: string; allergies?: string; previousRounds: WardRoundUpdate[]; todaySubjective?: string; todayObjective?: string; vitals?: string; newResults?: string; imageFindings?: string[] }) =>
+    post<WardRoundDeltaResponse>('/tools/ward-round-delta', key, input),
+
+  screening: (key: string, problems: string[]) =>
+    post<{ screening: ScreeningPrompt[] }>('/tools/screening', key, { problems }),
+
+  legalForm: (key: string, input: { formType: LegalFormType; dept: string; patientRecord: Record<string, unknown>; context?: string }) =>
+    post<LegalFormDraft>('/tools/legal-form', key, input),
 
   listProtocols: (key: string, dept: string) =>
     get<{ protocols: HospitalProtocolSummary[] }>(`/tools/protocols?dept=${encodeURIComponent(dept)}`, key),

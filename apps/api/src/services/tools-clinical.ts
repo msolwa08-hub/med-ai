@@ -13,7 +13,7 @@ const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 // AI's management plans are anchored to the actual SA Standard Treatment
 // Guidelines rather than free-styled.
 
-function stgMatches(clinicalText: string, limit = 4): STGSeedEntry[] {
+export function stgMatches(clinicalText: string, limit = 4): STGSeedEntry[] {
   const text = clinicalText.toLowerCase();
   const scored = STG_ENTRIES.map(entry => {
     // >3 alone drops real 3-letter clinical anchors that matter a lot here —
@@ -32,7 +32,7 @@ function stgMatches(clinicalText: string, limit = 4): STGSeedEntry[] {
     .map(s => s.entry);
 }
 
-function compactSTG(e: STGSeedEntry): string {
+export function compactSTG(e: STGSeedEntry): string {
   const meds = e.firstLinemedications
     .map(m => `${m.name} ${m.dose} ${m.route} ${m.frequency} x ${m.duration}`)
     .join('; ');

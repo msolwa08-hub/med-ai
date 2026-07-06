@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
+import { MEDAI_SYSTEM_PROMPT } from './hod-prompt.js';
 import {
   DISCHARGE_SYSTEM, REFERRAL_SYSTEM, WARD_NOTE_SYSTEM, ADMISSION_NOTE_SYSTEM,
   LAB_INTERPRET_SYSTEM, PRESENT_PATIENT_SYSTEM, OBS_NOTE_SYSTEM, GYNAE_NOTE_SYSTEM,
@@ -105,12 +106,16 @@ export interface RoundNoteInput {
 
 // ---- Generators ----
 
+// Referral, discharge and round synthesis run under the HOD persona: consultant
+// depth of reasoning, transcription-ready concision in the output fields.
+const hod = (docSystem: string) => `${MEDAI_SYSTEM_PROMPT}\n\n${docSystem}`;
+
 export function generateDischargeSummary(input: Record<string, unknown>): Promise<DischargeSummary> {
-  return generate<DischargeSummary>(DISCHARGE_SYSTEM, JSON.stringify(input));
+  return generate<DischargeSummary>(hod(DISCHARGE_SYSTEM), JSON.stringify(input));
 }
 
 export function generateReferralLetter(input: Record<string, unknown>): Promise<ReferralLetter> {
-  return generate<ReferralLetter>(REFERRAL_SYSTEM, JSON.stringify(input));
+  return generate<ReferralLetter>(hod(REFERRAL_SYSTEM), JSON.stringify(input));
 }
 
 export function generateWardNote(input: Record<string, unknown>): Promise<WardNote> {
@@ -138,5 +143,5 @@ export function generateGynaeNote(input: Record<string, unknown>): Promise<Gynae
 }
 
 export function generateRoundNote(input: RoundNoteInput): Promise<RoundNote> {
-  return generate<RoundNote>(ROUND_NOTE_SYSTEM, JSON.stringify(input));
+  return generate<RoundNote>(hod(ROUND_NOTE_SYSTEM), JSON.stringify(input));
 }

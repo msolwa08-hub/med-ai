@@ -11,6 +11,10 @@ import {
 } from '../services/tools-clinical.js';
 import { protocolStore, type HospitalProtocol } from '../services/protocol-store.js';
 import { extractTextFromFile } from '../lib/extract-text.js';
+import { analyzeClinicalImage, type ImageAnalysisRequest, type ImageModality } from '../services/image-analysis.js';
+import { generateWardRoundDelta, type WardRoundDeltaRequest } from '../services/ward-round.js';
+import { draftLegalForm, type LegalFormRequest } from '../services/clinical-forms.js';
+import { screeningForProblems } from '../services/clinical-screening.js';
 import {
   generateDischargeSummary,
   generateReferralLetter,
@@ -121,6 +125,96 @@ export async function toolsRoutes(app: FastifyInstance) {
     if (!authTools(req)) return unauth(reply);
     const body = (req.body ?? {}) as InteractionCheckInput;
     return reply.send(interactionCheck(body));
+  });
+
+  // Multimodal clinical image analysis: ECG/CTG/CXR/US/... via one vision
+  // engine with modality-specific extraction frames. injectText goes straight
+  // into the clinical record.
+  app.post('/tools/analyze-image', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<ImageAnalysisRequest>;
+    if (!body.dept || !body.modality || !body.imageBase64) {
+      return reply.status(400).send({ error: 'dept, modality, and imageBase64 are required' });
+    }
+    const mediaType =
+      body.mediaType === 'image/png' || body.mediaType === 'image/webp' ? body.mediaType : 'image/jpeg';
+    try {
+      const result = await analyzeClinicalImage({
+        dept: body.dept,
+        subDept: typeof body.subDept === 'string' ? body.subDept : undefined,
+        modality: body.modality as ImageModality,
+        imageBase64: body.imageBase64,
+        mediaType,
+        context: typeof body.context === 'string' ? body.context : undefined,
+      });
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Image analysis failed' });
+    }
+  });
+
+  // Ward-round delta engine: today's round computed against the trajectory of
+  // prior rounds, with deterministic safety + screening post-passes.
+  app.post('/tools/ward-round-delta', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<WardRoundDeltaRequest>;
+    if (!body.dept || typeof body.patientContext !== 'string' || !Array.isArray(body.problems)) {
+      return reply.status(400).send({ error: 'dept, patientContext, and problems are required' });
+    }
+    try {
+      const result = await generateWardRoundDelta({
+        dept: body.dept,
+        subDept: typeof body.subDept === 'string' ? body.subDept : undefined,
+        patientContext: body.patientContext,
+        problems: body.problems,
+        medications: typeof body.medications === 'string' ? body.medications : undefined,
+        allergies: typeof body.allergies === 'string' ? body.allergies : undefined,
+        previousRounds: Array.isArray(body.previousRounds) ? body.previousRounds : [],
+        todaySubjective: typeof body.todaySubjective === 'string' ? body.todaySubjective : undefined,
+        todayObjective: typeof body.todayObjective === 'string' ? body.todayObjective : undefined,
+        vitals: typeof body.vitals === 'string' ? body.vitals : undefined,
+        newResults: typeof body.newResults === 'string' ? body.newResults : undefined,
+        imageFindings: Array.isArray(body.imageFindings) ? body.imageFindings : undefined,
+      });
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Ward round synthesis failed' });
+    }
+  });
+
+  // Deterministic problem-linked screening rules (no AI call) — the client
+  // refreshes these whenever the active problem list changes.
+  app.post('/tools/screening', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<{ problems: string[] }>;
+    if (!Array.isArray(body.problems)) {
+      return reply.status(400).send({ error: 'problems (string[]) is required' });
+    }
+    return reply.send({ screening: screeningForProblems(body.problems) });
+  });
+
+  // Statutory/legal form drafting: MHCA 72-hr assessment, J88, surgical consent.
+  app.post('/tools/legal-form', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<LegalFormRequest>;
+    const validTypes = ['mhca-72hr', 'j88', 'surgical-consent'];
+    if (!body.formType || !validTypes.includes(body.formType) || !body.dept || !body.patientRecord) {
+      return reply.status(400).send({ error: 'formType (mhca-72hr|j88|surgical-consent), dept, and patientRecord are required' });
+    }
+    try {
+      const result = await draftLegalForm({
+        formType: body.formType,
+        dept: body.dept,
+        patientRecord: body.patientRecord as Record<string, unknown>,
+        context: typeof body.context === 'string' ? body.context : undefined,
+      });
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Form drafting failed' });
+    }
   });
 
   // ─── Hospital protocols ────────────────────────────────────────────────────
