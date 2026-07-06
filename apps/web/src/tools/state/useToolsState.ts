@@ -4,7 +4,7 @@ import { SUB_DEPARTMENTS, type DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
 import { newPatient } from '../lib/patient';
 
-export type Tab = 'intake' | 'history' | 'assessment' | 'problems' | 'round' | 'formulas' | 'documents' | 'specialist';
+export type Tab = 'intake' | 'history' | 'assessment' | 'problems' | 'results' | 'round' | 'formulas' | 'documents' | 'specialist';
 
 // Top-level state machine for the Intern Tools app: tools-key gate → dept →
 // (optional) subDept → patients → activePatient → activeTab, including all

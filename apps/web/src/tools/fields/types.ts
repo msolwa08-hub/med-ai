@@ -96,6 +96,8 @@ export interface Patient {
   imageFindings?: ImageFinding[];
   // saved HOD-round syntheses, oldest first
   rounds?: WardRoundUpdate[];
+  // serial investigations — trended across the admission (optional, backward compatible)
+  investigations?: import('../lib/investigations').InvestigationEntry[];
   // generated docs
   admissionNote?: string;
   wardNote?: string;

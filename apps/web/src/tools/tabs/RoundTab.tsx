@@ -7,6 +7,7 @@ import type { DeptId } from '../config/departments';
 import type { Patient, RoundData } from '../fields/types';
 import { roundAssistFields } from '../fields/round';
 import { patientContext } from '../lib/patientContext';
+import { serializeLatestResults } from '../lib/investigations';
 import { AiBtn, SectionHead, copy } from '../components/ui';
 import { WhyButton } from '../components/WhyButton';
 
@@ -76,7 +77,11 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onChange, onLog, on
         todaySubjective: today.todaySubjective || undefined,
         todayObjective: today.todayObjective || undefined,
         vitals: today.todayVitals || patient.assessment.vitals || undefined,
-        newResults: today.newResults || undefined,
+        // Fold the trended serial results into the round automatically — the
+        // manually-typed box is additive on top of what the Results tab holds.
+        newResults: [serializeLatestResults(patient.investigations ?? []), today.newResults]
+          .filter(Boolean)
+          .join('. ') || undefined,
         imageFindings: patient.imageFindings?.map(f => `${f.date} ${f.modality.toUpperCase()}: ${f.injectText}`),
       });
       setDelta(res);

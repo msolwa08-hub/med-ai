@@ -10,6 +10,7 @@ import { AssessmentTab } from './tabs/AssessmentTab';
 import { ProblemsTab } from './tabs/ProblemsTab';
 import { RoundTab } from './tabs/RoundTab';
 import { FormulasTab } from './tabs/FormulasTab';
+import { ResultsTab } from './tabs/ResultsTab';
 import { DocumentsTab } from './tabs/DocumentsTab';
 import { SpecialistTab } from './tabs/SpecialistTab';
 
@@ -71,6 +72,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
     { id: 'history' as Tab, label: 'History' },
     { id: 'assessment' as Tab, label: 'Assessment' },
     { id: 'problems' as Tab, label: `Problems (${activePatient?.problems.length ?? 0})` },
+    { id: 'results' as Tab, label: 'Results' },
     { id: 'round' as Tab, label: 'Round Note' },
     { id: 'formulas' as Tab, label: 'Calculators' },
     { id: 'documents' as Tab, label: 'Documents' },
@@ -223,6 +225,14 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                         { date: new Date().toISOString().slice(0, 10), note },
                       ],
                     })}
+                    onPatient={patch => updatePatient(activePatient.id, patch)}
+                  />
+                )}
+                {activeTab === 'results' && (
+                  <ResultsTab
+                    key={activePatient.id}
+                    dept={dept}
+                    patient={activePatient}
                     onPatient={patch => updatePatient(activePatient.id, patch)}
                   />
                 )}
