@@ -729,6 +729,44 @@ model Diagnosis {
   @@map("diagnoses")
 }
 
+// ============================================================
+// BETA SERVER DURABLE STATE
+// ============================================================
+// The deployed beta server (beta-server.ts) runs without the full API's
+// auth/Redis stack; these two tables are its entire database footprint.
+// All access goes through lib/beta-db.ts, which degrades to in-memory
+// operation when DATABASE_URL is unset or the database is unreachable.
+
+model BetaSession {
+  id                 String   @id
+  status             String   @default("active") // 'active' | 'completed'
+  department         String?
+  ageSex             String?
+  chiefComplaintHint String?
+  summary            String?
+  history            String?
+  complaints         Json? // string[]
+  messages           Json // { role, content, timestamp }[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([updatedAt])
+  @@map("beta_sessions")
+}
+
+model FacilityProtocol {
+  id             String   @id
+  dept           String // a DeptId, or 'all' for a hospital-wide protocol
+  title          String
+  content        String // raw extracted text; chunked deterministically on load
+  sourceFilename String?
+  charCount      Int
+  uploadedAt     DateTime @default(now())
+
+  @@index([dept])
+  @@map("facility_protocols")
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   userId     String?

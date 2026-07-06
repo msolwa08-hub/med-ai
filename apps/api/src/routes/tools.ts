@@ -239,7 +239,7 @@ export async function toolsRoutes(app: FastifyInstance) {
   app.get('/tools/import-history/:sessionId', async (req, reply) => {
     if (!authTools(req)) return unauth(reply);
     const { sessionId } = req.params as { sessionId: string };
-    const session = betaStore.get(sessionId);
+    const session = await betaStore.load(sessionId);
     if (!session) return reply.status(404).send({ error: 'Session not found' });
     return reply.send({
       sessionId,

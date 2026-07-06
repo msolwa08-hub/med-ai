@@ -12,10 +12,11 @@ export async function cockpitRoutes(app: FastifyInstance) {
     return true;
   }
 
-  // List all sessions
+  // List all sessions (in-memory merged with durable sessions from the DB,
+  // so the cockpit survives redeploys/restarts when a database is configured)
   app.get('/cockpit/sessions', async (req, reply) => {
     if (!authDoctor(req, reply)) return;
-    const sessions = betaStore.list().map(s => ({
+    const sessions = (await betaStore.listMerged()).map(s => ({
       id: s.id,
       status: s.status,
       department: s.department,
@@ -33,7 +34,7 @@ export async function cockpitRoutes(app: FastifyInstance) {
   app.get('/cockpit/sessions/:id', async (req, reply) => {
     if (!authDoctor(req, reply)) return;
     const { id } = req.params as { id: string };
-    const session = betaStore.get(id);
+    const session = await betaStore.load(id);
     if (!session) return reply.status(404).send({ error: 'Session not found' });
     return reply.send(session);
   });
@@ -42,6 +43,7 @@ export async function cockpitRoutes(app: FastifyInstance) {
   app.delete('/cockpit/sessions/:id', async (req, reply) => {
     if (!authDoctor(req, reply)) return;
     const { id } = req.params as { id: string };
+    await betaStore.load(id); // hydrate first so durable-only sessions delete cleanly
     const deleted = betaStore.delete(id);
     return reply.send({ deleted });
   });
@@ -49,7 +51,7 @@ export async function cockpitRoutes(app: FastifyInstance) {
   // Analytics summary
   app.get('/cockpit/analytics', async (req, reply) => {
     if (!authDoctor(req, reply)) return;
-    const sessions = betaStore.list();
+    const sessions = await betaStore.listMerged();
     const byDept: Record<string, number> = {};
     let completed = 0;
     let active = 0;

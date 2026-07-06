@@ -7,6 +7,27 @@ import { betaRoutes } from './routes/beta.js';
 import { cockpitRoutes } from './routes/cockpit.js';
 import { toolsRoutes } from './routes/tools.js';
 import { betaConfig } from './lib/beta-config.js';
+import { betaDbEnabled } from './lib/beta-db.js';
+import { protocolStore } from './services/protocol-store.js';
+import { missingMarketplaceEnv, registerMarketplace } from './marketplace.js';
+
+// URL prefixes owned by the API (never the SPA). Marketplace prefixes are
+// always excluded from the SPA fallback — when the marketplace is disabled a
+// call to them should read as a JSON 404, not an index.html.
+const API_PREFIXES = [
+  '/beta/',
+  '/tools/',
+  '/cockpit/',
+  '/auth/',
+  '/patients',
+  '/doctors',
+  '/consultations',
+  '/ai-history',
+  '/og-history',
+  '/antenatal-followup',
+  '/specialty-history',
+  '/notifications',
+];
 
 export async function buildApp(opts: { serveStatic?: boolean } = {}) {
   const app = Fastify({
@@ -54,10 +75,34 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
   // Health check
   app.get('/health', async () => ({ status: 'ok', env: betaConfig.NODE_ENV }));
 
+  // Durable state: rehydrate facility protocols from the database (no-op on
+  // database-less deploys — the store simply starts empty, as before).
+  if (betaDbEnabled()) {
+    app.log.info('DATABASE_URL configured — durable persistence enabled (sessions + protocols)');
+    await protocolStore.init();
+  } else {
+    app.log.info('No DATABASE_URL — running memory-only (client replay/localStorage remain the fallback)');
+  }
+
   // API routes
   await app.register(betaRoutes);
   await app.register(cockpitRoutes);
   await app.register(toolsRoutes);
+
+  // Dispatch/geolocation marketplace ("nearby doctors, first-to-accept").
+  // Fully built against Prisma + JWT; only mounted when its environment is
+  // complete, and imported dynamically so a beta-only deploy never loads the
+  // full API's config stack (which hard-requires these variables at import).
+  const missingEnv = missingMarketplaceEnv();
+  if (missingEnv.length === 0) {
+    await registerMarketplace(app);
+    app.log.info('Marketplace ENABLED — auth/patients/doctors/consultations/history/notifications routes mounted');
+  } else {
+    app.log.info(
+      { missing: missingEnv },
+      'Marketplace disabled — set DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET and ENCRYPTION_KEY to enable dispatch'
+    );
+  }
 
   // Serve web app static files
   if (opts.serveStatic) {
@@ -73,12 +118,12 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
       prefix: '/',
     });
 
-    // SPA fallback — serve index.html for all non-API routes. API routes live
-    // under /beta/*, /tools/*, /cockpit/* — but the bare /tools (etc.) paths
-    // are SPA pages the runbook hands out, so only exclude the deeper paths.
+    // SPA fallback — serve index.html for all non-API routes. The bare /tools
+    // (etc.) paths are SPA pages the runbook hands out, so /beta//tools//cockpit
+    // only exclude their deeper paths; marketplace prefixes are excluded whole.
     app.setNotFoundHandler(async (req, reply) => {
       const url = req.url.split('?')[0];
-      if (url.startsWith('/beta/') || url.startsWith('/tools/') || url.startsWith('/cockpit/') || url === '/health') {
+      if (url === '/health' || API_PREFIXES.some(p => url.startsWith(p))) {
         return reply.status(404).send({ error: 'Not found' });
       }
       return reply.sendFile('index.html');

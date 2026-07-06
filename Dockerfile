@@ -1,6 +1,10 @@
 # MedAI Beta — single-service deploy (web app + history-taking API)
 # Builds the React web app and the standalone beta server, runs both from one process.
-# No database required — only ANTHROPIC_API_KEY and BETA_ACCESS_KEYS.
+#
+# Runs with only ANTHROPIC_API_KEY and BETA_ACCESS_KEYS (memory-only mode).
+# Optionally: DATABASE_URL enables durable sessions/protocols, and adding
+# JWT_SECRET + JWT_REFRESH_SECRET + ENCRYPTION_KEY mounts the dispatch
+# marketplace (nearby doctors, broadcast dispatch, first-to-accept).
 
 FROM node:20-slim
 
@@ -16,6 +20,11 @@ RUN npm install
 # Copy source
 COPY . .
 
+# Generate the Prisma client (types + engine) — the schema is only available
+# after COPY, so the npm-install postinstall generate was a no-op. build:beta
+# now compiles the marketplace graph, which imports @prisma/client.
+RUN npx prisma generate --schema=prisma/schema.prisma
+
 # Build the web app and bundle the beta server
 RUN npm run build:web \
   && npm run build:beta --workspace=apps/api
@@ -24,4 +33,5 @@ RUN npm run build:web \
 ENV NODE_ENV=production
 # PORT is provided by the host (Render/Railway set it automatically)
 
-CMD ["node", "apps/api/dist/beta-server.js"]
+RUN chmod +x scripts/beta-entrypoint.sh
+CMD ["./scripts/beta-entrypoint.sh"]

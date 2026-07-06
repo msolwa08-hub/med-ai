@@ -82,19 +82,45 @@ export async function deleteConversation(consultationId: string): Promise<void> 
   await cacheDel(`ai:conversation:${consultationId}`);
 }
 
-// Blacklisted tokens (logout)
+// Blacklisted tokens (logout).
+//
+// Degradation contract: Redis is optional infrastructure. When REDIS_URL is
+// not configured (e.g. the beta-server marketplace deploy), or Redis is down,
+// the revocation list degrades to a no-op: logout stops actively revoking
+// tokens (they still expire via JWT exp) and authentication proceeds. The
+// previous behaviour — throwing into authenticate()'s catch — turned a Redis
+// outage into a 100% 401 outage for every authenticated route.
+const revocationListAvailable = () => !!process.env.REDIS_URL;
+
 export async function blacklistToken(
   token: string,
   ttlSeconds: number
 ): Promise<void> {
-  const redis = getRedisClient();
-  await redis.setex(`blacklist:${token}`, ttlSeconds, '1');
+  if (!revocationListAvailable()) return;
+  try {
+    const redis = getRedisClient();
+    await redis.setex(`blacklist:${token}`, ttlSeconds, '1');
+  } catch (err) {
+    console.warn(
+      '[Redis] blacklistToken failed — token will expire via JWT exp only:',
+      err instanceof Error ? err.message : err
+    );
+  }
 }
 
 export async function isTokenBlacklisted(token: string): Promise<boolean> {
-  const redis = getRedisClient();
-  const exists = await redis.exists(`blacklist:${token}`);
-  return exists === 1;
+  if (!revocationListAvailable()) return false;
+  try {
+    const redis = getRedisClient();
+    const exists = await redis.exists(`blacklist:${token}`);
+    return exists === 1;
+  } catch (err) {
+    console.warn(
+      '[Redis] isTokenBlacklisted failed — treating token as not revoked:',
+      err instanceof Error ? err.message : err
+    );
+    return false;
+  }
 }
 
 export { redisClient };

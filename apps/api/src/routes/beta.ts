@@ -30,10 +30,11 @@ export async function betaRoutes(app: FastifyInstance) {
     }
   });
 
-  // Continue a patient conversation. The client sends its full transcript on
-  // every turn: if the server restarted (free-tier hosts sleep) and the
-  // in-memory session is gone, we rebuild it from the replayed transcript
-  // instead of stranding the patient mid-history.
+  // Continue a patient conversation. Session recovery after a restart is
+  // layered: (1) the in-memory store, (2) a direct database fetch when
+  // DATABASE_URL is configured — the durable path, (3) as a last resort on
+  // database-less deploys, rebuild from the transcript the client replays on
+  // every turn. A patient is never stranded mid-history.
   app.post('/beta/chat', async (req, reply) => {
     const key = (req.headers['x-beta-key'] as string) ?? '';
     if (!validateBetaKey(key)) {
@@ -50,7 +51,7 @@ export async function betaRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'sessionId and message are required' });
     }
 
-    if (!betaStore.get(body.sessionId)) {
+    if (!(await betaStore.load(body.sessionId))) {
       const replay = Array.isArray(body.transcript)
         ? body.transcript.filter(
             (t): t is { role: 'user' | 'assistant'; content: string } =>
@@ -82,7 +83,7 @@ export async function betaRoutes(app: FastifyInstance) {
   // Get session (public — patients access via session ID in URL)
   app.get('/beta/session/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
-    const session = betaStore.get(id);
+    const session = await betaStore.load(id);
     if (!session) return reply.status(404).send({ error: 'Session not found' });
     return reply.send({
       id: session.id,

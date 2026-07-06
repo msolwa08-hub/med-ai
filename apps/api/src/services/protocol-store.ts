@@ -2,14 +2,20 @@
  * Hospital Protocol Store — lets a facility plug its OWN protocols into the
  * intern tools, layered above (and able to override) the generic SA STGs.
  *
- * In-memory only (matches beta-store.ts — no database in the beta image).
- * Documents are chunked into paragraphs at upload time; retrieval scores each
+ * Reads are served from an in-memory Map (match() runs on every assist call
+ * and must stay cheap); writes go through to Postgres when DATABASE_URL is
+ * configured, and init() rehydrates the Map from the database at boot so an
+ * uploaded protocol survives redeploys and free-tier restarts. Without a
+ * database this degrades to exactly the old memory-only behaviour.
+ *
+ * Documents are chunked into paragraphs at load time; retrieval scores each
  * paragraph against the patient's clinical text with the same cheap lexical
  * overlap approach used for STG matching (services/tools-clinical.ts), so no
  * embeddings/vector DB is required. This is intentionally simple: a facility
  * uploads a protocol once, and every subsequent assist/problem-suggestion
  * call for that department can pull in the exact paragraph that matters.
  */
+import { betaDb } from '../lib/beta-db.js';
 
 export interface ProtocolChunk {
   text: string;
@@ -69,6 +75,37 @@ function chunkText(content: string): ProtocolChunk[] {
 class ProtocolStore {
   private protocols = new Map<string, HospitalProtocol>();
 
+  /**
+   * Rehydrate every persisted protocol into memory. Called once at boot;
+   * a failure logs and starts empty rather than blocking the server.
+   */
+  async init(): Promise<void> {
+    const db = betaDb();
+    if (!db) return;
+    try {
+      const rows = await db.facilityProtocol.findMany({ orderBy: { uploadedAt: 'desc' } });
+      for (const row of rows) {
+        this.protocols.set(row.id, {
+          id: row.id,
+          dept: row.dept,
+          title: row.title,
+          sourceFilename: row.sourceFilename ?? undefined,
+          chunks: chunkText(row.content),
+          charCount: row.charCount,
+          uploadedAt: row.uploadedAt.toISOString(),
+        });
+      }
+      if (rows.length > 0) {
+        console.info(`[protocol-store] hydrated ${rows.length} facility protocol(s) from database`);
+      }
+    } catch (err) {
+      console.warn(
+        '[protocol-store] hydration failed — starting with an empty store:',
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
   add(input: { dept: string; title: string; content: string; sourceFilename?: string }): HospitalProtocol {
     const id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
     const protocol: HospitalProtocol = {
@@ -81,6 +118,26 @@ class ProtocolStore {
       uploadedAt: new Date().toISOString(),
     };
     this.protocols.set(id, protocol);
+    const db = betaDb();
+    if (db) {
+      db.facilityProtocol
+        .create({
+          data: {
+            id,
+            dept: input.dept,
+            title: input.title,
+            content: input.content,
+            sourceFilename: input.sourceFilename ?? null,
+            charCount: input.content.length,
+          },
+        })
+        .catch((err: unknown) =>
+          console.warn(
+            '[protocol-store] persist failed (in-memory copy still live):',
+            err instanceof Error ? err.message : err
+          )
+        );
+    }
     return protocol;
   }
 
@@ -92,7 +149,14 @@ class ProtocolStore {
   }
 
   remove(id: string): boolean {
-    return this.protocols.delete(id);
+    const existed = this.protocols.delete(id);
+    const db = betaDb();
+    if (db) {
+      db.facilityProtocol.delete({ where: { id } }).catch(() => {
+        /* not persisted / already gone — nothing to clean up */
+      });
+    }
+    return existed;
   }
 
   /** Best-matching excerpts across all protocols relevant to this department. */
