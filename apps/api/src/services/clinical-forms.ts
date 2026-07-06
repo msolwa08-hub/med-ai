@@ -13,7 +13,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
-import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER } from './hod-prompt.js';
+import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
@@ -98,6 +98,8 @@ export async function draftLegalForm(req: LegalFormRequest): Promise<LegalFormDr
   const frame = FORM_FRAMES[req.formType];
 
   const system = `${MEDAI_SYSTEM_PROMPT}
+
+${specialtyLens(req.dept)}
 
 TASK — STATUTORY FORM DRAFTING:
 ${frame}

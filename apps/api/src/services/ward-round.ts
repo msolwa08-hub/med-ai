@@ -15,7 +15,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
-import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER } from './hod-prompt.js';
+import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
 import { stgMatches, compactSTG, runSafetyCheck } from './tools-clinical.js';
 import { protocolStore } from './protocol-store.js';
 import { screeningForProblems, type ScreeningPrompt } from './clinical-screening.js';
@@ -90,6 +90,8 @@ export async function generateWardRoundDelta(req: WardRoundDeltaRequest): Promis
     : 'TRAJECTORY: first documented round for this patient.';
 
   const system = `${MEDAI_SYSTEM_PROMPT}
+
+${specialtyLens(req.dept, req.subDept)}
 
 TASK — DAILY WARD ROUND SYNTHESIS (${req.dept}${req.subDept ? ` / ${req.subDept}` : ''}):
 Compute TODAY'S round as a delta against the trajectory: what changed, what resolved, what is drifting, what must happen today. Do not re-summarize the whole admission — reference it only where the trend matters. If today's inputs contradict the trajectory (e.g. vitals worse despite "improving"), say so bluntly.

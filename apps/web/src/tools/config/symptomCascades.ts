@@ -93,6 +93,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'chest-pain',
     label: 'Chest pain',
     icon: '❤️',
+    depts: ['medicine', 'emergency', 'icu', 'surgery'],
     blocks: [
       {
         id: 'cp-character',
@@ -162,6 +163,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'sob',
     label: 'Shortness of breath',
     icon: '🫁',
+    depts: ['medicine', 'emergency', 'icu', 'paeds'],
     blocks: [
       {
         id: 'sob-onset',
@@ -234,6 +236,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'abdo-pain',
     label: 'Abdominal pain',
     icon: '🫃',
+    depts: ['medicine', 'surgery', 'emergency', 'og', 'paeds'],
     blocks: [
       {
         id: 'abdo-site',
@@ -316,6 +319,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'headache',
     label: 'Headache',
     icon: '🤕',
+    depts: ['medicine', 'emergency', 'og'],
     blocks: [
       {
         id: 'ha-thunderclap',
@@ -375,6 +379,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'fever',
     label: 'Fever',
     icon: '🌡️',
+    depts: ['medicine', 'emergency', 'paeds', 'icu', 'og', 'surgery'],
     blocks: [
       {
         id: 'fev-duration',
@@ -430,6 +435,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'trauma',
     label: 'Trauma / injury',
     icon: '🚑',
+    depts: ['emergency', 'ortho', 'surgery'],
     blocks: [
       {
         id: 'tr-mechanism',
@@ -577,6 +583,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'reduced-loc',
     label: 'Reduced LOC',
     icon: '😵',
+    depts: ['emergency', 'medicine', 'icu', 'paeds'],
     blocks: [
       {
         id: 'loc-glucose',
@@ -640,6 +647,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'seizure',
     label: 'Seizure',
     icon: '⚡',
+    depts: ['emergency', 'medicine', 'paeds', 'icu', 'og'],
     blocks: [
       {
         id: 'sz-first',
@@ -712,6 +720,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'joint-limb-pain',
     label: 'Joint / limb pain',
     icon: '🦵',
+    depts: ['ortho', 'emergency', 'medicine'],
     blocks: [
       {
         id: 'jt-pattern',
@@ -767,6 +776,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'cough',
     label: 'Cough',
     icon: '😮‍💨',
+    depts: ['medicine', 'emergency', 'paeds'],
     blocks: [
       {
         id: 'cough-duration',
@@ -831,6 +841,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'vomiting-diarrhoea',
     label: 'Vomiting / diarrhoea',
     icon: '🤢',
+    depts: ['medicine', 'emergency', 'paeds', 'surgery'],
     blocks: [
       {
         id: 'vd-which',
@@ -906,6 +917,7 @@ export const SYMPTOM_CASCADES: SymptomCascade[] = [
     id: 'psych-presentation',
     label: 'Psych presentation',
     icon: '🧠',
+    depts: ['psych', 'emergency'],
     blocks: [
       {
         id: 'psy-mood',

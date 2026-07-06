@@ -171,6 +171,9 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     dept={dept}
                     subDept={subDept ?? undefined}
                     onChange={patch => updatePatient(activePatient.id, { intake: { ...activePatient.intake, ...patch } })}
+                    // Seamless routing: intake complete -> straight into History.
+                    // Short pause so the ✓ confirmation line is seen, not skipped.
+                    onComplete={() => setTimeout(() => setActiveTab('history'), 1400)}
                   />
                 )}
                 {activeTab === 'history' && (

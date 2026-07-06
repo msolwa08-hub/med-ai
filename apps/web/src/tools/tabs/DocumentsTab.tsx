@@ -255,10 +255,14 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
 // sections that require their own examination. Nothing here replaces the
 // statutory paper form; the draft is transcription-ready source text.
 
-const LEGAL_FORMS: { type: LegalFormType; label: string; sub: string; icon: string }[] = [
-  { type: 'mhca-72hr', label: 'MHCA 72-hr assessment', sub: 'Mental Health Care Act form', icon: '🧠' },
+// Strict clinical silos: each form only surfaces on wards where it is that
+// ward's business. MHCA paperwork is psychiatry's instrument (initiated via
+// emergency/medicine at district level); the J88 follows assault/injury into
+// any ward; consent belongs to the procedural disciplines.
+const LEGAL_FORMS: { type: LegalFormType; label: string; sub: string; icon: string; depts?: DeptId[] }[] = [
+  { type: 'mhca-72hr', label: 'MHCA 72-hr assessment', sub: 'Mental Health Care Act form', icon: '🧠', depts: ['psych', 'emergency', 'medicine'] },
   { type: 'j88', label: 'J88', sub: 'Medico-legal injury report', icon: '⚖️' },
-  { type: 'surgical-consent', label: 'Surgical consent', sub: 'Informed consent record', icon: '🖊️' },
+  { type: 'surgical-consent', label: 'Surgical consent', sub: 'Informed consent record', icon: '🖊️', depts: ['surgery', 'ortho', 'og', 'emergency', 'medicine', 'paeds', 'icu'] },
 ];
 
 const SECTION_STYLE: Record<LegalFormSection['status'], { card: string; badge: string; badgeLabel: string }> = {
@@ -351,7 +355,7 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
       </div>
 
       <div className="grid sm:grid-cols-3 gap-2">
-        {LEGAL_FORMS.map(f => (
+        {LEGAL_FORMS.filter(f => !f.depts || f.depts.includes(dept)).map(f => (
           <button
             key={f.type}
             onClick={() => pick(f.type)}

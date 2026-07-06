@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
 import { protocolStore } from './protocol-store.js';
+import { specialtyLens } from './hod-prompt.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
@@ -98,6 +99,8 @@ function buildSystemPrompt(req: AssistRequest): string {
   const protocolBlock = facilityProtocolBlock(req.dept, queryText);
 
   return `You are MedAI Scribe, an AI assistant helping a busy hospital intern on a South African ${deptLabel} ward log the "${req.section}" section of a patient record — hands-busy, eyes-off-the-screen.
+
+${specialtyLens(req.dept, req.subDept)}
 ${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE: ${guidance}\n` : ''}${protocolBlock}
 THE FIELDS TO CAPTURE:
 ${fieldList}
@@ -156,6 +159,8 @@ function buildScanPrompt(req: ScanRequest): string {
   const protocolBlock = facilityProtocolBlock(req.dept, [req.context, ...req.fields.map(f => f.label)].join(' '));
 
   return `You are MedAI Scribe reading a photo of HANDWRITTEN clinical notes from a South African ${deptLabel} ward, to fill the "${req.section}" section of a patient record.
+
+${specialtyLens(req.dept, req.subDept)}
 ${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE (expect this kind of shorthand in the notes): ${guidance}\n` : ''}${protocolBlock}
 
 FIELDS TO EXTRACT:

@@ -11,7 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
-import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER } from './hod-prompt.js';
+import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
@@ -71,6 +71,8 @@ export async function analyzeClinicalImage(req: ImageAnalysisRequest): Promise<I
   const frame = MODALITY_FRAMES[req.modality] ?? MODALITY_FRAMES.other;
 
   const system = `${MEDAI_SYSTEM_PROMPT}
+
+${specialtyLens(req.dept, req.subDept)}
 
 TASK — VISUAL TRACE INTERPRETATION:
 You are reading a clinical image for an intern on a ${req.dept}${req.subDept ? ` (${req.subDept})` : ''} ward.

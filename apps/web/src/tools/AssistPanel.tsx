@@ -14,7 +14,7 @@ interface CapturedField {
 // notes), and the structured form fills itself. Scanned values carry a
 // per-field confidence; whatever the scan couldn't read, the conversation
 // follows up on.
-export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdates, context }: {
+export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdates, context, onDone }: {
   toolsKey: string;
   dept: string;
   /** Ward/unit within the department (e.g. "labour" vs "antenatal" within O&G). */
@@ -24,6 +24,8 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
   onUpdates: (updates: Record<string, string>) => void;
   /** One-line patient context (age/sex, EGA, diagnosis) so the AI asks about THIS patient. */
   context?: string;
+  /** Fires once when the assist conversation completes — lets the parent advance the workflow. */
+  onDone?: () => void;
 }) {
   const [transcript, setTranscript] = useState<AssistTurn[]>([]);
   const [question, setQuestion] = useState<string>('');
@@ -77,6 +79,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       setQuestion(res.nextQuestion);
       setDone(res.done);
       if (!res.done) setTimeout(() => inputRef.current?.focus(), 50);
+      else onDone?.();
     } catch {
       // Give the intern their answer back — a failed call must never eat what
       // they typed.

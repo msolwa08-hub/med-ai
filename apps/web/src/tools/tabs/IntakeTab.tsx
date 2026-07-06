@@ -8,12 +8,14 @@ import { SectionHead } from '../components/ui';
 
 // ─── INTAKE TAB ─────────────────────────────────────────────────────────────
 
-export function IntakeTab({ patient, toolsKey, dept, subDept, onChange }: {
+export function IntakeTab({ patient, toolsKey, dept, subDept, onChange, onComplete }: {
   patient: Patient;
   toolsKey: string;
   dept: DeptId;
   subDept?: string;
   onChange: (patch: Partial<IntakeData>) => void;
+  /** Fired when the intake conversation completes — the workflow advances to History. */
+  onComplete?: () => void;
 }) {
   const d = patient.intake;
   const fields = intakeAssistFields(d, dept);
@@ -28,6 +30,7 @@ export function IntakeTab({ patient, toolsKey, dept, subDept, onChange }: {
         fields={fields}
         context={patientContext(patient, dept, subDept)}
         onUpdates={u => onChange(u as Partial<IntakeData>)}
+        onDone={onComplete}
       />
 
       <div>

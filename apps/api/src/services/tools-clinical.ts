@@ -4,6 +4,7 @@ import { extractJSON } from '../lib/json-extract.js';
 import { STG_ENTRIES, type STGSeedEntry } from '../data/stg-entries.js';
 import { checkPrescriptionSafety, type SafetyWarning } from './prescription-safety.js';
 import { protocolStore } from './protocol-store.js';
+import { specialtyLens } from './hod-prompt.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
@@ -89,6 +90,8 @@ export async function suggestProblems(s: PatientSnapshot): Promise<SuggestProble
   const currentMeds = s.history.medications ?? '';
 
   const prompt = `You are MedAI Scribe generating a problem-based assessment for a South African hospital intern. From the patient record below, produce a concise, clinically-ordered problem list.
+
+${specialtyLens(s.dept)}
 
 ${clinical}
 
