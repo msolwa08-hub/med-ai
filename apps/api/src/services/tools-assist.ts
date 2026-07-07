@@ -247,9 +247,12 @@ export class ToolsAssistEngine {
     // no matter what the client sends.
     for (const t of req.transcript) {
       const role = t.role === 'assistant' ? 'assistant' : 'user';
+      // Anthropic rejects empty message content — coerce blanks (a skipped
+      // answer) to a placeholder so a bare Enter never 500s the flow.
+      const content = (typeof t.content === 'string' ? t.content : '').trim() || '(no answer given)';
       const last = primed[primed.length - 1];
-      if (last.role === role) last.content = `${last.content}\n${t.content}`;
-      else primed.push({ role, content: t.content });
+      if (last.role === role) last.content = `${last.content}\n${content}`;
+      else primed.push({ role, content });
     }
     // Must end on a user turn for the model to answer.
     const messages =
