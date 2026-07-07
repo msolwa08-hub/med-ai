@@ -42,7 +42,8 @@ export const paedsFields: DeptFieldFragments = {
   },
 
   assessment: {
-    insertAt: 3,
+    // After General + Focused exam (index 4), before Investigations.
+    insertAt: 4,
     fields: (d, subDept) => {
       if (subDept === 'neonatal') {
         return [

@@ -71,6 +71,12 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onChange, onLog, on
         problems: patient.problems
           .map(p => [p.problem, p.workingDx].filter(Boolean).join(' — '))
           .filter(Boolean),
+        // The history + baseline exam are what the round synthesises
+        // expected-vs-actual findings against.
+        history: [patient.history.chiefComplaint, patient.history.hpi]
+          .filter(Boolean).join(' — ') || undefined,
+        generalExam: patient.assessment.generalExam || undefined,
+        focusedExam: patient.assessment.examination || undefined,
         medications: patient.history.medications || undefined,
         allergies: patient.intake.allergies || undefined,
         previousRounds: patient.rounds ?? [],

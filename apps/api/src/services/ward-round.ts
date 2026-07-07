@@ -39,6 +39,12 @@ export interface WardRoundDeltaRequest {
   patientContext: string;
   /** Active problem list lines ("1. CAP — CURB-65 2 ..."). */
   problems: string[];
+  /** The presenting history / HPI — what the exam findings are expected against. */
+  history?: string;
+  /** Baseline general examination on the record. */
+  generalExam?: string;
+  /** Baseline focused/systems examination on the record. */
+  focusedExam?: string;
   medications?: string;
   allergies?: string;
   /** Prior rounds, oldest first — the trajectory the delta is computed against. */
@@ -96,21 +102,36 @@ ${specialtyLens(req.dept, req.subDept)}
 TASK — DAILY WARD ROUND SYNTHESIS (${req.dept}${req.subDept ? ` / ${req.subDept}` : ''}):
 Compute TODAY'S round as a delta against the trajectory: what changed, what resolved, what is drifting, what must happen today. Do not re-summarize the whole admission — reference it only where the trend matters. If today's inputs contradict the trajectory (e.g. vitals worse despite "improving"), say so bluntly.
 
+THE EXAMINATION IS SYNTHESISED, NOT TRANSCRIBED — this is the core of the round:
+Given the HISTORY and the active problems, first reason (silently) about what a consultant would EXPECT to find on examination today for this presentation and this day of illness/admission. Then compare that expectation against the ACTUAL findings recorded (general exam, focused exam, vitals, images). Your "onExamination" output states the actual salient findings AND the interpretation of the gap:
+- CONCORDANT (findings match the expected course) — say so briefly and move on.
+- BETTER than expected — name it (resolving, improving) and what it permits (de-escalate, step down, plan discharge).
+- WORSE / DISCORDANT than expected — this is the important signal. If the history predicts a finding that is ABSENT (e.g. peritonitis expected but abdomen soft — reassuring, or the tachycardia of an anastomotic leak before peritonism appears), or a finding is present that the history did NOT predict (an unexpected sign pointing to a new problem or a missed diagnosis), flag it explicitly and let it drive the investigations and management.
+- Name the pertinent EXPECTED-BUT-NOT-DOCUMENTED findings the intern should actively check today (the exam the presentation demands but the record is silent on).
+
 Respond with ONLY a JSON object:
 {
   "onHistory": "1-3 lines, subjective trajectory since last round, clinical shorthand",
-  "onExamination": "1-3 lines, focused exam/vital DELTAS + image trace findings, shorthand",
+  "onExamination": "1-3 lines: actual salient findings + vital/exam DELTAS + image traces, THEN the expected-vs-actual read (concordant / better / worse-discordant) and any expected finding not yet documented that must be checked",
   "suggestedInvestigations": ["only today's targeted additions/repeats, each with its trigger, e.g. 'Repeat UEC — K+ was 5.9 on insulin'"],
   "suggestedManagement": ["concrete regimen updates with doses where STG applies; include stop/de-escalate orders, not just additions"],
-  "consultantLogicExplanation": "the specialist WHY behind today's plan — trends weighed, traps flagged, escalation triggers"
+  "consultantLogicExplanation": "the specialist WHY — including WHY these findings were expected for this history/day, and what the concordance or discordance means"
 }`;
 
+  const examBaseline =
+    req.generalExam || req.focusedExam
+      ? `BASELINE EXAMINATION ON RECORD (compare today's findings against this + what the history predicts):
+General: ${req.generalExam || '—'}
+Focused: ${req.focusedExam || '—'}`
+      : '';
+
   const userContent = `PATIENT: ${req.patientContext}
+${req.history ? `HISTORY / HPI (what the examination findings are expected against):\n${req.history}\n` : ''}
 ACTIVE PROBLEMS:
 ${req.problems.map((p, i) => `${i + 1}. ${p}`).join('\n') || 'none recorded'}
 CURRENT MEDICATIONS: ${req.medications || 'none recorded'}
 ALLERGIES: ${req.allergies || 'none recorded'}
-
+${examBaseline ? `\n${examBaseline}\n` : ''}
 ${trajectoryBlock}
 
 TODAY'S INPUTS:

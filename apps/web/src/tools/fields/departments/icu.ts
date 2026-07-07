@@ -9,7 +9,8 @@ export const icuFields: DeptFieldFragments = {
   ],
 
   assessment: {
-    insertAt: 3,
+    // After General + Focused exam (index 4), before Investigations.
+    insertAt: 4,
     fields: d => [
       { key: 'ventSettings', label: 'Ventilation', value: d.ventSettings ?? '', hint: 'mode, FiO2, PEEP, latest ABG', placeholder: 'e.g. SIMV, FiO2 0.4, PEEP 8 — ABG: …' },
       { key: 'haemodynamics', label: 'Haemodynamics', value: d.haemodynamics ?? '', hint: 'MAP, vasopressor agents and doses, lactate', placeholder: 'MAP, pressor doses, lactate trend' },

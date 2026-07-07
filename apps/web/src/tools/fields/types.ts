@@ -35,6 +35,7 @@ export interface HistoryData {
 
 export interface AssessmentData {
   vitals: string;
+  generalExam?: string;
   examination: string;
   investigations: string;
   dayOfAdmission: string;

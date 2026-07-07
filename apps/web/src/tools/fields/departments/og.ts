@@ -56,7 +56,8 @@ export const ogFields: DeptFieldFragments = {
   },
 
   assessment: {
-    insertAt: 3,
+    // After General + Focused exam (index 4), before Investigations.
+    insertAt: 4,
     fields: (d, subDept) => {
       if (subDept === 'postnatal') {
         // Pregnancy has ended — mode of delivery is the ROOT of this exam:

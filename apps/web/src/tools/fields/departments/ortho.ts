@@ -13,7 +13,8 @@ export const orthoFields: DeptFieldFragments = {
   history: surgicalHistoryFields,
 
   assessment: {
-    insertAt: 3,
+    // After General + Focused exam (index 4), before Investigations.
+    insertAt: 4,
     fields: d => [
       { key: 'neurovascular', label: 'Neurovascular Status', value: d.neurovascular ?? '', hint: 'distal pulses, sensation, motor, capillary refill', placeholder: 'Pulses / sensation / motor / cap refill distal to injury' },
     ],

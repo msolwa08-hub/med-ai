@@ -11,7 +11,8 @@ export const psychFields: DeptFieldFragments = {
   },
 
   assessment: {
-    insertAt: 3,
+    // After General + Focused exam (index 4), before Investigations.
+    insertAt: 4,
     fields: d => [
       { key: 'mse', label: 'Mental State Exam', value: d.mse ?? '', kind: 'textarea', hint: 'appearance, behaviour, speech, mood/affect, thought, perception, cognition, insight', placeholder: 'MSE domains in order' },
       { key: 'riskAssessment', label: 'Risk Assessment', value: d.riskAssessment ?? '', kind: 'textarea', hint: 'suicide, harm to others, self-neglect — with protective factors', placeholder: 'Risk to self / others / self-neglect + protective factors' },

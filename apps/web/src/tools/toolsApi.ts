@@ -196,7 +196,7 @@ export const toolsApi = {
   analyzeImage: (key: string, input: { dept: string; subDept?: string; modality: ImageModality; imageBase64: string; mediaType: string; context?: string }) =>
     post<ImageAnalysisResult>('/tools/analyze-image', key, input),
 
-  wardRoundDelta: (key: string, input: { dept: string; subDept?: string; patientContext: string; problems: string[]; medications?: string; allergies?: string; previousRounds: WardRoundUpdate[]; todaySubjective?: string; todayObjective?: string; vitals?: string; newResults?: string; imageFindings?: string[] }) =>
+  wardRoundDelta: (key: string, input: { dept: string; subDept?: string; patientContext: string; problems: string[]; history?: string; generalExam?: string; focusedExam?: string; medications?: string; allergies?: string; previousRounds: WardRoundUpdate[]; todaySubjective?: string; todayObjective?: string; vitals?: string; newResults?: string; imageFindings?: string[] }) =>
     post<WardRoundDeltaResponse>('/tools/ward-round-delta', key, input),
 
   screening: (key: string, problems: string[]) =>
