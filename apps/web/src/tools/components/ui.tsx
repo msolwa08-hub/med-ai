@@ -71,6 +71,7 @@ export function stripMarkdown(text: string): string {
     .replace(/(^|[^*])\*(?!\s)([^*\n]+?)\*(?!\*)/g, '$1$2') // italics *x*
     .replace(/__([^_]+)__/g, '$1')            // bold underscore
     .replace(/^#{1,6}\s+/gm, '')              // ATX headings
+    .replace(/^\s*([-*_])\1{2,}\s*$/gm, '')   // horizontal rules (---, ***, ___)
     .replace(/^\s*[-*+]\s+/gm, '• ')          // markdown bullets -> a clean middot
     .replace(/^\s*\*\s*$/gm, '')              // stray lone asterisks
     .replace(/[ \t]+$/gm, '')                 // trailing whitespace

@@ -216,16 +216,37 @@ export function checkPrescriptionSafety(
 
   // 2. Pregnancy
   if (context.isPregnant) {
+    const conditions = (context.conditionsText ?? '').toLowerCase();
+    // A non-continuing / non-viable pregnancy inverts the teratogen logic: the
+    // abortifacient IS the treatment. Methotrexate is first-line for an ectopic
+    // and for gestational trophoblastic disease; blocking it there as
+    // "contraindicated in pregnancy" is a confidently-wrong statement on a named
+    // emergency. Only suppress the block for the drug whose designated obstetric
+    // use matches the recorded indication — everything else still blocks.
+    const nonViable = /ectopic|molar|gestational trophoblastic|\bgtn\b|\bgtd\b|hydatidiform|miscarriage|incomplete abortion|missed abortion|retained products|non-viable|nonviable|fetal demise|intrauterine (fetal )?death|\biufd\b/.test(conditions);
     for (const drug of lowered) {
       const hit = PREGNANCY_BLOCK.find((p) => drug.lower.includes(p.match));
-      if (hit) {
+      if (!hit) continue;
+      const isDesignatedTherapy =
+        hit.match === 'methotrexate' && /ectopic|molar|gestational trophoblastic|\bgtn\b|\bgtd\b|hydatidiform/.test(conditions);
+      if (isDesignatedTherapy) {
         warnings.push({
-          severity: 'BLOCK',
+          severity: 'WARN',
           drug: drug.original,
           category: 'PREGNANCY',
-          reason: hit.reason,
+          reason: 'Methotrexate is the intended therapy here (ectopic/GTD), not a teratogen error — confirm eligibility (stable, βhCG threshold, no fetal cardiac activity) and give anti-D if Rh-negative.',
         });
+        continue;
       }
+      // In a clearly non-viable pregnancy the fetal-protection rationale is moot;
+      // downgrade to a WARN so the maternal caution is still surfaced without a
+      // hard BLOCK on a drug that may be clinically appropriate.
+      warnings.push({
+        severity: nonViable ? 'WARN' : 'BLOCK',
+        drug: drug.original,
+        category: 'PREGNANCY',
+        reason: nonViable ? `${hit.reason} (pregnancy recorded as non-viable — confirm before relying on this)` : hit.reason,
+      });
     }
   }
 

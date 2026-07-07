@@ -67,6 +67,8 @@ ASSESSMENT — a genuine SYNTHESIS: for each active problem, one line on where i
 PLAN — numbered actions, one per line, concrete (drug + dose where relevant, investigations, referrals, monitoring).
 PENDING — outstanding results/tasks, one per line.
 
+If no explicit PLAN or PENDING is supplied, DERIVE the PLAN from each active problem's management and the working diagnosis — never leave ASSESSMENT or PLAN empty when a problem list exists. Only fall back to a placeholder ("Awaiting bloods") when there is genuinely nothing to say.
+
 Be complete but tight; length follows the patient's complexity — do NOT truncate to a fixed line count.
 
 ${PLAIN_TEXT_RULE}
