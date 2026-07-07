@@ -59,16 +59,38 @@ export function AiBtn({
   );
 }
 
-export function DocOutput({ text, onCopy }: { text: string; onCopy: () => void }) {
+// The AI is instructed to emit plain text, but a stray **bold** or - bullet
+// still occasionally slips through — and these notes get copied by hand onto a
+// paper chart, where a literal asterisk is noise the clerk must delete. Strip
+// markdown as a client-side backstop so what's shown IS what's written down.
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[a-z]*\n?/gi, '')           // code fences
+    .replace(/`([^`]+)`/g, '$1')              // inline code
+    .replace(/\*\*([^*]+)\*\*/g, '$1')        // bold
+    .replace(/(^|[^*])\*(?!\s)([^*\n]+?)\*(?!\*)/g, '$1$2') // italics *x*
+    .replace(/__([^_]+)__/g, '$1')            // bold underscore
+    .replace(/^#{1,6}\s+/gm, '')              // ATX headings
+    .replace(/^\s*[-*+]\s+/gm, '• ')          // markdown bullets -> a clean middot
+    .replace(/^\s*\*\s*$/gm, '')              // stray lone asterisks
+    .replace(/[ \t]+$/gm, '')                 // trailing whitespace
+    .trimEnd();
+}
+
+export function DocOutput({ text, onCopy }: { text: string; onCopy?: () => void }) {
+  const clean = stripMarkdown(text);
   return (
     <div className="mt-3 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
       <div className="flex justify-end px-3 py-1.5 border-b border-gray-200">
-        <button onClick={onCopy} className="text-xs text-gray-500 hover:text-gray-900 transition-colors">
+        <button
+          onClick={() => { copy(clean); onCopy?.(); }}
+          className="text-xs text-gray-600 hover:text-gray-900 transition-colors"
+        >
           Copy
         </button>
       </div>
-      <pre className="text-xs text-gray-700 p-4 whitespace-pre-wrap leading-relaxed overflow-auto max-h-72">
-        {text}
+      <pre className="text-sm text-gray-800 p-4 whitespace-pre-wrap leading-relaxed overflow-auto max-h-[28rem] font-mono">
+        {clean}
       </pre>
     </div>
   );

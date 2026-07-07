@@ -114,6 +114,8 @@ Given the HISTORY and the active problems, first reason (silently) about what a 
 - WORSE / DISCORDANT than expected — this is the important signal. If the history predicts a finding that is ABSENT (e.g. peritonitis expected but abdomen soft — reassuring, or the tachycardia of an anastomotic leak before peritonism appears), or a finding is present that the history did NOT predict (an unexpected sign pointing to a new problem or a missed diagnosis), flag it explicitly and let it drive the investigations and management.
 - Name the pertinent EXPECTED-BUT-NOT-DOCUMENTED findings the intern should actively check today (the exam the presentation demands but the record is silent on).
 
+All text fields are PLAIN TEXT copied by hand onto a paper chart: no markdown, no *, **, #, backticks, no bullet glyphs. Clinical shorthand is fine.
+
 Respond with ONLY a JSON object:
 {
   "onHistory": "1-3 lines, subjective trajectory since last round, clinical shorthand",

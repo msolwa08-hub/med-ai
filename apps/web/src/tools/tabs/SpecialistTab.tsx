@@ -67,7 +67,7 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
         <AiBtn onClick={generate} loading={loading} label={`Generate ${mode === 'obs' ? 'Obs' : 'Gynae'} Note`} />
       </div>
       {err && <p className="text-red-400 text-xs">{err}</p>}
-      {result && <DocOutput text={result} onCopy={() => copy(result)} />}
+      {result && <DocOutput text={result} />}
     </div>
   );
 }

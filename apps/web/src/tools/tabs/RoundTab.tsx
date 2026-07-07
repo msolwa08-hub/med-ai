@@ -8,7 +8,7 @@ import type { Patient, RoundData } from '../fields/types';
 import { roundAssistFields } from '../fields/round';
 import { patientContext } from '../lib/patientContext';
 import { serializeLatestResults } from '../lib/investigations';
-import { AiBtn, SectionHead, copy } from '../components/ui';
+import { AiBtn, SectionHead, copy, stripMarkdown } from '../components/ui';
 import { WhyButton } from '../components/WhyButton';
 
 // ─── ROUND TAB ──────────────────────────────────────────────────────────────
@@ -16,18 +16,19 @@ import { WhyButton } from '../components/WhyButton';
 // One crisp, copyable synthesis block ("On History", "Management", …).
 function DeltaBlock({ title, text }: { title: string; text: string }) {
   if (!text.trim()) return null;
+  const clean = stripMarkdown(text);
   return (
     <div className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden">
       <div className="flex items-center justify-between px-3.5 pt-2.5">
         <p className="text-[11px] font-semibold text-teal-700 uppercase tracking-wider">{title}</p>
         <button
-          onClick={() => copy(text)}
-          className="text-xs text-gray-400 hover:text-gray-900 transition-colors min-h-[44px] px-2"
+          onClick={() => copy(clean)}
+          className="text-xs text-gray-500 hover:text-gray-900 transition-colors min-h-[44px] px-2"
         >
           Copy
         </button>
       </div>
-      <pre className="text-[13px] text-gray-800 whitespace-pre-wrap leading-relaxed px-3.5 pb-3 font-sans">{text}</pre>
+      <pre className="text-[13px] text-gray-800 whitespace-pre-wrap leading-relaxed px-3.5 pb-3 font-sans">{clean}</pre>
     </div>
   );
 }
@@ -144,7 +145,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onChange, onLog, on
     }
   }
 
-  const noteText = rd.generatedNote ? formatRoundNote(rd.generatedNote) : '';
+  const noteText = rd.generatedNote ? stripMarkdown(formatRoundNote(rd.generatedNote)) : '';
 
   return (
     <div className="space-y-5">
@@ -291,7 +292,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onChange, onLog, on
       <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
         <SectionHead>Daily Round Note</SectionHead>
         <p className="text-gray-500 text-xs mb-4">
-          Auto-generated half-page ward round summary (SOAP format, ≤25 lines) from your patient data.
+          A complete, plain-text ward-round note (IDENTIFIER · BACKGROUND · SUBJECTIVE · OBJECTIVE · ASSESSMENT · PLAN · PENDING) you can copy or print straight onto the chart. Generates from whatever you have so far.
         </p>
 
         <div className="flex gap-3">

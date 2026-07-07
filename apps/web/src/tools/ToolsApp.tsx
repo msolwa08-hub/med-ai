@@ -4,9 +4,7 @@ import { DEPARTMENTS, SUB_DEPARTMENTS } from './config/departments';
 import { useToolsState, type Tab } from './state/useToolsState';
 import { DeptSelector } from './components/DeptSelector';
 import { SubDeptSelector } from './components/SubDeptSelector';
-import { IntakeTab } from './tabs/IntakeTab';
-import { HistoryTab } from './tabs/HistoryTab';
-import { AssessmentTab } from './tabs/AssessmentTab';
+import { ClerkTab } from './tabs/ClerkTab';
 import { ProblemsTab } from './tabs/ProblemsTab';
 import { RoundTab } from './tabs/RoundTab';
 import { FormulasTab } from './tabs/FormulasTab';
@@ -68,9 +66,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   const subDeptInfo = subDept ? subDeptOptions?.find(s => s.id === subDept) : undefined;
 
   const tabs = ([
-    { id: 'intake' as Tab, label: 'Intake' },
-    { id: 'history' as Tab, label: 'History' },
-    { id: 'assessment' as Tab, label: 'Assessment' },
+    { id: 'clerk' as Tab, label: 'Clerk' },
     { id: 'problems' as Tab, label: `Problems (${activePatient?.problems.length ?? 0})` },
     { id: 'results' as Tab, label: 'Results' },
     { id: 'round' as Tab, label: 'Round Note' },
@@ -133,7 +129,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
               {patients.map((p, i) => (
                 <div key={p.id} className="flex items-center gap-1">
                   <button
-                    onClick={() => { setActivePatientId(p.id); setActiveTab('intake'); }}
+                    onClick={() => { setActivePatientId(p.id); setActiveTab('clerk'); }}
                     className={`flex-1 text-left text-xs px-2 py-2 rounded-lg transition-colors truncate ${
                       activePatientId === p.id
                         ? 'bg-teal-600 text-white'
@@ -179,39 +175,13 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           <div className="flex-1 overflow-y-auto px-5 py-8">
             {activePatient ? (
               <div className="max-w-3xl mx-auto">
-                {activeTab === 'intake' && (
-                  <IntakeTab
+                {activeTab === 'clerk' && (
+                  <ClerkTab
                     key={activePatient.id}
                     patient={activePatient}
                     toolsKey={key}
                     dept={dept}
                     subDept={subDept ?? undefined}
-                    onChange={patch => updatePatient(activePatient.id, { intake: { ...activePatient.intake, ...patch } })}
-                    // Seamless routing: intake complete -> straight into History.
-                    // Short pause so the ✓ confirmation line is seen, not skipped.
-                    onComplete={() => setTimeout(() => setActiveTab('history'), 1400)}
-                  />
-                )}
-                {activeTab === 'history' && (
-                  <HistoryTab
-                    key={activePatient.id}
-                    patient={activePatient}
-                    toolsKey={key}
-                    dept={dept}
-                    subDept={subDept ?? undefined}
-                    onChange={patch => updatePatient(activePatient.id, { history: { ...activePatient.history, ...patch } })}
-                    onPatient={patch => updatePatient(activePatient.id, patch)}
-                  />
-                )}
-                {activeTab === 'assessment' && (
-                  <AssessmentTab
-                    key={activePatient.id}
-                    patient={activePatient}
-                    toolsKey={key}
-                    dept={dept}
-                    subDept={subDept ?? undefined}
-                    onChange={patch => updatePatient(activePatient.id, { assessment: { ...activePatient.assessment, ...patch } })}
-                    onAdmNote={note => updatePatient(activePatient.id, { admissionNote: note })}
                     onPatient={patch => updatePatient(activePatient.id, patch)}
                   />
                 )}

@@ -87,7 +87,7 @@ export function DocumentsTab({ patient, toolsKey, dept }: {
         results[d.id] ? (
           <div key={d.id}>
             <p className="text-xs font-medium text-gray-500 mb-1">{d.label}</p>
-            <DocOutput text={results[d.id]} onCopy={() => copy(results[d.id])} />
+            <DocOutput text={results[d.id]} />
           </div>
         ) : null
       )}

@@ -202,7 +202,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       ) : (
         <p
           key={question || '__pending__'}
-          className={`animate-question-in text-xl sm:text-2xl font-medium leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-gray-900'}`}
+          className={`animate-question-in text-2xl sm:text-3xl font-semibold leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-gray-900'}`}
         >
           {busy && !question ? (
             <span className="text-gray-500">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
