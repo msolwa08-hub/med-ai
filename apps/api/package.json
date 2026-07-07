@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src --ext .ts",
     "test": "vitest run --passWithNoTests",
-    "eval": "node eval/run.mjs"
+    "eval": "node eval/run.mjs",
+    "stress": "node eval/stress-run.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",

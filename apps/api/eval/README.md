@@ -51,9 +51,46 @@ Append to `scenarios.mjs`: give the patient `facts` (ground truth the AI-intern
 answers from) and `expected` (working dx, problems, safety, what the presentation
 must contain) so quality is scored objectively.
 
+## Stress test — overwhelmed intern, full O&G range
+
+The stress test is the real point: it behaves like an **overwhelmed first-day
+O&G intern abusing the app** across the whole obstetric + gynae diagnosis range,
+and asks whether the app is **easy enough for that intern AND sophisticated
+enough for a consultant** — while catching the intern's mistakes.
+
+For every scenario it runs the mistakes a real new intern makes:
+
+| Mode | Behaviour |
+|---|---|
+| `clean` | honest, complete (baseline) |
+| `terse` | time-pressured one-word answers, detail dropped |
+| `skip` | omits critical fields (no time / forgot) |
+| `misplace` | puts an answer in the wrong place / wrong area |
+| `contradiction` | enters a fact that contradicts the clinical picture |
+
+Each run is scored on three axes (each /100):
+
+- **Accessible (intern)** — did it hand-hold and still produce usable outputs under abuse?
+- **Sophisticated (consultant)** — dangerous-first differentials incl. the zebra, investigations-then-plan, the "why", and the mistake NOT corrupting the diagnosis.
+- **Discrepancy alarm** — did the app **flag** the injected mistake (flag & guide, never block)?
+
+```bash
+node apps/api/eval/stress-run.mjs --base <url> --key <tools-key>
+node apps/api/eval/stress-run.mjs --scenario gynae-ectopic --mode contradiction
+npm run -w apps/api stress -- --base <url> --key <key>
+```
+
+The report ends with a discrepancy-detection roll-up: every injected mistake the
+app should have flagged, and whether it did.
+
 ## Files
 
-- `scenarios.mjs` — the O&G patients and their expected outputs.
-- `harness.mjs` — drives the API, measures, scores (imports no app source — it
-  grades the shipped product over HTTP).
-- `run.mjs` — CLI: runs scenarios, prints the scorecard, writes the report.
+- `scenarios.mjs` — the O&G patients (obstetric + gynae breadth) and their
+  expected consultant-grade outputs, critical fields, and injectable contradictions.
+- `harness.mjs` — the /100 speed-inclusive run; drives the API, measures, scores.
+- `run.mjs` — CLI for the harness.
+- `stress.mjs` — the intern-mistake stress engine (mistake modes, 3-axis scoring).
+- `stress-run.mjs` — CLI for the stress test.
+
+All of it speaks HTTP only — it imports no app source, so it grades the shipped
+product, not the code's intentions.
