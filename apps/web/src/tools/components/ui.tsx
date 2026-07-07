@@ -46,7 +46,7 @@ export function AiBtn({
     <button
       onClick={onClick}
       disabled={loading}
-      className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+      className="bg-teal-700 hover:bg-teal-600 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
     >
       {loading ? (
         <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">

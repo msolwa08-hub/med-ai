@@ -177,7 +177,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
         </h3>
         <div className="flex items-center gap-3">
           {captured.length > 0 && (
-            <span className="text-xs text-gray-400">{captured.length} captured</span>
+            <span className="text-xs text-gray-500">{captured.length} captured</span>
           )}
           <input
             ref={fileRef}
@@ -205,7 +205,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
           className={`animate-question-in text-xl sm:text-2xl font-medium leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-gray-900'}`}
         >
           {busy && !question ? (
-            <span className="text-gray-300">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
+            <span className="text-gray-500">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
           ) : (
             <>{done ? '✓ ' : ''}{question}</>
           )}
@@ -231,7 +231,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
             onClick={submit}
             disabled={busy || !answer.trim()}
             aria-label="Send"
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-teal-600 hover:bg-teal-500 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-teal-700 hover:bg-teal-600 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
           >
             {busy ? '…' : '↑'}
           </button>
