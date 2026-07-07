@@ -25,6 +25,7 @@ if (!key) { console.error('No tools key. Pass --key <key> or set EVAL_KEY.'); pr
 const scenarios = only ? only.split(',').map((id) => scenarioById(id.trim())).filter(Boolean) : SCENARIOS;
 if (!scenarios.length) { console.error(`Unknown scenario "${only}". Known: ${SCENARIOS.map((s) => s.id).join(', ')}`); process.exit(1); }
 const modes = mode ? mode.split(',').map((m) => m.trim()) : MODES;
+const maxTurns = Number(arg('turns', '8'));
 
 const bar = (n) => n == null ? '   n/a' : `${'█'.repeat(Math.round(n / 5))}${'░'.repeat(20 - Math.round(n / 5))} ${String(n).padStart(5)}`;
 
@@ -35,7 +36,7 @@ const results = [];
 for (const s of scenarios) {
   process.stdout.write(`  ${s.id.padEnd(28)} `);
   try {
-    const r = await stressScenario(s, { base, key, modes });
+    const r = await stressScenario(s, { base, key, modes, maxTurns });
     results.push(r);
     console.log(`overall ${String(r.overall).padStart(5)}  (access ${r.accessible} · reason ${r.sophisticated} · discrep ${r.discrepancy ?? 'n/a'})`);
   } catch (e) { console.log(`ERROR ${e.message}`); }
