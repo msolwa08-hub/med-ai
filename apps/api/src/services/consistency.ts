@@ -141,6 +141,22 @@ export function checkConsistency(input: ConsistencyInput): Discrepancy[] {
     });
   }
 
+  // 6b. Presentation demands a measurement that is missing — the "forgot under
+  //     pressure" case. A pre-eclampsia / hypertensive picture with NO blood
+  //     pressure recorded is the highest-yield one in O&G.
+  const pregContext = currentPregMarkers || input.subDept === 'antenatal' || input.subDept === 'labour'
+    || /pregnan|antenatal|gestation|liquor|\bfetal\b|\bfoetal\b/.test(allText);
+  const bpText = `${r.vitals || ''} ${r.bpTrend || ''}`;
+  const hasBP = /\d{2,3}\s*\/\s*\d{2,3}/.test(bpText);
+  const petPicture = /pre-?eclampsia|eclampsia|\bpet\b|severe headache|epigastric pain|hypertens|raised bp|high blood pressure|proteinuria/.test(`${complaintText} ${allText}`);
+  if (pregContext && petPicture && !hasBP) {
+    out.push({
+      severity: 'alarm',
+      fields: ['vitals'],
+      message: 'This looks like a hypertensive / pre-eclampsia presentation but no blood pressure is recorded — measure and record BP and urine protein; they drive the diagnosis and management.',
+    });
+  }
+
   // 7. Wrong area — obstetric findings on a gynae patient (or vice versa)
   if (input.subDept === 'gynae' && (r.fetalHeart || r.contractions || r.sfh || r.lieAndPresentation)) {
     out.push({ severity: 'note', fields: ['fetalHeart', 'contractions'], message: 'Obstetric findings (fetal heart / contractions / SFH) are filled on a gynae patient — confirm this is the right patient and section.' });
