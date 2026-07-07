@@ -26,7 +26,7 @@ Explicitly a multi-session undertaking — this file is the resumable tracker.
 | Surgery (General) | ✅ done | ⬜ not started | acute abdomen, indication-for-surgery, pre-op, post-op day framework |
 | Emergency Medicine | ✅ done (1018 lines) | ⬜ not started | SATS, undifferentiated, tox, trauma |
 | Intensive Care | ⬜ not started | ⬜ not started | FASTHUGS, organ-support framing, ventilation |
-| Obstetrics & Gynae | 🟡 partial (v1 depth pass done) | 🟡 partial | deepen: full differential per presentation, gynae-onc, early-pregnancy |
+| Obstetrics & Gynae | 🟡 partial (v1 depth pass done) | 🟡 hardened via 6-agent eval | STG floor for 10 obstetric/gynae emergencies, teratogen net armed, female acute-abdomen differential, resilience + completeness guards — see `eval/og/SCORECARD.md`. Still: streaming, competing-surface redesign |
 | Paediatrics | 🟡 partial (v1 depth pass done) | 🟡 partial | deepen: neonatology, PICU, syndromic reasoning |
 | Orthopaedics | ⬜ not started | ⬜ not started | fracture patterns, the limb-threat emergencies, spine |
 | Psychiatry | ⬜ not started | ⬜ not started | full differential incl. organic, MHCA, risk |
@@ -41,6 +41,15 @@ Legend: ⬜ not started · ⏳ in progress · 🟡 partial · ✅ done
 - ⬜ Differential-engine: surface the consultant differential (incl. must-not-miss + zebra) from the presentation, not just a problem list.
 - ⬜ "Normals" reference layer — what normal looks like per ward, inline.
 - ⬜ Anaesthetics as a first-class department in `departments.ts`.
+
+## Evaluations
+
+- ✅ **O&G six-agent evaluation** (`eval/og/`) — efficiency, breadth, consultant, super-specialist,
+  stressed-load, UI/UX lanes against a 7-dimension rubric. Aggregate ~6.5 → projected ~8.0 after
+  remediation. 13 highest-impact fixes applied and cherry-picked to the deploy branch; the residual
+  gap is UX/throughput architecture (streaming, worker pool, surface-collapse redesign), not
+  clinical safety. Full write-up in `eval/og/SCORECARD.md`. Same lane pattern can be re-run per
+  department as the dossiers land.
 
 ## Reference
 
