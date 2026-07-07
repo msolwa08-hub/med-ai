@@ -69,10 +69,10 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
     { id: 'clerk' as Tab, label: 'Clerk' },
     { id: 'problems' as Tab, label: `Problems (${activePatient?.problems.length ?? 0})` },
     { id: 'results' as Tab, label: 'Results' },
-    { id: 'round' as Tab, label: 'Round Note' },
     { id: 'formulas' as Tab, label: 'Calculators' },
     { id: 'documents' as Tab, label: 'Documents' },
     { id: 'specialist' as Tab, label: 'Specialist', show: dept === 'og' },
+    { id: 'round' as Tab, label: 'Round & Handover' },
   ] as { id: Tab; label: string; show?: boolean }[]).filter(t => t.show !== false);
 
   return (
@@ -202,7 +202,6 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     toolsKey={key}
                     dept={dept}
                     subDept={subDept ?? undefined}
-                    onChange={patch => updatePatient(activePatient.id, { roundData: { ...activePatient.roundData, ...patch } })}
                     onLog={note => updatePatient(activePatient.id, {
                       progressLog: [
                         ...(activePatient.progressLog ?? []),

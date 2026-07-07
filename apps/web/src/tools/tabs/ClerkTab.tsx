@@ -8,7 +8,7 @@ import { intakeAssistFields } from '../fields/intake';
 import { historyAssistFields } from '../fields/history';
 import { assessmentAssistFields } from '../fields/assessment';
 import { patientContext } from '../lib/patientContext';
-import { AiBtn, DocOutput, SectionHead, copy, stripMarkdown } from '../components/ui';
+import { AiBtn, DocOutput, SectionHead } from '../components/ui';
 import { cascadesFor, type SymptomCascade } from '../config/symptomCascades';
 import { smartBlocksFor, type SmartBlock } from '../config/smartBlocks';
 import { CascadePanel, EMPTY_CASCADE_VALUE, type CascadePanelValue } from '../components/CascadePanel';
@@ -124,32 +124,6 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         { modality, injectText, date: new Date().toISOString().slice(0, 10) },
       ],
     });
-  }
-
-  // ── Present-to-consultant summary (works from partial data, any time) ──────
-  const [presenting, setPresenting] = useState(false);
-  const [presentation, setPresentation] = useState('');
-  const [presentErr, setPresentErr] = useState('');
-
-  async function presentPatient() {
-    setPresenting(true);
-    setPresentErr('');
-    try {
-      const r = await toolsApi.presentPatient(toolsKey, {
-        dept,
-        subDept,
-        ...patient.intake,
-        ...patient.history,
-        ...patient.assessment,
-        problems: patient.problems.map(p => ({ problem: p.problem, workingDx: p.workingDx })),
-      });
-      const text = `${r.oneLineSummary}\n\n${r.presentation}`;
-      setPresentation(text);
-    } catch {
-      setPresentErr('Could not generate the presentation — try again in a moment.');
-    } finally {
-      setPresenting(false);
-    }
   }
 
   // ── Admission note (formal first document, generated from the clerking) ────
@@ -304,33 +278,18 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         />
       </div>
 
-      {/* 5 — Present to the consultant, from whatever is captured so far */}
+      {/* 5 — Admission note from the clerking (the consultant presentation and
+          daily round live in the Round & Handover tab) */}
       <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-        <SectionHead>Present to Consultant</SectionHead>
+        <SectionHead>Admission Note</SectionHead>
         <p className="text-gray-500 text-xs mb-4">
-          Generates a plain-text SBAR hand-over from whatever you have captured so far — usable even mid-clerking.
+          Generates the formal admission note from the clerking so far. The consultant presentation and daily ward round are in the Round &amp; Handover tab.
         </p>
         <div className="flex gap-3">
-          <AiBtn onClick={presentPatient} loading={presenting} label="Generate presentation" />
-          {presentation && (
-            <button
-              onClick={() => copy(stripMarkdown(presentation))}
-              className="text-sm text-gray-600 hover:text-gray-900 border border-gray-300 px-4 py-2 rounded-lg transition-colors"
-            >
-              Copy
-            </button>
-          )}
+          <AiBtn onClick={generateAdmission} loading={admLoading} label="Generate admission note" />
         </div>
-        {presentErr && <p className="text-red-500 text-xs mt-2">{presentErr}</p>}
-        {presentation && <DocOutput text={presentation} />}
-
-        <div className="border-t border-gray-100 mt-4 pt-4">
-          <div className="flex gap-3">
-            <AiBtn onClick={generateAdmission} loading={admLoading} label="Generate admission note" />
-          </div>
-          {admErr && <p className="text-red-500 text-xs mt-2">{admErr}</p>}
-          {admNote && <DocOutput text={admNote} />}
-        </div>
+        {admErr && <p className="text-red-500 text-xs mt-2">{admErr}</p>}
+        {admNote && <DocOutput text={admNote} />}
       </div>
     </div>
   );
