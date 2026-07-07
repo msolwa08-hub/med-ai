@@ -22,9 +22,9 @@ const mode = arg('mode', null);
 
 if (!key) { console.error('No tools key. Pass --key <key> or set EVAL_KEY.'); process.exit(1); }
 
-const scenarios = only ? [scenarioById(only)].filter(Boolean) : SCENARIOS;
+const scenarios = only ? only.split(',').map((id) => scenarioById(id.trim())).filter(Boolean) : SCENARIOS;
 if (!scenarios.length) { console.error(`Unknown scenario "${only}". Known: ${SCENARIOS.map((s) => s.id).join(', ')}`); process.exit(1); }
-const modes = mode ? [mode] : MODES;
+const modes = mode ? mode.split(',').map((m) => m.trim()) : MODES;
 
 const bar = (n) => n == null ? '   n/a' : `${'█'.repeat(Math.round(n / 5))}${'░'.repeat(20 - Math.round(n / 5))} ${String(n).padStart(5)}`;
 
