@@ -10,7 +10,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
-import { extractJSON } from '../lib/json-extract.js';
+import { tryExtractJSON } from '../lib/json-extract.js';
 import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
 
 const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
@@ -112,7 +112,7 @@ Respond with ONLY a JSON object:
   });
 
   const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
-  const parsed = extractJSON<Omit<ImageAnalysisResult, 'modality' | 'disclaimer'>>(text);
+  const parsed = tryExtractJSON<Omit<ImageAnalysisResult, 'modality' | 'disclaimer'>>(text) ?? {} as Omit<ImageAnalysisResult,'modality'|'disclaimer'>;
 
   return {
     modality: req.modality,

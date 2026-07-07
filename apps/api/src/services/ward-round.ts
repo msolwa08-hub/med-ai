@@ -14,7 +14,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
-import { extractJSON } from '../lib/json-extract.js';
+import { extractJSON, tryExtractJSON } from '../lib/json-extract.js';
 import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
 import { stgMatches, compactSTG, runSafetyCheck, looksPregnant } from './tools-clinical.js';
 import { protocolStore } from './protocol-store.js';
@@ -157,12 +157,14 @@ ${protocolBlock}`;
   });
 
   const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
-  const parsed = extractJSON<Omit<WardRoundUpdate, 'date'>>(text);
+  // Never throw-into-500 on a non-JSON reply: degrade to a usable round with
+  // the raw text surfaced, rather than losing ~40s of work to a dead-end.
+  const parsed = tryExtractJSON<Partial<WardRoundUpdate>>(text) ?? {};
 
   const update: WardRoundUpdate = {
     date: new Date().toISOString().slice(0, 10),
     onHistory: parsed.onHistory ?? '',
-    onExamination: parsed.onExamination ?? '',
+    onExamination: parsed.onExamination ?? (Object.keys(parsed).length === 0 ? text.trim().slice(0, 600) : ''),
     suggestedInvestigations: Array.isArray(parsed.suggestedInvestigations) ? parsed.suggestedInvestigations : [],
     suggestedManagement: Array.isArray(parsed.suggestedManagement) ? parsed.suggestedManagement : [],
     consultantLogicExplanation: parsed.consultantLogicExplanation ?? '',

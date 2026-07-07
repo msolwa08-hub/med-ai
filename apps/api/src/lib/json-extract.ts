@@ -32,6 +32,36 @@ export function repairTruncatedJSON(s: string): string {
   return out;
 }
 
+/**
+ * Scan from the first opening bracket to its BALANCED close (respecting
+ * strings/escapes), so trailing prose after the JSON — "{...} Here's why..." —
+ * doesn't poison the parse the way a greedy `{[\s\S]*}` match does.
+ */
+function firstBalanced(s: string): string | null {
+  const start = s.search(/[{[]/);
+  if (start === -1) return null;
+  const open = s[start];
+  const close = open === '{' ? '}' : ']';
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === open) depth++;
+    else if (ch === close) {
+      depth--;
+      if (depth === 0) return s.slice(start, i + 1);
+    }
+  }
+  // Never balanced (truncated) — return from the start so repair can finish it.
+  return s.slice(start);
+}
+
 export function extractJSON<T = unknown>(text: string): T {
   // Strip markdown code fences
   const stripped = text
@@ -42,19 +72,29 @@ export function extractJSON<T = unknown>(text: string): T {
   try {
     return JSON.parse(stripped) as T;
   } catch {
-    // Try to find a JSON object/array within the text
-    const objMatch = stripped.match(/\{[\s\S]*\}/);
-    const arrMatch = stripped.match(/\[[\s\S]*\]/);
-    const match = objMatch ?? arrMatch;
-    if (match) {
+    const candidate = firstBalanced(stripped);
+    if (candidate) {
       try {
-        return JSON.parse(match[0]) as T;
+        return JSON.parse(candidate) as T;
       } catch {
-        // Likely truncated output — salvage what we can rather than throw.
-        return JSON.parse(repairTruncatedJSON(match[0])) as T;
+        // Truncated or slightly malformed — salvage what we can rather than throw.
+        return JSON.parse(repairTruncatedJSON(candidate)) as T;
       }
     }
     throw new Error(`Could not extract JSON from: ${text.slice(0, 200)}`);
+  }
+}
+
+/**
+ * Non-throwing variant for structured-generation engines: returns null instead
+ * of throwing so a genuinely unparseable reply degrades gracefully (a 500 that
+ * dead-ends the flow is never acceptable in a clinical tool).
+ */
+export function tryExtractJSON<T = unknown>(text: string): T | null {
+  try {
+    return extractJSON<T>(text);
+  } catch {
+    return null;
   }
 }
 
