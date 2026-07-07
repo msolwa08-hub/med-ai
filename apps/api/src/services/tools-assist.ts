@@ -294,11 +294,28 @@ export class ToolsAssistEngine {
       if (allowed.has(k) && typeof v === 'string') updates[k] = v;
     }
 
-    return {
-      updates,
-      nextQuestion: parsed.nextQuestion,
-      done: parsed.done === true,
-    };
+    // Deterministic completeness guard. The model sometimes declares "done"
+    // while half the section is still empty (the efficiency + stressed-load
+    // evals saw it close at 5/10 and 8/10 fields) — losing the turns spent AND
+    // the missing data. If it claims done but fields remain genuinely blank
+    // (no prior value and nothing extracted this turn), override to a single
+    // grouped question for exactly those fields, so the section actually closes
+    // full. A field the intern explicitly skipped carries a value ("—"/stated),
+    // so this never re-nags a deliberate skip.
+    let done = parsed.done === true;
+    let nextQuestion = parsed.nextQuestion;
+    if (done) {
+      const stillMissing = req.fields.filter(
+        f => !(f.value && f.value.trim()) && !(updates[f.key] && updates[f.key].trim())
+      );
+      if (stillMissing.length > 0) {
+        done = false;
+        const labels = stillMissing.map(f => f.label).join(', ');
+        nextQuestion = `Before we finish — I still need: ${labels}. (Say "skip" for any that don't apply.)`;
+      }
+    }
+
+    return { updates, nextQuestion, done };
   }
 }
 
