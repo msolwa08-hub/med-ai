@@ -1,15 +1,49 @@
 const H = (key: string) => ({ 'x-tools-key': key, 'Content-Type': 'application/json' });
 
+// These POSTs are pure generation calls (no side effects the intern cares about
+// re-running), so a transient 5xx or a dropped connection under ward load must
+// not throw away ~40s of captured work. Retry idempotent reads/generations with
+// exponential backoff before surfacing the error; a 4xx (bad key, bad input) is
+// the client's fault and is never retried.
+const RETRYABLE_ATTEMPTS = 3;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < RETRYABLE_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      // Don't retry deterministic client errors — only transient server/network.
+      if (err instanceof HttpError && err.status < 500) throw err;
+      if (attempt < RETRYABLE_ATTEMPTS - 1) await sleep(600 * 2 ** attempt); // 600ms, 1.2s
+    }
+  }
+  throw lastErr;
+}
+
+class HttpError extends Error {
+  constructor(public status: number, body: string) {
+    super(body || `HTTP ${status}`);
+    this.name = 'HttpError';
+  }
+}
+
 async function post<T>(url: string, key: string, body: unknown): Promise<T> {
-  const res = await fetch(url, { method: 'POST', headers: H(key), body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json() as Promise<T>;
+  return withRetry(async () => {
+    const res = await fetch(url, { method: 'POST', headers: H(key), body: JSON.stringify(body) });
+    if (!res.ok) throw new HttpError(res.status, await res.text());
+    return res.json() as Promise<T>;
+  });
 }
 
 async function get<T>(url: string, key: string): Promise<T> {
-  const res = await fetch(url, { headers: H(key) });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json() as Promise<T>;
+  return withRetry(async () => {
+    const res = await fetch(url, { headers: H(key) });
+    if (!res.ok) throw new HttpError(res.status, await res.text());
+    return res.json() as Promise<T>;
+  });
 }
 
 export interface Problem {

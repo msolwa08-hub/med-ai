@@ -75,6 +75,21 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
   // Health check
   app.get('/health', async () => ({ status: 'ok', env: betaConfig.NODE_ENV }));
 
+  // A clinical tool must never dead-end a request on an unexpected throw. Any
+  // error that escapes a route handler becomes a clean JSON 500 (or the error's
+  // own status) — logged, but never a bare socket hang-up the client can't
+  // parse. The AI engines already degrade internally (tryExtractJSON); this is
+  // the backstop for everything else (network blips to Anthropic, DB hiccups).
+  app.setErrorHandler((error, req, reply) => {
+    req.log.error({ err: error, url: req.url }, 'request handler error');
+    const statusCode = error.statusCode ?? 500;
+    const clientMessage =
+      statusCode >= 500 && betaConfig.NODE_ENV === 'production'
+        ? 'A server error occurred — your work is preserved locally; please retry.'
+        : (error.message ?? 'Internal server error');
+    reply.status(statusCode).send({ error: clientMessage });
+  });
+
   // Durable state: rehydrate facility protocols from the database (no-op on
   // database-less deploys — the store simply starts empty, as before).
   if (betaDbEnabled()) {
