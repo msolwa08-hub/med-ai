@@ -15,6 +15,7 @@ import { analyzeClinicalImage, type ImageAnalysisRequest, type ImageModality } f
 import { generateWardRoundDelta, type WardRoundDeltaRequest } from '../services/ward-round.js';
 import { draftLegalForm, type LegalFormRequest } from '../services/clinical-forms.js';
 import { screeningForProblems } from '../services/clinical-screening.js';
+import { checkConsistency } from '../services/consistency.js';
 import {
   generateDischargeSummary,
   generateReferralLetter,
@@ -125,6 +126,15 @@ export async function toolsRoutes(app: FastifyInstance) {
     if (!authTools(req)) return unauth(reply);
     const body = (req.body ?? {}) as InteractionCheckInput;
     return reply.send(interactionCheck(body));
+  });
+
+  // Deterministic input-discrepancy check (no AI call) — the "alarmed
+  // discrepancy" net. Instant, so the client can run it as the intern types.
+  // Flags misplaced/contradictory/implausible input; never blocks.
+  app.post('/tools/check-consistency', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = (req.body ?? {}) as { record?: Record<string, string | undefined>; subDept?: string };
+    return reply.send({ discrepancies: checkConsistency({ record: body.record ?? {}, subDept: body.subDept }) });
   });
 
   // Multimodal clinical image analysis: ECG/CTG/CXR/US/... via one vision

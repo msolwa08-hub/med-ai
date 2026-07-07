@@ -121,6 +121,12 @@ export interface SafetyWarning {
   reason: string;
 }
 
+export interface Discrepancy {
+  severity: 'alarm' | 'note';
+  fields: string[];
+  message: string;
+}
+
 export interface SuggestedProblem {
   problem: string;
   workingDx: string;
@@ -224,6 +230,9 @@ export const toolsApi = {
 
   interactionCheck: (key: string, input: { medicationsText?: string; allergiesText?: string; plannedLines?: string[]; problemCodes?: string[] }) =>
     post<InteractionCheckResponse>('/tools/interaction-check', key, input),
+
+  checkConsistency: (key: string, input: { record: Record<string, string | undefined>; subDept?: string }) =>
+    post<{ discrepancies: Discrepancy[] }>('/tools/check-consistency', key, input),
 
   scanNotes: (key: string, input: { dept: string; subDept?: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string; context?: string }) =>
     post<ScanResponse>('/tools/scan-notes', key, input),

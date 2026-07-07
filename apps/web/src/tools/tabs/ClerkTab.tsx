@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { toolsApi } from '../toolsApi';
+import { useState, useEffect } from 'react';
+import { toolsApi, type Discrepancy } from '../toolsApi';
 import { AssistPanel } from '../AssistPanel';
 import { DetailsList } from '../DetailsList';
 import type { DeptId } from '../config/departments';
@@ -53,6 +53,24 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     onPatient({ history: { ...patient.history, ...patch } });
   const onAssessment = (patch: Record<string, string>) =>
     onPatient({ assessment: { ...patient.assessment, ...patch } });
+
+  // The "alarmed discrepancy" net — deterministic, instant, flag-and-guide.
+  // Runs (debounced) as the intern clerks and surfaces misplaced / contradictory
+  // / implausible input near the top of the page, never blocking.
+  const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
+  const intakeSig = JSON.stringify(patient.intake);
+  const historySig = JSON.stringify(patient.history);
+  const assessmentSig = JSON.stringify(patient.assessment);
+  useEffect(() => {
+    const record: Record<string, string | undefined> = { ...patient.intake, ...patient.history, ...patient.assessment };
+    const t = setTimeout(() => {
+      toolsApi.checkConsistency(toolsKey, { record, subDept })
+        .then(r => setDiscrepancies(r.discrepancies || []))
+        .catch(() => {});
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intakeSig, historySig, assessmentSig, subDept, toolsKey]);
 
   // Combined clerk conversation: admin + history in ONE flow. The assist engine
   // returns a flat {key: value}; route each key back to the slice that owns it.
@@ -153,6 +171,24 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   return (
     <div className="space-y-5">
+      {/* 0 — Discrepancy alarms: flag & guide, never block */}
+      {discrepancies.length > 0 && (
+        <div className="space-y-2">
+          {discrepancies.map((d, i) => (
+            <div
+              key={i}
+              className={`rounded-xl px-4 py-3 border text-[14px] leading-relaxed ${
+                d.severity === 'alarm'
+                  ? 'bg-amber-50 border-amber-300 text-amber-900'
+                  : 'bg-gray-50 border-gray-200 text-gray-700'
+              }`}
+            >
+              <span className="font-semibold">{d.severity === 'alarm' ? '⚠ Check this' : 'ℹ Note'}</span> — {d.message}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 1 — Presenting complaint, chip-first, zero typing */}
       <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-4">
         <SectionHead>Presenting Complaint</SectionHead>

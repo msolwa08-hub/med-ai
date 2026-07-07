@@ -141,7 +141,14 @@ async function runMode(scenario, mode, { base, key, maxTurns = 14 }) {
   calls.push({ path: 'present-patient', ...pres });
   const presText = `${pres.json?.oneLineSummary || ''}\n${pres.json?.presentation || ''}`;
 
-  const allAppText = [assistQuestions.join(' '), probText, roundText, presText, JSON.stringify(safety), prob.json?.note || ''].join(' ');
+  // The deterministic discrepancy net (flag & guide). Instant endpoint — this is
+  // where the "alarmed discrepancy" is actually meant to be caught.
+  const consistency = await api(base, key, '/tools/check-consistency', { record, subDept: scenario.subDept });
+  calls.push({ path: 'check-consistency', ...consistency });
+  const flags = consistency.json?.discrepancies || [];
+  const flagsText = JSON.stringify(flags);
+
+  const allAppText = [assistQuestions.join(' '), probText, roundText, presText, JSON.stringify(safety), prob.json?.note || '', flagsText].join(' ');
 
   // ── ACCESSIBLE (intern) ──
   const captured = Object.values(record).filter((v) => String(v || '').trim()).length;
@@ -171,13 +178,16 @@ async function runMode(scenario, mode, { base, key, maxTurns = 14 }) {
   let discrepancyExpected = false, discrepancyCaught = false, discrepancyNote = '';
   if (mode === 'contradiction' && exp.contradiction) {
     discrepancyExpected = true;
-    // caught = the app used flagging language AND referenced the contradicted item
-    discrepancyCaught = hasFlagLanguage(allAppText) && containsAny(allAppText, exp.contradiction.signal);
-    discrepancyNote = discrepancyCaught ? 'flagged the contradiction' : 'MISSED the contradiction (no alarm)';
+    // caught = the discrepancy net flagged it, OR any output used flag language
+    // AND referenced the contradicted item.
+    const flaggedByNet = flags.some((f) => containsAny(f.message, exp.contradiction.signal));
+    discrepancyCaught = flaggedByNet || (hasFlagLanguage(allAppText) && containsAny(allAppText, exp.contradiction.signal));
+    discrepancyNote = discrepancyCaught ? `flagged the contradiction${flaggedByNet ? ' (consistency net)' : ''}` : 'MISSED the contradiction (no alarm)';
   } else if (mode === 'skip') {
     discrepancyExpected = true;
-    discrepancyCaught = reAskedCritical;
-    discrepancyNote = discrepancyCaught ? 're-asked a skipped critical field' : 'let critical fields stay blank silently';
+    const flaggedMissing = flags.some((f) => (exp.criticalFields || []).some((c) => containsAny(f.message, [c.split(' ')[0]])));
+    discrepancyCaught = reAskedCritical || flaggedMissing;
+    discrepancyNote = discrepancyCaught ? 're-asked / flagged a skipped critical field' : 'let critical fields stay blank silently';
   }
   const discrepancy = discrepancyExpected ? (discrepancyCaught ? 100 : 0) : null;
 
