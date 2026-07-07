@@ -180,6 +180,7 @@ export interface WardRoundUpdate {
   date: string;
   onHistory: string;
   onExamination: string;
+  examsToRepeatToday?: string[];
   suggestedInvestigations: string[];
   suggestedManagement: string[];
   consultantLogicExplanation: string;

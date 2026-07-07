@@ -105,6 +105,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onChange, onLog, on
       date: delta.date || new Date().toISOString().slice(0, 10),
       onHistory: delta.onHistory,
       onExamination: delta.onExamination,
+      examsToRepeatToday: delta.examsToRepeatToday ?? [],
       suggestedInvestigations: delta.suggestedInvestigations,
       suggestedManagement: delta.suggestedManagement,
       consultantLogicExplanation: delta.consultantLogicExplanation,
@@ -200,6 +201,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onChange, onLog, on
 
             <DeltaBlock title="On History" text={delta.onHistory} />
             <DeltaBlock title="On Examination" text={delta.onExamination} />
+            <DeltaBlock title="Exams to repeat today" text={(delta.examsToRepeatToday ?? []).map(s => `• ${s}`).join('\n')} />
             <DeltaBlock title="Investigations" text={delta.suggestedInvestigations.map(s => `• ${s}`).join('\n')} />
             <DeltaBlock title="Management" text={delta.suggestedManagement.map(s => `• ${s}`).join('\n')} />
 

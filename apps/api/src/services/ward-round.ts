@@ -27,6 +27,7 @@ export interface WardRoundUpdate {
   date: string;
   onHistory: string; // Summarized changes/subjective trajectory
   onExamination: string; // Focused clinical exam updates, vital deltas, visual trace findings
+  examsToRepeatToday: string[]; // Recurring risk-tracking exams to repeat this round (once-off exams excluded)
   suggestedInvestigations: string[]; // Active, targeted updates grounded in STG
   suggestedManagement: string[]; // Aggressive, protocol-aligned regimen updates
   consultantLogicExplanation: string; // Advanced clinical reasoning
@@ -114,12 +115,18 @@ Given the HISTORY and the active problems, first reason (silently) about what a 
 - WORSE / DISCORDANT than expected — this is the important signal. If the history predicts a finding that is ABSENT (e.g. peritonitis expected but abdomen soft — reassuring, or the tachycardia of an anastomotic leak before peritonism appears), or a finding is present that the history did NOT predict (an unexpected sign pointing to a new problem or a missed diagnosis), flag it explicitly and let it drive the investigations and management.
 - Name the pertinent EXPECTED-BUT-NOT-DOCUMENTED findings the intern should actively check today (the exam the presentation demands but the record is silent on).
 
+EXAM CADENCE — do not make the intern repeat everything every day:
+- ONCE-OFF exams that are already documented and were done to EXCLUDE a fixed condition (e.g. a baseline neurological screen in a cardiac patient, a normal booking exam) do NOT need repeating on a routine round — do not re-request them unless something changed.
+- RECURRING exams that TRACK AN ACTIVE RISK must be repeated EVERY round for as long as that risk is live, and you must list today's ones explicitly: e.g. BP + reflexes + urine protein + fetal heart daily in pre-eclampsia; fundal height/tone + lochia + calves in the puerperium; wound + temperature from post-CS day 3; neuro obs while consciousness is a concern. Tie each to the risk it monitors.
+- "examsToRepeatToday" is the short, specific list of the recurring risk-tracking exams the intern must actually do on this round.
+
 All text fields are PLAIN TEXT copied by hand onto a paper chart: no markdown, no *, **, #, backticks, no bullet glyphs. Clinical shorthand is fine.
 
 Respond with ONLY a JSON object:
 {
   "onHistory": "1-3 lines, subjective trajectory since last round, clinical shorthand",
   "onExamination": "1-3 lines: actual salient findings + vital/exam DELTAS + image traces, THEN the expected-vs-actual read (concordant / better / worse-discordant) and any expected finding not yet documented that must be checked",
+  "examsToRepeatToday": ["the recurring risk-tracking exams to do THIS round, each tied to its risk, e.g. 'BP + reflexes + urine protein — pre-eclampsia surveillance'. Omit once-off exams already documented."],
   "suggestedInvestigations": ["only today's targeted additions/repeats, each with its trigger, e.g. 'Repeat UEC — K+ was 5.9 on insulin'"],
   "suggestedManagement": ["concrete regimen updates with doses where STG applies; include stop/de-escalate orders, not just additions"],
   "consultantLogicExplanation": "the specialist WHY — including WHY these findings were expected for this history/day, and what the concordance or discordance means"
@@ -167,6 +174,7 @@ ${protocolBlock}`;
     date: new Date().toISOString().slice(0, 10),
     onHistory: parsed.onHistory ?? '',
     onExamination: parsed.onExamination ?? (Object.keys(parsed).length === 0 ? text.trim().slice(0, 600) : ''),
+    examsToRepeatToday: Array.isArray(parsed.examsToRepeatToday) ? parsed.examsToRepeatToday : [],
     suggestedInvestigations: Array.isArray(parsed.suggestedInvestigations) ? parsed.suggestedInvestigations : [],
     suggestedManagement: Array.isArray(parsed.suggestedManagement) ? parsed.suggestedManagement : [],
     consultantLogicExplanation: parsed.consultantLogicExplanation ?? '',
