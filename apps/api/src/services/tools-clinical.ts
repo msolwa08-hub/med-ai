@@ -140,14 +140,41 @@ RESPOND with ONLY JSON:
 
   // Deterministic safety net on top of the AI: run current meds + every
   // proposed management line through the curated interaction/allergy checker.
+  // Pregnancy is DETECTED from the record (not assumed) so the teratogen BLOCKs
+  // actually fire in O&G — the department where pregnancy is the default and
+  // where an unfired net is highest-risk.
+  const recordText = [
+    s.dept,
+    ...Object.values(s.intake),
+    ...Object.values(s.history),
+    ...Object.values(s.assessment),
+  ].filter(Boolean).join(' ');
   const safety = runSafetyCheck({
     medicationsText: currentMeds,
     allergiesText: s.intake.allergies,
-    plannedLines: problems.flatMap(p => p.management),
+    // Advisory lines that merely mention an allergy ("avoid penicillin — use
+    // erythromycin") are not prescriptions of the allergen; filtering them
+    // stops a false-positive BLOCK on a correct allergy-avoiding plan.
+    plannedLines: problems.flatMap(p => p.management).filter(l => !/allerg/i.test(l)),
     problemCodes: problems.map(p => p.icd10 ?? ''),
+    isPregnant: looksPregnant(recordText),
+    conditionsText: [recordText, ...problems.map(p => `${p.problem} ${p.workingDx}`)].join(' '),
   });
 
   return { problems, safety, note: typeof parsed?.note === 'string' ? parsed.note : '' };
+}
+
+// Detect pregnancy from the free-text record so the teratogen safety net fires
+// where it should. Deliberately liberal in an obstetric context (a missed
+// pregnancy flag is the dangerous direction), but keyed on real markers so a
+// gynae or non-O&G record isn't falsely flagged.
+export function looksPregnant(text: string): boolean {
+  const t = text.toLowerCase();
+  if (/\bnot pregnant\b|pregnancy test negative|hcg negative|βhcg neg|urine hcg negative/.test(t)) return false;
+  return (
+    /\bpregnan|antenatal|gestation|\bega\b|\bedd\b|\blmp\b|liquor|fetal|foetal|gravida|\bg\d\s*p\d|\bprimigravid|multigravid|trimester|\b\d{1,2}\s*(\+\s*\d)?\s*(weeks?|\/40)\b|booking visit|banc|pmtct|antepartum|intrapartum/.test(t) ||
+    /pregnancy test positive|hcg positive|βhcg pos|urine hcg positive/.test(t)
+  );
 }
 
 // ─── Deterministic interaction / polypharmacy check ──────────────────────────
@@ -160,6 +187,7 @@ export interface InteractionCheckInput {
   plannedLines?: string[];
   problemCodes?: string[];
   isPregnant?: boolean;
+  conditionsText?: string;
 }
 
 export interface InteractionCheckResponse {
@@ -182,6 +210,7 @@ export function runSafetyCheck(input: InteractionCheckInput): SafetyWarning[] {
     allergiesText: input.allergiesText,
     isPregnant: input.isPregnant,
     problemCodes: input.problemCodes,
+    conditionsText: input.conditionsText,
   });
 }
 

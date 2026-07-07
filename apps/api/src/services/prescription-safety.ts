@@ -33,6 +33,8 @@ export interface SafetyContext {
   isPregnant?: boolean;
   /** ICD-10 codes from the patient's problem list. */
   problemCodes?: string[];
+  /** Combined free-text record (problems + history) for condition-gated rules. */
+  conditionsText?: string;
 }
 
 // ─── Cross-reactivity classes ─────────────────────────────────────────────────
@@ -134,6 +136,43 @@ const INTERACTIONS: Array<{ a: string[]; b: string[]; severity: 'BLOCK' | 'WARN'
     severity: 'WARN',
     reason: 'Fluconazole potentiates warfarin — INR will rise',
   },
+  {
+    a: ['methotrexate'],
+    b: ['ibuprofen', 'diclofenac', 'naproxen', 'aspirin', 'indomethacin', 'ketorolac'],
+    severity: 'BLOCK',
+    reason: 'Methotrexate + NSAID — reduced MTX clearance, marrow/renal toxicity',
+  },
+  {
+    a: ['enoxaparin', 'dalteparin', 'heparin', 'clexane', 'lmwh'],
+    b: ['ibuprofen', 'diclofenac', 'naproxen', 'aspirin', 'indomethacin', 'ketorolac'],
+    severity: 'WARN',
+    reason: 'LMWH/heparin + NSAID — additive bleeding risk',
+  },
+];
+
+// ─── Obstetric condition-gated rules ──────────────────────────────────────────
+// A drug that is safe in general but dangerous given a condition present in the
+// record. Fires only when both the condition (regex over the record) AND the
+// drug are present.
+const OBSTETRIC_CONDITIONAL: Array<{ when: RegExp; drugs: string[]; severity: 'BLOCK' | 'WARN'; reason: string }> = [
+  {
+    when: /hypertens|pre-?eclampsia|\bpet\b|eclampsia|raised bp|bp \d{3}|severe (htn|hypertension)/,
+    drugs: ['ergometrine', 'syntometrine', 'methylergometrine', 'ergotamine'],
+    severity: 'BLOCK',
+    reason: 'Ergometrine is contraindicated in hypertension/pre-eclampsia (severe vasoconstriction → stroke) — use oxytocin ± misoprostol for PPH',
+  },
+  {
+    when: /\baki\b|acute kidney|oliguri|anuri|renal impair|creatinine (1[5-9]\d|[2-9]\d\d)|egfr <?[1-4]?\d\b/,
+    drugs: ['magnesium sulphate', 'magnesium sulfate', 'mgso4', 'mag sulph'],
+    severity: 'WARN',
+    reason: 'MgSO4 is renally cleared — in AKI/oliguria it accumulates to toxicity: reduce the maintenance dose, monitor reflexes/RR/urine output and levels, calcium gluconate at the bedside',
+  },
+  {
+    when: /oliguri|anuri|pulmonary o?edema|fluid overload|\baki\b|acute kidney/,
+    drugs: ['hartmann', 'ringer', 'normal saline', '0.9% saline', 'crystalloid', 'fluid bolus'],
+    severity: 'WARN',
+    reason: 'Cautious fluids in pre-eclampsia with oliguria/overload — the vasoconstricted kidney does not respond to challenge and the leaky vasculature risks pulmonary oedema (a leading cause of PET death)',
+  },
 ];
 
 // ─── Checker ──────────────────────────────────────────────────────────────────
@@ -214,6 +253,23 @@ export function checkPrescriptionSafety(
       warnings.push({
         severity: rule.severity,
         drug: `${hitA.original} + ${hitB.original}`,
+        category: 'INTERACTION',
+        reason: rule.reason,
+      });
+    }
+  }
+
+  // 5. Obstetric condition-gated rules — the drug is only dangerous in the
+  //    presence of a specific condition in the record (hypertension, AKI).
+  //    These are where obstetric harm concentrates and were previously absent.
+  const cond = (context.conditionsText ?? '').toLowerCase();
+  for (const rule of OBSTETRIC_CONDITIONAL) {
+    if (!rule.when.test(cond)) continue;
+    const hit = lowered.find((d) => rule.drugs.some((m) => d.lower.includes(m)));
+    if (hit) {
+      warnings.push({
+        severity: rule.severity,
+        drug: hit.original.length > 60 ? `${hit.original.slice(0, 57)}…` : hit.original,
         category: 'INTERACTION',
         reason: rule.reason,
       });

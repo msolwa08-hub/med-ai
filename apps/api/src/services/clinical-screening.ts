@@ -73,7 +73,10 @@ const RULES: ScreeningRule[] = [
     why: 'Restrictive transfusion improves survival in UGIB (over-transfusion raises portal pressure and rebleeding). Cirrhotics bleed from varices until proven otherwise — vasoactive drugs and antibiotic prophylaxis are the two interventions with mortality benefit before endoscopy.',
   },
   {
-    pattern: /\bstroke\b|\bCVA\b|hemiparesis/i,
+    // "CVA" is ambiguous — cerebrovascular accident vs costovertebral angle
+    // (renal exam). Require it to be adjacent to neuro context so "CVA
+    // tenderness" in a sepsis note doesn't trip the stroke card.
+    pattern: /\bstroke\b|hemiparesis|hemiplegia|cerebrovascular|\bCVA\b(?!\s*(tender|angle|tenderness))|\bTIA\b/i,
     trigger: 'Stroke',
     category: 'safety',
     prompts: [

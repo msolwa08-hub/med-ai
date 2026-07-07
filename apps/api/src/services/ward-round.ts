@@ -16,7 +16,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
 import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
-import { stgMatches, compactSTG, runSafetyCheck } from './tools-clinical.js';
+import { stgMatches, compactSTG, runSafetyCheck, looksPregnant } from './tools-clinical.js';
 import { protocolStore } from './protocol-store.js';
 import { screeningForProblems, type ScreeningPrompt } from './clinical-screening.js';
 import type { SafetyWarning } from './prescription-safety.js';
@@ -65,7 +65,12 @@ export interface WardRoundDeltaResponse extends WardRoundUpdate {
 }
 
 function compactRound(r: WardRoundUpdate): string {
-  return `[${r.date}] Hx: ${r.onHistory} | O/E: ${r.onExamination} | Ix: ${r.suggestedInvestigations.join('; ')} | Mx: ${r.suggestedManagement.join('; ')}`;
+  // Prior rounds arrive from the client and may be partially-formed (a summary
+  // shape without the array fields) — default them so a missing array can never
+  // crash the synthesis with undefined.join().
+  const ix = Array.isArray(r.suggestedInvestigations) ? r.suggestedInvestigations : [];
+  const mx = Array.isArray(r.suggestedManagement) ? r.suggestedManagement : [];
+  return `[${r.date ?? '?'}] Hx: ${r.onHistory ?? ''} | O/E: ${r.onExamination ?? ''} | Ix: ${ix.join('; ')} | Mx: ${mx.join('; ')}`;
 }
 
 export async function generateWardRoundDelta(req: WardRoundDeltaRequest): Promise<WardRoundDeltaResponse> {
@@ -170,10 +175,15 @@ ${protocolBlock}`;
   // so filter those before the check. Genuine prescriptions never contain
   // the word "allergy".
   const prescriptive = update.suggestedManagement.filter(l => !/allerg/i.test(l));
+  const pregnant = looksPregnant(
+    [req.dept, req.subDept, req.patientContext, req.history, ...req.problems].filter(Boolean).join(' ')
+  );
   const safety = runSafetyCheck({
     medicationsText: req.medications,
     allergiesText: req.allergies,
     plannedLines: prescriptive,
+    isPregnant: pregnant,
+    conditionsText: [req.patientContext, req.history, ...req.problems, update.onExamination].filter(Boolean).join(' '),
   });
   const screening = screeningForProblems([...req.problems, update.onExamination, update.onHistory]);
 
