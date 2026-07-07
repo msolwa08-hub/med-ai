@@ -22,9 +22,9 @@ Explicitly a multi-session undertaking — this file is the resumable tracker.
 
 | Department | Research dossier | Implementation | Notes |
 |---|---|---|---|
-| Internal Medicine | ⏳ in progress | ⬜ not started | biggest differential surface; acid-base/RTA, Na+, anaemia, AKI workups |
+| Internal Medicine | ✅ done (1409 lines) | ⬜ not started | acid-base/RTA, Na+, anaemia, AKI workups — depth confirmed |
 | Surgery (General) | ⏳ in progress | ⬜ not started | acute abdomen differential, indication-for-surgery, pre-op, post-op day framework |
-| Emergency Medicine | ⏳ in progress | ⬜ not started | SATS, undifferentiated presentations, tox, trauma |
+| Emergency Medicine | ✅ done (1018 lines) | ⬜ not started | SATS, undifferentiated, tox, trauma |
 | Intensive Care | ⬜ not started | ⬜ not started | FASTHUGS, organ-support framing, ventilation |
 | Obstetrics & Gynae | 🟡 partial (v1 depth pass done) | 🟡 partial | deepen: full differential per presentation, gynae-onc, early-pregnancy |
 | Paediatrics | 🟡 partial (v1 depth pass done) | 🟡 partial | deepen: neonatology, PICU, syndromic reasoning |
