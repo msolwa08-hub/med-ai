@@ -236,14 +236,30 @@ export class ToolsAssistEngine {
   async step(req: AssistRequest): Promise<AssistResponse> {
     const system = buildSystemPrompt(req);
 
-    const messages: { role: 'user' | 'assistant'; content: string }[] =
-      req.transcript.length === 0
-        ? [{ role: 'user', content: 'Ready — ask me the first question.' }]
-        : req.transcript.map(t => ({ role: t.role, content: t.content }));
+    // The Anthropic API requires the first message to be role 'user' and roles
+    // to alternate. The client's transcript starts with the assistant's opening
+    // question, so we always lead with a user primer — this both satisfies the
+    // API and keeps the flow going deep into a long conversation.
+    const primed: { role: 'user' | 'assistant'; content: string }[] = [
+      { role: 'user', content: 'Ready — ask me the first question.' },
+    ];
+    // Collapse any accidental consecutive same-role turns so alternation holds
+    // no matter what the client sends.
+    for (const t of req.transcript) {
+      const role = t.role === 'assistant' ? 'assistant' : 'user';
+      const last = primed[primed.length - 1];
+      if (last.role === role) last.content = `${last.content}\n${t.content}`;
+      else primed.push({ role, content: t.content });
+    }
+    // Must end on a user turn for the model to answer.
+    const messages =
+      primed[primed.length - 1].role === 'assistant'
+        ? [...primed, { role: 'user' as const, content: 'Continue.' }]
+        : primed;
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 600,
+      max_tokens: 800,
       system,
       messages,
     });
@@ -253,10 +269,20 @@ export class ToolsAssistEngine {
       .map(b => b.text)
       .join('');
 
-    const parsed = extractJSON<Partial<AssistResponse>>(text);
+    // extractJSON THROWS on a non-JSON reply. The model occasionally returns a
+    // plain-text question instead of the JSON envelope, especially deep in a
+    // nuanced history — and that plain question is itself perfectly usable. So
+    // parse defensively: a failed parse becomes the next question and the
+    // conversation continues, instead of a 500 that dead-ends the flow.
+    let parsed: Partial<AssistResponse> | null = null;
+    try {
+      parsed = extractJSON<Partial<AssistResponse>>(text);
+    } catch {
+      parsed = null;
+    }
     if (!parsed || typeof parsed.nextQuestion !== 'string') {
-      // Degrade gracefully: treat the whole reply as the next question.
-      return { updates: {}, nextQuestion: text.trim() || 'Could you repeat that?', done: false };
+      const q = text.trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
+      return { updates: {}, nextQuestion: q || 'Could you tell me a bit more?', done: false };
     }
 
     const updates: Record<string, string> = {};
