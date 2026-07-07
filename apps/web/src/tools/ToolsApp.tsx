@@ -80,34 +80,48 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   ] as { id: Tab; label: string; show?: boolean }[]).filter(t => t.show !== false);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={onBack} className="text-gray-500 hover:text-gray-900 transition-colors">←</button>
-        <img src="/medai-icon.svg" alt="" className="w-7 h-7" />
-        <span className="text-gray-900 font-semibold">Intern Tools</span>
-        <span className="text-gray-400 text-sm">·</span>
+    <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
+      {/* Header — a fixed identity cluster on the left that can shrink and
+          truncate, and a fixed action on the right that never clips. */}
+      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3 shrink-0">
         <button
-          onClick={() => setDept(null)}
-          className="text-sm text-gray-500 hover:text-gray-900 bg-gray-100 px-2 py-0.5 rounded transition-colors"
+          onClick={onBack}
+          aria-label="Back to departments"
+          className="shrink-0 grid place-items-center w-9 h-9 -ml-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
         >
-          {deptInfo.icon} {deptInfo.label}
+          ←
         </button>
-        {subDeptInfo && (
+        <img src="/medai-icon.svg" alt="" className="w-7 h-7 shrink-0" />
+        {/* Wordmark: carried by the icon on phone, spelled out from sm up */}
+        <span className="hidden sm:inline text-gray-900 font-semibold shrink-0">Intern Tools</span>
+        <span className="hidden sm:inline text-gray-300 shrink-0">·</span>
+        {/* Context chips: the load-bearing orientation. Allowed to shrink and
+            truncate before anything clips the page. */}
+        <div className="flex items-center gap-1.5 min-w-0">
           <button
-            onClick={() => setSubDept(null)}
-            className="text-sm text-teal-700 hover:text-teal-900 bg-teal-50 px-2 py-0.5 rounded transition-colors"
-            title="Change ward/unit"
+            onClick={() => setDept(null)}
+            title="Change department"
+            className="shrink-0 max-w-[34vw] sm:max-w-none truncate text-[13px] text-gray-600 hover:text-gray-900 bg-gray-100 px-2 py-1 rounded-md transition-colors"
           >
-            {subDeptInfo.icon} {subDeptInfo.label}
+            {deptInfo.icon} {deptInfo.label}
           </button>
-        )}
-        <div className="flex-1" />
+          {subDeptInfo && (
+            <button
+              onClick={() => setSubDept(null)}
+              title="Change ward/unit"
+              className="min-w-0 shrink max-w-[38vw] sm:max-w-none truncate text-[13px] text-teal-700 hover:text-teal-900 bg-teal-50 px-2 py-1 rounded-md transition-colors"
+            >
+              {subDeptInfo.icon} {subDeptInfo.label}
+            </button>
+          )}
+        </div>
+        <div className="flex-1 min-w-0" />
         <button
           onClick={addPatient}
-          className="text-sm bg-teal-600 hover:bg-teal-500 text-white px-3 py-1.5 rounded-lg transition-colors"
+          className="shrink-0 text-sm font-medium bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white pl-2.5 pr-3 h-9 rounded-lg transition-colors inline-flex items-center gap-1"
         >
-          + Patient
+          <span className="text-base leading-none">+</span>
+          <span>Patient</span>
         </button>
       </header>
 
