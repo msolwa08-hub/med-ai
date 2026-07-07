@@ -27,7 +27,20 @@ export function DocumentsTab({ patient, toolsKey, dept }: {
     setErr('');
     try {
       let text = '';
-      const base = { ...patient.intake, ...patient.history, ...patient.assessment };
+      // Include the problem list so every document reflects the intern's working
+      // diagnosis, differentials and management plan — not just the raw clerking.
+      const base = {
+        dept,
+        ...patient.intake,
+        ...patient.history,
+        ...patient.assessment,
+        problems: patient.problems.map(p => ({
+          problem: p.problem,
+          workingDx: p.workingDx,
+          differentials: p.differentials,
+          management: p.management,
+        })),
+      };
 
       if (docType === 'discharge') {
         const r = await toolsApi.discharge(toolsKey, base);
