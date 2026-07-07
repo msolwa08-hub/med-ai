@@ -66,9 +66,22 @@ export function checkConsistency(input: ConsistencyInput): Discrepancy[] {
   const gravida = num(r.gravida);
   const para = num(r.para);
   const sex = (r.sex || '').toLowerCase();
-  const preg = (r.pregnancyStatus || '').toLowerCase();
+  // Scan the WHOLE record, not one field — an overwhelmed intern types things in
+  // the wrong place, so a "not pregnant" note may land in the HPI, not the
+  // pregnancy-status field. The net must catch the mistake wherever it is typed.
+  const allText = Object.entries(r)
+    .filter(([k]) => k !== 'name')
+    .map(([, v]) => v || '')
+    .join(' \n ')
+    .toLowerCase();
+  const preg = `${r.pregnancyStatus || ''} ${allText}`.toLowerCase();
   const complaintText = `${r.chiefComplaint || ''} ${r.hpi || ''} ${r.admissionDiagnosis || ''}`.toLowerCase();
-  const pregMarkers = [r.gestationalAge, r.lmp, r.edd, r.fetalHeart, r.fetalMovements, r.contractions, r.sfh]
+  // Markers of a CURRENT pregnancy (LMP deliberately excluded — every woman has
+  // an LMP, so it is not evidence of an ongoing pregnancy and would false-positive
+  // rule 2 on a genuinely non-pregnant gynae patient).
+  const currentPregMarkers = [r.gestationalAge, r.edd, r.fetalHeart, r.fetalMovements, r.contractions, r.sfh]
+    .some((v) => v && v.trim());
+  const anyPregInfo = [r.gestationalAge, r.lmp, r.edd, r.fetalHeart, r.fetalMovements, r.contractions, r.sfh, r.pregnancyStatus]
     .some((v) => v && v.trim());
   const deliveredMarkers = [r.modeOfDelivery, r.dayPostDelivery, r.lochia, r.perineumRepair, r.csWound]
     .some((v) => v && v.trim());
@@ -85,17 +98,18 @@ export function checkConsistency(input: ConsistencyInput): Discrepancy[] {
     }
   }
 
-  // 2. "not pregnant" but pregnancy markers present
-  if (/not pregnant|pregnancy test negative|hcg negative|not currently pregnant/.test(preg) && pregMarkers) {
+  // 2. "not pregnant" / negative test but CURRENT-pregnancy findings present
+  //    (scanned across the whole record, so a misplaced note is still caught)
+  if (/not pregnant|pregnancy test negative|hcg negative|not currently pregnant|cannot be pregnant/.test(preg) && currentPregMarkers) {
     out.push({
       severity: 'alarm',
-      fields: ['pregnancyStatus', 'gestationalAge', 'lmp'],
-      message: 'Recorded as not pregnant, but gestational age / LMP / fetal findings are filled in — confirm the pregnancy status and clear whichever is wrong.',
+      fields: ['pregnancyStatus', 'gestationalAge'],
+      message: 'Recorded as not pregnant / test negative, but current-pregnancy findings (gestational age / fetal heart / movements) are present — confirm the pregnancy status and clear whichever is wrong.',
     });
   }
 
   // 3. Currently pregnant AND delivered/postnatal at once
-  if (pregMarkers && deliveredMarkers && (r.fetalHeart || r.fetalMovements || r.contractions)) {
+  if (currentPregMarkers && deliveredMarkers && (r.fetalHeart || r.fetalMovements || r.contractions)) {
     out.push({
       severity: 'alarm',
       fields: ['gestationalAge', 'modeOfDelivery'],
@@ -118,8 +132,8 @@ export function checkConsistency(input: ConsistencyInput): Discrepancy[] {
 
   // 6. Reproductive-age female with acute abdomen/pelvic pain and NO pregnancy status
   const acutePain = /abdominal pain|pelvic pain|lower abdo|iliac fossa|rif|lif|adnexal/.test(complaintText);
-  const anyPregInfo = pregMarkers || /pregnan|hcg|lmp|test/.test(preg) || (r.hivStatus && false);
-  if (/^f/.test(sex) && age != null && age >= 12 && age <= 55 && acutePain && !anyPregInfo) {
+  const pregnancyAssessed = anyPregInfo || /pregnan|hcg|\blmp\b|urine test|preg test/.test(preg);
+  if (/^f/.test(sex) && age != null && age >= 12 && age <= 55 && acutePain && !pregnancyAssessed) {
     out.push({
       severity: 'alarm',
       fields: ['pregnancyStatus', 'chiefComplaint'],
