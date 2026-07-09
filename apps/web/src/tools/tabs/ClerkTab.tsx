@@ -17,6 +17,8 @@ import { examChecklistFor } from '../config/examChecklists';
 import { ExamChecklist } from '../components/ExamChecklist';
 import { ImageCaptureNode } from '../components/ImageCaptureNode';
 import { upsertSerialized } from '../lib/serializeIntoField';
+import { WorkingPicturePanel } from '../components/WorkingPicturePanel';
+import { useWorkingPicture } from '../lib/useWorkingPicture';
 
 // ─── CLERK TAB ───────────────────────────────────────────────────────────────
 // One continuous page for the whole first pass: identify -> history -> examine.
@@ -143,6 +145,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
       ],
     });
   }
+
+  // ── The bedside loop: working picture from the clerking so far ─────────────
+  const wp = useWorkingPicture(patient, toolsKey, dept, subDept, onPatient);
 
   // ── Admission note (formal first document, generated from the clerking) ────
   const [admLoading, setAdmLoading] = useState(false);
@@ -299,6 +304,15 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         fields={examFields}
         context={patientContext(patient, dept, subDept)}
         onUpdates={u => onAssessment(u as Record<string, string>)}
+      />
+
+      {/* Working picture — the live differential the clerking builds toward */}
+      <WorkingPicturePanel
+        picture={wp.picture}
+        loading={wp.loading}
+        error={wp.error}
+        onGenerate={wp.generate}
+        generateLabel="Build picture"
       />
 
       {/* 4 — Everything captured, in one editable list */}

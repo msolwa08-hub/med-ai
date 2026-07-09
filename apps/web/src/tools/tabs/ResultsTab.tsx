@@ -10,6 +10,8 @@ import {
 import { SectionHead } from '../components/ui';
 import { WhyButton } from '../components/WhyButton';
 import { EscapeHatch } from '../components/EscapeHatch';
+import { WorkingPicturePanel } from '../components/WorkingPicturePanel';
+import { useWorkingPicture } from '../lib/useWorkingPicture';
 
 // ─── RESULTS TAB — the investigation-trending companion ──────────────────────
 // Capture a panel of results per date; the app trends every analyte across the
@@ -24,12 +26,15 @@ function todayISO(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-export function ResultsTab({ patient, onPatient }: {
+export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
   patient: Patient;
+  toolsKey: string;
   dept: DeptId;
+  subDept?: string;
   onPatient: (patch: Partial<Patient>) => void;
 }) {
   const entries = patient.investigations ?? [];
+  const wp = useWorkingPicture(patient, toolsKey, dept, subDept, onPatient);
   const [openPanel, setOpenPanel] = useState<string | null>(null);
   const [date, setDate] = useState(todayISO());
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -50,6 +55,17 @@ export function ResultsTab({ patient, onPatient }: {
 
   return (
     <div className="space-y-5">
+      {/* The bedside loop closes here: a landed result updates the picture */}
+      {(patient.workingPicture || entries.length > 0) && (
+        <WorkingPicturePanel
+          picture={wp.picture}
+          loading={wp.loading}
+          error={wp.error}
+          onGenerate={wp.generate}
+          generateLabel="Interpret results"
+        />
+      )}
+
       {/* One-step-ahead alerts — the app thinking slightly ahead of the intern */}
       {alerts.length > 0 && (
         <div className="space-y-2">

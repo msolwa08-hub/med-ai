@@ -127,6 +127,34 @@ export interface Discrepancy {
   message: string;
 }
 
+export interface Discriminator {
+  test: string;
+  moves: string;
+  status: 'suggested' | 'pending' | 'done';
+  priority: 'now' | 'today' | 'routine';
+}
+
+export interface WeightedDifferential {
+  dx: string;
+  icd10?: string;
+  confidence: number;
+  band: 'confirmed' | 'likely' | 'possible' | 'must-exclude';
+  supporting: string[];
+  against: string[];
+  why: string;
+  shift?: { from: number; because: string };
+  discriminators: Discriminator[];
+}
+
+export interface WorkingPicture {
+  differentials: WeightedDifferential[];
+  mustNotMiss: string;
+  managementNow: string[];
+  narrative: string;
+  safety: SafetyWarning[];
+  disclaimer: string;
+}
+
 export interface SuggestedProblem {
   problem: string;
   workingDx: string;
@@ -233,6 +261,15 @@ export const toolsApi = {
 
   checkConsistency: (key: string, input: { record: Record<string, string | undefined>; subDept?: string }) =>
     post<{ discrepancies: Discrepancy[] }>('/tools/check-consistency', key, input),
+
+  workingPicture: (key: string, input: {
+    dept: string; subDept?: string;
+    intake: Record<string, string | undefined>;
+    history: Record<string, string | undefined>;
+    assessment: Record<string, string | undefined>;
+    problems?: string[]; resultsText?: string;
+    previousPicture?: { differentials: WeightedDifferential[] } | null;
+  }) => post<WorkingPicture>('/tools/working-picture', key, input),
 
   scanNotes: (key: string, input: { dept: string; subDept?: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string; context?: string }) =>
     post<ScanResponse>('/tools/scan-notes', key, input),

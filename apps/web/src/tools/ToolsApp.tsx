@@ -215,6 +215,8 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                   <ResultsTab
                     key={activePatient.id}
                     dept={dept}
+                    subDept={subDept ?? undefined}
+                    toolsKey={key}
                     patient={activePatient}
                     onPatient={patch => updatePatient(activePatient.id, patch)}
                   />

@@ -99,6 +99,11 @@ export interface Patient {
   rounds?: WardRoundUpdate[];
   // serial investigations — trended across the admission (optional, backward compatible)
   investigations?: import('../lib/investigations').InvestigationEntry[];
+  // the live working diagnostic picture (the bedside loop). Persisted so the
+  // Clerk builds it and the Results tab updates it against new results.
+  workingPicture?: import('../toolsApi').WorkingPicture;
+  // practice-patient flag: scenario/med-student use, kept out of anything real
+  practice?: boolean;
   // generated docs
   admissionNote?: string;
   wardNote?: string;
