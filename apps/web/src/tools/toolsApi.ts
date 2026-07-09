@@ -262,6 +262,9 @@ export const toolsApi = {
   checkConsistency: (key: string, input: { record: Record<string, string | undefined>; subDept?: string }) =>
     post<{ discrepancies: Discrepancy[] }>('/tools/check-consistency', key, input),
 
+  sendFeedback: (key: string, input: { screen?: string; dept?: string; subDept?: string; rating?: 'good' | 'bad' | 'idea'; note: string; context?: string }) =>
+    post<{ ok: boolean; id: string }>('/tools/feedback', key, input),
+
   workingPicture: (key: string, input: {
     dept: string; subDept?: string;
     intake: Record<string, string | undefined>;

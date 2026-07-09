@@ -172,8 +172,7 @@ ${protocolBlock}`;
 
   // Join ALL text blocks — some models emit multiple.
   const text = response.content
-    .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-    .map(b => b.text)
+    .map(b => (b.type === 'text' ? b.text : ''))
     .join('');
   const parsed = tryExtractJSON<Partial<WorkingPicture>>(text) ?? {};
   if (!Array.isArray(parsed.differentials) || parsed.differentials.length === 0) {

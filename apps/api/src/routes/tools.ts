@@ -18,6 +18,7 @@ import { screeningForProblems } from '../services/clinical-screening.js';
 import { checkConsistency } from '../services/consistency.js';
 import { usageStats, resetUsageStats } from '../lib/models.js';
 import { generateWorkingPicture, type WorkingPictureRequest } from '../services/confidence-engine.js';
+import { addFeedback, listFeedback, feedbackCount, type FeedbackEntry } from '../services/feedback-store.js';
 import {
   generateDischargeSummary,
   generateReferralLetter,
@@ -155,6 +156,32 @@ export async function toolsRoutes(app: FastifyInstance) {
       app.log.error(err);
       return reply.status(500).send({ error: 'Working picture generation failed' });
     }
+  });
+
+  // Beta feedback — the intern's one-tap loop back from the ward. POST to file
+  // a note; GET to read the last N (for me to triage into the backlog).
+  app.post('/tools/feedback', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const b = (req.body ?? {}) as Partial<FeedbackEntry>;
+    if (!b.note || !b.note.trim()) return reply.status(400).send({ error: 'note is required' });
+    const entry = addFeedback(
+      {
+        screen: typeof b.screen === 'string' ? b.screen.slice(0, 60) : undefined,
+        dept: typeof b.dept === 'string' ? b.dept : undefined,
+        subDept: typeof b.subDept === 'string' ? b.subDept : undefined,
+        rating: b.rating === 'good' || b.rating === 'bad' || b.rating === 'idea' ? b.rating : undefined,
+        note: b.note.trim().slice(0, 2000),
+        context: typeof b.context === 'string' ? b.context.slice(0, 1000) : undefined,
+      },
+      new Date().toISOString(),
+    );
+    return reply.send({ ok: true, id: entry.id });
+  });
+
+  app.get('/tools/feedback', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const limit = Math.min(Number((req.query as { limit?: string }).limit) || 100, 500);
+    return reply.send({ count: feedbackCount(), entries: listFeedback(limit) });
   });
 
   // Model usage/cost telemetry — the eval harness reads this before/after a

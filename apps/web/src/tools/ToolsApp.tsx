@@ -6,6 +6,7 @@ import { DeptSelector } from './components/DeptSelector';
 import { SubDeptSelector } from './components/SubDeptSelector';
 import { ClerkTab } from './tabs/ClerkTab';
 import { ProblemsTab } from './tabs/ProblemsTab';
+import { FeedbackButton } from './components/FeedbackButton';
 import { RoundTab } from './tabs/RoundTab';
 import { FormulasTab } from './tabs/FormulasTab';
 import { ResultsTab } from './tabs/ResultsTab';
@@ -112,6 +113,19 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           )}
         </div>
         <div className="flex-1 min-w-0" />
+        {activePatient && (
+          <button
+            onClick={() => updatePatient(activePatient.id, { practice: !activePatient.practice })}
+            title="Practice patient — kept out of anything real; for teaching/simulation"
+            className={`shrink-0 text-xs font-semibold h-9 px-2.5 rounded-lg border transition-colors ${
+              activePatient.practice
+                ? 'bg-amber-100 border-amber-300 text-amber-800'
+                : 'bg-white border-gray-200 text-gray-400 hover:text-gray-700'
+            }`}
+          >
+            {activePatient.practice ? '● PRACTICE' : 'Practice'}
+          </button>
+        )}
         <button
           onClick={addPatient}
           className="shrink-0 text-sm font-medium bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white pl-2.5 pr-3 h-9 rounded-lg transition-colors inline-flex items-center gap-1"
@@ -120,6 +134,12 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           <span>Patient</span>
         </button>
       </header>
+
+      {activePatient?.practice && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-800 text-xs font-medium text-center py-1.5 shrink-0">
+          ● Practice patient — for teaching/simulation. Not a record of care.
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — patient list */}
@@ -241,6 +261,8 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </div>
+
+      <FeedbackButton toolsKey={key} screen={activeTab} dept={dept} subDept={subDept ?? undefined} />
     </div>
   );
 }
