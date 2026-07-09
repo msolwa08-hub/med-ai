@@ -17,6 +17,7 @@ import { draftLegalForm, type LegalFormRequest } from '../services/clinical-form
 import { screeningForProblems } from '../services/clinical-screening.js';
 import { checkConsistency } from '../services/consistency.js';
 import { usageStats, resetUsageStats } from '../lib/models.js';
+import { generateWorkingPicture, type WorkingPictureRequest } from '../services/confidence-engine.js';
 import {
   generateDischargeSummary,
   generateReferralLetter,
@@ -127,6 +128,33 @@ export async function toolsRoutes(app: FastifyInstance) {
     if (!authTools(req)) return unauth(reply);
     const body = (req.body ?? {}) as InteractionCheckInput;
     return reply.send(interactionCheck(body));
+  });
+
+  // The bedside loop's brain: live weighted differential + discriminating
+  // investigations; pass previousPicture and every confidence shift is narrated
+  // against the new findings/results.
+  app.post('/tools/working-picture', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<WorkingPictureRequest>;
+    if (!body.dept || !body.intake || !body.history || !body.assessment) {
+      return reply.status(400).send({ error: 'dept, intake, history, and assessment are required' });
+    }
+    try {
+      const result = await generateWorkingPicture({
+        dept: body.dept,
+        subDept: body.subDept,
+        intake: body.intake,
+        history: body.history,
+        assessment: body.assessment,
+        problems: Array.isArray(body.problems) ? body.problems : undefined,
+        resultsText: typeof body.resultsText === 'string' ? body.resultsText : undefined,
+        previousPicture: body.previousPicture ?? null,
+      });
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Working picture generation failed' });
+    }
   });
 
   // Model usage/cost telemetry — the eval harness reads this before/after a
