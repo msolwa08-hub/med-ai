@@ -9,11 +9,10 @@
  * honest-uncertainty pattern.
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { betaConfig } from '../lib/beta-config.js';
+import { MODELS, createMessage } from '../lib/models.js';
 import { tryExtractJSON } from '../lib/json-extract.js';
 import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
 
-const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
 export type ImageModality =
   | 'ecg'
@@ -90,8 +89,8 @@ Respond with ONLY a JSON object:
   "injectText": "1-3 lines, transcription-ready for the patient file, shorthand, no fluff"
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  const response = await createMessage({
+    model: MODELS.reasoning,
     max_tokens: 1500,
     system,
     messages: [

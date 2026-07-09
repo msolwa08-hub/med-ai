@@ -1,10 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { betaConfig } from '../lib/beta-config.js';
 import { extractJSON } from '../lib/json-extract.js';
 import { protocolStore } from './protocol-store.js';
 import { specialtyLens } from './hod-prompt.js';
-
-const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
+import { MODELS, createMessage } from '../lib/models.js';
 
 // Best-matching excerpt from this facility's own uploaded protocols, if any —
 // layered above the generic discipline guidance below. Built from whatever
@@ -90,7 +88,15 @@ export interface AssistResponse {
   done: boolean;
 }
 
-function buildSystemPrompt(req: AssistRequest): string {
+/**
+ * The system prompt is split into a STATIC prefix (identical on every turn of a
+ * clerking — persona, specialty lens, discipline guidance, working rules) and a
+ * DYNAMIC tail (this patient's context, protocol match, current field values).
+ * The static prefix carries cache_control so turns 2+ of a conversation read it
+ * from the prompt cache at ~10% of input price — the single biggest cost lever
+ * on the app's most-called endpoint.
+ */
+function buildSystemBlocks(req: AssistRequest): { staticPart: string; dynamicPart: string } {
   const deptLabel = DEPT_LABELS[req.dept] ?? req.dept;
   const fieldList = req.fields
     .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (${f.hint})` : ''} — ${f.value ? `already recorded: "${f.value}"` : 'MISSING'}`)
@@ -99,13 +105,10 @@ function buildSystemPrompt(req: AssistRequest): string {
   const queryText = [req.context, ...req.fields.map(f => `${f.label} ${f.value}`), ...req.transcript.map(t => t.content)].join(' ');
   const protocolBlock = facilityProtocolBlock(req.dept, queryText);
 
-  return `You are MedAI Scribe, an AI assistant helping a busy hospital intern on a South African ${deptLabel} ward log the "${req.section}" section of a patient record — hands-busy, eyes-off-the-screen.
+  const staticPart = `You are MedAI Scribe, an AI assistant helping a busy hospital intern on a South African ${deptLabel} ward log the "${req.section}" section of a patient record — hands-busy, eyes-off-the-screen.
 
 ${specialtyLens(req.dept, req.subDept)}
-${req.context ? `\nTHIS PATIENT: ${req.context}\n` : ''}${guidance ? `\nDISCIPLINE: ${guidance}\n` : ''}${protocolBlock}
-THE FIELDS TO CAPTURE:
-${fieldList}
-
+${guidance ? `\nDISCIPLINE: ${guidance}\n` : ''}
 HOW YOU WORK (fast — the intern is clerking efficiently, not a nervous patient; your job is to MINIMISE turns):
 1. GROUP fields that are naturally answered together into ONE question — never ask administrative fields one at a time. E.g. "Name, age, ward and bed?" · "Gestational age, LMP and EDD?" · "Gravida, para, and previous deliveries?" · "HIV status — and if positive, regimen and last viral load?". Aim to close each SECTION in as few questions as possible.
 2. OPEN by gathering the whole administrative block in one question (name, age, sex, ward, bed, admission date), then move through the clinical fields in a few grouped questions.
@@ -123,6 +126,12 @@ RESPONSE FORMAT — reply with ONLY a JSON object, no prose before or after:
 }
 
 "updates" must contain only fields whose value you extracted or corrected from the intern's LAST message (empty object on the first turn). Normalise dates to YYYY-MM-DD and keep clinical values verbatim.`;
+
+  const dynamicPart = `${req.context ? `THIS PATIENT: ${req.context}\n` : ''}${protocolBlock}
+THE FIELDS TO CAPTURE:
+${fieldList}`;
+
+  return { staticPart, dynamicPart };
 }
 
 // ─── Photo scan of handwritten notes ────────────────────────────────────────
@@ -189,8 +198,8 @@ RESPONSE — ONLY a JSON object, no prose:
 
 export class ToolsAssistEngine {
   async scanNotes(req: ScanRequest): Promise<ScanResponse> {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    const response = await createMessage({
+      model: MODELS.reasoning,
       max_tokens: 1500,
       messages: [
         {
@@ -234,7 +243,7 @@ export class ToolsAssistEngine {
   }
 
   async step(req: AssistRequest): Promise<AssistResponse> {
-    const system = buildSystemPrompt(req);
+    const { staticPart, dynamicPart } = buildSystemBlocks(req);
 
     // The Anthropic API requires the first message to be role 'user' and roles
     // to alternate. The client's transcript starts with the assistant's opening
@@ -260,10 +269,13 @@ export class ToolsAssistEngine {
         ? [...primed, { role: 'user' as const, content: 'Continue.' }]
         : primed;
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    const response = await createMessage({
+      model: MODELS.reasoning,
       max_tokens: 800,
-      system,
+      system: [
+        { type: 'text', text: staticPart, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: dynamicPart },
+      ],
       messages,
     });
 

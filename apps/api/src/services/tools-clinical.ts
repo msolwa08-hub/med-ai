@@ -1,12 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { betaConfig } from '../lib/beta-config.js';
+import { MODELS, createMessage } from '../lib/models.js';
 import { extractJSON } from '../lib/json-extract.js';
 import { STG_ENTRIES, type STGSeedEntry } from '../data/stg-entries.js';
 import { checkPrescriptionSafety, type SafetyWarning } from './prescription-safety.js';
 import { protocolStore } from './protocol-store.js';
 import { specialtyLens } from './hod-prompt.js';
 
-const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
 // ─── STG retrieval ────────────────────────────────────────────────────────────
 // Cheap keyword retrieval: score each STG entry against the patient's clinical
@@ -115,8 +114,8 @@ RESPOND with ONLY JSON:
   "note": "<one line: anything the intern must not miss>"
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  const response = await createMessage({
+    model: MODELS.reasoning,
     max_tokens: 2000,
     messages: [{ role: 'user', content: prompt }],
   });

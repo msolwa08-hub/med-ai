@@ -16,6 +16,7 @@ import { generateWardRoundDelta, type WardRoundDeltaRequest } from '../services/
 import { draftLegalForm, type LegalFormRequest } from '../services/clinical-forms.js';
 import { screeningForProblems } from '../services/clinical-screening.js';
 import { checkConsistency } from '../services/consistency.js';
+import { usageStats, resetUsageStats } from '../lib/models.js';
 import {
   generateDischargeSummary,
   generateReferralLetter,
@@ -126,6 +127,16 @@ export async function toolsRoutes(app: FastifyInstance) {
     if (!authTools(req)) return unauth(reply);
     const body = (req.body ?? {}) as InteractionCheckInput;
     return reply.send(interactionCheck(body));
+  });
+
+  // Model usage/cost telemetry — the eval harness reads this before/after a
+  // clerking so cost-per-prompt is MEASURED against the <10c ceiling, not
+  // guessed. In-memory; POST with {reset:true} zeroes the tally.
+  app.post('/tools/usage-stats', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = (req.body ?? {}) as { reset?: boolean };
+    if (body.reset) resetUsageStats();
+    return reply.send(usageStats());
   });
 
   // Deterministic input-discrepancy check (no AI call) — the "alarmed

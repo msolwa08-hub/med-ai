@@ -1,9 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { betaConfig } from '../lib/beta-config.js';
+import { MODELS, createMessage } from '../lib/models.js';
 import { betaStore, type BetaMessage } from './beta-store.js';
 import { extractJSON } from '../lib/json-extract.js';
 
-const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
 const DEPT_LABELS: Record<string, string> = {
   medicine: 'General Medicine',
@@ -59,8 +58,8 @@ export class BetaEngine {
     const systemPrompt = buildSystemPrompt(department, ageSex, chiefComplaintHint);
     const sessionId = newId();
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    const response = await createMessage({
+      model: MODELS.reasoning,
       max_tokens: 512,
       system: systemPrompt,
       messages: [
@@ -104,8 +103,8 @@ export class BetaEngine {
     }));
     history.push({ role: 'user', content: userMessage });
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    const response = await createMessage({
+      model: MODELS.reasoning,
       max_tokens: 1024,
       system: systemPrompt,
       messages: history,

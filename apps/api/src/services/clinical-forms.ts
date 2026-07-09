@@ -11,11 +11,10 @@
  * convenience.
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { betaConfig } from '../lib/beta-config.js';
+import { MODELS, createMessage } from '../lib/models.js';
 import { tryExtractJSON } from '../lib/json-extract.js';
 import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
 
-const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
 export type LegalFormType = 'mhca-72hr' | 'j88' | 'surgical-consent';
 
@@ -113,8 +112,8 @@ HARD RULES:
 Respond with ONLY JSON:
 { "formTitle": "...", "sections": [{ "heading": "...", "content": "...", "status": "prefilled"|"requires-input"|"requires-examination" }], "missingInfo": ["..."], "legalNotes": ["..."] }`;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  const response = await createMessage({
+    model: MODELS.reasoning,
     max_tokens: 2500,
     system,
     messages: [

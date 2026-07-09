@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { betaConfig } from '../lib/beta-config.js';
+import { MODELS, createMessage } from '../lib/models.js';
 import { extractJSON } from '../lib/json-extract.js';
 import { MEDAI_SYSTEM_PROMPT } from './hod-prompt.js';
 import {
@@ -8,11 +8,10 @@ import {
   ROUND_NOTE_SYSTEM,
 } from './medai-prompt.js';
 
-const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
 async function generate<T>(system: string, content: string): Promise<T> {
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  const response = await createMessage({
+    model: MODELS.reasoning,
     max_tokens: 2048,
     system,
     messages: [{ role: 'user', content }],

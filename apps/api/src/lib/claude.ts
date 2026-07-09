@@ -9,7 +9,7 @@ export const anthropic = new Anthropic({
 export const CLAUDE_HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
 // Tier 2 — Complex reasoning: clinical education, management plans, medical history AI
-export const CLAUDE_SONNET_MODEL = 'claude-sonnet-4-6';
+export const CLAUDE_SONNET_MODEL = 'claude-sonnet-5';
 
 // Legacy aliases so existing services keep compiling
 export const CLAUDE_MODEL = CLAUDE_SONNET_MODEL;
@@ -28,11 +28,13 @@ const OUTPUT_COST: Record<string, number> = {
   [CLAUDE_SONNET_MODEL]: 15e-6, // $15/MTok
 };
 
+// Cache fields are `number | null` in SDK >=0.30 Usage, so response.usage can
+// be passed straight through.
 export interface TokenUsage {
   input_tokens: number;
   output_tokens: number;
-  cache_read_input_tokens?: number;
-  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
 }
 
 export function logUsage(service: string, model: string, usage: TokenUsage): void {

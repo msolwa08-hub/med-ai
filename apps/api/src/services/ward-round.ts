@@ -13,7 +13,7 @@
  *      monitoring prompts appear even when the model omits them.
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { betaConfig } from '../lib/beta-config.js';
+import { MODELS, createMessage } from '../lib/models.js';
 import { extractJSON, tryExtractJSON } from '../lib/json-extract.js';
 import { MEDAI_SYSTEM_PROMPT, HOD_DISCLAIMER, specialtyLens } from './hod-prompt.js';
 import { stgMatches, compactSTG, runSafetyCheck, looksPregnant } from './tools-clinical.js';
@@ -21,7 +21,6 @@ import { protocolStore } from './protocol-store.js';
 import { screeningForProblems, type ScreeningPrompt } from './clinical-screening.js';
 import type { SafetyWarning } from './prescription-safety.js';
 
-const client = new Anthropic({ apiKey: betaConfig.ANTHROPIC_API_KEY });
 
 export interface WardRoundUpdate {
   date: string;
@@ -158,8 +157,8 @@ ${req.imageFindings?.length ? `Image findings (verified traces):\n${req.imageFin
 ${stgBlock}
 ${protocolBlock}`;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  const response = await createMessage({
+    model: MODELS.reasoning,
     max_tokens: 1800,
     system,
     messages: [{ role: 'user', content: userContent }],

@@ -1266,7 +1266,7 @@ export async function startAdaptiveMedicalHistorySession(
 ): Promise<AdaptiveResponse> {
   const openingInstruction = buildOpeningInstruction(language, initialLiteracy, patientContext);
 
-  const response = await anthropic.beta.promptCaching.messages.create({
+  const response = await anthropic.messages.create({
     model: CLAUDE_HISTORY_MODEL,
     max_tokens: 512,
     system: [
@@ -1325,7 +1325,7 @@ export async function continueAdaptiveMedicalHistorySession(
     { role: 'user', content: redactFreeText(patientMessage, knownNames) },
   ];
 
-  const response = await anthropic.beta.promptCaching.messages.create({
+  const response = await anthropic.messages.create({
     model: CLAUDE_HISTORY_MODEL,
     max_tokens: 1024,
     system: [
