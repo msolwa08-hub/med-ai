@@ -83,7 +83,7 @@ async function runLoop(scenario, base, key) {
 
   const p2 = await post(base, key, '/tools/working-picture', {
     ...common,
-    resultText: scenario.resultText,
+    resultsText: scenario.resultText,
     previousPicture: { differentials: pic1.differentials },
   });
   if (p2.status !== 200 || !p2.json) return { id: scenario.id, title: scenario.title, error: `picture2 ${p2.status}`, overall: 0 };

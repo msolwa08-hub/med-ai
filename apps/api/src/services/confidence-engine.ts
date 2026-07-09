@@ -95,13 +95,21 @@ function recordText(r: Record<string, string | undefined>, label: string): strin
 }
 
 export async function generateWorkingPicture(req: WorkingPictureRequest): Promise<WorkingPictureResponse> {
+  // Results are pulled OUT of the general record and placed prominently — when a
+  // previous picture exists they ARE the reason for the call, and burying them
+  // in the record made the model narrate off stale exam findings instead.
   const clinical = [
     recordText(req.intake, 'INTAKE'),
     recordText(req.history, 'HISTORY'),
     recordText(req.assessment, 'EXAMINATION'),
     req.problems?.length ? `COMMITTED PROBLEMS:\n${req.problems.map((p, i) => `  ${i + 1}. ${p}`).join('\n')}` : '',
-    req.resultsText ? `INVESTIGATION RESULTS (latest, with trends):\n  ${req.resultsText}` : '',
   ].filter(Boolean).join('\n\n');
+
+  const resultsBlock = req.resultsText
+    ? (req.previousPicture?.differentials?.length
+        ? `>>> NEW RESULTS SINCE YOUR LAST PICTURE — THIS IS WHY YOU ARE BEING CALLED. Reconcile EVERY diagnosis against these; a shift must be attributed to one of THESE results, not to findings already in the previous picture:\n${req.resultsText}`
+        : `INVESTIGATION RESULTS (latest, with trends):\n${req.resultsText}`)
+    : '';
 
   const stg = stgMatches(clinical, 4);
   const stgBlock = stg.length
@@ -117,9 +125,10 @@ export async function generateWorkingPicture(req: WorkingPictureRequest): Promis
 ${req.previousPicture.differentials.map(d => `- ${d.dx}: ${d.confidence}% (${d.band})`).join('\n')}
 
 RECONCILIATION RULES:
-- For every diagnosis above, either carry it forward (same or moved confidence) or explicitly retire it in the narrative — never silently drop one.
-- Every confidence CHANGE gets a "shift": {"from": <old %>, "because": "<the specific new finding/result that moved it>"}.
-- "narrative" is the consultant's one-paragraph read of what just changed: which results landed, which way each moved the picture, and what that does to management TODAY. If nothing new arrived, say the picture is unchanged and why.`
+- For every diagnosis above, either carry it forward or explicitly retire it in the narrative — never silently drop one.
+- MOVE DECISIVELY on the new results — do not nudge. A result that MEETS a diagnostic threshold pushes that diagnosis into the confirmed/likely range (e.g. thrombocytopenia + transaminitis + haemolysis = HELLP confirmed → 85-95%; empty uterus + adnexal mass + free fluid on TVS with positive βhCG = ectopic confirmed → 90%+; sepsis markers + offensive liquor + fetal tachycardia = chorioamnionitis → 80%+). A result that EXCLUDES a diagnosis drops it hard (e.g. a normal test that would be abnormal if the disease were present). A 5-point nudge on a confirmatory result is WRONG.
+- Every confidence CHANGE gets a "shift": {"from": <old %>, "because": "<the specific NEW RESULT that moved it>"} — the "because" must cite a value from the new results block, never a finding that was already in the previous picture.
+- "narrative" is the consultant's one-paragraph read of what the NEW RESULTS just did to the picture and to management today.`
     : '';
 
   const system = `${MEDAI_SYSTEM_PROMPT}
@@ -155,6 +164,7 @@ Respond with ONLY a JSON object:
 
   const userContent = `${clinical}
 
+${resultsBlock ? `${resultsBlock}\n` : ''}
 ${stgBlock}
 ${protocolBlock}`;
 
