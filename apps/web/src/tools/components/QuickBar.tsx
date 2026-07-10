@@ -1,0 +1,182 @@
+import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, MicOff, Sparkles, Check, AlertTriangle, CornerDownLeft, Loader2 } from 'lucide-react';
+import { toolsApi, type AssistField, type ScanFieldResult } from '../toolsApi';
+
+// ─── QUICKBAR — the fastest way in ───────────────────────────────────────────
+// The intern already knows the story. Instead of a question-at-a-time
+// conversation, they dump the whole clerking in one breath — TYPED or SPOKEN
+// (browser dictation, hands-busy/eyes-on-patient) — and one call fills every
+// field it can find. This is the tool sitting between what the intern says and
+// what lands on the record. The conversational assist stays as the fallback for
+// when they're unsure what to say next.
+
+// Minimal typing for the Web Speech API (not in lib.dom for the webkit prefix).
+type SpeechRec = {
+  continuous: boolean; interimResults: boolean; lang: string;
+  start: () => void; stop: () => void;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
+  onend: (() => void) | null; onerror: (() => void) | null;
+};
+function getRecognition(): SpeechRec | null {
+  const w = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  if (!Ctor) return null;
+  const r = new Ctor();
+  r.continuous = true; r.interimResults = true; r.lang = 'en-ZA';
+  return r;
+}
+
+const CONF_TONE: Record<ScanFieldResult['confidence'], string> = {
+  high: 'bg-brand-50 text-brand-700 border-brand-200',
+  medium: 'bg-amber-50 text-amber-800 border-amber-200',
+  low: 'bg-rose-50 text-rose-800 border-rose-200',
+};
+
+export function QuickBar({
+  toolsKey, dept, subDept, fields, context, onResults,
+}: {
+  toolsKey: string;
+  dept: string;
+  subDept?: string;
+  fields: AssistField[];
+  context: string;
+  /** Parsed values routed back to the record; label lets the parent flash what filled. */
+  onResults: (updates: Record<string, string>) => void;
+}) {
+  const [text, setText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [listening, setListening] = useState(false);
+  const [filled, setFilled] = useState<{ label: string; confidence: ScanFieldResult['confidence']; note?: string }[]>([]);
+  const [overall, setOverall] = useState('');
+  const recRef = useRef<SpeechRec | null>(null);
+  const baseRef = useRef(''); // text committed before dictation started
+  const supported = useRef(typeof window !== 'undefined' && !!getRecognition());
+  const labelFor = (k: string) => fields.find(f => f.key === k)?.label ?? k;
+
+  useEffect(() => () => { recRef.current?.stop(); }, []);
+
+  function toggleMic() {
+    if (listening) { recRef.current?.stop(); return; }
+    const rec = getRecognition();
+    if (!rec) return;
+    recRef.current = rec;
+    baseRef.current = text ? `${text} ` : '';
+    rec.onresult = e => {
+      let out = '';
+      for (let i = 0; i < e.results.length; i++) out += e.results[i][0].transcript;
+      setText(baseRef.current + out);
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    rec.start();
+    setListening(true);
+  }
+
+  async function parse() {
+    const dump = text.trim();
+    if (!dump || loading) return;
+    if (listening) { recRef.current?.stop(); setListening(false); }
+    setLoading(true); setError(''); setFilled([]); setOverall('');
+    try {
+      const res = await toolsApi.quickParse(toolsKey, { dept, subDept, section: 'Clerking', fields, text: dump, context });
+      const updates: Record<string, string> = {};
+      const flash: typeof filled = [];
+      for (const [k, v] of Object.entries(res.results)) {
+        updates[k] = v.value;
+        flash.push({ label: labelFor(k), confidence: v.confidence, note: v.note });
+      }
+      if (Object.keys(updates).length === 0) {
+        setError('Nothing recognised to file yet — add a bit more, or use the guided clerking below.');
+      } else {
+        onResults(updates);
+        setFilled(flash);
+        setOverall(res.overallNote);
+        setText('');
+      }
+    } catch {
+      setError('Quick fill is unavailable right now — dictate/type into the guided clerking below instead.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-card border border-brand-200 bg-surface-brand p-4 sm:p-5 shadow-card">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="w-4 h-4 text-brand-600" />
+        <h3 className="text-[15px] font-bold text-ink tracking-tight">Quick clerk</h3>
+        <span className="text-xs text-ink-soft">— say or paste it all; I'll file it</span>
+      </div>
+
+      <div className="relative">
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') parse(); }}
+          rows={3}
+          placeholder={'e.g. "54 year old man, crushing central chest pain 2 hours, sweaty, known hypertensive and diabetic, BP 148 over 92, HR 96, sats 96 on air, chest clear"'}
+          className="w-full bg-surface border border-line-strong rounded-xl px-3.5 py-2.5 pr-12 text-[15px] text-ink placeholder:text-ink-mute resize-none transition-shadow focus:outline-none focus:border-brand-500 focus:shadow-focus"
+        />
+        {supported.current && (
+          <button
+            onClick={toggleMic}
+            aria-label={listening ? 'Stop dictation' : 'Dictate'}
+            title={listening ? 'Stop dictation' : 'Dictate'}
+            className={`absolute top-2.5 right-2.5 grid place-items-center w-9 h-9 rounded-lg transition-colors focus:outline-none focus-visible:shadow-focus ${
+              listening ? 'bg-rose-500 text-white animate-pulse' : 'bg-surface-alt text-ink-soft hover:text-brand-700'
+            }`}
+          >
+            {listening ? <MicOff className="w-[18px] h-[18px]" /> : <Mic className="w-[18px] h-[18px]" />}
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 mt-2.5">
+        <button
+          onClick={parse}
+          disabled={loading || !text.trim()}
+          className="inline-flex items-center gap-2 bg-brand-700 hover:bg-brand-600 active:bg-brand-800 disabled:opacity-45 disabled:pointer-events-none text-white text-sm font-medium px-4 min-h-[42px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          {loading ? 'Filing…' : 'Fill record'}
+        </button>
+        <span className="text-[11px] text-ink-mute hidden sm:inline-flex items-center gap-1">
+          <CornerDownLeft className="w-3 h-3" /> ⌘/Ctrl+Enter
+        </span>
+        {listening && <span className="text-[11px] text-rose-600 font-medium">● listening…</span>}
+      </div>
+
+      {error && <p className="mt-2 text-[13px] text-band-exclude">{error}</p>}
+
+      <AnimatePresence>
+        {filled.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-3 space-y-2"
+          >
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-700">
+              <Check className="w-3.5 h-3.5" /> Filed {filled.length} field{filled.length > 1 ? 's' : ''} — verify the flagged ones
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {filled.map((f, i) => (
+                <span
+                  key={i}
+                  title={f.note}
+                  className={`inline-flex items-center gap-1 text-[11px] font-medium rounded-pill border px-2 py-1 ${CONF_TONE[f.confidence]}`}
+                >
+                  {f.confidence !== 'high' && <AlertTriangle className="w-3 h-3" />}
+                  {f.label}
+                </span>
+              ))}
+            </div>
+            {overall && <p className="text-[12px] text-ink-mute italic leading-snug">{overall}</p>}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

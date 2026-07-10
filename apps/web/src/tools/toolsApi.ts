@@ -114,6 +114,11 @@ export interface ScanResponse {
   overallNote: string;
 }
 
+export interface QuickParseResponse {
+  results: Record<string, ScanFieldResult>;
+  overallNote: string;
+}
+
 export interface SafetyWarning {
   severity: 'BLOCK' | 'WARN';
   drug: string;
@@ -276,6 +281,9 @@ export const toolsApi = {
 
   scanNotes: (key: string, input: { dept: string; subDept?: string; section: string; fields: AssistField[]; imageBase64: string; mediaType: string; context?: string }) =>
     post<ScanResponse>('/tools/scan-notes', key, input),
+
+  quickParse: (key: string, input: { dept: string; subDept?: string; section: string; fields: AssistField[]; text: string; context?: string }) =>
+    post<QuickParseResponse>('/tools/quick-parse', key, input),
 
   analyzeImage: (key: string, input: { dept: string; subDept?: string; modality: ImageModality; imageBase64: string; mediaType: string; context?: string }) =>
     post<ImageAnalysisResult>('/tools/analyze-image', key, input),

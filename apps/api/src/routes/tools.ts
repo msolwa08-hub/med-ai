@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { validateToolsKey } from '../lib/beta-config.js';
 import { betaEngine } from '../services/beta-engine.js';
 import { betaStore } from '../services/beta-store.js';
-import { toolsAssist, type AssistRequest, type ScanRequest } from '../services/tools-assist.js';
+import { toolsAssist, type AssistRequest, type ScanRequest, type QuickParseRequest } from '../services/tools-assist.js';
 import {
   suggestProblems,
   interactionCheck,
@@ -71,6 +71,30 @@ export async function toolsRoutes(app: FastifyInstance) {
     } catch (err) {
       app.log.error(err);
       return reply.status(500).send({ error: 'Assist request failed' });
+    }
+  });
+
+  // Quick parse — the brain-dump fast path. One free-text (or dictated) dump →
+  // every field extracted in a single call, no questions. ~1 round-trip vs ~6.
+  app.post('/tools/quick-parse', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as Partial<QuickParseRequest>;
+    if (!body.dept || !body.section || !Array.isArray(body.fields) || typeof body.text !== 'string' || !body.text.trim()) {
+      return reply.status(400).send({ error: 'dept, section, fields, and non-empty text are required' });
+    }
+    try {
+      const result = await toolsAssist.quickParse({
+        dept: body.dept,
+        subDept: typeof body.subDept === 'string' ? body.subDept : undefined,
+        section: body.section,
+        fields: body.fields,
+        text: body.text,
+        context: typeof body.context === 'string' ? body.context : undefined,
+      });
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Quick parse failed' });
     }
   });
 

@@ -197,7 +197,115 @@ RESPONSE — ONLY a JSON object, no prose:
 }`;
 }
 
+// ─── Quick parse — the brain-dump fast path ─────────────────────────────────
+// The intern already knows the story. Instead of a question-at-a-time
+// conversation, they dump the whole clerking in one go (typed or dictated) and
+// this extracts EVERY field it can find in a single call — ~1 round-trip vs ~6.
+// Same specialty lens + guidance as the conversational assist; no questions,
+// just structured capture, with a confidence flag so a low-certainty parse gets
+// verified rather than trusted.
+
+export interface QuickParseRequest {
+  dept: string;
+  subDept?: string;
+  section: string;
+  fields: AssistField[];
+  text: string; // the brain-dump (free text or dictation transcript)
+  context?: string;
+}
+
+export interface QuickParseResponse {
+  results: Record<string, ScanFieldResult>; // reuse the scan shape: value + confidence + note
+  overallNote: string;
+}
+
+function buildQuickParsePrompt(req: QuickParseRequest): { staticPart: string; dynamicPart: string } {
+  const deptLabel = DEPT_LABELS[req.dept] ?? req.dept;
+  const fieldList = req.fields
+    .map(f => `- ${f.key}: ${f.label}${f.hint ? ` (${f.hint})` : ''}${f.value ? ` — already recorded: "${f.value}"` : ''}`)
+    .join('\n');
+  const guidance = clinicalGuidanceFor(req.dept, req.subDept);
+  const protocolBlock = facilityProtocolBlock(req.dept, [req.context, req.text].join(' '));
+
+  const staticPart = `You are MedAI Scribe on a South African ${deptLabel} ward. A busy intern has just DUMPED everything they know about a patient in one go — typed or spoken aloud while examining — to fill the "${req.section}" section in a single pass. Your job is to structure that dump into the record fast and faithfully, asking NOTHING.
+
+${specialtyLens(req.dept, req.subDept)}
+${guidance ? `\nDISCIPLINE (expect this shorthand): ${guidance}\n` : ''}
+HOW YOU PARSE:
+- Extract EVERY field the dump covers — interns rattle several off in one breath ("54 male, crushing chest pain 2 hours, diaphoretic, known HTN and diabetic, BP 148 over 92, sats 96"). Map each to its field key.
+- Expand standard clinical shorthand (c/o, Hx, PMHx, Rx, NKDA, BD/TDS/QID, SOB, G3P2) into the value.
+- Dictation is messy — homophones and run-ons are expected ("be pee one forty eight" = BP 148; "sats" = SpO2). Use clinical context to reconstruct, and normalise dates to YYYY-MM-DD.
+- Do NOT invent, and do NOT pad. If a field is NOT in the dump, OMIT it entirely — never emit a placeholder like "not documented"/"not mentioned"; a field the intern didn't mention simply does not appear in "results". This keeps the response tight.
+- Only emit a "note" for a field you DID extract but are unsure about (medium/low). Never write a note explaining why an absent field is absent — put anything the intern should still gather into "overallNote" instead.
+- confidence: "high" = clearly stated; "medium" = inferred/plausibly wrong; "low" = a guess worth checking.
+- Do NOT overwrite an already-recorded field unless the dump clearly restates or corrects it.
+
+RESPONSE — ONLY a JSON object, no prose:
+{
+  "results": { "<fieldKey>": { "value": "...", "confidence": "high|medium|low", "note": "..." }, ... },
+  "overallNote": "<one line: anything the intern should double-check, or empty>"
+}`;
+
+  const dynamicPart = `${req.context ? `THIS PATIENT (already on record): ${req.context}\n` : ''}${protocolBlock}
+FIELDS TO FILL:
+${fieldList}
+
+THE INTERN'S DUMP:
+"""
+${req.text}
+"""`;
+
+  return { staticPart, dynamicPart };
+}
+
 export class ToolsAssistEngine {
+  async quickParse(req: QuickParseRequest): Promise<QuickParseResponse> {
+    const { staticPart, dynamicPart } = buildQuickParsePrompt(req);
+    const run = (maxTokens: number, extra: string) =>
+      createMessage({
+        model: MODELS.reasoning,
+        max_tokens: maxTokens,
+        system: [
+          // Static prefix (persona + lens + guidance) is stable per department →
+          // cached; the dump + fields change each call.
+          { type: 'text', text: staticPart, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: dynamicPart + extra },
+        ],
+        messages: [{ role: 'user', content: 'Parse the dump into the fields now.' }],
+      });
+
+    const readText = (r: Awaited<ReturnType<typeof run>>) =>
+      r.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('');
+    const tryParse = (t: string): Partial<QuickParseResponse> | null => {
+      try { return extractJSON<Partial<QuickParseResponse>>(t); } catch { return null; }
+    };
+
+    // A verbose dump with many offered fields can overrun the budget → truncated
+    // JSON → empty parse. One retry with more room + a terse directive recovers
+    // it (same failure mode the confidence engine guards against).
+    let response = await run(2600, '');
+    let parsed = tryParse(readText(response));
+    if (!parsed || !parsed.results || Object.keys(parsed.results).length === 0) {
+      response = await run(
+        4000,
+        '\n\nIMPORTANT: keep the JSON compact — OMIT every field not in the dump (no placeholder entries), one short note only where truly needed. Return the JSON object only.'
+      );
+      parsed = tryParse(readText(response));
+    }
+    const allowed = new Set(req.fields.map(f => f.key));
+    const results: Record<string, ScanFieldResult> = {};
+    for (const [k, v] of Object.entries(parsed?.results ?? {})) {
+      if (!allowed.has(k) || !v || typeof v.value !== 'string' || !v.value.trim()) continue;
+      const confidence: ScanConfidence =
+        v.confidence === 'high' || v.confidence === 'medium' || v.confidence === 'low' ? v.confidence : 'medium';
+      results[k] = { value: v.value, confidence, note: typeof v.note === 'string' ? v.note : undefined };
+    }
+    return {
+      results,
+      overallNote: typeof parsed?.overallNote === 'string' ? parsed.overallNote : '',
+    };
+  }
+
   async scanNotes(req: ScanRequest): Promise<ScanResponse> {
     const response = await createMessage({
       model: MODELS.reasoning,

@@ -22,6 +22,7 @@ import { useWorkingPicture } from '../lib/useWorkingPicture';
 import { StageCard } from '../components/StageCard';
 import { SlideOver } from '../components/SlideOver';
 import { PictureSheet } from '../components/PictureSheet';
+import { QuickBar } from '../components/QuickBar';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { MessageSquareText, BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText } from 'lucide-react';
 
@@ -196,6 +197,23 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   const [drawer, setDrawer] = useState<null | 'record' | 'note'>(null);
 
+  // Quick-clerk brain-dump routes a flat {key: value} back to the slice that
+  // owns each key — same split as the conversational assist, extended to exam.
+  const examKeys = new Set(examFields.map(f => f.key));
+  function routeAnyUpdates(u: Record<string, string>) {
+    const iPatch: Record<string, string> = {};
+    const hPatch: Record<string, string> = {};
+    const aPatch: Record<string, string> = {};
+    for (const [k, v] of Object.entries(u)) {
+      if (intakeKeys.has(k)) iPatch[k] = v;
+      else if (examKeys.has(k)) aPatch[k] = v;
+      else hPatch[k] = v;
+    }
+    if (Object.keys(iPatch).length) onIntake(iPatch);
+    if (Object.keys(hPatch).length) onHistory(hPatch);
+    if (Object.keys(aPatch).length) onAssessment(aPatch);
+  }
+
   const storySummary = (() => {
     const who = [patient.intake.name, patient.intake.age && `${patient.intake.age}`].filter(Boolean).join(', ');
     return `${who ? `${who} — ` : ''}${filledStory}/${clerkFields.length} captured`;
@@ -233,6 +251,17 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
       <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
         {/* ── LEFT: the capture stream ─────────────────────────────────────── */}
         <div className="lg:col-span-7 space-y-3 pb-20 lg:pb-0">
+          {/* The fast way in: dump the whole clerking (typed or spoken) → one
+              call fills every field. The staged forms below are the fallback. */}
+          <QuickBar
+            toolsKey={toolsKey}
+            dept={dept}
+            subDept={subDept}
+            fields={[...clerkFields, ...examFields]}
+            context={patientContext(patient, dept, subDept)}
+            onResults={routeAnyUpdates}
+          />
+
           {discrepancies.length > 0 && (
             <div className="space-y-2">
               {discrepancies.map((d, i) => (
