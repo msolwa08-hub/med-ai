@@ -502,4 +502,57 @@ export const SMART_BLOCKS: SmartBlock[] = [
       { id: 'antipsychotic', label: 'Antipsychotic given for dangerous agitation?', kind: 'toggle' },
     ],
   },
+
+  // ── Orthopaedics (dossier: docs/clinical-build/research/orthopaedics.md) ──
+
+  {
+    id: 'ortho-neurovascular-status',
+    title: 'Neurovascular status',
+    pattern: /neurovascular|distal (pulse|perfusion)|cap(illary)? refill|pulses?,? sensation|sensation.*motor|pain on passive stretch/i,
+    depts: ['ortho'],
+    why: 'Neurovascular status distal to every injury, documented BEFORE and AFTER any manipulation, is the single most litigated omission in orthopaedic practice — reduce/splint/cast without a pre-intervention baseline and you cannot say whether you caused a deficit or inherited it.',
+    fields: [
+      { id: 'timing', label: 'Timing', kind: 'select', options: ['Pre-reduction/pre-splint baseline', 'Post-reduction/post-splint recheck', 'Serial/hourly review'] },
+      { id: 'pulses', label: 'Pulses', kind: 'select', options: ['2+ normal', '1+ reduced', 'Absent', 'Doppler signal only'] },
+      { id: 'cap-refill', label: 'Capillary refill', kind: 'number', unit: 's' },
+      { id: 'sensation', label: 'Sensation', kind: 'select', options: ['Intact', 'Reduced', 'Absent'] },
+      { id: 'nerve-territory', label: 'Nerve/dermatome tested', kind: 'text-short' },
+      { id: 'motor', label: 'Motor power (MRC 0-5)', kind: 'select', options: ['5 — normal', '4 — against resistance', '3 — against gravity', '2 — gravity eliminated', '1 — flicker/trace', '0 — no contraction'] },
+      { id: 'passive-stretch-pain', label: 'Pain on passive stretch?', kind: 'toggle' },
+      { id: 'compared-contralateral', label: 'Compared to contralateral limb?', kind: 'toggle' },
+    ],
+  },
+  {
+    id: 'ortho-open-fracture',
+    title: 'Open fracture assessment',
+    pattern: /open (fracture|#)|compound (fracture|#)|gustilo/i,
+    depts: ['ortho'],
+    why: 'Gustilo grade (finalised only in theatre after debridement) drives the antibiotic escalation, and the antibiotic clock — target <1h from arrival, never delayed for imaging — is the single highest-yield, most litigated time target in ortho-trauma.',
+    fields: [
+      { id: 'gustilo', label: 'Gustilo grade', kind: 'select', options: ['I', 'II', 'IIIA', 'IIIB', 'IIIC', 'Not yet graded — assess in theatre'] },
+      { id: 'time-since-injury', label: 'Time since injury', kind: 'text-short' },
+      { id: 'time-to-arrival', label: 'Time of arrival', kind: 'text-short' },
+      { id: 'abx-given', label: 'Antibiotics given?', kind: 'toggle' },
+      { id: 'abx-time', label: 'Time antibiotics given', kind: 'text-short', showIf: { fieldId: 'abx-given', equals: true } },
+      { id: 'abx-within-1h', label: 'Within 1h of arrival?', kind: 'toggle', showIf: { fieldId: 'abx-given', equals: true } },
+      { id: 'tetanus-status', label: 'Tetanus status', kind: 'select', options: ['Up to date — no action', 'Incomplete/unknown — toxoid given', 'High-risk wound — immunoglobulin also given'] },
+    ],
+  },
+  {
+    id: 'ortho-fracture-description',
+    title: 'Fracture description',
+    pattern: /fracture|\bfx\b/i,
+    depts: ['ortho'],
+    why: 'Site, pattern, displacement, angulation and open/closed status are the universal grammar of fracture reporting — "tibia fracture" is not a management plan, "closed, displaced, distal-third tibia/fibula fracture" is.',
+    fields: [
+      { id: 'bone', label: 'Bone', kind: 'text-short' },
+      { id: 'site', label: 'Site', kind: 'select', options: ['Proximal third', 'Middle third', 'Distal third', 'Metaphyseal', 'Diaphyseal', 'Epiphyseal/intra-articular'] },
+      { id: 'pattern', label: 'Pattern', kind: 'select', options: ['Transverse', 'Oblique', 'Spiral', 'Comminuted', 'Segmental', 'Greenstick/torus', 'Avulsion'] },
+      { id: 'displacement', label: 'Displacement (% and direction)', kind: 'text-short' },
+      { id: 'angulation', label: 'Angulation (degrees and direction)', kind: 'text-short' },
+      { id: 'shortening', label: 'Shortening', kind: 'text-short' },
+      { id: 'open-closed', label: 'Open or closed', kind: 'select', options: ['Closed', 'Open'] },
+      { id: 'intra-articular', label: 'Intra-articular extension?', kind: 'toggle' },
+    ],
+  },
 ];

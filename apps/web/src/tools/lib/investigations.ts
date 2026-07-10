@@ -171,6 +171,34 @@ export const PANELS: Panel[] = [
       { key: 'scvo2', label: 'ScvO2', unit: '%' },
     ],
   },
+  {
+    id: 'msk',
+    label: 'MSK / Crush',
+    icon: '🦴',
+    // Bone/joint-SEPSIS workup is already covered by the existing 'inflam'
+    // (CRP/ESR) and 'fbc' (WCC) panels — deliberately not duplicated here.
+    // This panel is the crush/compartment-syndrome/joint-aspirate set: CK for
+    // rhabdomyolysis risk (own key, distinct from the 'cardiac' panel's CK,
+    // which is read against a normal-range threshold, not a crush threshold),
+    // plus two free-text analytes recorded verbatim because a single number
+    // without narrative context doesn't drive the decision — synovial fluid
+    // WCC/differential (dossier §2.9: >50,000/mm³ with >90% neutrophils
+    // supports bacterial infection, but the differential and Gram
+    // stain/crystals matter as much as the count) and compartment pressure
+    // (dossier §2.2/§4.5: the decision threshold is ΔP = diastolic BP −
+    // compartment pressure ≤30mmHg, which needs the patient's own BP to
+    // interpret, so it is recorded as text rather than a bare number).
+    depts: ['ortho', 'surgery', 'emergency'],
+    analytes: [
+      // [JUDGMENT CALL] 5000 U/L is standard teaching for "markedly raised
+      // CK after crush → aggressive IV fluids to protect the kidneys" — the
+      // dossier flags CK/myoglobinuria as the AKI marker to trend but does
+      // not hand down a verbatim SA STG cutoff; verify against local protocol.
+      { key: 'ckCrush', label: 'CK', unit: 'U/L', high: 5000 },
+      { key: 'synovialWcc', label: 'Synovial WCC (diff)', unit: '' },
+      { key: 'compartmentPressure', label: 'Compartment Pressure (ΔP)', unit: 'mmHg' },
+    ],
+  },
 ];
 
 /** Panels offered for a department — unscoped panels surface everywhere. */
@@ -341,6 +369,10 @@ export function trendAlerts(trends: AnalyteTrend[]): TrendAlert[] {
   const vl = t('vl');
   if (vl && vl.latest.value > 1000)
     alerts.push({ severity: 'amber', analyte: 'Viral load', message: `VL ${vl.latest.raw} — unsuppressed: enhanced adherence counselling + repeat in 2-3 months per guideline`, why: 'Above 1000 on ART means non-adherence or resistance; the SA pathway is enhanced adherence support then a repeat VL — a persistent >1000 despite good adherence is the trigger for resistance testing/regimen switch.' });
+
+  const ckCrush = t('ckCrush');
+  if (ckCrush && ckCrush.latest.value >= 5000)
+    alerts.push({ severity: 'red', analyte: 'CK', message: `CK ${ckCrush.latest.raw} — crush/rhabdomyolysis: aggressive IV fluids, hourly urine output, dipstick for myoglobinuria`, why: 'Markedly raised CK after crush injury, prolonged compartment compression, or a "found down" prolonged lie predicts AKI — protect the kidneys with early aggressive IV fluids and hourly urine output rather than waiting on a single creatinine. Dipstick blood-positive with no RBCs on microscopy confirms myoglobinuria; trend CK and renal function together, do not single-point it.' });
 
   return alerts;
 }
