@@ -54,7 +54,7 @@ Explicitly a multi-session undertaking — this file is the resumable tracker.
 | Intensive Care | ✅ done (1095 lines) | ✅ implemented | fields (RRT/AEIOU, fluid balance, RASS/CAM-ICU, lines, ceiling of care), treatment sets (septic-shock hour-1, ARDS lung-protective, raised-ICP, RRT, VAP), organ-support/fluid/sedation blocks, sepsis panel, FASTHUGSBID lens; loop gate 100/100 live. See `implementation/icu.md` |
 | Obstetrics & Gynae | 🟡 partial (v1 depth pass done) | 🟡 hardened via 6-agent eval | STG floor for 10 obstetric/gynae emergencies, teratogen net armed, female acute-abdomen differential, resilience + completeness guards — see `eval/og/SCORECARD.md`. Still: streaming, competing-surface redesign |
 | Paediatrics | 🟡 partial (v1 depth pass done) | 🟡 partial | deepen: neonatology, PICU, syndromic reasoning |
-| Orthopaedics | ⬜ not started | ⬜ not started | fracture patterns, the limb-threat emergencies, spine |
+| Orthopaedics | ✅ done (1593 lines) | ✅ implemented | own fields fragment (mechanism, Gustilo, neurovascular pre/post, weight-bearing), treatment sets (open #, compartment syndrome, septic arthritis, NOF pathway, cauda equina), NV/open-#/fracture-description blocks, msk panel, limb/life-threat lens; loop gate 100/100 live. See `implementation/orthopaedics.md` |
 | Psychiatry | ⬜ not started | ⬜ not started | full differential incl. organic, MHCA, risk |
 | Anaesthetics (NEW dept) | ⬜ not started | ⬜ not started | add as a department; ASA, airway, MH, regional |
 | Family Med / PHC | ⬜ not started | ⬜ not started | consider — the district generalist lens |
