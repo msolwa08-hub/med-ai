@@ -488,6 +488,68 @@ export const LOOP_SCENARIOS = [
     resultText: 'Serum lithium 2.6 mmol/L (toxic, target 0.6-0.8) ; creatinine raised at 140 with a low eGFR ; Na⁺ 133',
     moveDx: ['lithium toxicity', 'lithium'], direction: 'up',
   },
+
+  // ── Anaesthetics (M2, new department) — the core competency is treating
+  //    peri-operative deterioration as a DIFFERENTIAL with a discriminating
+  //    test, not a mystery: MH on EtCO2/temp/CK, anaphylaxis on tryptase,
+  //    delayed emergence on train-of-four, and the "don't blame the spinal"
+  //    trap (post-spinal hypotension = haemorrhage until Hb/lactate clear it).
+  {
+    id: 'intraop-hyperthermia-to-mh',
+    title: 'Rising EtCO2 + rigidity under volatile GA → malignant hyperthermia on temp/gas/CK',
+    dept: 'anaes',
+    record: {
+      intake: { name: 'A1', age: '19', sex: 'M', admissionDiagnosis: 'intra-operative deterioration under GA', allergies: 'NKDA', plannedProcedure: 'ORIF forearm under GA', urgency: 'urgent', asaGrade: 'IE' },
+      history: { chiefComplaint: 'deterioration 40 minutes into GA', hpi: 'Previously well; GA with sevoflurane + suxamethonium for intubation. 40 min in: EtCO2 climbing despite increased minute ventilation, tachycardia, masseter spasm at induction noted in retrospect. No prior anaesthetics; family history unknown.', pmh: 'nil', medications: 'none', anaestheticHistory: 'first anaesthetic; family history unknown' },
+      assessment: { vitals: 'HR 138, BP 152/94, Temp 38.9 and rising, sats 94%', examination: 'generalised muscle rigidity, hot to touch, mottled; EtCO2 72 despite doubled minute ventilation' },
+    },
+    expectDx: ['malignant hyperthermia', 'mh'],
+    expectDiscriminator: ['temp', 'etco2', 'co2', 'gas', 'abg', 'ck', 'creatine kinase', 'potassium'],
+    resultText: 'Core temp 40.2 rising ; ABG: mixed respiratory + metabolic acidosis pH 7.09, PaCO2 9.1 kPa, lactate 6 ; K⁺ 6.1 ; CK 4800 and climbing ; EtCO2 unresponsive to ventilation',
+    moveDx: ['malignant hyperthermia', 'mh'], direction: 'up',
+  },
+  {
+    id: 'post-induction-collapse-to-anaphylaxis',
+    title: 'Post-induction hypotension + bronchospasm → anaphylaxis on tryptase',
+    dept: 'anaes',
+    record: {
+      intake: { name: 'A2', age: '44', sex: 'F', admissionDiagnosis: 'collapse after induction of anaesthesia', allergies: 'none known before today', plannedProcedure: 'laparoscopic cholecystectomy', urgency: 'elective', asaGrade: 'II' },
+      history: { chiefComplaint: 'profound hypotension minutes after induction', hpi: 'Induction with propofol + rocuronium, cefazolin given on induction. Within minutes: profound hypotension, high airway pressures with bronchospasm, and a flushed upper chest. No blood loss; no cardiac history.', pmh: 'gallstones, otherwise well', medications: 'none', anaestheticHistory: 'previous uneventful GA 2015' },
+      assessment: { vitals: 'BP 58/32, HR 132, sats 88% on 100% FiO2', examination: 'widespread flush over chest, bilateral wheeze with high inflation pressures, weak central pulse' },
+    },
+    expectDx: ['anaphylaxis', 'anaphylactic'],
+    expectDiscriminator: ['tryptase', 'clinical', 'response to adrenaline'],
+    resultText: 'Serum mast-cell tryptase (drawn 1h after onset) 48 mcg/L, markedly raised ; rapid BP response to IM/IV adrenaline + fluids ; airway pressures settling with adrenaline',
+    moveDx: ['anaphylaxis', 'anaphylactic'], direction: 'up',
+  },
+  {
+    id: 'delayed-emergence-to-residual-block',
+    title: 'Failure to wake after GA → residual neuromuscular blockade on train-of-four',
+    dept: 'anaes',
+    record: {
+      intake: { name: 'A3', age: '68', sex: 'F', admissionDiagnosis: 'not waking after general anaesthetic', allergies: 'NKDA', plannedProcedure: 'emergency laparotomy (completed)', urgency: 'emergency', asaGrade: 'IIIE' },
+      history: { chiefComplaint: 'unresponsive 30 minutes after volatile switched off', hpi: 'Emergency laparotomy under GA with atracurium boluses; case ran long. 30 min after the volatile was off: not opening eyes, shallow irregular breathing, floppy. CKD stage 3. Reversal given but dose/time unclear.', pmh: 'CKD stage 3, hypertension, T2DM', medications: 'amlodipine, metformin, insulin', anaestheticHistory: 'GA for hysterectomy years ago, uneventful' },
+      assessment: { vitals: 'BP 132/78, HR 88, Temp 35.8, sats 93% on face mask', examination: 'unresponsive to voice, weak cough, shallow tidal volumes, generalised flaccidity, pupils mid-size reactive' },
+    },
+    expectDx: ['residual neuromuscular block', 'residual paralysis', 'residual block', 'neuromuscular'],
+    expectDiscriminator: ['train-of-four', 'tof', 'nerve stimulator', 'glucose', 'abg', 'gas'],
+    resultText: 'Train-of-four ratio 0.4 with fade (significant residual neuromuscular blockade) ; glucose 6.2 ; ABG: PaCO2 7.2 kPa from hypoventilation, PaO2 acceptable on O2 ; temp 35.8',
+    moveDx: ['residual neuromuscular block', 'residual paralysis', 'residual block', 'neuromuscular'], direction: 'up',
+  },
+  {
+    id: 'post-spinal-hypotension-to-haemorrhage',
+    title: 'Hypotension after spinal for CS → concealed haemorrhage on Hb + lactate (not the sympathectomy)',
+    dept: 'anaes',
+    record: {
+      intake: { name: 'A4', age: '29', sex: 'F', admissionDiagnosis: 'persistent hypotension after caesarean section under spinal', allergies: 'NKDA', plannedProcedure: 'caesarean section under spinal (completed)', urgency: 'emergency', asaGrade: 'IIE' },
+      history: { chiefComplaint: 'BP falling in recovery after CS under spinal', hpi: 'Emergency CS under spinal for fetal distress; delivery uneventful per operative note, estimated blood loss recorded as 600ml. In recovery 45 min later: persistently hypotensive and tachycardic despite fluid co-load and two doses of vasopressor. Abdomen distending; scanty vaginal loss.', pmh: 'nil', medications: 'oxytocin infusion running', anaestheticHistory: 'spinal today — block level T4, no complication at insertion' },
+      assessment: { vitals: 'BP 84/48 despite phenylephrine, HR 126 rising, sats 97%', examination: 'pale, cool peripheries, abdomen distended and tense, fundus difficult to feel, minimal lochia' },
+    },
+    expectDx: ['haemorrhage', 'bleeding', 'hypovolaem', 'concealed'],
+    expectDiscriminator: ['hb', 'haemoglobin', 'lactate', 'fbc', 'ultrasound', 'fast'],
+    resultText: 'Hb 6.4 g/dL from 11.8 pre-op ; lactate 4.8 ; bedside ultrasound: free fluid in the abdomen ; HR still climbing despite vasopressor',
+    moveDx: ['haemorrhage', 'bleeding', 'hypovolaem', 'concealed'], direction: 'up',
+  },
 ];
 
 async function runLoop(scenario, base, key) {

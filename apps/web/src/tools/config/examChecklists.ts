@@ -227,6 +227,17 @@ const DEPT_SECTIONS: Record<DeptId, ChecklistSection | ((subDept?: string) => Ch
       item('ortho-skin', 'Skin integrity over fracture checked', 'An overlooked wound over a fracture makes it an open fracture — different pathway, antibiotic clock already running.'),
     ],
   },
+  anaes: {
+    id: 'dept-anaes',
+    title: 'Pre-anaesthetic screen',
+    items: [
+      item('anaes-airway', 'Airway examined (Mallampati, mouth opening, TMD, neck)', 'The two questions are "can I ventilate?" and "can I intubate?" — predicted difficulty found BEFORE induction gets a plan; found after, it gets a crisis.', true),
+      item('anaes-fasting', 'Fasting times established (solids AND clear fluids)', '6h solids / 2h clears for electives — but labour, trauma, obstruction and opioids mean a full stomach whatever the clock: that decision changes the induction technique.', true),
+      item('anaes-family-history', 'Personal + FAMILY anaesthetic history asked', 'Malignant hyperthermia and suxamethonium apnoea are inherited — "mother nearly died under anaesthetic" changes the entire drug plan.', true),
+      item('anaes-anticoag', 'Anticoagulant last-dose times recorded', 'A spinal through therapeutic anticoagulation is a spinal haematoma — the neuraxial option lives or dies on exact timing.', true),
+      item('anaes-dentition', 'Dentition checked, dentures out', 'The loose incisor found during laryngoscopy becomes an inhaled foreign body — look first.'),
+    ],
+  },
 };
 
 // ── Presentation-adaptive additions ──────────────────────────────────────────

@@ -26,8 +26,23 @@ regression from the added content. Clinical-content review batch:
 **Paediatrics 100/100** (2026-07-10) on the existing Paeds content + lens:
 bacterial meningitis on LP, new-onset DKA on VBG+ketones, severe pneumonia on
 CXR+sats, intussusception on US. ~8.9c/loop. Report `loop-paeds-2026-07-10.json`.
-Five departments now gated live at 100/100: O&G, Medicine, Surgery, Emergency,
-Paediatrics.
+
+**ICU 100/100** · **Orthopaedics 100/100** · **Psychiatry 100/100** (2026-07-10,
+after each department's lens enrichment): reports `loop-icu-…`, `loop-ortho-…`,
+`loop-psych-2026-07-10.json`. Psychiatry's set specifically tests ORGANIC
+EXCLUSION — the referred-as-"psychosis" delirium resolved to multifactorial
+delirium, not a psychiatric label.
+
+**Anaesthetics 100/100** (2026-07-10) — a brand-new department added this drop
+(registration + fields + pre-anaesthetic checklist + discipline lens): malignant
+hyperthermia on temp/gas/CK, anaphylaxis under GA on tryptase, delayed emergence
+→ residual neuromuscular blockade on train-of-four, and the "don't blame the
+spinal" trap — post-spinal hypotension after CS resolving to concealed
+haemorrhage on Hb+lactate+US (60→92%). ~9.8c/loop. Report
+`loop-anaes-2026-07-10.json`.
+
+**Nine departments gated live at 100/100:** O&G, Medicine, Surgery, Emergency,
+Paediatrics, ICU, Orthopaedics, Psychiatry, Anaesthetics.
 
 Every scenario: correct diagnosis present at step 1, the discriminating test
 named against it, a must-not-miss stated, the confidence moved in the right

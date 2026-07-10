@@ -9,6 +9,7 @@ export const DEPARTMENTS = [
   { id: 'emergency', label: 'Emergency', color: 'rose', abbr: 'ED', icon: '🚨' },
   { id: 'psych', label: 'Psychiatry', color: 'purple', abbr: 'PSYCH', icon: '🧠' },
   { id: 'ortho', label: 'Orthopaedics', color: 'teal', abbr: 'ORTHO', icon: '🦴' },
+  { id: 'anaes', label: 'Anaesthetics', color: 'cyan', abbr: 'ANAES', icon: '💉' },
 ] as const;
 
 export type DeptId = (typeof DEPARTMENTS)[number]['id'];

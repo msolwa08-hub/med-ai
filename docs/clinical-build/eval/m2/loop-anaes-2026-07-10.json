@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "intraop-hyperthermia-to-mh",
+      "title": "Rising EtCO2 + rigidity under volatile GA → malignant hyperthermia on temp/gas/CK",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 85,
+        "after": 96,
+        "dx": "Malignant Hyperthermia"
+      }
+    },
+    {
+      "id": "post-induction-collapse-to-anaphylaxis",
+      "title": "Post-induction hypotension + bronchospasm → anaphylaxis on tryptase",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 85,
+        "after": 95,
+        "dx": "Anaphylaxis (Grade III/IV) to induction agent, NMBA or antibiotic"
+      }
+    },
+    {
+      "id": "delayed-emergence-to-residual-block",
+      "title": "Failure to wake after GA → residual neuromuscular blockade on train-of-four",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 60,
+        "after": 92,
+        "dx": "Residual non-depolarising neuromuscular blockade (inadequate reversal)"
+      }
+    },
+    {
+      "id": "post-spinal-hypotension-to-haemorrhage",
+      "title": "Hypotension after spinal for CS → concealed haemorrhage on Hb + lactate (not the sympathectomy)",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 60,
+        "after": 92,
+        "dx": "Concealed intra-abdominal haemorrhage (surgical bleeding source - uterine vessel/broad ligament/incision site)"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 8,
+    "inputTokens": 3651,
+    "outputTokens": 22479,
+    "cacheReadTokens": 5205,
+    "cacheWriteTokens": 11015,
+    "estCostUSD": 0.39100575,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 8,
+        "estCostUSD": 0.39100575
+      }
+    },
+    "maxSingleCallUSD": 0.068832
+  }
+}

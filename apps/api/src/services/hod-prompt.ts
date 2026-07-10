@@ -30,6 +30,7 @@ export const DEPT_LABELS: Record<string, string> = {
   emergency: 'Emergency Medicine',
   psych: 'Psychiatry',
   ortho: 'Orthopaedics',
+  anaes: 'Anaesthetics',
 };
 
 /**

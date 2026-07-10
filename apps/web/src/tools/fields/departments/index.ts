@@ -8,6 +8,7 @@ import { icuFields } from './icu';
 import { emergencyFields } from './emergency';
 import { psychFields } from './psych';
 import { orthoFields } from './ortho';
+import { anaesFields } from './anaes';
 
 // Per-department field fragments, keyed by DeptId. Adding a future specialty
 // (e.g. ENT) means creating one new file in this directory and registering it
@@ -22,4 +23,5 @@ export const DEPT_FIELD_FRAGMENTS: Partial<Record<DeptId, DeptFieldFragments>> =
   emergency: emergencyFields,
   psych: psychFields,
   ortho: orthoFields,
+  anaes: anaesFields,
 };
