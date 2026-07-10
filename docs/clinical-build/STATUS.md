@@ -2,6 +2,16 @@
 
 ## Milestone drops (the master-plan spine — newest first)
 
+- **M-UI/2 — Premium redesign + diagnosis-first tap-driven cockpit — ✅ SHIPPED**
+  (2026-07-11). User rated the UI 4/10 (cheap/plastic/congested); rebuilt in 5
+  committed increments to the principle **lowest-level input → highest-level
+  output**. Light-based tinted depth (no more plastic hairline cards), all emoji
+  → lucide icons, coherent teal-intensity confidence bands, tokenized type. The
+  cockpit is now **Start → Confirm → Complete**: tap a complaint → the leading
+  diagnosis auto-appears → answer a yes/no + MCQ stream (the engine's new
+  `discriminatingFeatures`) → confidence updates live → background last → the
+  note falls out. Loop gate held **100/100 on O&G + Medicine** (engine change is
+  additive). Proof + zero-typing drive: `eval/m-ui2/` (`SUMMARY.md`).
 - **M-UI — Calm Clinical design system — ✅ SHIPPED** (dev branch). A real
   design-system build (not a reskin): tokens (`tailwind.config.js` + CSS-var
   theme), self-hosted Inter, lucide iconography, framer-motion on the Working
