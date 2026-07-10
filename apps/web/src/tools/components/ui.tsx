@@ -21,8 +21,8 @@ const BTN_VARIANT: Record<ButtonVariant, string> = {
   danger: 'bg-rose-600 hover:bg-rose-500 text-white shadow-card',
 };
 const BTN_SIZE: Record<ButtonSize, string> = {
-  sm: 'min-h-[38px] px-3 text-[13px] gap-1.5 rounded-lg',
-  md: 'min-h-[44px] px-4 text-sm gap-2 rounded-xl',
+  sm: 'min-h-[38px] px-3 text-sm gap-1.5 rounded-lg',
+  md: 'min-h-[44px] px-4 text-sm gap-2 rounded-md',
 };
 
 export function Button({
@@ -51,15 +51,27 @@ export function Button({
   );
 }
 
-export function Card({ children, className = '', as: Tag = 'div' }: { children: React.ReactNode; className?: string; as?: 'div' | 'section' }) {
-  return <Tag className={`rounded-card border border-line bg-surface shadow-card ${className}`}>{children}</Tag>;
+// Elevation is carried by LIGHT (tinted layered shadows), not by hard borders.
+// 'e1' resting card · 'e2' raised/interactive · 'hero' the diagnosis moment ·
+// 'flat' inset panels with no lift.
+type CardElevation = 'flat' | 'e1' | 'e2' | 'hero';
+const CARD_ELEV: Record<CardElevation, string> = {
+  flat: 'shadow-none',
+  e1: 'shadow-card',
+  e2: 'shadow-card-hover',
+  hero: 'shadow-elevated',
+};
+export function Card({
+  children, className = '', as: Tag = 'div', elevation = 'e1',
+}: { children: React.ReactNode; className?: string; as?: 'div' | 'section'; elevation?: CardElevation }) {
+  return <Tag className={`rounded-card border border-line bg-surface ${CARD_ELEV[elevation]} ${className}`}>{children}</Tag>;
 }
 
 export function Label({ children }: { children: React.ReactNode }) {
   return <label className="block text-xs font-medium text-ink-soft mb-1.5">{children}</label>;
 }
 
-const FIELD = 'w-full bg-surface border border-line-strong rounded-xl px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-mute transition-shadow focus:outline-none focus:border-brand-500 focus:shadow-focus';
+const FIELD = 'w-full bg-surface border border-line-strong rounded-md px-3.5 py-2.5 text-base text-ink placeholder:text-ink-mute transition-shadow focus:outline-none focus:border-brand-500 focus:shadow-focus';
 
 export function TextInput({
   value, onChange, placeholder, className = '',
@@ -136,14 +148,14 @@ export function DocOutput({ text, onCopy }: { text: string; onCopy?: () => void 
 
 export function Disclaimer({ text }: { text: string }) {
   return (
-    <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+    <p className="mt-2 flex items-start gap-1.5 text-xs text-warn bg-warn/[0.08] border border-warn/20 rounded-lg px-3 py-2">
       <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> <span>{text}</span>
     </p>
   );
 }
 
 export function SectionHead({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[11px] font-semibold text-ink-mute uppercase tracking-[0.08em] mb-3">{children}</h3>;
+  return <h3 className="text-2xs font-semibold text-ink-mute uppercase tracking-[0.08em] mb-3">{children}</h3>;
 }
 
 export function copy(text: string) {

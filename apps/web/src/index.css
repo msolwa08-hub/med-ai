@@ -6,28 +6,40 @@
    Semantic surfaces / ink / lines as CSS variables so a dark theme is a single
    [data-theme="dark"] flip. Values are RGB triples (consumed as rgb(var(--x))). */
 :root {
-  --canvas: 247 249 250;        /* app background — soft cool off-white        */
+  --canvas: 244 247 249;        /* app background — soft cool off-white         */
   --surface: 255 255 255;       /* cards                                        */
-  --surface-alt: 246 248 250;   /* inset / secondary surface                   */
-  --surface-brand: 240 250 249; /* brand-tinted surface (hero panel)           */
-  --line: 231 236 240;          /* hairline borders                            */
-  --line-strong: 214 222 228;   /* stronger dividers / inputs                  */
-  --ink: 15 23 32;              /* primary text (near-black slate)             */
-  --ink-soft: 71 85 105;        /* secondary text (slate-600)                  */
-  --ink-mute: 148 163 184;      /* tertiary / placeholder (slate-400)          */
+  --surface-alt: 244 247 250;   /* inset / secondary surface                    */
+  --surface-raised: 255 255 255;/* hero/elevated cards (depth via shadow)       */
+  --surface-brand: 238 249 248; /* brand-tinted surface (hero panel)            */
+  --line: 226 232 237;          /* hairline borders (softer)                    */
+  --line-strong: 210 219 226;   /* stronger dividers / inputs                   */
+  --ink: 13 21 30;              /* primary text (near-black slate)              */
+  --ink-soft: 82 96 114;        /* secondary text (slate-600-ish)               */
+  --ink-mute: 141 156 176;      /* tertiary / placeholder (slate-400-ish)       */
+  --shadow-color: 15 33 42;     /* deep slate-teal — tints every elevation      */
+  --ring-brand: 13 148 136;     /* focus ring + brand glow                      */
+  --sheen: 255 255 255;         /* top-highlight sheen on raised material       */
 }
 
 :root[data-theme='dark'] {
-  --canvas: 9 14 20;
-  --surface: 17 24 33;
-  --surface-alt: 24 33 44;
-  --surface-brand: 13 40 41;
-  --line: 34 46 58;
-  --line-strong: 51 65 80;
-  --ink: 236 242 247;
-  --ink-soft: 160 174 189;
-  --ink-mute: 107 122 138;
+  --canvas: 8 13 19;
+  --surface: 18 26 35;
+  --surface-alt: 25 35 46;
+  --surface-raised: 24 34 45;   /* raised cards read slightly lighter in dark   */
+  --surface-brand: 12 38 40;
+  --line: 36 49 62;
+  --line-strong: 52 68 84;
+  --ink: 237 243 248;
+  --ink-soft: 165 179 194;
+  --ink-mute: 110 126 143;
+  --shadow-color: 0 0 0;        /* pure black in dark — richer contact shadow   */
+  --ring-brand: 45 212 191;     /* brighter teal ring in dark                   */
+  --sheen: 255 255 255;         /* sheen carried at low alpha (see shadow token)*/
 }
+
+/* Dark material sheen is far subtler than light — dial the inset highlight down
+   so raised cards get a hint of top-edge light without a grey line. */
+:root[data-theme='dark'] .sheen-lo { --sheen: 148 163 184; }
 
 @layer base {
   html {
