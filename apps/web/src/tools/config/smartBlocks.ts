@@ -715,4 +715,91 @@ export const SMART_BLOCKS: SmartBlock[] = [
       { id: 'analgesia-plan', label: 'Analgesia plan written?', kind: 'toggle' },
     ],
   },
+
+  // ── Paediatrics (dossier: docs/clinical-build/research/paediatrics.md) ───
+  // The existing 'neonatal-jaundice' and dept-scoped 'hiv-art' blocks above
+  // already cover jaundice/HIV-exposed-infant documentation — these add the
+  // depth layer the dossier flags as missing: a structured neonatal admission
+  // core, the IMCI danger-signs screen, WHO A/B/C dehydration assessment, and
+  // child-protection documentation.
+
+  {
+    id: 'neonatal-admission-core',
+    title: 'Neonatal admission core',
+    pattern: /\bgestation\b|\bAPGAR\b|day of life|\bDOL\b\s*\d|birth weight|neonatal admission|admitted to (the )?(neonatal|NICU|nursery)/i,
+    depts: ['paeds'],
+    why: 'Gestation, birth weight and the resuscitation given are what every subsequent decision (fluids, drug doses, sepsis risk, feeding volumes) is anchored to — "term, normal delivery" without the numbers cannot be safely acted on by the next clinician.',
+    fields: [
+      { id: 'gestation', label: 'Gestation', kind: 'text-short' },
+      { id: 'birth-weight', label: 'Birth weight', kind: 'number', unit: 'g' },
+      { id: 'delivery-mode', label: 'Delivery mode', kind: 'select', options: ['NVD', 'Elective C/S', 'Emergency C/S', 'Instrumental (vacuum/forceps)'] },
+      { id: 'apgar-1', label: 'APGAR at 1min', kind: 'number' },
+      { id: 'apgar-5', label: 'APGAR at 5min', kind: 'number' },
+      { id: 'resus', label: 'Resuscitation given', kind: 'select', options: ['None', 'Stimulation/drying only', 'Bag-mask ventilation', 'Intubation', 'Chest compressions/adrenaline'] },
+      { id: 'rom-duration', label: 'Rupture of membranes duration', kind: 'text-short' },
+      { id: 'maternal-fever', label: 'Maternal intrapartum fever?', kind: 'toggle' },
+      { id: 'gbs-status', label: 'Maternal GBS status', kind: 'select', options: ['Unknown', 'Positive — adequate IAP', 'Positive — inadequate/no IAP', 'Negative'] },
+      { id: 'dol', label: 'Day of life', kind: 'number' },
+      { id: 'current-weight', label: 'Current weight', kind: 'number', unit: 'g' },
+      { id: 'weight-change', label: '% change from birth weight', kind: 'text-short' },
+      { id: 'feeds-volume', label: 'Feeds', kind: 'number', unit: 'ml/kg/day' },
+      { id: 'hiv-exposed', label: 'HIV-exposed infant?', kind: 'toggle' },
+      { id: 'pmtct-tier', label: 'PMTCT risk tier', kind: 'select', options: ['Low risk', 'High risk', 'Not yet classified'], showIf: { fieldId: 'hiv-exposed', equals: true } },
+      { id: 'pcr-status', label: 'PCR status', kind: 'select', options: ['Birth PCR pending', 'Birth PCR negative', 'Birth PCR positive', '10-week PCR pending', '10-week PCR negative', 'Not yet due'], showIf: { fieldId: 'hiv-exposed', equals: true } },
+    ],
+  },
+  {
+    id: 'imci-danger-signs',
+    title: 'IMCI danger signs',
+    pattern: /IMCI|danger sign|unable to (drink|breastfeed)|vomit(s|ing) everything|convulsion|lethargic|unconscious/i,
+    depts: ['paeds'],
+    why: 'Any ONE positive general danger sign overrides the syndrome-specific algorithm and classifies the child for immediate referral/admission and pre-referral treatment — this is a discipline run on every child under 5 at every contact, not a checklist completed once and forgotten.',
+    fields: [
+      { id: 'unable-drink', label: 'Unable to drink or breastfeed?', kind: 'toggle' },
+      { id: 'vomits-everything', label: 'Vomiting everything?', kind: 'toggle' },
+      { id: 'convulsions', label: 'Convulsions (current illness)?', kind: 'toggle' },
+      { id: 'lethargic-unconscious', label: 'Lethargic or unconscious?', kind: 'toggle' },
+      { id: 'under-2mo', label: 'Infant <2 months (young-infant extras apply)?', kind: 'toggle' },
+      { id: 'yi-extra', label: 'Young-infant extras (e.g. not moving, temp <35.5°C or ≥38°C, severe chest indrawing)', kind: 'text-short', showIf: { fieldId: 'under-2mo', equals: true } },
+      { id: 'classification', label: 'Classification', kind: 'select', options: ['No danger signs — manage per specific algorithm', 'ANY danger sign positive — URGENT referral/admission + pre-referral treatment'] },
+    ],
+  },
+  {
+    id: 'dehydration-assessment',
+    title: 'Dehydration assessment (WHO A/B/C)',
+    pattern: /dehydrat|diarrh(o)?ea|gastroenteritis|skin pinch|sunken eyes/i,
+    depts: ['paeds'],
+    why: 'The four WHO signs (condition, eyes, thirst, skin pinch) — not a gestalt — decide Plan A/B/C and the fluid volume; a SAM child inverts the whole plan (ReSoMal, slower/smaller volumes), so that caveat has to be answered explicitly, not assumed.',
+    fields: [
+      { id: 'condition', label: 'General condition', kind: 'select', options: ['Well, alert', 'Restless, irritable', 'Lethargic or unconscious'] },
+      { id: 'eyes', label: 'Eyes', kind: 'select', options: ['Normal', 'Sunken'] },
+      { id: 'thirst', label: 'Thirst', kind: 'select', options: ['Drinks normally, not thirsty', 'Thirsty, drinks eagerly', 'Drinks poorly or not able to drink'] },
+      { id: 'skin-pinch', label: 'Skin pinch', kind: 'select', options: ['Goes back quickly', 'Goes back slowly (<2s)', 'Goes back very slowly (≥2s)'] },
+      { id: 'classification', label: 'Plan', kind: 'select', options: ['Plan A — no dehydration', 'Plan B — some dehydration', 'Plan C — severe dehydration'] },
+      { id: 'weight', label: 'Current weight', kind: 'number', unit: 'kg' },
+      { id: 'deficit-estimate', label: 'Estimated fluid deficit', kind: 'text-short' },
+      { id: 'sam', label: 'Known/suspected SAM — standard plan inverted?', kind: 'toggle' },
+      { id: 'resomal', label: 'Using ReSoMal instead of standard ORS/Plan C fluids?', kind: 'toggle', showIf: { fieldId: 'sam', equals: true } },
+    ],
+  },
+  {
+    id: 'child-protection-documentation',
+    title: 'Child-protection documentation',
+    pattern: /non-accidental injury|\bNAI\b|child abuse|child protection|suspected abuse|skeletal survey|safeguarding|Form 22/i,
+    depts: ['paeds'],
+    why: 'The medico-legal record stands or falls on these specifics — a verbatim dated history, body-mapped findings, the skeletal-survey and Form-22 status, and an explicit safe-disposition decision are what a Form 22 report, a social worker, and potentially a court will actually need.',
+    fields: [
+      { id: 'history-verbatim', label: 'History recorded verbatim, dated, per caregiver?', kind: 'toggle' },
+      { id: 'mechanism-consistent', label: 'Injury pattern vs developmental stage', kind: 'select', options: ['Consistent with developmental stage', 'Inconsistent/mismatched', 'Uncertain'] },
+      { id: 'exam-bodymapped', label: 'Examination findings body-mapped/documented?', kind: 'toggle' },
+      { id: 'photographs', label: 'Photographs taken (with consent/per protocol)?', kind: 'toggle' },
+      { id: 'skeletal-survey', label: 'Skeletal survey status', kind: 'select', options: ['Not indicated', 'Ordered — pending', 'Done — repeat at 2 weeks planned', 'Done — repeat completed'] },
+      { id: 'fundoscopy', label: 'Fundoscopy done (retinal haemorrhage screen)?', kind: 'toggle' },
+      { id: 'form22', label: 'Form 22 status', kind: 'select', options: ['Not yet completed', 'Completed — submitted to Social Development', 'Completed — submitted to SAPS', 'Completed — submitted to child protection org'] },
+      { id: 'social-worker', label: 'Social worker referral made?', kind: 'toggle' },
+      { id: 'police', label: 'SAPS referral made?', kind: 'toggle' },
+      { id: 'siblings-checked', label: 'Other children in household assessed?', kind: 'toggle' },
+      { id: 'disposition-safe', label: 'Disposition safety', kind: 'select', options: ['Confirmed safe — discharge planned', 'NOT yet confirmed — admitted for safety/observation', 'Place of safety arranged'] },
+    ],
+  },
 ];
