@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "thunderclap-to-sah",
+      "title": "Thunderclap headache → subarachnoid haemorrhage on CT brain",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 70,
+        "after": 92,
+        "dx": "Aneurysmal subarachnoid haemorrhage"
+      }
+    },
+    {
+      "id": "hemiparesis-to-ischaemic-stroke",
+      "title": "Acute hemiparesis → ischaemic stroke (bleed excluded) on CT",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 70,
+        "after": 92,
+        "dx": "Acute ischaemic stroke, right MCA territory, likely cardioembolic (AF)"
+      }
+    },
+    {
+      "id": "overdose-to-paracetamol-toxicity",
+      "title": "Deliberate overdose → paracetamol toxicity on timed level",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 55,
+        "after": 92,
+        "dx": "Paracetamol toxicity requiring NAC treatment"
+      }
+    },
+    {
+      "id": "febrile-hypotension-to-septic-shock",
+      "title": "Febrile hypotension → septic shock on lactate + source",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 70,
+        "after": 92,
+        "dx": "Septic shock secondary to community-acquired pneumonia"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 8,
+    "inputTokens": 5413,
+    "outputTokens": 18631,
+    "cacheReadTokens": 5214,
+    "cacheWriteTokens": 10949,
+    "estCostUSD": 0.33832695,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 8,
+        "estCostUSD": 0.33832695
+      }
+    },
+    "maxSingleCallUSD": 0.05889975
+  }
+}

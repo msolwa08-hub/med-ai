@@ -17,6 +17,12 @@ dept); M2's question was whether the *quality* holds outside O&G. It does.
 | Emergency | SAH on CT · ischaemic stroke (bleed excluded) · paracetamol on timed level · septic shock on lactate | **100/100** | ~$0.080 |
 | O&G (regression) | HELLP · ectopic · chorioamnionitis | **100/100** | ~$0.080 |
 
+Re-run 2026-07-10 **after** the Surgery + Emergency dossiers were implemented into
+the registries (fields, panels, treatment sets, smart blocks) and their AI
+discipline lenses enriched: **Surgery 100/100, Emergency 100/100** held — no
+regression from the added content. Clinical-content review batch:
+`../../implementation/surgery-emergency.md`.
+
 Every scenario: correct diagnosis present at step 1, the discriminating test
 named against it, a must-not-miss stated, the confidence moved in the right
 direction when the result landed, and the shift narrated. Raw reports in

@@ -48,9 +48,9 @@ Explicitly a multi-session undertaking — this file is the resumable tracker.
 
 | Department | Research dossier | Implementation | Notes |
 |---|---|---|---|
-| Internal Medicine | ✅ done (1409 lines) | 🟡 partial | exam checklists + symptom cascades live; field registry added (TB screen, chronic-disease control, functional status); loop scenarios authored. Remaining: smart-blocks, treatment sets, STG floor, investigation panels, live loop gate |
-| Surgery (General) | ✅ done | ⬜ not started | acute abdomen, indication-for-surgery, pre-op, post-op day framework |
-| Emergency Medicine | ✅ done (1018 lines) | ⬜ not started | SATS, undifferentiated, tox, trauma |
+| Internal Medicine | ✅ done (1409 lines) | ✅ implemented | fields, smart-blocks (DM/HIV/TB/HF), treatment sets (DKA/ACS/pulm-oedema/hyperK/CAP), cardiac + HIV/TB panels, discipline lens; loop gate 100/100 live. See `implementation/medicine.md` |
+| Surgery (General) | ✅ done | ✅ implemented | fields (pain evolution, anticoag, NPO, post-op day), treatment sets (appendicitis/SBO/perforation/cholecystitis/peri-op), post-op + bridging blocks, abdo panel, 4-question lens; loop gate 100/100 live. See `implementation/surgery-emergency.md` |
+| Emergency Medicine | ✅ done (1018 lines) | ✅ implemented | fields (SATS, ED clock, pre-hospital), treatment sets (MTP/organophosphate/NAC/meningitis), SATS + GCS blocks, tox panel, ABCDE-on-a-clock lens; loop gate 100/100 live. See `implementation/surgery-emergency.md` |
 | Intensive Care | ⬜ not started | ⬜ not started | FASTHUGS, organ-support framing, ventilation |
 | Obstetrics & Gynae | 🟡 partial (v1 depth pass done) | 🟡 hardened via 6-agent eval | STG floor for 10 obstetric/gynae emergencies, teratogen net armed, female acute-abdomen differential, resilience + completeness guards — see `eval/og/SCORECARD.md`. Still: streaming, competing-surface redesign |
 | Paediatrics | 🟡 partial (v1 depth pass done) | 🟡 partial | deepen: neonatology, PICU, syndromic reasoning |

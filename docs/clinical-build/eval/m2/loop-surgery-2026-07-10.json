@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "rif-to-appendicitis",
+      "title": "RIF pain → acute appendicitis confirmed on US + inflammatory markers",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 80,
+        "after": 92,
+        "dx": "Acute appendicitis"
+      }
+    },
+    {
+      "id": "epigastric-to-perforation",
+      "title": "Rigid abdomen → perforated viscus confirmed on erect CXR",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 70,
+        "after": 92,
+        "dx": "Perforated peptic ulcer / viscus with generalised peritonitis"
+      }
+    },
+    {
+      "id": "distension-to-sbo",
+      "title": "Distension + vomiting → small bowel obstruction confirmed on CT",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 65,
+        "after": 90,
+        "dx": "Adhesive small bowel obstruction"
+      }
+    },
+    {
+      "id": "ruq-to-cholecystitis",
+      "title": "RUQ pain + Murphy → acute cholecystitis confirmed on US",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 92,
+        "dx": "Acute cholecystitis"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 9,
+    "inputTokens": 8426,
+    "outputTokens": 18811,
+    "cacheReadTokens": 7465,
+    "cacheWriteTokens": 10845,
+    "estCostUSD": 0.35035125000000006,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 9,
+        "estCostUSD": 0.35035125000000006
+      }
+    },
+    "maxSingleCallUSD": 0.04545975
+  }
+}
