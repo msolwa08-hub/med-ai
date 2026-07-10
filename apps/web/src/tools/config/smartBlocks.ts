@@ -438,4 +438,68 @@ export const SMART_BLOCKS: SmartBlock[] = [
       { id: 'intubate', label: 'Airway protection needed (GCS ≤8)?', kind: 'toggle' },
     ],
   },
+
+  // ── ICU / Critical Care (dossier: docs/clinical-build/research/icu.md) ───
+  // Base free-text fields (ventilator, vasopressors, lines, ventSettings,
+  // haemodynamics) already exist on the ICU clerking form
+  // (fields/departments/icu.ts) — these blocks add the structured, granular
+  // daily-review layer the FASTHUGSBID/organ-by-organ round actually needs.
+
+  {
+    id: 'icu-organ-support',
+    title: 'Organ support review',
+    pattern: /\bICU\b|intensive care|critical care|ventilat|intubat|vasopressor|noradrenaline|\bRRT\b|\bCRRT\b/i,
+    depts: ['icu'],
+    why: 'The organ-by-organ round (resp → CVS → renal) is the operating system of an ICU day — "on a ventilator" and "on a pressor" are meaningless to the next clinician without the mode/settings and the agent/dose that actually define today\'s support level.',
+    fields: [
+      { id: 'ventilated', label: 'Mechanically ventilated?', kind: 'toggle' },
+      { id: 'vent-mode', label: 'Ventilator mode', kind: 'select', options: ['Volume control', 'Pressure control', 'Pressure support/SIMV', 'APRV', 'NIV (BiPAP/CPAP)', 'HFNO'], showIf: { fieldId: 'ventilated', equals: true } },
+      { id: 'fio2', label: 'FiO2', kind: 'number', unit: '%', showIf: { fieldId: 'ventilated', equals: true } },
+      { id: 'peep', label: 'PEEP', kind: 'number', unit: 'cmH2O', showIf: { fieldId: 'ventilated', equals: true } },
+      { id: 'plateau', label: 'Plateau pressure', kind: 'number', unit: 'cmH2O', showIf: { fieldId: 'ventilated', equals: true } },
+      { id: 'on-vasopressor', label: 'On vasopressor/inotrope?', kind: 'toggle' },
+      { id: 'vasopressor-agent', label: 'Agent', kind: 'select', options: ['Noradrenaline', 'Adrenaline', 'Vasopressin add-on', 'Dobutamine', 'Combination'], showIf: { fieldId: 'on-vasopressor', equals: true } },
+      { id: 'vasopressor-dose', label: 'Dose', kind: 'text-short', showIf: { fieldId: 'on-vasopressor', equals: true } },
+      { id: 'on-rrt', label: 'On RRT?', kind: 'toggle' },
+      { id: 'rrt-modality', label: 'Modality', kind: 'select', options: ['CRRT/CVVHDF', 'Intermittent haemodialysis', 'Not today'], showIf: { fieldId: 'on-rrt', equals: true } },
+      { id: 'rass-target', label: 'Sedation target (RASS)', kind: 'select', options: ['0', '-1', '-2', '-3 (specific indication)', '-4/-5 (specific indication)'] },
+      { id: 'lines-days', label: 'Lines + insertion day', kind: 'text-short' },
+    ],
+  },
+  {
+    id: 'icu-fluid-haemodynamics',
+    title: 'Fluid balance & haemodynamics',
+    pattern: /fluid balance|cumulative (fluid )?balance|haemodynamic|hemodynamic|\bMAP\b|lactate|urine output|fluid[- ]respons/i,
+    depts: ['icu'],
+    why: 'Static numbers (a single CVP, a single lactate) mislead — the trend and a dynamic fluid-responsiveness test decide whether the next litre helps or drowns the lung; a persistently positive cumulative balance beyond 48h is itself a trended investigation predicting worse outcomes.',
+    fields: [
+      { id: 'map', label: 'MAP', kind: 'number', unit: 'mmHg' },
+      { id: 'map-target', label: 'MAP target', kind: 'select', options: ['65', '80-85 (chronic hypertensive)', 'Other'] },
+      { id: 'balance-phase', label: 'Resuscitation phase', kind: 'select', options: ['Acute resuscitation (<48h)', 'De-resuscitation phase'] },
+      { id: 'cum-balance', label: 'Cumulative fluid balance', kind: 'number', unit: 'mL' },
+      { id: 'daily-weight', label: 'Daily weight charted?', kind: 'toggle' },
+      { id: 'lactate', label: 'Latest lactate', kind: 'number', unit: 'mmol/L' },
+      { id: 'lactate-clearing', label: 'Lactate clearance ≥10-20% over 2h?', kind: 'toggle' },
+      { id: 'fluid-responsive-test', label: 'Fluid-responsiveness test used', kind: 'select', options: ['Passive leg raise', 'PPV/SVV (ventilated + sedated + sinus + TV ≥8ml/kg only)', 'IVC ultrasound', 'Not assessed'] },
+      { id: 'urine-output', label: 'Urine output', kind: 'number', unit: 'mL/kg/h' },
+    ],
+  },
+  {
+    id: 'icu-sedation-delirium',
+    title: 'Sedation & delirium (RASS/CAM-ICU)',
+    pattern: /\bRASS\b|sedation|delirium|\bCAM-ICU\b|agitat|sedat(ed|ion)/i,
+    depts: ['icu'],
+    why: 'Deep, prolonged sedation independently lengthens ventilation and worsens delirium — the daily SAT+SBT pair and a proactive CAM-ICU screen are what catch the hypoactive delirium that "doesn\'t disturb the ward" and gets missed in a quiet, sedated patient.',
+    fields: [
+      { id: 'rass-target', label: 'RASS target', kind: 'select', options: ['0', '-1', '-2', '-3 (specific indication)', '-4/-5 (specific indication)'] },
+      { id: 'rass-current', label: 'RASS current', kind: 'select', options: ['+4', '+3', '+2', '+1', '0', '-1', '-2', '-3', '-4', '-5'] },
+      { id: 'sat-done', label: 'Sedation held today (SAT)?', kind: 'toggle' },
+      { id: 'sat-contraindicated', label: 'SAT contraindicated today?', kind: 'toggle' },
+      { id: 'sat-contraindicated-why', label: 'Why (seizures/raised ICP/NMB/self-harm risk)', kind: 'text-short', showIf: { fieldId: 'sat-contraindicated', equals: true } },
+      { id: 'sbt-done', label: 'SBT attempted today?', kind: 'toggle' },
+      { id: 'cam-icu', label: 'CAM-ICU', kind: 'select', options: ['Positive', 'Negative', 'Not assessable (RASS -4/-5)'] },
+      { id: 'delirium-precip', label: 'Delirium precipitant addressed', kind: 'select', options: ['Sedative/opioid burden', 'Sleep disruption', 'Immobility', 'Untreated pain', 'Sensory deprivation (no glasses/hearing aid)', 'None identified'] },
+      { id: 'antipsychotic', label: 'Antipsychotic given for dangerous agitation?', kind: 'toggle' },
+    ],
+  },
 ];

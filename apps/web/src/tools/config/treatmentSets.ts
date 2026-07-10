@@ -405,4 +405,99 @@ export const TREATMENT_SETS: TreatmentSet[] = [
       it('men-notify', 'Isolate + notify + contact prophylaxis', 'Droplet precautions until meningococcus excluded; meningococcal disease is notifiable — trace and offer prophylaxis to close contacts', 'Meningococcal meningitis can cause secondary cases in close contacts within days — public health notification is part of the acute management, not paperwork for later.'),
     ],
   },
+  // ─── ICU / Critical Care (dossier: docs/clinical-build/research/icu.md) ───
+  // The ward 'sepsis', 'dka-im', 'hyperkalaemia', 'anaphylaxis' and
+  // 'status-epilepticus' bundles above already cover those syndromes — these
+  // sets extend into ICU-specific organ-support territory: shock/vasopressor
+  // escalation, lung-protective ventilation, raised ICP, RRT indications and
+  // the VAP-prevention/ventilator-care bundle.
+  {
+    id: 'septic-shock-icu',
+    title: 'Septic shock — Hour-1 bundle & vasopressor escalation',
+    pattern: /septic shock|catecholamine-refractory shock|vasopressor-refractory (septic )?shock/i,
+    items: [
+      it('ssh-cultures', 'Blood cultures before antibiotics', '2 sets from different sites/times before the first antibiotic dose — do not delay antibiotics beyond ~45min for this', 'Cultures drawn after antibiotics are sterile — but "cultures before antibiotics" is not licence to delay treatment in shock.'),
+      it('ssh-lactate', 'Lactate + repeat for clearance', 'Baseline lactate; repeat at 2h if initial >2mmol/L — target clearance ≥10-20% over 2h', 'A single lactate is a severity marker; the CLEARANCE is the resuscitation-response marker. A lactate not falling despite an adequate MAP signals an undrained source, not more fluid.'),
+      it('ssh-fluids', '30ml/kg crystalloid — reassess, do not complete reflexively', 'Balanced crystalloid 30ml/kg as a STARTING POINT for hypotension or lactate ≥4mmol/L; reassess with a passive-leg-raise/fluid-responsiveness test after each aliquot rather than finishing the full volume in a non-responder', 'SSC 2021: the 30ml/kg is a starting point, not a fixed prescription — completing it in a patient already shown non-fluid-responsive, in cardiac failure, or already overloaded worsens pulmonary oedema.'),
+      it('ssh-abx', 'Early appropriate antibiotics', 'Per suspected source/local antibiogram: ceftriaxone-based for community source; piperacillin-tazobactam or a carbapenem for healthcare-associated/intra-abdominal/neutropenic source; add Gram-negative/MRSA cover per local epidemiology and device history', 'Broad appropriate cover started early is the single highest-yield intervention in septic shock — every hour of delay measurably increases mortality.'),
+      it('ssh-noradrenaline', 'Noradrenaline first-line, titrate to MAP ≥65', 'Noradrenaline 0.01-0.5 microgram/kg/min IV infusion, titrate to MAP ≥65mmHg (individualise higher, e.g. 80-85, in chronic hypertensives if perfusion markers do not improve at 65)', 'SA STG Ch.23 (Oct 2023 revision) moved first-line septic-shock vasopressor from adrenaline to noradrenaline, aligning with international practice. Start peripherally via a large proximal vein with frequent site checks if central access will delay treatment — do not delay the pressor waiting for the line.'),
+      it('ssh-second-agent', 'Second agent if refractory (>1-3 microgram/kg/min noradrenaline)', 'Add vasopressin 0.03-0.04 units/min FIXED dose (not titrated) to allow noradrenaline dose reduction, OR adrenaline 0.01-0.5 microgram/kg/min; add dobutamine 2.5-20 microgram/kg/min if septic cardiomyopathy (persistent hypoperfusion despite adequate MAP + volume)', 'Escalating noradrenaline dose is refractory-shock territory — it should trigger a search for an unaddressed cause (undrained source, adrenal insufficiency, obstructive component), not just a bigger dose of the same drug.', false),
+      it('ssh-source', 'Source control within 6-12h', 'Drain an abscess/collection, remove/replace a suspected-infected line, debride necrotic tissue, relieve obstruction — document the specific plan and timing', 'Antibiotics alone will not clear an undrained source — repeated antibiotic escalation against a static/worsening trajectory without addressing source control is a classic failure pattern.'),
+    ],
+  },
+  {
+    id: 'shock-vasopressor-inotrope',
+    title: 'Vasopressor & inotrope selection — shock (cardiogenic / mixed / undifferentiated)',
+    pattern: /cardiogenic shock|undifferentiated shock|obstructive shock|neurogenic shock|shock,? (cause|aetiology|etiology) unclear/i,
+    items: [
+      it('svi-mechanism', 'Re-establish the shock mechanism before choosing an agent', 'POCUS: IVC size/collapsibility, LV/RV size and function, lung ultrasound (B-lines), eFAST — small hyperdynamic LV + collapsing IVC = hypovolaemic/distributive; dilated poorly-contracting LV = cardiogenic; dilated RV + septal flattening = massive PE; pericardial effusion + RV diastolic collapse = tamponade', 'Mixed shock is the rule, not the exception, in a sick ICU patient — re-assess the mechanism after every intervention rather than anchoring on the admission label.'),
+      it('svi-noradrenaline', 'Noradrenaline — first-line for vasoplegia/distributive shock', 'Noradrenaline 0.01-0.5 microgram/kg/min IV, titrate to MAP ≥65mmHg', 'Predominantly α1 vasoconstriction with modest β1 inotropy — first-line for distributive/vasoplegic shock states.'),
+      it('svi-dobutamine', 'Dobutamine — first-line inotrope for cardiogenic shock', 'Dobutamine 2.5-20 microgram/kg/min IV — for pump failure with adequate-to-high filling pressures, or septic cardiomyopathy persisting despite adequate MAP and volume', 'Predominantly β1 inotrope with some β2 vasodilation — causes tachycardia and can drop SVR/BP at higher doses, so may need to run alongside a vasopressor.'),
+      it('svi-vasopressin', 'Vasopressin — fixed-dose add-on', 'Vasopressin 0.03-0.04 units/min, FIXED (not titrated), added in catecholamine-resistant shock to allow the noradrenaline dose to be reduced', 'Non-catecholamine V1 vasoconstrictor — also useful in post-cardiac-surgery vasoplegia.', false),
+      it('svi-adrenaline', 'Adrenaline — second agent in refractory shock', 'Adrenaline infusion 0.01-0.5 microgram/kg/min — add-on in catecholamine-refractory shock', 'Causes a lactate rise via β2-mediated effects — a recognised pharmacological confounder, not necessarily worsening shock; trend it against the clinical picture, not in isolation.', false),
+      it('svi-structural', 'Treat a structural/obstructive cause immediately — do not chase it with pressors', 'Tension pneumothorax → needle/finger thoracostomy NOW; tamponade → echo-guided pericardiocentesis; massive PE with shock → thrombolysis is a resuscitative intervention, not an elective one; unstable arrhythmia → synchronised cardioversion/pacing', 'Pressors will not work against an unaddressed mechanical or electrical problem — treat the obstruction/rhythm before escalating vasopressor dose.'),
+      it('svi-access', 'Central vs peripheral access', 'Peripheral noradrenaline is acceptable short-term via a large proximal vein with FREQUENT site checks as a bridge; a central line remains standard for sustained/escalating requirements and reliable CVP/ScvO2 sampling', 'Extravasation causes tissue necrosis — a peripheral pressor line needs frequent checks, it should not be a set-and-forget.'),
+      it('svi-avoid-fluid', 'Do not chase fluid in a non-responder', 'Reach for a pressor/inotrope instead of further fluid once a dynamic fluid-responsiveness test (passive leg raise ≥10% CO rise) is negative', 'Unnecessary fluid in a non-responder worsens pulmonary oedema and raises intra-abdominal pressure with no haemodynamic benefit.'),
+    ],
+  },
+  {
+    id: 'ards-lung-protective',
+    title: 'ARDS — lung-protective ventilation bundle',
+    pattern: /\bARDS\b|acute respiratory distress syndrome/i,
+    items: [
+      it('ards-berlin', 'Confirm Berlin criteria + P/F band', 'Onset <1 week of a known insult; bilateral opacities not fully explained by effusion/collapse/nodules; not fully explained by cardiac failure/fluid overload (echo if no clear risk factor); P/F measured on PEEP ≥5cmH2O: mild 200-300, moderate 100-200, severe <100', 'The P/F band — measured on PEEP ≥5, not room air — sets both severity and which adjuncts below apply (prone/NMB threshold is P/F <150).'),
+      it('ards-tv', 'Tidal volume 6ml/kg PBW', 'Titrate down from an initial 8ml/kg in 1ml/kg steps over 1-4h if plateau pressure allows. PBW (NOT actual weight): male = 50 + 0.91×(height cm − 152.4); female = 45.5 + 0.91×(height cm − 152.4)', 'Volume control guarantees the tidal volume; using actual weight instead of PBW in an obese or oedematous patient over-ventilates the lung and defeats the strategy.'),
+      it('ards-plateau', 'Plateau pressure ≤30cmH2O', 'Inspiratory hold reading at every ventilator round; reduce Vt further (to 4ml/kg if needed) if plateau exceeds 30', 'Plateau pressure is the best bedside surrogate for alveolar overdistension — a rising plateau on unchanged settings signals worsening compliance before oxygenation changes are obvious.'),
+      it('ards-peep-fio2', 'PEEP/FiO2 ladder — oxygenate by raising PEEP before FiO2', 'Low-PEEP arm (ARDSnet, example): FiO2 0.3→PEEP5; 0.4→5-8; 0.5→8-10; 0.6→10; 0.7→10-14; 0.8→14; 0.9→14-18; 1.0→18-24. A high-PEEP arm for moderate-severe ARDS pairs lower FiO2 with higher PEEP at each step — post the exact table at the bedside; target SpO2 88-95% or PaO2 55-80mmHg (deliberately not "normal")', 'The principle — raise PEEP before chasing FiO2 toward toxic levels — is what to internalise; the exact table numbers are standard ARDSnet content and should be checked against the bedside-posted table (source PDF was not machine-verifiable this session — verify against your unit copy).'),
+      it('ards-hypercapnia', 'Permissive hypercapnia', 'Accept pH ≥7.30 (occasionally lower if haemodynamically stable) rather than chasing a normal PaCO2', 'A PaCO2 of 6.5kPa is APPROPRIATE on a deliberate lung-protective strategy — never buy a "normal" CO2 at the cost of a damaging tidal volume.'),
+      it('ards-prone', 'Prone positioning if P/F <150', 'Prone for ≥12-16h/day in moderate-severe ARDS', 'The single intervention with the strongest mortality benefit in severe ARDS (PROSEVA-level evidence).', false),
+      it('ards-nmb', 'Neuromuscular blockade if severe + dyssynchronous', 'Cisatracurium infusion — consider early in severe ARDS with ventilator dyssynchrony', 'Paralysis abolishes patient-ventilator asynchrony that itself worsens lung injury in severe ARDS.', false),
+      it('ards-fluid', 'Conservative fluid management once shock has resolved', 'Target an even-to-negative cumulative fluid balance once perfusion/shock has resolved', 'A net-even or negative fluid balance improves ventilator-free days — a persistently positive balance beyond the first 24-48h worsens ARDS outcomes.'),
+    ],
+  },
+  {
+    id: 'raised-icp-bundle',
+    title: 'Raised ICP — tiered management',
+    pattern: /raised (ICP|intracranial pressure)|intracranial hypertension|\bICP\b.{0,15}(raised|elevated|monitor)|cerebral herniation|uncal herniation/i,
+    items: [
+      it('icp-tier1', 'Tier 1 — positioning + physiology', 'Head-of-bed 30°, neutral neck (avoid jugular venous obstruction), maintain normothermia, maintain normoglycaemia, avoid hyponatraemia', 'Fever raises cerebral metabolic demand and hyponatraemia worsens oedema — these cost nothing and are the always-on first-line measures.'),
+      it('icp-sedation', 'Adequate sedation/analgesia', 'Titrate sedation/analgesia to prevent agitation, coughing, straining — deeper sedation is an accepted SPECIFIC indication here', 'Agitation and coughing both spike ICP — raised ICP is one of the explicit exceptions to the default light-sedation (RASS 0 to −2) target used elsewhere in ICU.'),
+      it('icp-gas', 'Avoid hypoxia and hypercapnia — normalise, do not chase a low CO2', 'Target normal oxygenation and PaCO2 as maintenance therapy — both hypoxia and hypercapnia are cerebral vasodilators', 'This is maintenance physiology, not the rescue manoeuvre below — do not default to sustained hyperventilation "to be safe".'),
+      it('icp-targets', 'ICP / CPP targets', 'ICP <20-22mmHg; cerebral perfusion pressure (CPP = MAP − ICP) target 60-70mmHg', 'A normal ICP with a low MAP can still starve the brain — both the pressure ceiling and the perfusion floor matter.'),
+      it('icp-seizure', 'Seizure prophylaxis/treatment', 'Treat any seizure activity promptly; low threshold to consider non-convulsive status (EEG) in unexplained unresponsiveness', 'Seizures dramatically raise ICP and cerebral metabolic demand.'),
+      it('icp-osmotherapy', 'Hyperosmolar therapy for escalation', 'Hypertonic saline 3% bolus, OR mannitol 0.25-1g/kg IV bolus (requires intact blood-brain barrier and adequate intravascular volume; causes an osmotic diuresis — monitor volume status and renal function)', 'Escalation step once tier-1 measures are maximised — mannitol\'s diuresis can drop intravascular volume, so pair it with volume monitoring, not give it in isolation.', false),
+      it('icp-hyperventilation', 'Brief hyperventilation — bridge only, not sustained', 'Target PaCO2 ~30-35mmHg as a TEMPORISING measure for acute herniation only', 'Rebound vasodilation and ischaemia risk with prolonged use — this buys minutes as a bridge to definitive treatment, it is not a maintenance strategy.', false),
+      it('icp-escalate', 'CSF drainage / neurosurgical referral for refractory rise', 'CSF drainage via EVD if in place; decompressive craniectomy per neurosurgical referral for refractory cases', 'Know your unit\'s actual neurosurgical referral pathway before promising it to a family — availability is a major SA resource constraint.', false),
+    ],
+  },
+  {
+    id: 'rrt-indications',
+    title: 'RRT indications & modality (AEIOU)',
+    pattern: /\bRRT\b|renal replacement therapy|\bCRRT\b|\bCVVH(DF?)?\b|dialysis indicat|indication for dialysis/i,
+    items: [
+      it('rrt-a', 'A — Acidosis', 'Severe refractory metabolic acidosis, pH <7.1-7.15, not correcting with treatment of the underlying cause', 'One of the five AEIOU triggers — document which specific criterion is met rather than "AKI, for dialysis".'),
+      it('rrt-e', 'E — Electrolytes', 'Refractory life-threatening hyperkalaemia — K+ >6.5, or any level with ECG changes — not responding to medical management', 'Medical hyperkalaemia management (calcium, insulin-dextrose, salbutamol) shifts K+ intracellularly; RRT is the only definitive removal once refractory.'),
+      it('rrt-i', 'I — Intoxication', 'A dialysable toxin/drug: methanol, ethylene glycol, salicylate, lithium, severe valproate/metformin toxicity', 'A level-driven, not creatinine-driven, indication — a dialysable poison needs removal regardless of renal function, alongside any toxin-specific antidote.'),
+      it('rrt-o', 'O — Overload', 'Refractory fluid overload with pulmonary oedema/hypoxia not responding to diuretics', 'Diuretics have already failed by definition here — RRT/ultrafiltration is the definitive removal step, not a first move to reach for early.'),
+      it('rrt-u', 'U — Uraemia', 'Clinical uraemic complications — encephalopathy, pericarditis, bleeding diathesis — not a creatinine number alone', 'RRT is triggered by the clinical consequence of uraemia, not by a fixed creatinine threshold.'),
+      it('rrt-optimise', 'Optimise perfusion + stop nephrotoxins first', 'Stop nephrotoxins, dose every renally-cleared drug to CURRENT (not baseline) renal function, optimise perfusion via fluid-responsiveness tools (not reflexive fluid loading)', 'RRT treats the biochemical consequence, not the driver — sepsis source control, obstruction relief, or abdominal decompression still needs treating alongside it.'),
+      it('rrt-modality', 'Modality choice', 'Continuous RRT (CVVH/CVVHDF) preferred if haemodynamically unstable (gentler, slower shifts); intermittent haemodialysis (IHD) if stable or CRRT unavailable — often the ONLY modality at SA regional/district level', 'Know your unit\'s actual RRT modality and capacity before promising it — CRRT slots and machines are frequently the tightest bottleneck in the SA ICU.'),
+      it('rrt-anticoag', 'Circuit anticoagulation', 'Citrate preferred where available, or heparin — balanced against bleeding risk', 'The circuit clots without anticoagulation, but over-anticoagulating a critically ill patient adds a new bleeding risk — the agent and dose are a per-patient risk-benefit call, not a fixed default.'),
+    ],
+  },
+  {
+    id: 'vap-ventilator-care',
+    title: 'VAP prevention & ventilator-care bundle',
+    pattern: /\bVAP\b|ventilator-associated pneumonia|mechanical(ly)? ventilat(ed|ion|ory)?|on (the )?ventilator|endotracheal tube|\bETT\b/i,
+    items: [
+      it('vap-hob', 'Head-of-bed elevation 30-45°', 'Maintain HOB elevation at all times unless specifically contraindicated', 'Reduces reflux/micro-aspiration around the cuff — the cheapest, highest-yield VAP measure.'),
+      it('vap-sat-sbt', 'Daily SAT + SBT pairing', 'Hold sedation first (unless contraindicated — active seizures, raised ICP, neuromuscular blockade, agitation risk to self), then attempt SBT once awake enough to protect the airway', 'The shortest path to zero VAP risk is the shortest ventilator duration — the daily coordinated SAT+SBT protocol reduces ventilator days.'),
+      it('vap-oral-care', 'Oral care with chlorhexidine', 'Regular chlorhexidine oral care per unit protocol', 'Reduces the oropharyngeal bacterial load available to be micro-aspirated around the cuff — cheap and evidence-based.'),
+      it('vap-subglottic', 'Subglottic secretion drainage', 'Use subglottic drainage where the ETT allows', 'Clears secretions pooling above the cuff before they are aspirated.'),
+      it('vap-cuff', 'Cuff pressure 20-30cmH2O', 'Check and document ETT cuff pressure', 'Under-inflation allows micro-aspiration around the cuff; over-inflation risks tracheal ischaemia.'),
+      it('vap-circuit', 'Avoid unnecessary circuit changes', 'Change the ventilator circuit only when clinically indicated, not on a fixed schedule', 'Routine scheduled circuit changes do not reduce VAP and add cost and disconnection risk — change only when soiled or malfunctioning.'),
+      it('vap-bundle-adjuncts', 'Confirm the rest of the daily FASTHUGSBID bundle', 'Stress-ulcer prophylaxis and VTE prophylaxis reviewed today; extubation readiness formally assessed', 'VAP prevention is one arm of the same daily systems review — it runs alongside, not instead of, the rest of the bundle.'),
+      it('vap-lines', 'Review every line/device necessity', 'Is each line/catheter/tube still needed TODAY — remove promptly if not', 'The single highest-yield VAP/CLABSI/CAUTI intervention in a resource-limited unit is removing devices that are no longer necessary.'),
+    ],
+  },
 ];

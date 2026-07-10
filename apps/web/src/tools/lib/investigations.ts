@@ -155,6 +155,22 @@ export const PANELS: Panel[] = [
       { key: 'salicylate', label: 'Salicylate', unit: 'mg/dL', high: 30 },
     ],
   },
+  {
+    id: 'sepsis',
+    label: 'Sepsis / Haemodynamics',
+    icon: '🌡️',
+    depts: ['icu', 'medicine', 'emergency'],
+    analytes: [
+      // Lactate lives in the 'abg' panel and already has clearance-focused
+      // trend rules — deliberately not duplicated here.
+      { key: 'pct', label: 'Procalcitonin', unit: 'µg/L', high: 0.5 },
+      // ScvO2 recorded as a trended value with no reference range — the
+      // dossier favours lactate clearance as the resuscitation-response
+      // marker in a resource-limited unit; ScvO2 is captured for units that
+      // monitor it without asserting a hard threshold.
+      { key: 'scvo2', label: 'ScvO2', unit: '%' },
+    ],
+  },
 ];
 
 /** Panels offered for a department — unscoped panels surface everywhere. */
@@ -265,10 +281,20 @@ export function trendAlerts(trends: AnalyteTrend[]): TrendAlert[] {
   const plt = t('plt');
   if (plt && plt.previous && plt.latest.value <= plt.previous.value / 2)
     alerts.push({ severity: 'red', analyte: 'Platelets', message: `Platelets halved (${plt.previous.raw} → ${plt.latest.raw})`, why: 'A halving matters more than the absolute count: think sepsis/DIC, HIT if on heparin day 3-10, or HELLP in pregnancy — each has a different next test and all are time-critical.' });
+  else if (plt && plt.latest.value < 10)
+    alerts.push({ severity: 'red', analyte: 'Platelets', message: `Plt ${plt.latest.raw} — prophylactic transfusion trigger even if not bleeding`, why: 'Below 10×10⁹/L spontaneous bleeding risk rises sharply — transfuse prophylactically regardless of bleeding; the threshold rises to <20 if febrile/septic and <50 before an invasive procedure.' });
 
   const crp = t('crp');
   if (crp && crp.previous && crp.points.length >= 2 && delta(crp) > 0 && crp.previous.value > 50)
     alerts.push({ severity: 'amber', analyte: 'CRP', message: `CRP still rising (${crp.previous.raw} → ${crp.latest.raw}) — is the source controlled?`, why: 'CRP lags 24-48h, but a rise on day 3-4 of adequate antibiotics means wrong bug, wrong drug, or an undrained collection — re-image/re-culture rather than adding another agent blindly.' });
+
+  const pct = t('pct');
+  if (pct && pct.previous) {
+    if (pct.latest.value < 0.5 && delta(pct) < 0)
+      alerts.push({ severity: 'amber', analyte: 'Procalcitonin', message: `PCT falling (${pct.previous.raw} → ${pct.latest.raw}) — supports stopping antibiotics if clinically improving`, why: 'A falling PCT below ~0.5 µg/L in a clinically improving patient supports de-escalating/stopping antibiotics — it does not replace clinical judgement or override an undrained source, and is not universally available at SA state facilities.' });
+    else if (delta(pct) > 0 && pct.latest.value >= 0.5)
+      alerts.push({ severity: 'amber', analyte: 'Procalcitonin', message: `PCT rising (${pct.previous.raw} → ${pct.latest.raw}) — is the source controlled?`, why: 'A rising PCT on treatment suggests ongoing or inadequately controlled infection — re-examine for an undrained source rather than escalating antibiotic spectrum blindly.' });
+  }
 
   const glu = t('glu');
   if (glu && glu.latest.value < 3)
