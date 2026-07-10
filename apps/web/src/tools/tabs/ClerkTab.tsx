@@ -106,7 +106,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   }
 
   // ── Condition-triggered smart blocks ───────────────────────────────────────
-  const matchedBlocks = smartBlocksFor(fullRecordText(patient, dept, subDept));
+  const matchedBlocks = smartBlocksFor(fullRecordText(patient, dept, subDept), dept);
 
   function smartBlockChanged(block: SmartBlock, v: SmartBlockValue, serialized: string) {
     const persist = patient.smartBlocks?.[block.id];

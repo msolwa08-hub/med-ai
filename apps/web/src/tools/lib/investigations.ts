@@ -4,6 +4,8 @@
 // changed on the drug chart?"). AI interpretation is layered on top via the
 // existing /tools/interpret-labs endpoint; these rules fire with or without it.
 
+import type { DeptId } from '../config/departments';
+
 export interface InvestigationEntry {
   /** YYYY-MM-DD */
   date: string;
@@ -28,6 +30,10 @@ export interface Panel {
   label: string;
   icon: string;
   analytes: Analyte[];
+  /** Departments this panel is offered in. Omit = every department (the
+   *  default for the general chemistry/haem panels). Specialty panels
+   *  (cardiac, tbhiv) are scoped so the capture list stays uncluttered. */
+  depts?: DeptId[];
 }
 
 export const PANELS: Panel[] = [
@@ -106,7 +112,33 @@ export const PANELS: Panel[] = [
       { key: 'aptt', label: 'aPTT', unit: 's', low: 25, high: 35 },
     ],
   },
+  {
+    id: 'cardiac',
+    label: 'Cardiac markers',
+    icon: '❤️',
+    depts: ['medicine', 'emergency', 'icu'],
+    analytes: [
+      { key: 'trop', label: 'hs-Trop', unit: 'ng/L', high: 14 },
+      { key: 'ck', label: 'CK', unit: 'U/L', high: 190 },
+      { key: 'bnp', label: 'NT-proBNP', unit: 'pg/mL', high: 300 },
+    ],
+  },
+  {
+    id: 'tbhiv',
+    label: 'HIV / TB workup',
+    icon: '🎗️',
+    depts: ['medicine', 'emergency', 'icu'],
+    analytes: [
+      { key: 'cd4', label: 'CD4', unit: 'cells/µL', low: 200 },
+      { key: 'vl', label: 'Viral load', unit: 'copies/mL', high: 50 },
+    ],
+  },
 ];
+
+/** Panels offered for a department — unscoped panels surface everywhere. */
+export function panelsFor(dept?: string): Panel[] {
+  return PANELS.filter(p => !p.depts || (dept && p.depts.includes(dept as DeptId)));
+}
 
 export const ALL_ANALYTES: Record<string, Analyte> = Object.fromEntries(
   PANELS.flatMap(p => p.analytes.map(a => [a.key, a]))
@@ -227,6 +259,20 @@ export function trendAlerts(trends: AnalyteTrend[]): TrendAlert[] {
   const inr = t('inr');
   if (inr && inr.latest.value >= 4.5)
     alerts.push({ severity: 'red', analyte: 'INR', message: `INR ${inr.latest.raw} — hold warfarin, assess bleeding, reversal plan`, why: 'Above ~4.5 bleeding risk climbs steeply; the decision tree (hold vs vitamin K vs factors) depends on bleeding and the indication — write the plan now, not at the bleed.' });
+
+  const trop = t('trop');
+  if (trop && trop.previous && trop.latest.value > 14 && trop.latest.value >= trop.previous.value * 1.2)
+    alerts.push({ severity: 'red', analyte: 'Troponin', message: `hs-Trop rising (${trop.previous.raw} → ${trop.latest.raw}, >20%) — acute myocardial injury`, why: 'A single raised troponin has a dozen causes; a RISING pattern on serial measurement is what diagnoses acute injury — treat as ACS pathway until an alternative (PE, myocarditis, sepsis demand) is established.' });
+  else if (trop && !trop.previous && trop.latest.value > 14)
+    alerts.push({ severity: 'amber', analyte: 'Troponin', message: `hs-Trop ${trop.latest.raw} raised — repeat at 3-6h; the DELTA makes the diagnosis`, why: 'One value cannot separate acute injury from chronic elevation (renal failure, heart failure) — the serial rise or fall is the discriminator, so the repeat is not optional.' });
+
+  const cd4 = t('cd4');
+  if (cd4 && cd4.latest.value < 200)
+    alerts.push({ severity: 'red', analyte: 'CD4', message: `CD4 ${cd4.latest.raw} — advanced HIV disease: reflex CrAg, urine LAM if unwell, cotrimoxazole`, why: 'Below 200 the differential changes species: TB (including disseminated), cryptococcal meningitis, PJP and severe bacterial infection are the four killers — the AHD package (serum CrAg, urine LAM in the sick patient, cotrimoxazole prophylaxis) is protocol, not judgement.' });
+
+  const vl = t('vl');
+  if (vl && vl.latest.value > 1000)
+    alerts.push({ severity: 'amber', analyte: 'Viral load', message: `VL ${vl.latest.raw} — unsuppressed: enhanced adherence counselling + repeat in 2-3 months per guideline`, why: 'Above 1000 on ART means non-adherence or resistance; the SA pathway is enhanced adherence support then a repeat VL — a persistent >1000 despite good adherence is the trigger for resistance testing/regimen switch.' });
 
   return alerts;
 }

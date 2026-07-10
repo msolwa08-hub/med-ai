@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
 import {
-  PANELS,
+  panelsFor,
   analyteTrends,
   trendAlerts,
   type InvestigationEntry,
@@ -133,7 +133,7 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
           />
         </div>
         <div className="grid sm:grid-cols-2 gap-2">
-          {PANELS.map(panel => (
+          {panelsFor(dept).map(panel => (
             <div key={panel.id} className="rounded-2xl border border-line overflow-hidden">
               <button
                 onClick={() => { setOpenPanel(openPanel === panel.id ? null : panel.id); setDraft({}); }}

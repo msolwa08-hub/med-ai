@@ -8,6 +8,8 @@
 // into the record's string fields; the block is an input method, not a
 // separate data model.
 
+import type { DeptId } from './departments';
+
 export interface SmartField {
   id: string;
   label: string;
@@ -28,14 +30,18 @@ export interface SmartBlock {
   pattern: RegExp;
   why: string;
   fields: SmartField[];
+  /** Restrict the block to these departments; omit = surfaces everywhere. */
+  depts?: DeptId[];
 }
 
 /** fieldId → value. Toggles are boolean; everything else is string. */
 export type SmartBlockState = Record<string, string | boolean | undefined>;
 
-export function smartBlocksFor(recordText: string): SmartBlock[] {
+export function smartBlocksFor(recordText: string, dept?: DeptId): SmartBlock[] {
   if (!recordText.trim()) return [];
-  return SMART_BLOCKS.filter(b => b.pattern.test(recordText));
+  return SMART_BLOCKS.filter(
+    b => (!b.depts || !dept || b.depts.includes(dept)) && b.pattern.test(recordText),
+  );
 }
 
 export function fieldVisible(field: SmartField, state: SmartBlockState): boolean {
@@ -281,6 +287,80 @@ export const SMART_BLOCKS: SmartBlock[] = [
       { id: 'anticoag', label: 'Anticoagulated?', kind: 'toggle' },
       { id: 'agent', label: 'Agent', kind: 'select', options: ['Warfarin', 'Rivaroxaban', 'Dabigatran', 'None — contraindicated', 'None — declined'], showIf: { fieldId: 'anticoag', equals: true } },
       { id: 'rate-agent', label: 'Rate control', kind: 'select', options: ['Bisoprolol/atenolol', 'Digoxin', 'Diltiazem/verapamil', 'None'] },
+    ],
+  },
+
+  // ── Internal Medicine ────────────────────────────────────────────────────
+
+  {
+    id: 'dm-control',
+    title: 'Diabetes — control & complications',
+    pattern: /diabet|\bDM\b|\bT[12]DM\b|HbA1c|insulin|metformin|glicl?azide|sulf(ph)?onylurea/i,
+    depts: ['medicine', 'emergency'],
+    why: 'Type and regimen frame the emergency — insulin omission in T1DM is DKA, the elderly T2DM drifts into HHS, and sulfonylurea hypoglycaemia recurs (admit, don\'t discharge on one dextrose). HbA1c plus the complication screen turns "known diabetic" into an actual risk profile.',
+    fields: [
+      { id: 'type', label: 'Type', kind: 'select', options: ['Type 1', 'Type 2'] },
+      { id: 'rx', label: 'Current treatment', kind: 'select', options: ['Metformin', 'Metformin + sulfonylurea', 'Insulin', 'Insulin + oral', 'Diet only'] },
+      { id: 'hba1c', label: 'Last HbA1c', kind: 'number', unit: '%' },
+      { id: 'adherent', label: 'Taking treatment as prescribed?', kind: 'toggle' },
+      { id: 'missed-why', label: 'Why missed?', kind: 'text-short', showIf: { fieldId: 'adherent', equals: false } },
+      { id: 'hypos', label: 'Hypo episodes', kind: 'select', options: ['None', 'Occasional (<1/wk)', 'Frequent (≥1/wk)', 'Severe (needed help/admission)'] },
+      { id: 'retinopathy', label: 'Retinopathy / eye screen done?', kind: 'toggle' },
+      { id: 'nephropathy', label: 'Nephropathy (proteinuria / ↑creatinine)?', kind: 'toggle' },
+      { id: 'neuropathy', label: 'Neuropathy?', kind: 'toggle' },
+      { id: 'foot', label: 'Foot exam done (ulcer / at-risk foot)?', kind: 'toggle' },
+    ],
+  },
+  {
+    id: 'hiv-art-status',
+    title: 'HIV / ART status',
+    pattern: /\bHIV\b|\bART\b|\bCD4\b|viral load|\bVL\b|\bRVD\b/i,
+    depts: ['medicine', 'emergency'],
+    why: 'CD4 <200 is advanced HIV disease — reflex CrAg at ≤100, urine LAM in the sick inpatient, cotrimoxazole prophylaxis; the four AHD killers are TB, cryptococcal meningitis, severe bacterial infection and PJP. An interrupted-TLD patient with unknown VL is a different differential from the suppressed one.',
+    fields: [
+      { id: 'on-art', label: 'On ART?', kind: 'toggle' },
+      { id: 'regimen', label: 'Regimen', kind: 'select', options: ['TLD', 'TEE', '2nd line (PI-based)', 'Other/unknown'], showIf: { fieldId: 'on-art', equals: true }, cue: { color: 'blue', label: 'TLD is the blue tablet' } },
+      { id: 'duration', label: 'Duration on ART / interruptions', kind: 'text-short', showIf: { fieldId: 'on-art', equals: true } },
+      { id: 'vl', label: 'Last VL result', kind: 'text-short' },
+      { id: 'vl-date', label: 'Last VL date', kind: 'date' },
+      { id: 'cd4', label: 'Last CD4', kind: 'number', unit: 'cells/µL' },
+      { id: 'cd4-date', label: 'CD4 date', kind: 'date' },
+      { id: 'ctx', label: 'On cotrimoxazole prophylaxis?', kind: 'toggle' },
+      { id: 'tb-hx', label: 'TB history', kind: 'select', options: ['None', 'On TPT/IPT', 'Previous TB (completed)', 'Currently on TB treatment'] },
+    ],
+  },
+  {
+    id: 'tb-workup',
+    title: 'TB workup',
+    pattern: /\bTB\b|tuberculos|\bPTB\b|GeneXpert|Xpert|night sweats|cough[^.\n]{0,24}(week|\/52)/i,
+    depts: ['medicine', 'emergency'],
+    why: 'Xpert Ultra is the initial test and a rifampicin-resistant call changes the entire pathway; urine LAM catches the disseminated TB the sputum misses in the sick low-CD4 inpatient. Prior default or MDR contact predicts resistance before the lab does — and TB is notifiable.',
+    fields: [
+      { id: 'sx-cough', label: 'Cough ≥2 weeks?', kind: 'toggle' },
+      { id: 'sx-fever', label: 'Fever?', kind: 'toggle' },
+      { id: 'sx-sweats', label: 'Night sweats?', kind: 'toggle' },
+      { id: 'sx-weight', label: 'Weight loss?', kind: 'toggle' },
+      { id: 'xpert-sent', label: 'Sputum GeneXpert sent?', kind: 'toggle' },
+      { id: 'xpert-result', label: 'Result', kind: 'select', options: ['Pending', 'MTB not detected', 'MTB detected, RIF sensitive', 'MTB detected, RIF resistant', 'Trace'], showIf: { fieldId: 'xpert-sent', equals: true } },
+      { id: 'lam', label: 'Urine LAM sent (HIV+, CD4 ≤200 or seriously ill)?', kind: 'toggle' },
+      { id: 'cxr', label: 'CXR done?', kind: 'toggle' },
+      { id: 'prior-tb', label: 'Prior TB', kind: 'select', options: ['None', 'Completed treatment', 'Defaulted', 'MDR/DR-TB contact'] },
+    ],
+  },
+  {
+    id: 'heart-failure-profile',
+    title: 'Heart failure profile',
+    pattern: /heart failure|cardiac failure|\bCCF\b|\bCHF\b|orthopn|\bPND\b|pulmonary (o)?edema|\bLVF\b/i,
+    depts: ['medicine', 'emergency'],
+    why: 'A decompensation without a named precipitant (ischaemia, infection, non-adherence, arrhythmia, anaemia) simply recurs; daily weights are the only honest measure of diuresis. Beware "cardiac asthma" — LVF wheeze masquerading as bronchospasm, with the opposite treatment.',
+    fields: [
+      { id: 'nyha', label: 'NYHA class', kind: 'select', options: ['I', 'II', 'III', 'IV'] },
+      { id: 'ef', label: 'Known EF', kind: 'number', unit: '%' },
+      { id: 'echo-date', label: 'Echo date', kind: 'date' },
+      { id: 'weights', label: 'Daily weights charted?', kind: 'toggle' },
+      { id: 'fluid-salt', label: 'Fluid restriction + salt advice given?', kind: 'toggle' },
+      { id: 'diuretic-adherent', label: 'Taking diuretic as prescribed?', kind: 'toggle' },
+      { id: 'precipitant', label: 'Precipitant', kind: 'select', options: ['Ischaemia', 'Infection', 'Non-adherence', 'Arrhythmia', 'Anaemia', 'Unknown'] },
     ],
   },
 ];
