@@ -56,7 +56,7 @@ Explicitly a multi-session undertaking — this file is the resumable tracker.
 | Paediatrics | 🟡 partial (v1 depth pass done) | 🟡 partial | deepen: neonatology, PICU, syndromic reasoning |
 | Orthopaedics | ✅ done (1593 lines) | ✅ implemented | own fields fragment (mechanism, Gustilo, neurovascular pre/post, weight-bearing), treatment sets (open #, compartment syndrome, septic arthritis, NOF pathway, cauda equina), NV/open-#/fracture-description blocks, msk panel, limb/life-threat lens; loop gate 100/100 live. See `implementation/orthopaedics.md` |
 | Psychiatry | ✅ done (1911 lines) | ✅ implemented | MHCA-status + depot/clozapine + organic-screen fields, psych monitoring panel (lithium bands, clozapine ANC, CK-in-agitation, urine tox), 7 treatment sets (rapid tranq, NMS, serotonin syndrome, lithium toxicity, CIWA alcohol withdrawal, dystonia/EPSE, suicide safety pathway), 4 smart blocks (MSE, risk, MHCA, withdrawal watch), organic-exclusion lens; loop gate 100/100 live. See `implementation/psychiatry.md` |
-| Anaesthetics (NEW dept) | ✅ done (1623 lines) | 🟡 registered + lens + fields done | dept registered (web+API), own fields (ASA/airway/fasting/anticoag-neuraxial/METs), pre-anaesthetic checklist, discipline lens; **loop gate 100/100 live** (`eval/m2/loop-anaes-2026-07-10.json`). Dossier covers the 5-question mental model, pre-op assessment, fasting/RSI, difficult airway/FONA, spinal-for-CS as the SA signature case, MH/anaphylaxis/LAST/DOPES emergencies, emergence/PACU/PONV, paeds basics, procedural sedation, NCCEMD Saving-Mothers SA reality. See `research/anaesthetics.md` — treatment sets/blocks/panels still to be implemented from it |
+| Anaesthetics (NEW dept) | ✅ done (1623 lines) | ✅ implemented | dept registered (web+API), fields (ASA/airway/fasting/anticoag-neuraxial/METs/neuraxial suitability), pre-anaesthetic checklist, 7 treatment sets (MH crisis, anaphylaxis-under-GA, LAST, failed-intubation/CICO, spinal-CS hypotension, high/total spinal, delayed emergence), 4 smart blocks (pre-assessment, spinal record, crisis snapshot, PACU discharge), discipline lens; loop gate 100/100 live. See `implementation/anaesthetics.md` |
 | Family Med / PHC | ⬜ not started | ⬜ not started | consider — the district generalist lens |
 
 Legend: ⬜ not started · ⏳ in progress · 🟡 partial · ✅ done
@@ -66,7 +66,7 @@ Legend: ⬜ not started · ⏳ in progress · 🟡 partial · ✅ done
 - ✅ Investigation-trending companion (Results tab + deterministic delta rules) — `lib/investigations.ts`. Extend panels/rules per department as dossiers land.
 - ⬜ Differential-engine: surface the consultant differential (incl. must-not-miss + zebra) from the presentation, not just a problem list.
 - ⬜ "Normals" reference layer — what normal looks like per ward, inline.
-- ⬜ Anaesthetics as a first-class department in `departments.ts`.
+- ✅ Anaesthetics as a first-class department in `departments.ts` (2026-07-10, gate 100/100).
 
 ## Evaluations
 
