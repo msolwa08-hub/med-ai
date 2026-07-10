@@ -241,6 +241,49 @@ export const PANELS: Panel[] = [
       { key: 'urineTox', label: 'Urine Toxicology', unit: '' },
     ],
   },
+  {
+    id: 'paeds',
+    label: 'Paediatric / Neonatal',
+    icon: '🍼',
+    // The general chemistry/haem/inflam panels above already cover the child
+    // and adult range (dossier §4.1: age-banded FBC — lymphocyte
+    // predominance until ~4-6y, higher WCC/Plt in infancy — is a reading
+    // caveat on the EXISTING 'fbc' panel, not a new set of numbers; a
+    // paeds-specific Hb "note" analyte with no numeric behaviour doesn't fit
+    // the house pattern of trended, delta-driven analytes, so it is
+    // deliberately not added here — the caveat instead lives in paeds.ts
+    // field hints where the intern is actually plotting/reading the value).
+    // This panel is the neonatal-specific trended set that genuinely needs
+    // its own keys and its own rules: bilirubin (read against an
+    // hours-of-life/gestation CHART, not a threshold — dossier §2.1.2/§4.6),
+    // glucose (a neonate-specific <2.6 mmol/L action threshold, distinct
+    // from the general 'glu' panel's adult-pattern <3 emergency rule —
+    // dossier §2.1.3/§4.5), CRP (kinetics caveat: a single early value does
+    // not exclude sepsis — dossier §2.1.1/§4.7), and weight (trended across
+    // the admission — the malnutrition/dehydration/growth-faltering signal
+    // and, in a neonate, the >10% birth-weight-loss threshold — dossier
+    // §2.1.2/§3.2/§6).
+    depts: ['paeds'],
+    analytes: [
+      // No low/high — deliberately not threshold-scored. TSB is only
+      // interpretable plotted against age-in-HOURS on the gestational-age-
+      // and risk-factor-specific curve (dossier §2.1.2/§4.6); a bare
+      // high-value flag here would encourage exactly the single-number
+      // reasoning the dossier warns against.
+      { key: 'neoBili', label: 'Neonatal TSB (plot vs hours-of-life)', unit: 'µmol/L' },
+      // Neonate-specific action threshold (<2.6), distinct from the general
+      // 'glu' panel's adult/child <3 emergency rule and its 4-7.8 range —
+      // own key so the two don't collide or cross-apply.
+      { key: 'neoGlu', label: 'Neonatal Glucose', unit: 'mmol/L', low: 2.6 },
+      // Own key, distinct from the general 'crp' panel — same high-ULN
+      // convention, but read with the neonatal kinetics caveat below.
+      { key: 'crpNeo', label: 'CRP (neonate)', unit: 'mg/L', high: 10 },
+      // No fixed low/high — a "normal" range spans a 25kg swing across the
+      // paeds age bands, so this is read as a TREND (weight-for-age centile
+      // lives on the RTHB, not here) rather than against a static band.
+      { key: 'weightKg', label: 'Weight', unit: 'kg' },
+    ],
+  },
 ];
 
 /** Panels offered for a department — unscoped panels surface everywhere. */
@@ -442,6 +485,28 @@ export function trendAlerts(trends: AnalyteTrend[]): TrendAlert[] {
       alerts.push({ severity: 'red', analyte: 'Clozapine ANC', message: `ANC ${anc.latest.raw} — agranulocytosis range: STOP clozapine now, do not taper`, why: 'Clozapine is stopped immediately, not tapered, once agranulocytosis is confirmed — the one mandatory-stop threshold in this formulary. Exact numeric action thresholds vary by monitoring registry (UK/US/local SASOP protocol) — verify against the protocol actually in force at your unit before acting on this number in isolation (verify vs local monitoring protocol).' });
     else if (anc.latest.value < 1.5)
       alerts.push({ severity: 'amber', analyte: 'Clozapine ANC', message: `ANC ${anc.latest.raw} — below the routine "green zone": increase monitoring frequency`, why: 'A falling ANC below the routine monitoring threshold used by most clozapine registries triggers increased-frequency monitoring before it reaches the stop threshold — do not wait for the next scheduled sample if the trend is downward. Confirm the exact action bands against your unit\'s registry (verify vs local monitoring protocol).' });
+  }
+
+  const neoBili = t('neoBili');
+  if (neoBili)
+    alerts.push({ severity: 'amber', analyte: 'Neonatal Bilirubin', message: `TSB ${neoBili.latest.raw} — plot it, don't threshold it: age-in-HOURS + gestation against the phototherapy/exchange chart`, why: 'Phototherapy and exchange thresholds are gestational-age- and neurotoxicity-risk-banded, not a single cut-off — the same TSB number triggers phototherapy far earlier in a preterm or haemolysing infant than in a well term infant. Jaundice visible before 24h of life is pathological regardless of the number; any acute bilirubin encephalopathy sign (lethargy, hypertonia, high-pitched cry, seizures) justifies exchange even below the charted value.' });
+
+  const neoGlu = t('neoGlu');
+  if (neoGlu && neoGlu.latest.value < 2.6)
+    alerts.push({ severity: neoGlu.latest.value < 1.5 || neoGlu.latest.value < 2.0 ? 'red' : 'amber', analyte: 'Neonatal Glucose', message: `Glucose ${neoGlu.latest.raw} — below the 2.6 mmol/L neonatal action threshold: feed → IV 10% dextrose bolus (~2 mL/kg) → maintenance infusion, escalate GIR if refractory`, why: 'Any level with neurological symptoms (jitteriness, lethargy, apnoea, seizures) is an emergency at any reading; a level <1.5-2.0 mmol/L is treated as an emergency regardless of symptoms. If refractory to escalating glucose infusion rate, send a "critical sample" (glucose, insulin, cortisol, GH, lactate, ammonia) AT a proven low reading — it is often the only chance to catch hyperinsulinism or a metabolic cause.' });
+
+  const crpNeo = t('crpNeo');
+  if (crpNeo && !crpNeo.previous)
+    alerts.push({ severity: 'amber', analyte: 'CRP (neonate)', message: `CRP ${crpNeo.latest.raw} — a single early value does NOT exclude sepsis; repeat at 24-48h before trusting a normal result`, why: 'CRP lags the clinical onset of neonatal sepsis by 12-24h and is often normal at presentation — treat the baby, not the number. A serial CRP that STAYS normal at 24-48h is what supports stopping antibiotics, not one normal value on admission.' });
+  else if (crpNeo && crpNeo.previous && delta(crpNeo) > 0)
+    alerts.push({ severity: 'amber', analyte: 'CRP (neonate)', message: `CRP rising (${crpNeo.previous.raw} → ${crpNeo.latest.raw}) — supports ongoing/inadequately treated sepsis`, why: 'A rising serial CRP in a neonate on treatment argues for continuing/broadening cover and re-examining for a focus (line, umbilicus, joint) rather than stopping on a single reassuring earlier value.' });
+
+  const weightKg = t('weightKg');
+  if (weightKg && weightKg.points.length >= 2) {
+    const baseline = weightKg.points[0];
+    const pctChange = ((weightKg.latest.value - baseline.value) / baseline.value) * 100;
+    if (pctChange <= -10)
+      alerts.push({ severity: 'red', analyte: 'Weight', message: `Weight down ${Math.abs(pctChange).toFixed(1)}% from ${baseline.raw} (${baseline.date}) — beyond the physiological range`, why: 'Up to 7-10% weight loss from birth weight is physiological, regained by day 10-14 — a documented loss beyond 10% (in a neonate, or unintentional loss of this size in any child) needs a formal feeding assessment ± sodium/hydration work-up, not reassurance.' });
   }
 
   return alerts;

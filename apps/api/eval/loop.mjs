@@ -310,6 +310,39 @@ export const LOOP_SCENARIOS = [
     resultText: 'Abdominal US: target/doughnut sign in the right upper quadrant with a bowel-within-bowel appearance, trace free fluid',
     moveDx: ['intussusception'], direction: 'up',
   },
+  // ── Paediatrics DEPTH (neonatology + PICU-level reasoning) — the dossier's
+  //    deepest sections: day-of-life anchoring, the duct-dependent collapse
+  //    that mimics sepsis, and neonatal sepsis on the septic screen. ──────────
+  {
+    id: 'neonate-collapse-to-duct-dependent',
+    title: 'Day-5 neonatal collapse → duct-dependent cardiac lesion on pre/post-ductal sats + echo',
+    dept: 'paeds',
+    subDept: 'neonatal',
+    record: {
+      intake: { name: 'N1', age: '5 days', sex: 'M', admissionDiagnosis: 'sudden collapse and poor feeding', allergies: 'NKDA' },
+      history: { chiefComplaint: 'grey, floppy and not feeding since this morning', hpi: 'Born at term, normal delivery, discharged well day 1. Fed well until today — now grey, lethargic, poor feeding, fast breathing. No fever. Weight 3.1 kg. This is the classic day-3-to-14 presentation as the ductus closes.', pmh: 'nil', medications: 'none', hivStatus: 'exposed, on prophylaxis' },
+      assessment: { vitals: 'HR 190, RR 68, sats 78% (right hand) vs 68% (foot), Temp 36.4, cap refill 5s', examination: 'grey, mottled, floppy, weak/absent femoral pulses, hepatomegaly, active precordium' },
+    },
+    expectDx: ['duct-dependent', 'congenital heart', 'critical congenital', 'coarctation', 'ductal', 'cyanotic'],
+    expectDiscriminator: ['pre-ductal', 'post-ductal', 'pre/post', 'four-limb', 'echo', 'echocardiog', 'femoral', 'hyperoxia'],
+    resultText: 'Pre/post-ductal sats gradient confirmed (right hand 78% vs foot 68%) ; four-limb BP: upper > lower with weak femorals ; echo: critical coarctation with a closing duct ; hyperoxia test failed to correct',
+    moveDx: ['duct-dependent', 'congenital heart', 'coarctation', 'ductal'], direction: 'up',
+  },
+  {
+    id: 'neonate-not-feeding-to-sepsis',
+    title: 'Day-3 neonate "just not feeding" → early neonatal sepsis on septic screen',
+    dept: 'paeds',
+    subDept: 'neonatal',
+    record: {
+      intake: { name: 'N2', age: '3 days', sex: 'F', admissionDiagnosis: 'poor feeding and temperature instability', allergies: 'NKDA' },
+      history: { chiefComplaint: 'not feeding, floppy, cool to touch', hpi: 'Prolonged rupture of membranes (>18h) and maternal intrapartum fever noted at delivery. Baby feeding poorly since day 2, now lethargic with temperature instability. Weight 2.9 kg. In a neonate "just not feeding" is sepsis until proven otherwise.', pmh: 'PROM >18h, maternal fever', medications: 'none', hivStatus: 'exposed' },
+      assessment: { vitals: 'Temp 35.6 (hypothermic), HR 180, RR 70, sats 92%, glucose 2.3', examination: 'lethargic, poor tone, mottled, delayed cap refill, reduced activity' },
+    },
+    expectDx: ['neonatal sepsis', 'sepsis', 'early-onset sepsis', 'early onset'],
+    expectDiscriminator: ['septic screen', 'blood culture', 'fbc', 'crp', 'culture', 'lp', 'glucose'],
+    resultText: 'FBC: WCC 2.1 (neutropenia) with left shift ; CRP 68 rising ; blood culture taken (pending) ; glucose 2.3 corrected ; empiric ampicillin + gentamicin started without delay',
+    moveDx: ['neonatal sepsis', 'sepsis', 'early-onset sepsis'], direction: 'up',
+  },
 
   // ── Intensive Care (M2) — critical-care cases where a result discriminates
   //    the picture / support decision. ───────────────────────────────────────

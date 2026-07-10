@@ -1,0 +1,110 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "febrile-child-to-meningitis",
+      "title": "Febrile child + neck stiffness → bacterial meningitis on LP",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 65,
+        "after": 96,
+        "dx": "Acute bacterial meningitis (pneumococcal)"
+      }
+    },
+    {
+      "id": "child-polyuria-to-dka",
+      "title": "Child polyuria + Kussmaul → new-onset DKA on VBG + ketones",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 92,
+        "after": 98,
+        "dx": "Diabetic ketoacidosis, new-onset Type 1 diabetes, severe"
+      }
+    },
+    {
+      "id": "child-tachypnoea-to-severe-pneumonia",
+      "title": "Child fever + fast breathing → severe pneumonia on CXR + sats",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 70,
+        "after": 88,
+        "dx": "Severe bacterial community-acquired pneumonia (WHO severe, complicated by parapneumonic effusion)"
+      }
+    },
+    {
+      "id": "infant-colic-to-intussusception",
+      "title": "Infant colicky pain + red-currant stool → intussusception on US",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 85,
+        "after": 95,
+        "dx": "Intussusception"
+      }
+    },
+    {
+      "id": "neonate-collapse-to-duct-dependent",
+      "title": "Day-5 neonatal collapse → duct-dependent cardiac lesion on pre/post-ductal sats + echo",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 95,
+        "dx": "Critical coarctation of the aorta with closing ductus arteriosus"
+      }
+    },
+    {
+      "id": "neonate-not-feeding-to-sepsis",
+      "title": "Day-3 neonate \"just not feeding\" → early neonatal sepsis on septic screen",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 80,
+        "after": 92,
+        "dx": "Early-onset neonatal sepsis"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 13,
+    "inputTokens": 9621,
+    "outputTokens": 28277,
+    "cacheReadTokens": 9195,
+    "cacheWriteTokens": 17248,
+    "estCostUSD": 0.5204565,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 13,
+        "estCostUSD": 0.5204565
+      }
+    },
+    "maxSingleCallUSD": 0.05624775
+  }
+}
