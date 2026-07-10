@@ -11,7 +11,6 @@ import { ArrowLeft, Plus, X, GraduationCap } from 'lucide-react';
 import { ThemeToggle } from './components/ThemeToggle';
 import { RoundTab } from './tabs/RoundTab';
 import { FormulasTab } from './tabs/FormulasTab';
-import { ResultsTab } from './tabs/ResultsTab';
 import { DocumentsTab } from './tabs/DocumentsTab';
 import { SpecialistTab } from './tabs/SpecialistTab';
 
@@ -68,10 +67,12 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   const deptInfo = DEPARTMENTS.find(d => d.id === dept)!;
   const subDeptInfo = subDept ? subDeptOptions?.find(s => s.id === subDept) : undefined;
 
+  // Results capture now lives inside the Bedside stream (the loop's second
+  // input) — persisted activeTab 'results' from older sessions maps there.
+  const currentTab: Tab = activeTab === 'results' ? 'clerk' : activeTab;
   const tabs = ([
-    { id: 'clerk' as Tab, label: 'Clerk' },
+    { id: 'clerk' as Tab, label: 'Bedside' },
     { id: 'problems' as Tab, label: `Problems (${activePatient?.problems.length ?? 0})` },
-    { id: 'results' as Tab, label: 'Results' },
     { id: 'formulas' as Tab, label: 'Calculators' },
     { id: 'documents' as Tab, label: 'Documents' },
     { id: 'specialist' as Tab, label: 'Specialist', show: dept === 'og' },
@@ -186,7 +187,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
                 className={`px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors border-b-2 ${
-                  activeTab === t.id
+                  currentTab === t.id
                     ? 'text-brand-700 border-brand-500 bg-brand-50/60'
                     : 'text-ink-soft border-transparent hover:text-ink'
                 }`}
@@ -196,11 +197,12 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
             ))}
           </div>
 
-          {/* Tab content */}
+          {/* Tab content — the Bedside cockpit runs wide (input + live picture
+              side by side); the secondary tabs keep the reading column. */}
           <div className="flex-1 overflow-y-auto px-5 py-8">
             {activePatient ? (
-              <div className="max-w-3xl mx-auto">
-                {activeTab === 'clerk' && (
+              <div className={`${currentTab === 'clerk' ? 'max-w-6xl' : 'max-w-3xl'} mx-auto`}>
+                {currentTab === 'clerk' && (
                   <ClerkTab
                     key={activePatient.id}
                     patient={activePatient}
@@ -210,7 +212,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     onPatient={patch => updatePatient(activePatient.id, patch)}
                   />
                 )}
-                {activeTab === 'problems' && (
+                {currentTab === 'problems' && (
                   <ProblemsTab
                     key={activePatient.id}
                     patient={activePatient}
@@ -220,7 +222,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     onChange={problems => updatePatient(activePatient.id, { problems })}
                   />
                 )}
-                {activeTab === 'round' && (
+                {currentTab === 'round' && (
                   <RoundTab
                     key={activePatient.id}
                     patient={activePatient}
@@ -236,21 +238,11 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     onPatient={patch => updatePatient(activePatient.id, patch)}
                   />
                 )}
-                {activeTab === 'results' && (
-                  <ResultsTab
-                    key={activePatient.id}
-                    dept={dept}
-                    subDept={subDept ?? undefined}
-                    toolsKey={key}
-                    patient={activePatient}
-                    onPatient={patch => updatePatient(activePatient.id, patch)}
-                  />
-                )}
-                {activeTab === 'formulas' && <FormulasTab dept={dept} patient={activePatient} />}
-                {activeTab === 'documents' && (
+                {currentTab === 'formulas' && <FormulasTab dept={dept} patient={activePatient} />}
+                {currentTab === 'documents' && (
                   <DocumentsTab key={activePatient.id} patient={activePatient} toolsKey={key} dept={dept} />
                 )}
-                {activeTab === 'specialist' && (
+                {currentTab === 'specialist' && (
                   <SpecialistTab key={activePatient.id} patient={activePatient} toolsKey={key} dept={dept} />
                 )}
               </div>

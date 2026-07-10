@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
 import {
   panelsFor,
@@ -7,34 +6,28 @@ import {
   trendAlerts,
   type InvestigationEntry,
 } from '../lib/investigations';
-import { SectionHead } from '../components/ui';
-import { WhyButton } from '../components/WhyButton';
-import { EscapeHatch } from '../components/EscapeHatch';
-import { WorkingPicturePanel } from '../components/WorkingPicturePanel';
-import { useWorkingPicture } from '../lib/useWorkingPicture';
+import { SectionHead } from './ui';
+import { WhyButton } from './WhyButton';
+import { EscapeHatch } from './EscapeHatch';
 
-// ─── RESULTS TAB — the investigation-trending companion ──────────────────────
-// Capture a panel of results per date; the app trends every analyte across the
-// admission and fires deterministic "one-step-ahead" alerts (K+ swings, AKI
-// creatinine ratio, Hb drops, non-clearing lactate/CRP...). This is the third
-// leg of the app: historian → examination aid → investigation interpreter.
+// ─── RESULTS CAPTURE — the loop's second input ───────────────────────────────
+// Panel-based capture, per-analyte trending and the deterministic one-step-ahead
+// alerts. Lives INSIDE the bedside capture stream (results are input to the
+// picture, same as findings) — extracted from the old Results tab so the whole
+// loop happens on one canvas.
 
 function todayISO(): string {
-  // Local date without pulling in a date lib; the value is display/record only.
   const d = new Date();
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
+export function ResultsCapture({ patient, dept, onPatient }: {
   patient: Patient;
-  toolsKey: string;
-  dept: DeptId;
-  subDept?: string;
+  dept: string;
   onPatient: (patch: Partial<Patient>) => void;
 }) {
   const entries = patient.investigations ?? [];
-  const wp = useWorkingPicture(patient, toolsKey, dept, subDept, onPatient);
   const [openPanel, setOpenPanel] = useState<string | null>(null);
   const [date, setDate] = useState(todayISO());
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -55,17 +48,6 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   return (
     <div className="space-y-5">
-      {/* The bedside loop closes here: a landed result updates the picture */}
-      {(patient.workingPicture || entries.length > 0) && (
-        <WorkingPicturePanel
-          picture={wp.picture}
-          loading={wp.loading}
-          error={wp.error}
-          onGenerate={wp.generate}
-          generateLabel="Interpret results"
-        />
-      )}
-
       {/* One-step-ahead alerts — the app thinking slightly ahead of the intern */}
       {alerts.length > 0 && (
         <div className="space-y-2">
@@ -80,7 +62,7 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
               }`}
             >
               <div className="flex items-start gap-2">
-                <span className="shrink-0">{a.severity === 'red' ? '🔴' : '🟠'}</span>
+                <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${a.severity === 'red' ? 'bg-band-exclude' : 'bg-band-possible'}`} />
                 <div className="flex-1">
                   <p className="text-[13px] font-medium leading-snug">{a.message}</p>
                 </div>
@@ -178,7 +160,7 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
       </div>
 
       {entries.length === 0 && alerts.length === 0 && (
-        <p className="text-sm text-ink-mute text-center py-6">
+        <p className="text-sm text-ink-mute text-center py-4">
           No results yet. Add a panel above and the app will trend it and flag the deltas that matter.
         </p>
       )}
@@ -201,4 +183,14 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
       )}
     </div>
   );
+}
+
+/** Compact facts for stage summaries: entry count + red/amber alert count. */
+export function resultsSummary(patient: Patient): string {
+  const entries = patient.investigations ?? [];
+  if (entries.length === 0) return 'No results yet';
+  const alerts = trendAlerts(analyteTrends(entries));
+  const reds = alerts.filter(a => a.severity === 'red').length;
+  const alertBit = alerts.length > 0 ? ` · ${alerts.length} alert${alerts.length > 1 ? 's' : ''}${reds ? ` (${reds} red)` : ''}` : '';
+  return `${entries.length} result set${entries.length > 1 ? 's' : ''}${alertBit}`;
 }
