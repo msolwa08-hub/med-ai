@@ -55,8 +55,8 @@ Explicitly a multi-session undertaking — this file is the resumable tracker.
 | Obstetrics & Gynae | 🟡 partial (v1 depth pass done) | 🟡 hardened via 6-agent eval | STG floor for 10 obstetric/gynae emergencies, teratogen net armed, female acute-abdomen differential, resilience + completeness guards — see `eval/og/SCORECARD.md`. Still: streaming, competing-surface redesign |
 | Paediatrics | 🟡 partial (v1 depth pass done) | 🟡 partial | deepen: neonatology, PICU, syndromic reasoning |
 | Orthopaedics | ✅ done (1593 lines) | ✅ implemented | own fields fragment (mechanism, Gustilo, neurovascular pre/post, weight-bearing), treatment sets (open #, compartment syndrome, septic arthritis, NOF pathway, cauda equina), NV/open-#/fracture-description blocks, msk panel, limb/life-threat lens; loop gate 100/100 live. See `implementation/orthopaedics.md` |
-| Psychiatry | ⬜ not started | ⬜ not started | full differential incl. organic, MHCA, risk |
-| Anaesthetics (NEW dept) | ⬜ not started | ⬜ not started | add as a department; ASA, airway, MH, regional |
+| Psychiatry | ⏳ in progress (§1 done, agent completing §2-6) | 🟡 lens done | organic-exclusion lens + 4 loop scenarios shipped; **loop gate 100/100 live** (`eval/m2/loop-psych-2026-07-10.json`) — registry content (fields/blocks/sets/panels) lands with the dossier |
+| Anaesthetics (NEW dept) | ⏳ in progress (agent writing) | 🟡 registered + lens + fields done | dept registered (web+API), own fields (ASA/airway/fasting/anticoag-neuraxial/METs), pre-anaesthetic checklist, discipline lens; **loop gate 100/100 live** (`eval/m2/loop-anaes-2026-07-10.json`) — treatment sets/blocks/panels land with the dossier |
 | Family Med / PHC | ⬜ not started | ⬜ not started | consider — the district generalist lens |
 
 Legend: ⬜ not started · ⏳ in progress · 🟡 partial · ✅ done
