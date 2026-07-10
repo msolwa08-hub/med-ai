@@ -114,6 +114,25 @@ expanded stage), status legible at a glance (stage summaries + done checks),
 zero tab-hopping for the loop, and the reward (the picture moving) always in
 view.
 
+## Speed — the fastest way in and out
+
+Internship is time-poor: an intern clerks and rounds on many patients fast, so
+the tool has to be the shortest path between what they say and what is
+documented.
+
+- **Fastest in — the QuickBar** (top of the Bedside cockpit). The intern dumps
+  the whole clerking in one breath — **typed, pasted, or dictated** (browser
+  Web Speech API, hands-free, zero API cost) — and `/tools/quick-parse` fills
+  every field in ONE call (~1 round-trip vs ~6 for the conversational assist;
+  ~2–3c vs ~24c). Low-confidence extractions flash amber to verify; absent
+  fields (e.g. an SA HIV/TB screen) are nudged in a note, not dropped. The
+  guided stages remain the fallback when the intern is unsure what to say.
+- **Fastest out — QuickDocs** (cockpit "Documents" drawer + Documents tab, one
+  shared `lib/docGen`). Every chart document — admission note, ward-round SBAR
+  presentation, SOAP note, discharge, referral, lab interpretation — is one tap
+  from the current record + working diagnosis, as plain text ready to copy or
+  transcribe. Generated docs cache per session.
+
 ## The hero — Working Picture (`WorkingPicturePanel.tsx`)
 The bedside loop made visual: a ranked differential with **spring-animated
 confidence bars**, band-coloured by weight; each card shows the "why", what would
