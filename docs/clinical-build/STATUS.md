@@ -13,15 +13,20 @@
 - **M1 — the bedside loop in O&G — ✅ SHIPPED**. Weighted differential +
   discriminating investigations + results→confidence→management, narrated.
   Live loop harness 100/100, ~8.4c/loop. Proof: `eval/og/` + `eval/reports/`.
-- **M2 — the loop verified across departments — ✅ LOOP GATES PASSED LIVE**
-  (2026-07-10): **Medicine 100/100, Surgery 100/100, Emergency 100/100, O&G
-  regression 100/100**, ~8c/loop, <10c/prompt everywhere. The Emergency gate
-  caught a real transient (max_tokens truncation → empty picture) now fixed
-  with a cache-friendly retry in `confidence-engine.ts`. Gate record + raw
-  reports: `eval/m2/`. Remaining M2 depth work: implement the
-  Medicine/Surgery/Emergency dossiers into registries (smart-blocks, treatment
-  sets, STG floors, investigation panels — field registry done for Medicine),
-  then the per-department six-agent depth eval.
+- **M2 — the loop across every department, researched + implemented + gated —
+  ✅ COMPLETE** (2026-07-10). All **10 departments** now carry a consultant-
+  depth dossier, registry implementation (fields, smart-blocks, treatment sets,
+  STG floors, investigation panels, discipline lens), and a **live loop gate at
+  100/100**: Internal Medicine, Surgery, Emergency, ICU, Orthopaedics,
+  Psychiatry, Anaesthetics (added as a new department this campaign),
+  Paediatrics (neonatology/PICU depth pass), Obstetrics & Gynaecology (the
+  founding department; 6/6 scenarios), and the O&G regression. ~8–10c/loop,
+  <10c/prompt everywhere. Gate records + raw reports: `eval/m2/`; per-department
+  clinical-review batches for sign-off: `implementation/*.md`. The Emergency
+  gate caught + fixed a real max_tokens-truncation transient
+  (`confidence-engine.ts` cache-friendly retry). **Next milestone: M-UI/2, the
+  frontend overhaul** (`eval/m-ui2/`) — the user's explicit priority (UI 5/10 →
+  premium Calm Clinical).
 
 ---
 
@@ -52,7 +57,7 @@ Explicitly a multi-session undertaking — this file is the resumable tracker.
 | Surgery (General) | ✅ done | ✅ implemented | fields (pain evolution, anticoag, NPO, post-op day), treatment sets (appendicitis/SBO/perforation/cholecystitis/peri-op), post-op + bridging blocks, abdo panel, 4-question lens; loop gate 100/100 live. See `implementation/surgery-emergency.md` |
 | Emergency Medicine | ✅ done (1018 lines) | ✅ implemented | fields (SATS, ED clock, pre-hospital), treatment sets (MTP/organophosphate/NAC/meningitis), SATS + GCS blocks, tox panel, ABCDE-on-a-clock lens; loop gate 100/100 live. See `implementation/surgery-emergency.md` |
 | Intensive Care | ✅ done (1095 lines) | ✅ implemented | fields (RRT/AEIOU, fluid balance, RASS/CAM-ICU, lines, ceiling of care), treatment sets (septic-shock hour-1, ARDS lung-protective, raised-ICP, RRT, VAP), organ-support/fluid/sedation blocks, sepsis panel, FASTHUGSBID lens; loop gate 100/100 live. See `implementation/icu.md` |
-| Obstetrics & Gynae | 🟡 partial (v1 depth pass done) | 🟡 hardened via 6-agent eval | STG floor for 10 obstetric/gynae emergencies, teratogen net armed, female acute-abdomen differential, resilience + completeness guards — see `eval/og/SCORECARD.md`. Still: streaming, competing-surface redesign |
+| Obstetrics & Gynae | ✅ done (2107 lines) | ✅ implemented (founding dept, 6-agent-hardened) | the founding department — deepest registry content (57 fields, 4 sub-dept lenses antenatal/labour/postnatal/gynae, STG-floor emergency sets, teratogen net, HELLP/DIC panels), hardened via the 6-agent eval (`eval/og/SCORECARD.md`); dossier now gives DEPTH-BAR documentary parity + 3 consultant-nuance corrections (protein-S/prior-VTE, molar uterotonics-after-evacuation, FIGO IIIA/IIIB) flagged for a lens touch-up. Loop gate **6/6 100/100 live**. See `implementation/obstetrics-gynaecology.md`. Residual work (streaming/surface redesign) is UX → folds into M-UI/2 |
 | Paediatrics | ✅ done (2382 lines) | ✅ implemented (depth pass) | dossier (neonatology deepest, PICU reasoning, syndromic); enriched lens (age+weight-first, compensate-then-cliff, IMCI reflex, caregiver-as-monitor); fields (RTHB/EPI-SA/PMTCT/developmental red flags/neonatal glucose); paeds panel (neonatal bili/glucose/CRP/weight); 7 treatment sets (duct-dependent collapse, status epilepticus, cerebral-oedema-aware DKA, croup, bronchiolitis, neonatal jaundice, NAI); 4 smart blocks (neonatal core, IMCI danger signs, dehydration, child protection); loop gate 100/100 live incl. 2 neonatal depth cases. ⚠ one prescribing correction (HIV-exposed dual NVP+AZT) flagged. See `implementation/paediatrics.md` |
 | Orthopaedics | ✅ done (1593 lines) | ✅ implemented | own fields fragment (mechanism, Gustilo, neurovascular pre/post, weight-bearing), treatment sets (open #, compartment syndrome, septic arthritis, NOF pathway, cauda equina), NV/open-#/fracture-description blocks, msk panel, limb/life-threat lens; loop gate 100/100 live. See `implementation/orthopaedics.md` |
 | Psychiatry | ✅ done (1911 lines) | ✅ implemented | MHCA-status + depot/clozapine + organic-screen fields, psych monitoring panel (lithium bands, clozapine ANC, CK-in-agitation, urine tox), 7 treatment sets (rapid tranq, NMS, serotonin syndrome, lithium toxicity, CIWA alcohol withdrawal, dystonia/EPSE, suicide safety pathway), 4 smart blocks (MSE, risk, MHCA, withdrawal watch), organic-exclusion lens; loop gate 100/100 live. See `implementation/psychiatry.md` |
