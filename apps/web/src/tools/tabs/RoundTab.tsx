@@ -7,6 +7,8 @@ import type { Patient } from '../fields/types';
 import { patientContext } from '../lib/patientContext';
 import { serializeLatestResults } from '../lib/investigations';
 import { AiBtn, copy, stripMarkdown } from '../components/ui';
+import { QuickBar } from '../components/QuickBar';
+import type { AssistField } from '../toolsApi';
 
 // ─── ROUND & HANDOVER TAB ────────────────────────────────────────────────────
 // Deliberately just two outputs — the daily ward-round note and the consultant
@@ -272,6 +274,24 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
         <p className="text-ink-mute text-sm mt-1 mb-4 print:hidden">
           The note you write on the chart each day. Add today’s findings, generate, copy or print.
         </p>
+
+        {/* Fastest in: dictate/type the whole round in one go → fills the four
+            fields below. The fields stay as the review/edit surface. */}
+        <div className="mb-3 print:hidden">
+          <QuickBar
+            toolsKey={toolsKey}
+            dept={dept}
+            subDept={subDept}
+            section="Ward round"
+            title="Quick round"
+            hint="say or type today’s progress; I’ll sort it"
+            cta="Fill round"
+            placeholder={'e.g. "slept well, eating and mobilising, no fresh complaints, obs stable BP 128 over 78 HR 76 afebrile sats 98, morning bloods CRP down to 40 Hb steady, plan continue IV antibiotics day 3, step down to oral tomorrow, likely home Friday"'}
+            fields={TODAY_INPUTS.map(f => ({ key: f.key, label: f.label, value: today[f.key] })) as AssistField[]}
+            context={patientContext(patient, dept, subDept)}
+            onResults={u => setToday(prev => ({ ...prev, ...u }))}
+          />
+        </div>
 
         <div className="grid sm:grid-cols-2 gap-3 print:hidden">
           {TODAY_INPUTS.map(f => (

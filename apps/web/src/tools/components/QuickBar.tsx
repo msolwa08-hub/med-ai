@@ -35,6 +35,8 @@ const CONF_TONE: Record<ScanFieldResult['confidence'], string> = {
 
 export function QuickBar({
   toolsKey, dept, subDept, fields, context, onResults,
+  section = 'Clerking', title = 'Quick clerk', hint = "say or paste it all; I'll file it", cta = 'Fill record',
+  placeholder = 'e.g. "54 year old man, crushing central chest pain 2 hours, sweaty, known hypertensive and diabetic, BP 148 over 92, HR 96, sats 96 on air, chest clear"',
 }: {
   toolsKey: string;
   dept: string;
@@ -43,6 +45,12 @@ export function QuickBar({
   context: string;
   /** Parsed values routed back to the record; label lets the parent flash what filled. */
   onResults: (updates: Record<string, string>) => void;
+  /** Parse section (labels the endpoint's task frame). */
+  section?: string;
+  title?: string;
+  hint?: string;
+  cta?: string;
+  placeholder?: string;
 }) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,7 +88,7 @@ export function QuickBar({
     if (listening) { recRef.current?.stop(); setListening(false); }
     setLoading(true); setError(''); setFilled([]); setOverall('');
     try {
-      const res = await toolsApi.quickParse(toolsKey, { dept, subDept, section: 'Clerking', fields, text: dump, context });
+      const res = await toolsApi.quickParse(toolsKey, { dept, subDept, section, fields, text: dump, context });
       const updates: Record<string, string> = {};
       const flash: typeof filled = [];
       for (const [k, v] of Object.entries(res.results)) {
@@ -106,8 +114,8 @@ export function QuickBar({
     <div className="rounded-card border border-brand-200 bg-surface-brand p-4 sm:p-5 shadow-card">
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="w-4 h-4 text-brand-600" />
-        <h3 className="text-[15px] font-bold text-ink tracking-tight">Quick clerk</h3>
-        <span className="text-xs text-ink-soft">— say or paste it all; I'll file it</span>
+        <h3 className="text-[15px] font-bold text-ink tracking-tight">{title}</h3>
+        <span className="text-xs text-ink-soft">— {hint}</span>
       </div>
 
       <div className="relative">
@@ -116,7 +124,7 @@ export function QuickBar({
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') parse(); }}
           rows={3}
-          placeholder={'e.g. "54 year old man, crushing central chest pain 2 hours, sweaty, known hypertensive and diabetic, BP 148 over 92, HR 96, sats 96 on air, chest clear"'}
+          placeholder={placeholder}
           className="w-full bg-surface border border-line-strong rounded-xl px-3.5 py-2.5 pr-12 text-[15px] text-ink placeholder:text-ink-mute resize-none transition-shadow focus:outline-none focus:border-brand-500 focus:shadow-focus"
         />
         {supported.current && (
@@ -140,7 +148,7 @@ export function QuickBar({
           className="inline-flex items-center gap-2 bg-brand-700 hover:bg-brand-600 active:bg-brand-800 disabled:opacity-45 disabled:pointer-events-none text-white text-sm font-medium px-4 min-h-[42px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          {loading ? 'Filing…' : 'Fill record'}
+          {loading ? 'Filing…' : cta}
         </button>
         <span className="text-[11px] text-ink-mute hidden sm:inline-flex items-center gap-1">
           <CornerDownLeft className="w-3 h-3" /> ⌘/Ctrl+Enter
