@@ -72,6 +72,51 @@ export const LOOP_SCENARIOS = [
     resultText: 'Temp 38.6 ; WCC 19 ; CRP 140 ; offensive liquor ; fetal tachycardia 175',
     moveDx: ['chorioamnionitis', 'infection', 'sepsis'], direction: 'up',
   },
+  // ── O&G DEPTH — broadening past the founding three: the postpartum
+  //    collapse whose cause is the 4-Ts question, and the two time-critical
+  //    misses (concealed abruption; the non-pregnant torsion). ───────────────
+  {
+    id: 'pph-to-atony',
+    title: 'Postpartum collapse → uterine atony (Tone) on the 4-Ts assessment',
+    dept: 'og', subDept: 'labour',
+    record: {
+      intake: { name: 'L4', age: '34', sex: 'F', admissionDiagnosis: 'primary postpartum haemorrhage', allergies: 'NKDA' },
+      history: { chiefComplaint: 'heavy bleeding immediately after delivery', hpi: 'G5P5, prolonged labour with oxytocin augmentation, vaginal delivery of a 4.1 kg baby 20 min ago; now brisk ongoing vaginal bleeding, estimated 1200 ml and continuing.', gravida: '5', para: '5', medications: 'oxytocin augmentation in labour', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 92/54, HR 122, pallor', examination: 'uterus soft/boggy and high above the umbilicus, placenta delivered and reported complete, no visible genital-tract laceration on inspection' },
+    },
+    expectDx: ['atony', 'uterine atony', 'tone', 'postpartum haemorrhage', 'pph'],
+    expectDiscriminator: ['4 ts', '4ts', 'tone', 'fundal', 'uterine tone', 'rub up', 'uterotonic'],
+    resultText: 'Fundus soft and boggy, contracts with rubbing then relaxes again (atony confirmed as the cause) ; placenta re-checked complete ; no laceration ; clotting normal — Tone is the culprit, uterotonics + bimanual compression',
+    moveDx: ['atony', 'uterine atony', 'tone'], direction: 'up',
+  },
+  {
+    id: 'aph-to-abruption',
+    title: 'Third-trimester pain + bleeding → placental abruption (concealed) on clinical + DIC screen',
+    dept: 'og', subDept: 'antenatal',
+    record: {
+      intake: { name: 'L5', age: '29', sex: 'F', admissionDiagnosis: 'antepartum haemorrhage with pain', allergies: 'NKDA' },
+      history: { chiefComplaint: 'constant severe abdominal pain with some bleeding', hpi: 'G3P2 34 weeks, sudden constant severe abdominal pain with a modest amount of dark vaginal bleeding — the pain is out of proportion to the visible blood. Known hypertension. No praevia on the booking scan.', gestationalAge: '34 weeks', gravida: '3', para: '2', pmh: 'chronic hypertension', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 158/98, HR 116', examination: 'uterus tense, tender and hard ("woody"), difficult to palpate fetal parts, fetal heart bradycardic at 90 — the revealed blood underestimates the loss' },
+    },
+    expectDx: ['abruption', 'placental abruption', 'abruptio'],
+    expectDiscriminator: ['clinical', 'dic', 'clotting', 'fibrinogen', 'coagulation', 'no pv', 'no vaginal exam', 'ctg'],
+    resultText: 'Diagnosis is clinical (do NOT delay for a scan) ; DIC screen: fibrinogen low at 1.4, platelets falling, prolonged PT/aPTT — consumptive coagulopathy of a significant concealed abruption ; fetal bradycardia persisting → category-1 delivery',
+    moveDx: ['abruption', 'placental abruption', 'abruptio'], direction: 'up',
+  },
+  {
+    id: 'pelvic-pain-to-torsion',
+    title: 'Acute pelvic pain (non-pregnant) → ovarian torsion on Doppler US (βhCG negative first)',
+    dept: 'og', subDept: 'gynae',
+    record: {
+      intake: { name: 'L6', age: '22', sex: 'F', admissionDiagnosis: 'acute severe unilateral pelvic pain', allergies: 'NKDA' },
+      history: { chiefComplaint: 'sudden severe right-sided pelvic pain with vomiting', hpi: 'Sudden onset severe right iliac fossa/pelvic pain a few hours ago, colicky then constant, with nausea and vomiting. Known right ovarian cyst on a previous scan. LMP 2 weeks ago.', lmp: '2 weeks ago', pmh: 'known ovarian cyst', medications: 'none' },
+      assessment: { vitals: 'BP 124/76, HR 104, Temp 37.1', examination: 'very tender right adnexa with a palpable tender mass, guarding, βhCG must be checked first to exclude ectopic' },
+    },
+    expectDx: ['ovarian torsion', 'torsion', 'adnexal torsion'],
+    expectDiscriminator: ['doppler', 'ultrasound', 'us', 'whirlpool', 'flow', 'hcg', 'βhcg', 'bhcg'],
+    resultText: 'Urine βhCG NEGATIVE (ectopic excluded) ; transvaginal Doppler US: enlarged oedematous right ovary with a whirlpool sign and absent/reduced venous then arterial flow — torsion; this is a same-day theatre call to detorse and salvage the ovary',
+    moveDx: ['ovarian torsion', 'torsion', 'adnexal torsion'], direction: 'up',
+  },
 
   // ── Internal Medicine (M2) — the canonical "the result moves the diagnosis"
   //    cases on an SA acute medical take. Each names a discriminating Ix that

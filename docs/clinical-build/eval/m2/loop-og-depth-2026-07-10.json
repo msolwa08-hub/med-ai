@@ -1,0 +1,110 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "pet-to-hellp",
+      "title": "Severe PET → HELLP confirmed on bloods",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 40,
+        "after": 92,
+        "dx": "HELLP syndrome"
+      }
+    },
+    {
+      "id": "ectopic-confirm",
+      "title": "Early-pregnancy pain → ectopic confirmed on TVS",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 95,
+        "dx": "Ectopic pregnancy (tubal, ruptured)"
+      }
+    },
+    {
+      "id": "preterm-to-chorio",
+      "title": "Preterm labour → chorioamnionitis on sepsis markers",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 65,
+        "after": 92,
+        "dx": "Chorioamnionitis"
+      }
+    },
+    {
+      "id": "pph-to-atony",
+      "title": "Postpartum collapse → uterine atony (Tone) on the 4-Ts assessment",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 92,
+        "dx": "Uterine atony"
+      }
+    },
+    {
+      "id": "aph-to-abruption",
+      "title": "Third-trimester pain + bleeding → placental abruption (concealed) on clinical + DIC screen",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 85,
+        "after": 95,
+        "dx": "Placental abruption with fetal compromise"
+      }
+    },
+    {
+      "id": "pelvic-pain-to-torsion",
+      "title": "Acute pelvic pain (non-pregnant) → ovarian torsion on Doppler US (βhCG negative first)",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 60,
+        "after": 92,
+        "dx": "Ovarian torsion (known cyst)"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 15,
+    "inputTokens": 19854,
+    "outputTokens": 28644,
+    "cacheReadTokens": 11093,
+    "cacheWriteTokens": 19188,
+    "estCostUSD": 0.5645049,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 15,
+        "estCostUSD": 0.5645049
+      }
+    },
+    "maxSingleCallUSD": 0.0512544
+  }
+}
