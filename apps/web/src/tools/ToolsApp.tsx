@@ -8,6 +8,7 @@ import { ClerkTab } from './tabs/ClerkTab';
 import { ProblemsTab } from './tabs/ProblemsTab';
 import { FeedbackButton } from './components/FeedbackButton';
 import { ArrowLeft, Plus, X, GraduationCap } from 'lucide-react';
+import { ThemeToggle } from './components/ThemeToggle';
 import { RoundTab } from './tabs/RoundTab';
 import { FormulasTab } from './tabs/FormulasTab';
 import { ResultsTab } from './tabs/ResultsTab';
@@ -114,6 +115,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           )}
         </div>
         <div className="flex-1 min-w-0" />
+        <ThemeToggle />
         {activePatient && (
           <button
             onClick={() => updatePatient(activePatient.id, { practice: !activePatient.practice })}

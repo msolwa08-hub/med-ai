@@ -42,7 +42,7 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
                 <div
                   key={item.id}
                   className={`flex items-start gap-3 rounded-xl transition-colors ${
-                    pendingMandatory ? 'bg-amber-50/70' : ''
+                    pendingMandatory ? 'bg-amber-50/70 dark:bg-amber-400/10' : ''
                   }`}
                 >
                   <button

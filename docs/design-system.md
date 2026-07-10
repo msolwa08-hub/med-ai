@@ -47,8 +47,13 @@ Source of truth in code:
 | `ink-soft` | secondary text | slate-600 |
 | `ink-mute` | tertiary / placeholder | slate-400 |
 
-A `[data-theme="dark"]` block in `index.css` remaps every variable — the whole
-app is dark-ready; light is the shipped hero.
+A `[data-theme="dark"]` block in `index.css` remaps every variable, and a
+sun/moon toggle in the shell header (`ThemeToggle`) flips the app between the
+light and dark palettes. Preference (`light | dark | system`) persists and is
+applied before first paint (`lib/theme.ts` → `applyStoredTheme()` in `main.tsx`),
+so there is no flash. Light is the hero; dark is fully shipped. The clinical
+signal chips stay light-tinted in dark mode by design — they read as deliberate
+highlighted badges against the dark surface.
 
 ### Colour — clinical signal (never repurposed as chrome)
 - **Confidence bands** (`band-confirmed` emerald, `band-likely` brand,
