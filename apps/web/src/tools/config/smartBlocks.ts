@@ -118,6 +118,9 @@ export const SMART_BLOCKS: SmartBlock[] = [
     id: 'hiv-art',
     title: 'HIV / ART',
     pattern: /HIV\s*(pos|positive|\+)|\bART\b|\bTLD\b|tenofovir|dolutegravir|RVD/i,
+    // Medicine/emergency run the deeper hiv-art-status block (CD4, cotrimoxazole,
+    // TB history) instead — this clinic-framed one stays for the other wards.
+    depts: ['og', 'paeds', 'surgery', 'ortho', 'psych', 'icu'],
     why: 'Viral load and adherence decide everything downstream — an undetectable patient on TLD is a different patient from a defaulter with unknown VL.',
     fields: [
       { id: 'tld', label: 'On TLD?', kind: 'toggle', cue: { color: 'blue', label: 'Blue tablet' } },
