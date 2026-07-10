@@ -78,8 +78,11 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       setTranscript([...nextTranscript, { role: 'assistant', content: res.nextQuestion }]);
       setQuestion(res.nextQuestion);
       setDone(res.done);
-      if (!res.done) setTimeout(() => inputRef.current?.focus(), 50);
-      else onDone?.();
+      // Refocus only mid-conversation (after the intern answered) — focusing on
+      // the INITIAL question scroll-yanks the page to this panel on load.
+      const userHasAnswered = nextTranscript.some(t => t.role === 'user');
+      if (!res.done && userHasAnswered) setTimeout(() => inputRef.current?.focus(), 50);
+      if (res.done) onDone?.();
     } catch {
       // Give the intern their answer back — a failed call must never eat what
       // they typed.
