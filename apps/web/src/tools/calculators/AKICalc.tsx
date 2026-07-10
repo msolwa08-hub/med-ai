@@ -45,7 +45,7 @@ export function AKICalc() {
           color={stage === 0 ? 'green' : stage === 1 ? 'yellow' : 'red'}
         />
       )}
-      {assessed && <p className="text-xs text-gray-500 leading-relaxed mt-2">{advice}</p>}
+      {assessed && <p className="text-xs text-ink-mute leading-relaxed mt-2">{advice}</p>}
     </CalcCard>
   );
 }

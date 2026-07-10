@@ -94,12 +94,12 @@ export function DocumentsTab({ patient, toolsKey, dept }: {
         ))}
       </div>
 
-      {err && <p className="text-red-400 text-xs">{err}</p>}
+      {err && <p className="text-band-exclude text-xs">{err}</p>}
 
       {docs.map(d =>
         results[d.id] ? (
           <div key={d.id}>
-            <p className="text-xs font-medium text-gray-500 mb-1">{d.label}</p>
+            <p className="text-xs font-medium text-ink-mute mb-1">{d.label}</p>
             <DocOutput text={results[d.id]} />
           </div>
         ) : null
@@ -177,10 +177,10 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
   }
 
   return (
-    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-4">
+    <div className="bg-surface border border-line shadow-sm rounded-2xl p-5 space-y-4">
       <div>
         <SectionHead>Hospital Protocols</SectionHead>
-        <p className="text-xs text-gray-500 -mt-2">
+        <p className="text-xs text-ink-mute -mt-2">
           Upload this facility's own protocols for {DEPARTMENTS.find(d => d.id === dept)?.label}. Once added, the AI
           follows them over the generic guideline wherever they differ — cited by name on affected problems.
         </p>
@@ -189,40 +189,40 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
       {!loading && protocols.length > 0 && (
         <div className="space-y-1.5">
           {protocols.map(p => (
-            <div key={p.id} className="flex items-center justify-between gap-3 bg-gray-50 rounded-xl px-3 py-2">
+            <div key={p.id} className="flex items-center justify-between gap-3 bg-surface-alt rounded-xl px-3 py-2">
               <div className="min-w-0">
-                <p className="text-sm text-gray-800 truncate">{p.title}</p>
-                <p className="text-[11px] text-gray-400">
+                <p className="text-sm text-ink truncate">{p.title}</p>
+                <p className="text-[11px] text-ink-mute">
                   {p.sourceFilename ? `${p.sourceFilename} · ` : ''}{p.charCount.toLocaleString()} chars · added {new Date(p.uploadedAt).toLocaleDateString()}
                 </p>
               </div>
-              <button onClick={() => remove(p.id)} className="text-gray-400 hover:text-red-500 text-lg shrink-0 px-1">×</button>
+              <button onClick={() => remove(p.id)} className="text-ink-mute hover:text-red-500 text-lg shrink-0 px-1">×</button>
             </div>
           ))}
         </div>
       )}
       {!loading && protocols.length === 0 && (
-        <p className="text-xs text-gray-400">No protocols uploaded yet for this department.</p>
+        <p className="text-xs text-ink-mute">No protocols uploaded yet for this department.</p>
       )}
 
-      <div className="border-t border-gray-100 pt-4 space-y-2.5">
+      <div className="border-t border-line pt-4 space-y-2.5">
         <div className="flex gap-2">
           <input
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="Protocol title, e.g. Ward 12 Sepsis Pathway 2026"
-            className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="flex-1 bg-surface border border-line-strong rounded-lg px-3 py-2 text-sm text-ink placeholder:text-ink-mute focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
-          <div className="flex bg-gray-100 rounded-lg p-0.5 shrink-0">
+          <div className="flex bg-surface-alt rounded-lg p-0.5 shrink-0">
             <button
               onClick={() => setMode('paste')}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'paste' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'paste' ? 'bg-surface text-ink shadow-sm' : 'text-ink-mute'}`}
             >
               Paste text
             </button>
             <button
               onClick={() => setMode('upload')}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'upload' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'upload' ? 'bg-surface text-ink shadow-sm' : 'text-ink-mute'}`}
             >
               Upload file
             </button>
@@ -235,7 +235,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
             onChange={e => setContent(e.target.value)}
             placeholder="Paste the protocol text here…"
             rows={4}
-            className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+            className="w-full bg-surface border border-line-strong rounded-lg px-3 py-2 text-sm text-ink placeholder:text-ink-mute focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
           />
         ) : (
           <input
@@ -243,7 +243,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
             type="file"
             accept=".pdf,.txt,.md,application/pdf,text/plain"
             onChange={e => setFile(e.target.files?.[0] ?? null)}
-            className="w-full text-sm text-gray-600"
+            className="w-full text-sm text-ink-soft"
           />
         )}
 
@@ -252,7 +252,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
         <button
           onClick={add}
           disabled={adding}
-          className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors"
+          className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors"
         >
           {adding ? 'Adding…' : '+ Add protocol'}
         </button>
@@ -280,8 +280,8 @@ const LEGAL_FORMS: { type: LegalFormType; label: string; sub: string; icon: stri
 
 const SECTION_STYLE: Record<LegalFormSection['status'], { card: string; badge: string; badgeLabel: string }> = {
   prefilled: {
-    card: 'border-teal-200 bg-white',
-    badge: 'bg-teal-50 text-teal-700',
+    card: 'border-brand-200 bg-surface',
+    badge: 'bg-brand-50 text-brand-700',
     badgeLabel: 'Prefilled from record — verify & edit',
   },
   'requires-input': {
@@ -290,8 +290,8 @@ const SECTION_STYLE: Record<LegalFormSection['status'], { card: string; badge: s
     badgeLabel: 'YOU must complete',
   },
   'requires-examination': {
-    card: 'border-gray-200 bg-gray-50',
-    badge: 'bg-gray-200 text-gray-600',
+    card: 'border-line bg-surface-alt',
+    badge: 'bg-surface-alt text-ink-soft',
     badgeLabel: 'Examine & record',
   },
 };
@@ -358,10 +358,10 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
   }
 
   return (
-    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-4">
+    <div className="bg-surface border border-line shadow-sm rounded-2xl p-5 space-y-4">
       <div>
         <SectionHead>Legal & Statutory</SectionHead>
-        <p className="text-xs text-gray-500 -mt-2">
+        <p className="text-xs text-ink-mute -mt-2">
           Drafted from this patient's record. Teal sections are prefilled for checking; amber and grey sections the AI
           will not invent — they are yours.
         </p>
@@ -375,12 +375,12 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
             disabled={loading !== ''}
             className={`min-h-[64px] rounded-2xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
               activeForm === f.type
-                ? 'bg-teal-600 border-teal-600 text-white'
-                : 'bg-white border-gray-200 text-gray-800 hover:border-teal-300 hover:bg-teal-50'
+                ? 'bg-brand-600 border-brand-600 text-white'
+                : 'bg-surface border-line text-ink hover:border-brand-300 hover:bg-brand-50'
             }`}
           >
             <span className="block text-sm font-semibold">{f.icon} {f.label}</span>
-            <span className={`block text-[11px] mt-0.5 ${activeForm === f.type ? 'text-teal-100' : 'text-gray-400'}`}>
+            <span className={`block text-[11px] mt-0.5 ${activeForm === f.type ? 'text-brand-100' : 'text-ink-mute'}`}>
               {loading === f.type ? 'Drafting…' : f.sub}
             </span>
           </button>
@@ -394,12 +394,12 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
             onChange={e => setProcedure(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') void generate('surgical-consent'); }}
             placeholder="Planned procedure, e.g. laparoscopic appendicectomy"
-            className="flex-1 bg-white border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 min-h-[44px]"
+            className="flex-1 bg-surface border border-line-strong rounded-xl px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-mute focus:outline-none focus:ring-1 focus:ring-brand-500 min-h-[44px]"
           />
           <button
             onClick={() => void generate('surgical-consent')}
             disabled={!procedure.trim() || loading !== ''}
-            className="bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white text-sm px-4 rounded-xl font-medium transition-colors min-h-[44px] shrink-0"
+            className="bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm px-4 rounded-xl font-medium transition-colors min-h-[44px] shrink-0"
           >
             {loading === 'surgical-consent' ? 'Drafting…' : 'Draft consent'}
           </button>
@@ -411,10 +411,10 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
       {draft && (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-sm font-semibold text-gray-900">{draft.formTitle}</p>
+            <p className="text-sm font-semibold text-ink">{draft.formTitle}</p>
             <button
               onClick={copyAll}
-              className="text-[13px] bg-gray-50 hover:bg-teal-50 text-teal-700 px-3.5 rounded-full font-medium transition-colors min-h-[44px]"
+              className="text-[13px] bg-surface-alt hover:bg-brand-50 text-brand-700 px-3.5 rounded-full font-medium transition-colors min-h-[44px]"
             >
               Copy all
             </button>
@@ -438,7 +438,7 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
             return (
               <div key={i} className={`border rounded-xl p-3.5 space-y-2 ${style.card}`}>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <p className="text-[13px] font-semibold text-gray-800">{s.heading}</p>
+                  <p className="text-[13px] font-semibold text-ink">{s.heading}</p>
                   <span className={`text-[10px] uppercase tracking-wide font-semibold rounded-full px-2 py-0.5 ${style.badge}`}>
                     {style.badgeLabel}
                   </span>
@@ -448,10 +448,10 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
                     value={sectionText[i] ?? s.content}
                     onChange={e => setSectionText(prev => ({ ...prev, [i]: e.target.value }))}
                     rows={Math.min(8, Math.max(2, (sectionText[i] ?? s.content).split('\n').length + 1))}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-800 leading-relaxed focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+                    className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-[13px] text-ink leading-relaxed focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
                   />
                 ) : (
-                  <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap">{s.content}</p>
+                  <p className="text-[13px] text-ink-soft leading-relaxed whitespace-pre-wrap">{s.content}</p>
                 )}
               </div>
             );
@@ -470,7 +470,7 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
             </div>
           )}
 
-          <p className="text-[11px] text-gray-400 leading-relaxed">{draft.disclaimer}</p>
+          <p className="text-[11px] text-ink-mute leading-relaxed">{draft.disclaimer}</p>
         </div>
       )}
     </div>

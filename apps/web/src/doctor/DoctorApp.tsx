@@ -56,7 +56,7 @@ export function DoctorApp({ onBack }: Props) {
 
   if (selectedId) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-surface-alt p-4">
         <div className="max-w-3xl mx-auto">
           <ConsultWorkspace
             doctorKey={key}
@@ -69,31 +69,31 @@ export function DoctorApp({ onBack }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-        <button onClick={onBack} className="text-gray-500 hover:text-gray-900 transition-colors mr-2">
+    <div className="min-h-screen bg-surface-alt">
+      <header className="bg-surface border-b border-line px-4 py-3 flex items-center gap-3">
+        <button onClick={onBack} className="text-ink-mute hover:text-ink transition-colors mr-2">
           ←
         </button>
         <img src="/medai-icon.svg" alt="" className="w-7 h-7" />
-        <span className="text-gray-900 font-semibold">Doctor Cockpit</span>
+        <span className="text-ink font-semibold">Doctor Cockpit</span>
         <button
           onClick={loadData}
           disabled={loading}
-          className="ml-auto text-gray-500 hover:text-gray-900 text-sm transition-colors"
+          className="ml-auto text-ink-mute hover:text-ink text-sm transition-colors"
         >
           {loading ? '...' : '↻ Refresh'}
         </button>
       </header>
 
-      <div className="flex border-b border-gray-200 bg-white">
+      <div className="flex border-b border-line bg-surface">
         {(['sessions', 'analytics'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-5 py-3 text-sm font-medium transition-colors capitalize ${
               tab === t
-                ? 'text-teal-700 border-b-2 border-teal-500'
-                : 'text-gray-500 hover:text-gray-900'
+                ? 'text-brand-700 border-b-2 border-brand-500'
+                : 'text-ink-mute hover:text-ink'
             }`}
           >
             {t}

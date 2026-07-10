@@ -13,10 +13,10 @@ import { WhyButton } from '../components/WhyButton';
 // Category → card colouring for screening prompts. Muted -50 backgrounds so
 // four categories scan at a glance without shouting.
 const SCREENING_STYLE: Record<ScreeningPrompt['category'], { card: string; chip: string }> = {
-  monitoring: { card: 'bg-sky-50 border-sky-100', chip: 'bg-sky-100 text-sky-800' },
-  prophylaxis: { card: 'bg-violet-50 border-violet-100', chip: 'bg-violet-100 text-violet-800' },
-  investigation: { card: 'bg-indigo-50 border-indigo-100', chip: 'bg-indigo-100 text-indigo-800' },
-  safety: { card: 'bg-red-50 border-red-100', chip: 'bg-red-100 text-red-800' },
+  monitoring: { card: 'bg-brand-50 border-brand-100', chip: 'bg-brand-100 text-brand-700' },
+  prophylaxis: { card: 'bg-amber-50 border-amber-100', chip: 'bg-amber-100 text-amber-800' },
+  investigation: { card: 'bg-surface-alt border-line-strong', chip: 'bg-line text-ink-soft' },
+  safety: { card: 'bg-rose-50 border-rose-100', chip: 'bg-rose-100 text-rose-800' },
 };
 
 function ScreeningPanel({ prompts, loading }: { prompts: ScreeningPrompt[]; loading: boolean }) {
@@ -25,7 +25,7 @@ function ScreeningPanel({ prompts, loading }: { prompts: ScreeningPrompt[]; load
     <div className="space-y-2">
       <SectionHead>Screening & don’t-forget prompts</SectionHead>
       {loading && prompts.length === 0 && (
-        <p className="text-xs text-gray-400">Checking the problem list for screening gaps…</p>
+        <p className="text-xs text-ink-mute">Checking the problem list for screening gaps…</p>
       )}
       {prompts.map((s, i) => {
         const style = SCREENING_STYLE[s.category] ?? SCREENING_STYLE.monitoring;
@@ -35,13 +35,13 @@ function ScreeningPanel({ prompts, loading }: { prompts: ScreeningPrompt[]; load
               <span className={`text-[10px] uppercase tracking-wide font-semibold rounded-full px-2 py-0.5 ${style.chip}`}>
                 {s.category}
               </span>
-              <span className="text-[13px] font-medium text-gray-800">{s.trigger}</span>
+              <span className="text-[13px] font-medium text-ink">{s.trigger}</span>
               <WhyButton why={s.why} />
             </div>
             <ul className="space-y-0.5">
               {s.prompts.map((p, j) => (
-                <li key={j} className="text-[13px] text-gray-700 flex gap-2">
-                  <span className="text-gray-400 shrink-0">•</span>
+                <li key={j} className="text-[13px] text-ink-soft flex gap-2">
+                  <span className="text-ink-mute shrink-0">•</span>
                   {p}
                 </li>
               ))}
@@ -56,7 +56,7 @@ function ScreeningPanel({ prompts, loading }: { prompts: ScreeningPrompt[]; load
 function SafetyBanner({ warnings }: { warnings: SafetyWarning[] }) {
   if (warnings.length === 0) return null;
   return (
-    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-2">
+    <div className="bg-surface border border-line shadow-sm rounded-2xl p-5 space-y-2">
       <SectionHead>Medication Safety</SectionHead>
       {warnings.map((w, i) => (
         <div
@@ -230,13 +230,13 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           <button
             onClick={checkInteractions}
             disabled={checking}
-            className="text-[13px] bg-gray-50 hover:bg-amber-50 disabled:opacity-40 text-amber-700 px-3.5 py-2 rounded-full font-medium transition-colors"
+            className="text-[13px] bg-surface-alt hover:bg-amber-50 disabled:opacity-40 text-amber-700 px-3.5 py-2 rounded-full font-medium transition-colors"
           >
             {checking ? 'Checking…' : '⚠️ Check interactions'}
           </button>
           <button
             onClick={addProblem}
-            className="text-sm text-teal-600 hover:text-teal-700 transition-colors"
+            className="text-sm text-brand-600 hover:text-brand-700 transition-colors"
           >
             + Add Problem
           </button>
@@ -245,7 +245,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
 
       {err && <p className="text-red-500 text-xs">{err}</p>}
       {aiNote && (
-        <p className="text-[13px] text-teal-800 bg-teal-50 border border-teal-100 rounded-xl px-4 py-2.5">
+        <p className="text-[13px] text-brand-800 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
           {aiNote}
         </p>
       )}
@@ -262,7 +262,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
       )}
 
       {problems.length === 0 && (
-        <div className="text-center py-10 text-gray-400">
+        <div className="text-center py-10 text-ink-mute">
           <p className="text-3xl mb-2">📋</p>
           <p className="text-sm">No problems added yet</p>
           <p className="text-xs mt-1">"Suggest from assessment" builds one from the record — or add problems manually</p>
@@ -270,9 +270,9 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
       )}
 
       {problems.map((p, idx) => (
-        <div key={p.id} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div key={p.id} className="bg-surface border border-line rounded-xl p-4 space-y-3">
           <div className="flex items-start gap-3">
-            <span className="text-gray-400 text-sm font-mono mt-2 shrink-0">{idx + 1}.</span>
+            <span className="text-ink-mute text-sm font-mono mt-2 shrink-0">{idx + 1}.</span>
             <div className="flex-1 space-y-3">
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -288,7 +288,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
                   <select
                     value={p.status}
                     onChange={e => updateProblem(p.id, { status: e.target.value as Problem['status'] })}
-                    className="w-full bg-white border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900 focus:outline-none"
+                    className="w-full bg-surface border border-line-strong rounded-lg px-2 py-2 text-sm text-ink focus:outline-none"
                   >
                     <option value="active">Active</option>
                     <option value="resolving">Resolving</option>
@@ -316,7 +316,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
                 {p.differentials.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {p.differentials.map((d, i) => (
-                      <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{d}</span>
+                      <span key={i} className="text-xs bg-surface-alt text-ink-soft px-2 py-0.5 rounded-full">{d}</span>
                     ))}
                   </div>
                 )}
@@ -333,8 +333,8 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
                 {p.management.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {p.management.map((m, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                        <input type="checkbox" className="mt-0.5 accent-blue-500" />
+                      <li key={i} className="flex items-start gap-2 text-xs text-ink-soft">
+                        <input type="checkbox" className="mt-0.5 accent-brand-600" />
                         {m}
                       </li>
                     ))}
@@ -344,7 +344,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
             </div>
             <button
               onClick={() => removeProblem(p.id)}
-              className="text-gray-400 hover:text-red-400 transition-colors text-lg shrink-0"
+              className="text-ink-mute hover:text-red-400 transition-colors text-lg shrink-0"
             >
               ×
             </button>
@@ -356,7 +356,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
             </span>
             {p.stgCondition && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-100"
+                className="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-100"
                 title="Management anchored to this SA Standard Treatment Guideline entry"
               >
                 📖 STG: {p.stgCondition}{p.icd10 ? ` · ${p.icd10}` : ''}
@@ -364,7 +364,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
             )}
             {p.protocolTitle && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100"
+                className="text-xs px-2 py-0.5 rounded-full bg-surface-alt text-ink-soft border border-line-strong"
                 title="Management follows this facility's own uploaded protocol — overrides the generic STG where they differ"
               >
                 🏥 {p.protocolTitle}

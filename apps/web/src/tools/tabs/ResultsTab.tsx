@@ -100,15 +100,15 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
               <tbody>
                 {trends.map(tr => {
                   const arrow = !tr.previous ? '' : tr.direction === 'up' ? '↑' : tr.direction === 'down' ? '↓' : '→';
-                  const arrowColor = tr.outOfRange ? (tr.outOfRange === 'high' ? 'text-red-600' : 'text-amber-600') : 'text-gray-400';
+                  const arrowColor = tr.outOfRange ? (tr.outOfRange === 'high' ? 'text-red-600' : 'text-amber-600') : 'text-ink-mute';
                   return (
-                    <tr key={tr.key} className="border-b border-gray-100 last:border-0">
-                      <td className="py-2 pr-3 font-medium text-gray-700 whitespace-nowrap">{tr.label}</td>
-                      <td className={`py-2 pr-2 text-right tabular-nums font-semibold ${tr.outOfRange ? (tr.outOfRange === 'high' ? 'text-red-700' : 'text-amber-700') : 'text-gray-900'}`}>
+                    <tr key={tr.key} className="border-b border-line last:border-0">
+                      <td className="py-2 pr-3 font-medium text-ink-soft whitespace-nowrap">{tr.label}</td>
+                      <td className={`py-2 pr-2 text-right tabular-nums font-semibold ${tr.outOfRange ? (tr.outOfRange === 'high' ? 'text-red-700' : 'text-amber-700') : 'text-ink'}`}>
                         {tr.latest.raw}
                       </td>
                       <td className={`py-2 pr-3 ${arrowColor}`}>{arrow}</td>
-                      <td className="py-2 text-xs text-gray-400 whitespace-nowrap">
+                      <td className="py-2 text-xs text-ink-mute whitespace-nowrap">
                         {tr.points.slice(-4).map(p => p.raw).join(' → ')}
                       </td>
                     </tr>
@@ -124,41 +124,41 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
       <div>
         <SectionHead>Add results</SectionHead>
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs text-gray-500">Date</span>
+          <span className="text-xs text-ink-mute">Date</span>
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="bg-surface border border-line-strong rounded-lg px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
         <div className="grid sm:grid-cols-2 gap-2">
           {PANELS.map(panel => (
-            <div key={panel.id} className="rounded-2xl border border-gray-200 overflow-hidden">
+            <div key={panel.id} className="rounded-2xl border border-line overflow-hidden">
               <button
                 onClick={() => { setOpenPanel(openPanel === panel.id ? null : panel.id); setDraft({}); }}
                 className={`w-full min-h-[52px] px-4 py-3 text-left flex items-center gap-2 transition-colors ${
-                  openPanel === panel.id ? 'bg-teal-50' : 'bg-white hover:bg-gray-50'
+                  openPanel === panel.id ? 'bg-brand-50' : 'bg-surface hover:bg-surface-alt'
                 }`}
               >
                 <span>{panel.icon}</span>
-                <span className="text-sm font-medium text-gray-800">{panel.label}</span>
-                <span className="ml-auto text-gray-300">{openPanel === panel.id ? '−' : '+'}</span>
+                <span className="text-sm font-medium text-ink">{panel.label}</span>
+                <span className="ml-auto text-ink-mute">{openPanel === panel.id ? '−' : '+'}</span>
               </button>
               {openPanel === panel.id && (
-                <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50 space-y-2">
+                <div className="px-4 py-3 border-t border-line bg-surface-alt/50 space-y-2">
                   {panel.analytes.map(a => (
                     <div key={a.key} className="flex items-center gap-2">
-                      <label className="text-xs text-gray-600 w-24 shrink-0">{a.label}</label>
+                      <label className="text-xs text-ink-soft w-24 shrink-0">{a.label}</label>
                       <input
                         value={draft[a.key] ?? ''}
                         onChange={e => setDraft(prev => ({ ...prev, [a.key]: e.target.value }))}
                         placeholder={a.unit}
                         inputMode="decimal"
-                        className="flex-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm tabular-nums focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                       {(a.low !== undefined || a.high !== undefined) && (
-                        <span className="text-[10px] text-gray-400 w-20 shrink-0">
+                        <span className="text-[10px] text-ink-mute w-20 shrink-0">
                           {a.low ?? ''}{a.low !== undefined && a.high !== undefined ? '–' : ''}{a.high ?? ''}
                         </span>
                       )}
@@ -166,7 +166,7 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
                   ))}
                   <button
                     onClick={() => savePanel(panel.id)}
-                    className="mt-1 min-h-[40px] px-4 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium"
+                    className="mt-1 min-h-[40px] px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium"
                   >
                     Save {panel.label}
                   </button>
@@ -178,7 +178,7 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
       </div>
 
       {entries.length === 0 && alerts.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-6">
+        <p className="text-sm text-ink-mute text-center py-6">
           No results yet. Add a panel above and the app will trend it and flag the deltas that matter.
         </p>
       )}
@@ -194,7 +194,7 @@ export function ResultsTab({ patient, toolsKey, dept, subDept, onPatient }: {
             onPatient({ investigations: [...entries, { date, panel: 'other', values: {}, note: freeText.trim() }] });
             setFreeText('');
           }}
-          className="min-h-[40px] px-4 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium"
+          className="min-h-[40px] px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium"
         >
           Save note
         </button>

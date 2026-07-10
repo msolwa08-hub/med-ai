@@ -33,8 +33,8 @@ export function TreatmentSetCard({ set, onAdd }: {
   }
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-3">
-      <h4 className="text-sm font-semibold text-gray-900">⚡ {set.title}</h4>
+    <div className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+      <h4 className="text-sm font-semibold text-ink">⚡ {set.title}</h4>
       <div className="divide-y divide-gray-50">
         {set.items.map(item => {
           const on = Boolean(selected[item.id]);
@@ -48,16 +48,16 @@ export function TreatmentSetCard({ set, onAdd }: {
               >
                 <span
                   className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    on ? 'bg-teal-600 border-teal-600' : 'border-gray-300 bg-white group-hover:border-teal-400'
+                    on ? 'bg-brand-600 border-brand-600' : 'border-line-strong bg-surface group-hover:border-brand-400'
                   }`}
                 >
                   {on && <span className="text-white text-xs font-bold">✓</span>}
                 </span>
                 <span className="min-w-0">
-                  <span className={`block text-sm font-medium ${on ? 'text-gray-900' : 'text-gray-400'}`}>
+                  <span className={`block text-sm font-medium ${on ? 'text-ink' : 'text-ink-mute'}`}>
                     {item.label}
                   </span>
-                  <span className={`block text-[13px] leading-snug ${on ? 'text-gray-600' : 'text-gray-300'}`}>
+                  <span className={`block text-[13px] leading-snug ${on ? 'text-ink-soft' : 'text-gray-300'}`}>
                     {item.detail}
                   </span>
                 </span>
@@ -78,8 +78,8 @@ export function TreatmentSetCard({ set, onAdd }: {
         disabled={n === 0 && !note.trim()}
         className={`w-full min-h-[44px] rounded-xl text-sm font-medium transition-colors ${
           added
-            ? 'bg-teal-50 text-teal-700 border border-teal-200'
-            : 'bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white'
+            ? 'bg-brand-50 text-brand-700 border border-brand-200'
+            : 'bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white'
         }`}
       >
         {added ? '✓ Added to plan' : `Add ${n} selected to plan`}

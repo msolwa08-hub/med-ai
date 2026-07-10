@@ -21,7 +21,7 @@ export function EPDSCalc() {
     <CalcCard title="EPDS (Edinburgh Postnatal Depression Scale)">
       {items.map((item, i) => (
         <Row key={i} label={`${i + 1}. ${item}`}>
-          <select value={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = Number(e.target.value); setScores(ns); }} className="bg-white border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 w-full">
+          <select value={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = Number(e.target.value); setScores(ns); }} className="bg-surface border border-line-strong rounded px-2 py-1 text-xs text-ink w-full">
             <option value={0}>0</option><option value={1}>1</option>
             <option value={2}>2</option><option value={3}>3</option>
           </select>

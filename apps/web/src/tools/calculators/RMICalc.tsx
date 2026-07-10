@@ -10,7 +10,7 @@ export function RMICalc() {
   const risk = rmi < 200 ? 'Low' : rmi < 1000 ? 'Moderate' : 'High';
   return (
     <CalcCard title="RMI (Risk of Malignancy Index)">
-      <p className="text-xs text-gray-400 mb-2">RMI = US score × M × CA-125</p>
+      <p className="text-xs text-ink-mute mb-2">RMI = US score × M × CA-125</p>
       <Row label="US score (0/1/3)"><NumInput value={us} onChange={setUs} min={0} max={3} /></Row>
       <Row label="Postmenopausal">
         <input type="checkbox" checked={meno === 1} onChange={e => setMeno(e.target.checked ? 1 : 0)} className="accent-blue-500 w-4 h-4" />

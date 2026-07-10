@@ -23,7 +23,7 @@ const MODALITIES: { id: ImageModality; label: string }[] = [
 ];
 
 const CONFIDENCE_STYLE: Record<ImageAnalysisResult['confidence'], string> = {
-  high: 'bg-teal-50 text-teal-700 border-teal-200',
+  high: 'bg-brand-50 text-brand-700 border-brand-200',
   medium: 'bg-amber-50 text-amber-700 border-amber-200',
   low: 'bg-red-50 text-red-700 border-red-200',
 };
@@ -75,8 +75,8 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
   }
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-4">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image analysis</h3>
+    <div className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-4">
+      <h3 className="text-xs font-semibold text-ink-mute uppercase tracking-wider">Image analysis</h3>
 
       <div className="flex flex-wrap gap-1.5">
         {MODALITIES.map(m => (
@@ -86,8 +86,8 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
             onClick={() => setModality(m.id)}
             className={`min-h-[44px] px-3.5 rounded-2xl text-sm border transition-colors ${
               modality === m.id
-                ? 'bg-teal-600 border-teal-600 text-white'
-                : 'bg-white border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50'
+                ? 'bg-brand-600 border-brand-600 text-white'
+                : 'bg-surface border-line text-ink-soft hover:border-brand-300 hover:bg-brand-50'
             }`}
           >
             {m.label}
@@ -106,7 +106,7 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={loading}
-        className="w-full min-h-[56px] rounded-2xl bg-gray-50 hover:bg-teal-50 border border-dashed border-gray-300 hover:border-teal-400 text-gray-600 hover:text-teal-800 text-sm font-medium transition-colors disabled:opacity-50"
+        className="w-full min-h-[56px] rounded-2xl bg-surface-alt hover:bg-brand-50 border border-dashed border-line-strong hover:border-brand-400 text-ink-soft hover:text-brand-800 text-sm font-medium transition-colors disabled:opacity-50"
       >
         {loading ? 'Analyzing image…' : `📷 Photograph / upload ${MODALITIES.find(m => m.id === modality)?.label}`}
       </button>
@@ -114,7 +114,7 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
       {error && (
         <div className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
           <span>{error}</span>
-          <button type="button" onClick={retake} className="text-teal-700 font-medium shrink-0 min-h-[44px] px-2">
+          <button type="button" onClick={retake} className="text-brand-700 font-medium shrink-0 min-h-[44px] px-2">
             Retake
           </button>
         </div>
@@ -127,7 +127,7 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
               {result.confidence} confidence
             </span>
             {result.technicalQuality && (
-              <span className="text-[11px] text-gray-400">{result.technicalQuality}</span>
+              <span className="text-[11px] text-ink-mute">{result.technicalQuality}</span>
             )}
             <WhyButton why={result.disclaimer} />
           </div>
@@ -143,15 +143,15 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
           {result.findings.length > 0 && (
             <ul className="space-y-1">
               {result.findings.map((f, i) => (
-                <li key={i} className="text-[13px] text-gray-700 flex gap-2">
-                  <span className="text-teal-500 shrink-0">•</span>
+                <li key={i} className="text-[13px] text-ink-soft flex gap-2">
+                  <span className="text-brand-500 shrink-0">•</span>
                   {f}
                 </li>
               ))}
             </ul>
           )}
 
-          <p className="text-sm font-semibold text-gray-900">{result.impression}</p>
+          <p className="text-sm font-semibold text-ink">{result.impression}</p>
 
           <div className="flex gap-2">
             <button
@@ -160,8 +160,8 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
               disabled={inserted}
               className={`flex-1 min-h-[44px] rounded-xl text-sm font-medium transition-colors ${
                 inserted
-                  ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                  : 'bg-teal-600 hover:bg-teal-500 text-white'
+                  ? 'bg-brand-50 text-brand-700 border border-brand-200'
+                  : 'bg-brand-600 hover:bg-brand-500 text-white'
               }`}
             >
               {inserted ? '✓ Inserted into record' : 'Insert into record'}
@@ -169,7 +169,7 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
             <button
               type="button"
               onClick={retake}
-              className="min-h-[44px] px-4 rounded-xl text-sm text-gray-500 hover:text-gray-900 border border-gray-200 transition-colors"
+              className="min-h-[44px] px-4 rounded-xl text-sm text-ink-mute hover:text-ink border border-line transition-colors"
             >
               Retake
             </button>

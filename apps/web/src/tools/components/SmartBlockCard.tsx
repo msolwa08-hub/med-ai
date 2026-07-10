@@ -23,7 +23,7 @@ export interface SmartBlockValue {
 export const EMPTY_SMART_BLOCK_VALUE: SmartBlockValue = { state: {}, customNote: '' };
 
 const inputCls =
-  'bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-teal-500 min-h-[44px]';
+  'bg-surface border border-line rounded-xl px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brand-500 min-h-[44px]';
 
 function FieldRow({ field, state, onSet }: {
   field: SmartField;
@@ -37,7 +37,7 @@ function FieldRow({ field, state, onSet }: {
     const off = v === false;
     return (
       <div className="flex items-center justify-between gap-3 min-h-[44px]">
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-ink-soft">
           {field.label}
           {field.cue && <span className="ml-1.5"><PillCue color={field.cue.color} label={field.cue.label} /></span>}
         </span>
@@ -46,7 +46,7 @@ function FieldRow({ field, state, onSet }: {
             type="button"
             onClick={() => onSet(field.id, on ? '' : true)}
             className={`min-h-[44px] px-4 rounded-l-xl text-sm border transition-colors ${
-              on ? 'bg-teal-600 border-teal-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-teal-50'
+              on ? 'bg-brand-600 border-brand-600 text-white' : 'bg-surface border-line text-ink-mute hover:bg-brand-50'
             }`}
           >
             Yes
@@ -55,7 +55,7 @@ function FieldRow({ field, state, onSet }: {
             type="button"
             onClick={() => onSet(field.id, off ? '' : false)}
             className={`min-h-[44px] px-4 rounded-r-xl text-sm border transition-colors ${
-              off ? 'bg-gray-700 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+              off ? 'bg-gray-700 border-gray-700 text-white' : 'bg-surface border-line text-ink-mute hover:bg-surface-alt'
             }`}
           >
             No
@@ -68,7 +68,7 @@ function FieldRow({ field, state, onSet }: {
   if (field.kind === 'select') {
     return (
       <div>
-        <p className="text-[13px] text-gray-700 mb-1.5">
+        <p className="text-[13px] text-ink-soft mb-1.5">
           {field.label}
           {field.cue && <span className="ml-1.5"><PillCue color={field.cue.color} label={field.cue.label} /></span>}
         </p>
@@ -82,8 +82,8 @@ function FieldRow({ field, state, onSet }: {
                 onClick={() => onSet(field.id, on ? '' : o)}
                 className={`min-h-[44px] px-3.5 rounded-2xl text-sm border transition-colors ${
                   on
-                    ? 'bg-teal-600 border-teal-600 text-white'
-                    : 'bg-white border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50'
+                    ? 'bg-brand-600 border-brand-600 text-white'
+                    : 'bg-surface border-line text-ink-soft hover:border-brand-300 hover:bg-brand-50'
                 }`}
               >
                 {on ? '✓ ' : ''}{o}
@@ -98,7 +98,7 @@ function FieldRow({ field, state, onSet }: {
   // number / date / text-short
   return (
     <div className="flex items-center gap-3">
-      <label className="text-sm text-gray-700 flex-1">
+      <label className="text-sm text-ink-soft flex-1">
         {field.label}
         {field.cue && <span className="ml-1.5"><PillCue color={field.cue.color} label={field.cue.label} /></span>}
       </label>
@@ -110,7 +110,7 @@ function FieldRow({ field, state, onSet }: {
           onChange={e => onSet(field.id, e.target.value)}
           className={`${inputCls} ${field.kind === 'number' ? 'w-24 text-right' : field.kind === 'date' ? 'w-40' : 'w-44'}`}
         />
-        {field.unit && <span className="text-xs text-gray-400">{field.unit}</span>}
+        {field.unit && <span className="text-xs text-ink-mute">{field.unit}</span>}
       </div>
     </div>
   );
@@ -134,9 +134,9 @@ export function SmartBlockCard({ block, value, onChange }: {
   }
 
   return (
-    <div className="bg-white border border-teal-100 rounded-2xl p-5 space-y-3.5 shadow-sm">
+    <div className="bg-surface border border-brand-100 rounded-2xl p-5 space-y-3.5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
-        <h4 className="text-sm font-semibold text-teal-800">{block.title}</h4>
+        <h4 className="text-sm font-semibold text-brand-800">{block.title}</h4>
         <WhyButton why={block.why} />
       </div>
       {block.fields.filter(f => fieldVisible(f, value.state)).map(f => (

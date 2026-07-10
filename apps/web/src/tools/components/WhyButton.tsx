@@ -14,7 +14,7 @@ export function WhyButton({ why }: { why: string }) {
         type="button"
         onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
         className={`text-xs px-1.5 py-0.5 rounded-md transition-colors ${
-          open ? 'text-teal-800 bg-teal-50' : 'text-teal-600/70 hover:text-teal-800 hover:bg-teal-50'
+          open ? 'text-brand-800 bg-brand-50' : 'text-brand-600/70 hover:text-brand-800 hover:bg-brand-50'
         }`}
         aria-expanded={open}
       >
@@ -22,7 +22,7 @@ export function WhyButton({ why }: { why: string }) {
       </button>
       {open && (
         <span
-          className="block mt-1 text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 leading-relaxed"
+          className="block mt-1 text-xs text-ink-mute bg-surface-alt border border-line rounded-lg px-2.5 py-1.5 leading-relaxed"
           onClick={e => e.stopPropagation()}
         >
           {why}

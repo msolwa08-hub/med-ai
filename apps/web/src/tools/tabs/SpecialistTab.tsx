@@ -56,7 +56,7 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
             key={m}
             onClick={() => setMode(m)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              mode === m ? 'bg-pink-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
+              mode === m ? 'bg-brand-700 text-white shadow-card' : 'bg-surface border border-line-strong text-ink-soft hover:bg-surface-alt'
             }`}
           >
             {m === 'obs' ? '🤱 Obstetrics' : '⚕️ Gynaecology'}
@@ -66,7 +66,7 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
       <div className="flex gap-3">
         <AiBtn onClick={generate} loading={loading} label={`Generate ${mode === 'obs' ? 'Obs' : 'Gynae'} Note`} />
       </div>
-      {err && <p className="text-red-400 text-xs">{err}</p>}
+      {err && <p className="text-band-exclude text-xs">{err}</p>}
       {result && <DocOutput text={result} />}
     </div>
   );

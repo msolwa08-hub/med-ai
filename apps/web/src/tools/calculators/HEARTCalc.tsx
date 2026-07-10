@@ -11,7 +11,7 @@ export function HEARTCalc() {
   const risk = score <= 3 ? 'Low' : score <= 6 ? 'Moderate' : 'High';
   return (
     <CalcCard title="HEART Score (Chest Pain)">
-      <p className="text-xs text-gray-400 mb-2">Each component scored 0-2</p>
+      <p className="text-xs text-ink-mute mb-2">Each component scored 0-2</p>
       {[
         ['History (0-2)', h, setH],
         ['ECG (0-2)', e, setE],

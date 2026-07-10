@@ -10,7 +10,7 @@ export function PHQ9Calc() {
     <CalcCard title="PHQ-9 Depression Screen">
       {items.map((item, i) => (
         <Row key={i} label={`${i + 1}. ${item}`}>
-          <select value={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = Number(e.target.value); setScores(ns); }} className="bg-white border border-gray-300 rounded px-2 py-1 text-xs text-gray-900">
+          <select value={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = Number(e.target.value); setScores(ns); }} className="bg-surface border border-line-strong rounded px-2 py-1 text-xs text-ink">
             <option value={0}>0 - Not at all</option>
             <option value={1}>1 - Several days</option>
             <option value={2}>2 - More than half</option>

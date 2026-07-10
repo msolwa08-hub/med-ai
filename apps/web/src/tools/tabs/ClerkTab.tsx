@@ -185,7 +185,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               className={`rounded-xl px-4 py-3 border text-[14px] leading-relaxed ${
                 d.severity === 'alarm'
                   ? 'bg-amber-50 border-amber-300 text-amber-900'
-                  : 'bg-gray-50 border-gray-200 text-gray-700'
+                  : 'bg-surface-alt border-line text-ink-soft'
               }`}
             >
               <span className="font-semibold">{d.severity === 'alarm' ? '⚠ Check this' : 'ℹ Note'}</span> — {d.message}
@@ -195,7 +195,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
       )}
 
       {/* 1 — Presenting complaint, chip-first, zero typing */}
-      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-4">
+      <div className="bg-surface border border-line shadow-sm rounded-2xl p-5 space-y-4">
         <SectionHead>Presenting Complaint</SectionHead>
         <div className="flex flex-wrap gap-1.5">
           {cascades.map(c => {
@@ -208,10 +208,10 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                 onClick={() => onPatient({ activeCascadeId: on ? undefined : c.id })}
                 className={`min-h-[44px] px-3.5 rounded-2xl text-sm border transition-colors ${
                   on
-                    ? 'bg-teal-600 border-teal-600 text-white'
+                    ? 'bg-brand-600 border-brand-600 text-white'
                     : answered
-                      ? 'bg-teal-50 border-teal-200 text-teal-800'
-                      : 'bg-white border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50'
+                      ? 'bg-brand-50 border-brand-200 text-brand-800'
+                      : 'bg-surface border-line text-ink-soft hover:border-brand-300 hover:bg-brand-50'
                 }`}
               >
                 {c.icon ? `${c.icon} ` : ''}{c.label}{answered && !on ? ' ✓' : ''}
@@ -220,7 +220,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           })}
         </div>
         {activeCascade && (
-          <div className="border-t border-gray-50 pt-4">
+          <div className="border-t border-line pt-4">
             <CascadePanel
               key={activeCascade.id}
               cascade={activeCascade}
@@ -231,8 +231,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           </div>
         )}
         {patient.history.chiefComplaint && (
-          <p className="text-[13px] text-gray-600 bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2.5 leading-relaxed">
-            <span className="text-gray-400">→ </span>{patient.history.chiefComplaint}
+          <p className="text-[13px] text-ink-soft bg-surface-alt border border-line rounded-xl px-3.5 py-2.5 leading-relaxed">
+            <span className="text-ink-mute">→ </span>{patient.history.chiefComplaint}
           </p>
         )}
       </div>
@@ -281,15 +281,15 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         onInject={injectImage}
       />
       {(patient.imageFindings?.length ?? 0) > 0 && (
-        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+        <div className="bg-surface border border-line shadow-sm rounded-2xl p-5">
           <SectionHead>Image findings on record</SectionHead>
           <div className="space-y-1.5">
             {patient.imageFindings!.map((f, i) => (
-              <p key={i} className="text-[13px] text-gray-600 leading-relaxed">
-                <span className="text-[11px] uppercase tracking-wide text-teal-700 bg-teal-50 rounded px-1.5 py-0.5 mr-2">
+              <p key={i} className="text-[13px] text-ink-soft leading-relaxed">
+                <span className="text-[11px] uppercase tracking-wide text-brand-700 bg-brand-50 rounded px-1.5 py-0.5 mr-2">
                   {f.modality}
                 </span>
-                <span className="text-gray-400 mr-2">{f.date}</span>
+                <span className="text-ink-mute mr-2">{f.date}</span>
                 {f.injectText}
               </p>
             ))}
@@ -330,9 +330,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
       {/* 5 — Admission note from the clerking (the consultant presentation and
           daily round live in the Round & Handover tab) */}
-      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+      <div className="bg-surface border border-line shadow-sm rounded-2xl p-5">
         <SectionHead>Admission Note</SectionHead>
-        <p className="text-gray-500 text-xs mb-4">
+        <p className="text-ink-mute text-xs mb-4">
           Generates the formal admission note from the clerking so far. The consultant presentation and daily ward round are in the Round &amp; Handover tab.
         </p>
         <div className="flex gap-3">

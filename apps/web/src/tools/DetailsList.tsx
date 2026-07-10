@@ -11,7 +11,7 @@ export function DetailsList({ fields, onEdit }: {
   const [editing, setEditing] = useState<string | null>(null);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
+    <div className="bg-surface rounded-2xl border border-line shadow-sm divide-y divide-line overflow-hidden">
       {fields.map(f => (
         <Row
           key={f.key}
@@ -58,10 +58,10 @@ function Row({ field, editing, onStart, onDone, onEdit }: {
 
   return (
     <div
-      className={`px-5 py-3.5 flex gap-4 cursor-pointer transition-colors ${editing ? 'bg-teal-50/40' : 'hover:bg-gray-50/70'} ${kind === 'textarea' ? 'items-start' : 'items-center'} ${flash ? 'animate-field-fill' : ''}`}
+      className={`px-5 py-3.5 flex gap-4 cursor-pointer transition-colors ${editing ? 'bg-brand-50/40' : 'hover:bg-surface-alt/70'} ${kind === 'textarea' ? 'items-start' : 'items-center'} ${flash ? 'animate-field-fill' : ''}`}
       onClick={() => { if (!editing) onStart(); }}
     >
-      <div className={`w-36 sm:w-44 shrink-0 text-[13px] text-gray-500 ${kind === 'textarea' ? 'pt-1' : ''}`}>
+      <div className={`w-36 sm:w-44 shrink-0 text-[13px] text-ink-mute ${kind === 'textarea' ? 'pt-1' : ''}`}>
         {field.label}
       </div>
 
@@ -72,7 +72,7 @@ function Row({ field, editing, onStart, onDone, onEdit }: {
             value={field.value}
             onChange={e => { onEdit(e.target.value); onDone(); }}
             onBlur={onDone}
-            className="flex-1 bg-transparent text-[15px] text-gray-900 focus:outline-none"
+            className="flex-1 bg-transparent text-[15px] text-ink focus:outline-none"
           >
             <option value="">—</option>
             {(field.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
@@ -86,7 +86,7 @@ function Row({ field, editing, onStart, onDone, onEdit }: {
             onBlur={onDone}
             onKeyDown={e => { if (e.key === 'Escape') onDone(); }}
             placeholder={field.placeholder}
-            className="flex-1 bg-transparent text-[15px] text-gray-900 placeholder-gray-300 leading-relaxed focus:outline-none resize-none"
+            className="flex-1 bg-transparent text-[15px] text-ink placeholder-gray-300 leading-relaxed focus:outline-none resize-none"
           />
         ) : (
           <input
@@ -96,11 +96,11 @@ function Row({ field, editing, onStart, onDone, onEdit }: {
             onBlur={onDone}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') onDone(); }}
             placeholder={field.placeholder}
-            className="flex-1 bg-transparent text-[15px] text-gray-900 placeholder-gray-300 focus:outline-none"
+            className="flex-1 bg-transparent text-[15px] text-ink placeholder-gray-300 focus:outline-none"
           />
         )
       ) : (
-        <div className={`flex-1 text-[15px] leading-relaxed whitespace-pre-wrap ${field.value ? 'text-gray-900' : 'text-gray-300'}`}>
+        <div className={`flex-1 text-[15px] leading-relaxed whitespace-pre-wrap ${field.value ? 'text-ink' : 'text-gray-300'}`}>
           {field.value || (field.placeholder ?? 'Tap to add')}
         </div>
       )}

@@ -15,11 +15,11 @@ export function DeptSelector({ onSelect }: { onSelect: (d: DeptId) => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-surface-alt flex flex-col items-center justify-center p-6">
       <div className="mb-10 text-center">
         <img src="/medai-icon.svg" alt="" className="w-12 h-12 mx-auto mb-4" />
-        <h1 className="text-gray-900 text-2xl font-bold">Intern Tools</h1>
-        <p className="text-gray-500 text-sm mt-2">Select your department to get started</p>
+        <h1 className="text-ink text-2xl font-bold">Intern Tools</h1>
+        <p className="text-ink-mute text-sm mt-2">Select your department to get started</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-3xl">
         {DEPARTMENTS.map(d => (
@@ -29,8 +29,8 @@ export function DeptSelector({ onSelect }: { onSelect: (d: DeptId) => void }) {
             className={`${colorMap[d.color]} border rounded-2xl p-5 text-center transition-all duration-150 cursor-pointer group`}
           >
             <div className="text-3xl mb-2">{d.icon}</div>
-            <p className="text-gray-800 font-medium text-sm">{d.label}</p>
-            <p className="text-gray-400 text-xs mt-0.5">{d.abbr}</p>
+            <p className="text-ink font-medium text-sm">{d.label}</p>
+            <p className="text-ink-mute text-xs mt-0.5">{d.abbr}</p>
           </button>
         ))}
       </div>

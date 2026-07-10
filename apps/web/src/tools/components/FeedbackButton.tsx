@@ -47,10 +47,10 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
         </button>
       )}
       {open && (
-        <div className="fixed bottom-4 right-4 z-40 w-[min(92vw,340px)] rounded-2xl bg-white border border-gray-200 shadow-2xl p-4 space-y-3">
+        <div className="fixed bottom-4 right-4 z-40 w-[min(92vw,340px)] rounded-2xl bg-surface border border-line shadow-2xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-900">Quick feedback</span>
-            <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-700 text-lg leading-none">×</button>
+            <span className="text-sm font-semibold text-ink">Quick feedback</span>
+            <button onClick={() => setOpen(false)} className="text-ink-mute hover:text-ink-soft text-lg leading-none">×</button>
           </div>
           {sent ? (
             <p className="text-sm text-emerald-700 py-3 text-center">✓ Thanks — logged.</p>
@@ -62,7 +62,7 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
                     key={r}
                     onClick={() => setRating(r)}
                     className={`flex-1 text-[13px] rounded-lg py-1.5 border transition-colors ${
-                      rating === r ? 'bg-teal-600 border-teal-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-teal-300'
+                      rating === r ? 'bg-brand-600 border-brand-600 text-white' : 'bg-surface border-line text-ink-soft hover:border-brand-300'
                     }`}
                   >
                     {label}
@@ -75,12 +75,12 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
                 rows={3}
                 autoFocus
                 placeholder={`What happened on "${screen}"? What did you expect?`}
-                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+                className="w-full bg-surface border border-line rounded-xl px-3 py-2 text-sm text-ink placeholder:text-ink-mute focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               />
               <button
                 onClick={send}
                 disabled={!note.trim() || sending}
-                className="w-full bg-teal-700 hover:bg-teal-600 disabled:opacity-40 text-white text-sm font-medium py-2 rounded-xl"
+                className="w-full bg-brand-700 hover:bg-brand-600 disabled:opacity-40 text-white text-sm font-medium py-2 rounded-xl"
               >
                 {sending ? 'Sending…' : 'Send'}
               </button>

@@ -22,7 +22,7 @@ export function PillCue({ color, label }: { color: string; label: string }) {
   const dot = DOT_COLORS[color.toLowerCase()] ?? 'bg-gray-300';
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-[11px] text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5 align-middle"
+      className="inline-flex items-center gap-1.5 text-[11px] text-ink-soft bg-surface-alt border border-line rounded-full px-2 py-0.5 align-middle"
       title={`Patient-recall cue: ${label}`}
     >
       <span className={`w-2.5 h-1.5 rounded-full shrink-0 ${dot}`} aria-hidden />

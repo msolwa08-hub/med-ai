@@ -157,7 +157,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
 
   const busy = loading || scanning;
   const chipStyle: Record<CapturedField['confidence'], string> = {
-    spoken: 'bg-teal-50 text-teal-700 border-teal-100',
+    spoken: 'bg-brand-50 text-brand-700 border-brand-100',
     high: 'bg-emerald-50 text-emerald-700 border-emerald-100',
     medium: 'bg-amber-50 text-amber-700 border-amber-200',
     low: 'bg-red-50 text-red-700 border-red-200',
@@ -170,14 +170,14 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-3xl shadow-sm px-6 py-7 sm:px-8 space-y-5">
+    <div className="bg-surface border border-line rounded-3xl shadow-sm px-6 py-7 sm:px-8 space-y-5">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h3 className="text-[11px] font-semibold text-teal-600 uppercase tracking-[0.14em]">
+        <h3 className="text-[11px] font-semibold text-brand-600 uppercase tracking-[0.14em]">
           {section}
         </h3>
         <div className="flex items-center gap-3">
           {captured.length > 0 && (
-            <span className="text-xs text-gray-500">{captured.length} captured</span>
+            <span className="text-xs text-ink-mute">{captured.length} captured</span>
           )}
           <input
             ref={fileRef}
@@ -189,7 +189,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="text-[13px] bg-gray-50 hover:bg-teal-50 disabled:opacity-40 text-teal-700 px-3.5 py-1.5 rounded-full font-medium transition-colors"
+            className="text-[13px] bg-surface-alt hover:bg-brand-50 disabled:opacity-40 text-brand-700 px-3.5 py-1.5 rounded-full font-medium transition-colors"
             title="Photograph the doctor's handwritten notes — the AI reads them and fills the form, flagging anything it can't decipher"
           >
             {scanning ? 'Reading handwriting…' : '📷 Scan notes'}
@@ -202,10 +202,10 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       ) : (
         <p
           key={question || '__pending__'}
-          className={`animate-question-in text-2xl sm:text-3xl font-semibold leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-gray-900'}`}
+          className={`animate-question-in text-2xl sm:text-3xl font-semibold leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-ink'}`}
         >
           {busy && !question ? (
-            <span className="text-gray-500">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
+            <span className="text-ink-mute">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
           ) : (
             <>{done ? '✓ ' : ''}{question}</>
           )}
@@ -213,7 +213,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       )}
 
       {scanNote && (
-        <p className="text-[13px] text-gray-500 leading-relaxed">📷 {scanNote}</p>
+        <p className="text-[13px] text-ink-mute leading-relaxed">📷 {scanNote}</p>
       )}
 
       {!done && !error && (
@@ -225,13 +225,13 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
             onKeyDown={e => { if (e.key === 'Enter') submit(); }}
             disabled={busy}
             placeholder={busy ? 'Working…' : 'Just answer naturally'}
-            className="w-full bg-gray-50 border border-transparent rounded-full pl-5 pr-14 py-3.5 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-teal-400 focus:ring-4 focus:ring-teal-500/10 disabled:opacity-60 transition-all"
+            className="w-full bg-surface-alt border border-transparent rounded-full pl-5 pr-14 py-3.5 text-base text-ink placeholder:text-ink-mute focus:outline-none focus:bg-surface focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60 transition-all"
           />
           <button
             onClick={submit}
             disabled={busy || !answer.trim()}
             aria-label="Send"
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-teal-700 hover:bg-teal-600 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-brand-700 hover:bg-brand-600 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
           >
             {busy ? '…' : '↑'}
           </button>

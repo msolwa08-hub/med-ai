@@ -21,7 +21,7 @@ export function GFRCalc() {
       <Row label="Creatinine (µmol/L)"><NumInput value={cr} onChange={setCr} /></Row>
       <Row label="Age (years)"><NumInput value={age} onChange={setAge} /></Row>
       <Row label="Sex">
-        <select value={sex} onChange={e => setSex(e.target.value as 'M' | 'F')} className="bg-white border border-gray-300 rounded px-2 py-1 text-sm text-gray-900">
+        <select value={sex} onChange={e => setSex(e.target.value as 'M' | 'F')} className="bg-surface border border-line-strong rounded px-2 py-1 text-sm text-ink">
           <option value="M">Male</option>
           <option value="F">Female</option>
         </select>

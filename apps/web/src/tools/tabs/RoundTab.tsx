@@ -19,15 +19,15 @@ import { AiBtn, copy, stripMarkdown } from '../components/ui';
 function HandoverSheet({ title, text, onPrint }: { title: string; text: string; onPrint: () => void }) {
   const clean = stripMarkdown(text);
   return (
-    <div className="mt-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden print:shadow-none print:border-0">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 print:hidden">
-        <span className="text-sm font-semibold text-gray-700">{title}</span>
+    <div className="mt-4 bg-surface rounded-2xl border border-line shadow-sm overflow-hidden print:shadow-none print:border-0">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-line print:hidden">
+        <span className="text-sm font-semibold text-ink-soft">{title}</span>
         <div className="flex items-center gap-4">
-          <button onClick={() => copy(clean)} className="text-sm text-teal-700 hover:text-teal-900 font-medium">Copy</button>
-          <button onClick={onPrint} className="text-sm text-gray-600 hover:text-gray-900 font-medium">Print</button>
+          <button onClick={() => copy(clean)} className="text-sm text-brand-700 hover:text-brand-900 font-medium">Copy</button>
+          <button onClick={onPrint} className="text-sm text-ink-soft hover:text-ink font-medium">Print</button>
         </div>
       </div>
-      <pre className="text-[17px] sm:text-lg text-gray-900 whitespace-pre-wrap leading-[1.7] px-5 sm:px-7 py-6 font-sans tracking-normal">
+      <pre className="text-[17px] sm:text-lg text-ink whitespace-pre-wrap leading-[1.7] px-5 sm:px-7 py-6 font-sans tracking-normal">
         {clean}
       </pre>
     </div>
@@ -174,21 +174,21 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
     <div className="space-y-8">
       {/* ── Daily Ward Round ── */}
       <section className={printing === 'presentation' ? 'print:hidden' : ''}>
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Daily Ward Round</h2>
-        <p className="text-gray-500 text-sm mt-1 mb-4 print:hidden">
+        <h2 className="text-2xl font-bold text-ink tracking-tight">Daily Ward Round</h2>
+        <p className="text-ink-mute text-sm mt-1 mb-4 print:hidden">
           The note you write on the chart each day. Add today’s findings, generate, copy or print.
         </p>
 
         <div className="grid sm:grid-cols-2 gap-3 print:hidden">
           {TODAY_INPUTS.map(f => (
             <div key={f.key}>
-              <p className="text-sm font-medium text-gray-600 mb-1">{f.label}</p>
+              <p className="text-sm font-medium text-ink-soft mb-1">{f.label}</p>
               <textarea
                 value={today[f.key]}
                 onChange={e => setToday(prev => ({ ...prev, [f.key]: e.target.value }))}
                 placeholder={f.placeholder}
                 rows={2}
-                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+                className="w-full bg-surface border border-line rounded-xl px-3 py-2 text-base text-ink placeholder:text-ink-mute focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               />
             </div>
           ))}
@@ -197,7 +197,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
         <div className="flex items-center gap-3 flex-wrap mt-4 print:hidden">
           <AiBtn onClick={generateRound} loading={roundLoading} label="Generate ward round" />
           {roundsOnRecord > 0 && (
-            <span className="text-sm text-gray-500">{roundsOnRecord} previous round{roundsOnRecord === 1 ? '' : 's'} on record</span>
+            <span className="text-sm text-ink-mute">{roundsOnRecord} previous round{roundsOnRecord === 1 ? '' : 's'} on record</span>
           )}
         </div>
         {roundErr && <p className="text-red-500 text-sm mt-2 print:hidden">{roundErr}</p>}
@@ -224,8 +224,8 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
 
       {/* ── Consultant Presentation ── */}
       <section className={printing === 'round' ? 'print:hidden' : ''}>
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Consultant Presentation</h2>
-        <p className="text-gray-500 text-sm mt-1 mb-4 print:hidden">
+        <h2 className="text-2xl font-bold text-ink tracking-tight">Consultant Presentation</h2>
+        <p className="text-ink-mute text-sm mt-1 mb-4 print:hidden">
           The spoken SBAR hand-over you present on the round. Generates from the record — usable at any point.
         </p>
         <div className="flex items-center gap-3 print:hidden">

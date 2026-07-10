@@ -19,7 +19,7 @@ export function EscapeHatch({ value, onChange, placeholder }: {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-xs text-gray-400 hover:text-teal-700 transition-colors min-h-[44px] px-1 text-left"
+        className="text-xs text-ink-mute hover:text-brand-700 transition-colors min-h-[44px] px-1 text-left"
       >
         + Add custom note
       </button>
@@ -28,14 +28,14 @@ export function EscapeHatch({ value, onChange, placeholder }: {
 
   return (
     <div>
-      <p className="text-[11px] text-gray-400 mb-1">Custom note</p>
+      <p className="text-[11px] text-ink-mute mb-1">Custom note</p>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder ?? 'Anything the options above didn’t capture…'}
         rows={2}
         autoFocus={open && !value}
-        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+        className="w-full bg-surface border border-line rounded-xl px-3 py-2 text-sm text-ink placeholder:text-ink-mute focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
       />
     </div>
   );

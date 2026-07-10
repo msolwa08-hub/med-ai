@@ -28,7 +28,7 @@ function BlockRow({ block, chosen, onSelect }: {
 }) {
   return (
     <div>
-      <p className="text-[13px] font-medium text-gray-700 mb-1.5">
+      <p className="text-[13px] font-medium text-ink-soft mb-1.5">
         {block.question}
         {block.why && <span className="ml-1.5"><WhyButton why={block.why} /></span>}
       </p>
@@ -42,8 +42,8 @@ function BlockRow({ block, chosen, onSelect }: {
               onClick={() => onSelect(o.id)}
               className={`min-h-[44px] px-3.5 rounded-2xl text-sm border transition-colors text-left ${
                 on
-                  ? 'bg-teal-600 border-teal-600 text-white'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50'
+                  ? 'bg-brand-600 border-brand-600 text-white'
+                  : 'bg-surface border-line text-ink-soft hover:border-brand-300 hover:bg-brand-50'
               }`}
             >
               {on ? '✓ ' : ''}{o.label}

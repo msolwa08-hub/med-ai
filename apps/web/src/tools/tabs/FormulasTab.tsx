@@ -20,7 +20,7 @@ export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient 
   return (
     <div className="space-y-4">
       {suggested.length > 0 && (
-        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+        <div className="bg-surface border border-line shadow-sm rounded-2xl p-5">
           <SectionHead>Suggested for this patient</SectionHead>
           <div className="flex flex-wrap gap-2">
             {suggested.map(s => (
@@ -30,12 +30,12 @@ export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient 
                 title={`Suggested because: ${s.reason}`}
                 className={`text-sm px-3.5 py-2 rounded-full border transition-colors ${
                   calc === s.calc
-                    ? 'bg-teal-600 border-teal-500 text-white'
-                    : 'bg-teal-50 border-teal-200 text-teal-800 hover:border-teal-400'
+                    ? 'bg-brand-600 border-brand-500 text-white'
+                    : 'bg-brand-50 border-brand-200 text-brand-800 hover:border-brand-400'
                 }`}
               >
                 ✨ {s.meta!.label}
-                <span className={`ml-1.5 text-[11px] ${calc === s.calc ? 'text-teal-100' : 'text-teal-600/70'}`}>{s.reason}</span>
+                <span className={`ml-1.5 text-[11px] ${calc === s.calc ? 'text-brand-100' : 'text-brand-600/70'}`}>{s.reason}</span>
               </button>
             ))}
           </div>
@@ -51,8 +51,8 @@ export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient 
               onClick={() => setCalc(calc === c.id ? '' : c.id)}
               className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
                 calc === c.id
-                  ? 'bg-teal-600 border-teal-500 text-white'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                  ? 'bg-brand-600 border-brand-500 text-white'
+                  : 'bg-surface border-line text-ink-soft hover:border-line-strong'
               }`}
             >
               {c.label}
@@ -71,8 +71,8 @@ export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient 
                 onClick={() => setCalc(calc === c.id ? '' : c.id)}
                 className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
                   calc === c.id
-                    ? 'bg-teal-600 border-teal-500 text-white'
-                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-600'
+                    ? 'bg-brand-600 border-brand-500 text-white'
+                    : 'bg-surface border-line text-ink-mute hover:border-line-strong hover:text-ink-soft'
                 }`}
               >
                 {c.label}

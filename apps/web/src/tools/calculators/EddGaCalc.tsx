@@ -21,11 +21,11 @@ export function EddGaCalc() {
   return (
     <CalcCard title="EDD / Gestational Age">
       <Row label="LMP Date">
-        <input type="date" value={lmp} onChange={e => setLmp(e.target.value)} className="bg-white border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 w-full" />
+        <input type="date" value={lmp} onChange={e => setLmp(e.target.value)} className="bg-surface border border-line-strong rounded px-2 py-1 text-sm text-ink w-full" />
       </Row>
       {gaByLmp && <Result label="GA by LMP" value={gaByLmp} color="pink" />}
       {eddByLmp && <Result label="EDD by LMP (Naegele)" value={eddByLmp} color="pink" />}
-      <div className="mt-3 border-t border-gray-200 pt-3">
+      <div className="mt-3 border-t border-line pt-3">
         <Row label="US GA (days)"><NumInput value={usDays} onChange={setUsDays} placeholder="e.g. 200" /></Row>
         {usDays !== '' && Number(usDays) > 0 && (
           <Result label="GA from US" value={`${Math.floor(Number(usDays) / 7)}+${Number(usDays) % 7} weeks`} color="pink" />

@@ -27,7 +27,7 @@ export function ANCScheduleCalc() {
             value={behind ? `Behind — expected ${expected}, has had ${v}` : `On track (${v}/${expected} expected by now)`}
             color={behind ? 'red' : 'green'}
           />
-          <p className="text-xs text-gray-500 leading-relaxed mt-2">
+          <p className="text-xs text-ink-mute leading-relaxed mt-2">
             SA BANC-Plus targets 8 contacts: booking (ideally by 12 weeks), then {BANC_PLUS_CONTACTS.slice(1).join(', ')} weeks.
             {behind && ' Explore barriers to attendance (distance, cost, awareness) rather than just noting non-attendance — and use this visit to catch up risk-screening (BP, urine, Hb, syphilis/HIV re-test if indicated).'}
             {nextMilestone && !behind && ` Next scheduled contact around ${nextMilestone} weeks.`}

@@ -253,11 +253,17 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 )}
               </div>
             ) : (
-              <div className="text-center py-16 text-gray-400">
-                <p className="text-4xl mb-3">👤</p>
-                <p>No patient selected</p>
-                <button onClick={addPatient} className="mt-3 text-teal-600 text-sm hover:text-teal-700">
-                  + Add patient
+              <div className="text-center py-20 text-ink-mute">
+                <div className="mx-auto mb-4 grid place-items-center w-14 h-14 rounded-full bg-surface-alt">
+                  <Plus className="w-6 h-6 text-ink-mute" />
+                </div>
+                <p className="text-ink-soft font-medium">No patient selected</p>
+                <p className="text-[13px] text-ink-mute mt-1">Add a patient to start clerking.</p>
+                <button
+                  onClick={addPatient}
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:text-brand-800 transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Add patient
                 </button>
               </div>
             )}

@@ -28,7 +28,7 @@ export function EctopicCalc() {
           color={riseOk ? 'green' : 'red'}
         />
       )}
-      <div className="mt-3 border-t border-gray-200 pt-3">
+      <div className="mt-3 border-t border-line pt-3">
         <Row label="Progesterone (nmol/L)"><NumInput value={prog} onChange={setProg} placeholder="e.g. 15" /></Row>
         {Number(hcg1) > 0 && Number(prog) > 0 && (
           <Result

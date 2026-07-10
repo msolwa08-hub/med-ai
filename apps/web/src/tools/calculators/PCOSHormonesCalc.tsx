@@ -19,13 +19,13 @@ export function PCOSHormonesCalc() {
       <Row label="FSH (IU/L)"><NumInput value={fsh} onChange={setFsh} placeholder="e.g. 5" /></Row>
       {ratio && <Result label="LH:FSH Ratio" value={`${ratio} ${Number(ratio) > 2 ? '(Elevated — PCOS pattern)' : '(Normal)'}`} color={Number(ratio) > 2 ? 'yellow' : 'green'} />}
 
-      <div className="mt-3 border-t border-gray-200 pt-3">
+      <div className="mt-3 border-t border-line pt-3">
         <Row label="Total Testosterone (nmol/L)"><NumInput value={testo} onChange={setTesto} /></Row>
         <Row label="SHBG (nmol/L)"><NumInput value={shbg} onChange={setShbg} /></Row>
         {fai && <Result label="FAI (Free Androgen Index)" value={`${fai}% ${Number(fai) > 4.5 ? '(Elevated)' : '(Normal)'}`} color={Number(fai) > 4.5 ? 'yellow' : 'green'} />}
       </div>
 
-      <div className="mt-3 border-t border-gray-200 pt-3">
+      <div className="mt-3 border-t border-line pt-3">
         <Row label="Fasting Insulin (pmol/L)"><NumInput value={insulin} onChange={setInsulin} /></Row>
         <Row label="Fasting Glucose (mmol/L)"><NumInput value={glucose} onChange={setGlucose} /></Row>
         {homa && <Result label="HOMA-IR" value={`${homa} ${Number(homa) > 2.5 ? '(Insulin Resistance)' : '(Normal)'}`} color={Number(homa) > 2.5 ? 'yellow' : 'green'} />}

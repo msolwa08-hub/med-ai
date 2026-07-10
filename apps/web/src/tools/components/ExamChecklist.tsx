@@ -19,12 +19,12 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
   const done = all.filter(i => checked[i.id]).length;
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-4">
+    <div className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Exam checklist</h3>
+        <h3 className="text-xs font-semibold text-ink-mute uppercase tracking-wider">Exam checklist</h3>
         <span
           className={`text-xs font-medium rounded-full px-2.5 py-1 ${
-            done === all.length && all.length > 0 ? 'bg-teal-50 text-teal-700' : 'bg-gray-50 text-gray-500'
+            done === all.length && all.length > 0 ? 'bg-brand-50 text-brand-700' : 'bg-surface-alt text-ink-mute'
           }`}
         >
           {done}/{all.length} checked
@@ -33,7 +33,7 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
 
       {sections.map(s => (
         <div key={s.id}>
-          <p className="text-[11px] font-semibold text-teal-700/70 uppercase tracking-wider mb-1.5">{s.title}</p>
+          <p className="text-[11px] font-semibold text-brand-700/70 uppercase tracking-wider mb-1.5">{s.title}</p>
           <div className="divide-y divide-gray-50">
             {s.items.map(item => {
               const on = Boolean(checked[item.id]);
@@ -54,10 +54,10 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
                     <span
                       className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200 ${
                         on
-                          ? 'bg-teal-600 border-teal-600 scale-100'
+                          ? 'bg-brand-600 border-brand-600 scale-100'
                           : pendingMandatory
-                            ? 'border-amber-400 bg-white group-hover:border-amber-500'
-                            : 'border-gray-300 bg-white group-hover:border-teal-400'
+                            ? 'border-amber-400 bg-surface group-hover:border-amber-500'
+                            : 'border-line-strong bg-surface group-hover:border-brand-400'
                       }`}
                     >
                       <span
@@ -66,7 +66,7 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
                         ✓
                       </span>
                     </span>
-                    <span className={`text-sm leading-snug ${on ? 'text-gray-400 line-through decoration-teal-300' : 'text-gray-800'}`}>
+                    <span className={`text-sm leading-snug ${on ? 'text-ink-mute line-through decoration-brand-300' : 'text-ink'}`}>
                       {item.label}
                       {pendingMandatory && (
                         <span className="ml-1.5 text-[10px] uppercase tracking-wide text-amber-600 font-semibold no-underline inline-block">

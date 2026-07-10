@@ -35,7 +35,7 @@ export function MEOWSCalc() {
       <Row label="HR (/min)"><NumInput value={hr} onChange={setHr} /></Row>
       <Row label="Temp (°C)"><NumInput value={temp} onChange={setTemp} /></Row>
       <Row label="AVPU">
-        <select value={avpu} onChange={e => setAvpu(e.target.value)} className="bg-white border border-gray-300 rounded px-2 py-1 text-sm text-gray-900">
+        <select value={avpu} onChange={e => setAvpu(e.target.value)} className="bg-surface border border-line-strong rounded px-2 py-1 text-sm text-ink">
           <option value="A">Alert</option>
           <option value="V">Voice</option>
           <option value="P">Pain</option>
