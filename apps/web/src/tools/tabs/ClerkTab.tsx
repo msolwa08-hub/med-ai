@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { toolsApi, type Discrepancy } from '../toolsApi';
+import { toolsApi, type Discrepancy, type DiscriminatingFeature } from '../toolsApi';
 import { AssistPanel } from '../AssistPanel';
 import { DetailsList } from '../DetailsList';
 import type { DeptId } from '../config/departments';
@@ -8,7 +8,7 @@ import { intakeAssistFields } from '../fields/intake';
 import { historyAssistFields } from '../fields/history';
 import { assessmentAssistFields } from '../fields/assessment';
 import { patientContext } from '../lib/patientContext';
-import { SectionHead } from '../components/ui';
+import { SectionHead, Card } from '../components/ui';
 import { cascadesFor, type SymptomCascade } from '../config/symptomCascades';
 import { smartBlocksFor, type SmartBlock } from '../config/smartBlocks';
 import { CascadePanel, EMPTY_CASCADE_VALUE, type CascadePanelValue } from '../components/CascadePanel';
@@ -18,26 +18,27 @@ import { ExamChecklist } from '../components/ExamChecklist';
 import { ImageCaptureNode } from '../components/ImageCaptureNode';
 import { upsertSerialized } from '../lib/serializeIntoField';
 import { WorkingPicturePanel } from '../components/WorkingPicturePanel';
+import { ConfirmStream, hashFeature } from '../components/ConfirmStream';
 import { useWorkingPicture } from '../lib/useWorkingPicture';
 import { StageCard } from '../components/StageCard';
 import { SlideOver } from '../components/SlideOver';
-import { PictureSheet } from '../components/PictureSheet';
 import { QuickBar } from '../components/QuickBar';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { QuickDocs } from '../components/QuickDocs';
-import { MessageSquareText, BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText } from 'lucide-react';
+import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check } from 'lucide-react';
+import { complaintIcon } from '../lib/icons';
 
 // ─── BEDSIDE TAB — the cockpit ───────────────────────────────────────────────
-// One canvas for the whole loop. LEFT: the capture stream — four stages
-// (Complaint → Story → Examine → Results) with progressive disclosure, so the
-// page is always a handful of quiet rows plus one working area. RIGHT: the
-// living working picture, sticky — type a finding, watch the differential move
-// beside you. The full record and the admission note are one tap away in
-// slide-overs, never occupying the canvas.
+// LOWEST-LEVEL INPUT → HIGHEST-LEVEL OUTPUT. Start → Confirm → Complete:
+// START — tap a complaint (or dictate). CONFIRM — the leading diagnosis
+// appears automatically; a stream of yes/no + MCQ taps (history AND exam)
+// moves it live. COMPLETE — background, exam detail and results are one
+// collapsed section below, filled in when there's time — background is LAST
+// by design. The full record and the note are one tap away in slide-overs.
 
 const HPI_SMART_BLOCKS = new Set(['neonatal-jaundice', 'pprom-ptl']);
 
-type StageId = 'complaint' | 'story' | 'examine' | 'results';
+type CompleteStageId = 'story' | 'examine' | 'results';
 
 function fullRecordText(patient: Patient, dept: DeptId, subDept?: string): string {
   const vals = (o: Record<string, unknown>) =>
@@ -49,6 +50,19 @@ function presentingText(patient: Patient): string {
   const vals = (o: Record<string, unknown>) =>
     Object.values(o).filter((v): v is string => typeof v === 'string');
   return [...vals(patient.intake), ...vals(patient.history)].join(' ');
+}
+
+function lowerFirst(s: string): string {
+  return s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+}
+
+/** A tap answer becomes the same clinical shorthand the rest of the record
+ *  uses — yes: the finding stated positively; no: negated; MCQ: "<the
+ *  question, as a stem>: <chosen option>". */
+function serializeFeatureAnswer(feature: DiscriminatingFeature, value: string): string {
+  const stem = feature.prompt.replace(/[?.]+$/, '').trim();
+  if (feature.options && feature.options.length > 0) return `${lowerFirst(stem)}: ${value}`;
+  return value === 'yes' ? lowerFirst(stem) : `no ${lowerFirst(stem)}`;
 }
 
 export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
@@ -99,7 +113,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     if (Object.keys(historyPatch).length) onHistory(historyPatch);
   }
 
-  // ── Presenting complaint cascade (zero-typing) ─────────────────────────────
+  // ── Presenting complaint cascade (zero-typing) — the START gesture ─────────
   const cascades = cascadesFor(dept);
   const activeCascade: SymptomCascade | undefined = cascades.find(c => c.id === patient.activeCascadeId);
   const isFemale = /^f/i.test(patient.intake.sex.trim());
@@ -109,6 +123,18 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     const nextCC = upsertSerialized(patient.history.chiefComplaint, persist?.lastText, serialized, '; ');
     onHistory({ chiefComplaint: nextCC });
     onPatient({ cascades: { ...patient.cascades, [cascade.id]: { ...v, lastText: serialized } } });
+  }
+
+  // Tapping a complaint IS the seed — it opens the cascade for detail AND, if
+  // nothing has been captured yet, sets the chief complaint to the label so the
+  // working picture fires immediately (the "tap it, the diagnosis follows" law).
+  // The cascade answers then refine that seed via cascadeChanged.
+  function pickComplaint(c: SymptomCascade, isOn: boolean) {
+    const patch: Partial<Patient> = { activeCascadeId: isOn ? undefined : c.id };
+    if (!isOn && !patient.history.chiefComplaint.trim()) {
+      onHistory({ chiefComplaint: c.label });
+    }
+    onPatient(patch);
   }
 
   // ── Condition-triggered smart blocks ───────────────────────────────────────
@@ -152,25 +178,52 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     });
   }
 
-  // ── The bedside loop: working picture from the clerking so far ─────────────
-  const wp = useWorkingPicture(patient, toolsKey, dept, subDept, onPatient);
+  // ── The Confirm tap stream: a tap patches the record, which re-fires ───────
+  // the picture (auto-fire below). featureAnswers persists what's already
+  // answered (keyed by a stable hash of the prompt) purely so the UI can show
+  // the selected pill and so re-answering finds + replaces its own line
+  // instead of duplicating it — the record string fields stay the single
+  // source of truth the engine reads.
+  function onFeatureAnswer(feature: DiscriminatingFeature, value: string) {
+    const key = hashFeature(feature.prompt);
+    const prevValue = patient.featureAnswers?.[key];
+    const prevText = prevValue !== undefined ? serializeFeatureAnswer(feature, prevValue) : undefined;
+    const nextText = serializeFeatureAnswer(feature, value);
+    if (feature.kind === 'exam') {
+      onAssessment({ examination: upsertSerialized(patient.assessment.examination, prevText, nextText, '\n') });
+    } else {
+      onHistory({ hpi: upsertSerialized(patient.history.hpi, prevText, nextText, '\n') });
+    }
+    onPatient({ featureAnswers: { ...patient.featureAnswers, [key]: value } });
+  }
 
-  // ── Stage state — progressive disclosure ───────────────────────────────────
+  // ── The bedside loop: working picture, auto-fired from the clerking so far ─
   const cc = patient.history.chiefComplaint.trim();
+  const wpSignature = JSON.stringify({
+    cc: patient.history.chiefComplaint,
+    hpi: patient.history.hpi,
+    exam: patient.assessment.examination,
+    vitals: patient.assessment.vitals,
+  });
+  const wp = useWorkingPicture(patient, toolsKey, dept, subDept, onPatient, wpSignature);
+
+  // ── Complete (collapsed) — background, exam detail, results ────────────────
   const filledStory = clerkFields.filter(f => (f.value ?? '').trim()).length;
   const checkedCount = Object.values(checklist.checked).filter(Boolean).length;
   const totalItems = sections.reduce((a, s) => a + s.items.length, 0);
   const hasVitals = patient.assessment.vitals.trim().length > 0;
   const entryCount = patient.investigations?.length ?? 0;
+  const storyDone = filledStory >= 5;
+  const examineDone = checkedCount > 0 && hasVitals;
+  const resultsDone = entryCount > 0;
+  const completeDoneCount = [storyDone, examineDone, resultsDone].filter(Boolean).length;
 
-  const [openStage, setOpenStage] = useState<StageId | null>(() => {
-    if (!cc) return 'complaint';
-    if (filledStory < 4) return 'story';
-    if (checkedCount === 0) return 'examine';
-    return 'results';
-  });
-  const toggle = (s: StageId) => setOpenStage(prev => (prev === s ? null : s));
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [openStage, setOpenStage] = useState<CompleteStageId | null>('story');
+  const toggle = (s: CompleteStageId) => setOpenStage(prev => (prev === s ? null : s));
 
+  const [quickBarOpen, setQuickBarOpen] = useState(false);
+  const [moreDetailOpen, setMoreDetailOpen] = useState(false);
   const [drawer, setDrawer] = useState<null | 'record' | 'docs'>(null);
 
   // Quick-clerk brain-dump routes a flat {key: value} back to the slice that
@@ -195,27 +248,17 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     return `${who ? `${who} — ` : ''}${filledStory}/${clerkFields.length} captured`;
   })();
 
-  const picturePanel = (
-    <WorkingPicturePanel
-      picture={wp.picture}
-      loading={wp.loading}
-      error={wp.error}
-      onGenerate={wp.generate}
-      generateLabel="Build picture"
-    />
-  );
-
   const utilityRow = (
     <div className="flex gap-2">
       <button
         onClick={() => setDrawer('record')}
-        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-xl border border-line bg-surface text-[13px] font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
+        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
       >
         <ClipboardList className="w-4 h-4" /> Full record
       </button>
       <button
         onClick={() => setDrawer('docs')}
-        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-xl border border-line bg-surface text-[13px] font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
+        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
       >
         <FileText className="w-4 h-4" /> Documents
       </button>
@@ -224,206 +267,261 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   return (
     <>
-      <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
-        {/* ── LEFT: the capture stream ─────────────────────────────────────── */}
-        <div className="lg:col-span-7 space-y-3 pb-20 lg:pb-0">
-          {/* The fast way in: dump the whole clerking (typed or spoken) → one
-              call fills every field. The staged forms below are the fallback. */}
-          <QuickBar
-            toolsKey={toolsKey}
-            dept={dept}
-            subDept={subDept}
-            fields={[...clerkFields, ...examFields]}
-            context={patientContext(patient, dept, subDept)}
-            onResults={routeAnyUpdates}
-          />
+      <div className="max-w-3xl mx-auto space-y-3 pb-20">
+        {utilityRow}
 
-          {discrepancies.length > 0 && (
-            <div className="space-y-2">
-              {discrepancies.map((d, i) => (
-                <div
-                  key={i}
-                  className={`rounded-xl px-4 py-3 border text-[14px] leading-relaxed ${
-                    d.severity === 'alarm'
-                      ? 'bg-amber-50 border-amber-300 text-amber-900'
-                      : 'bg-surface-alt border-line text-ink-soft'
+        {discrepancies.length > 0 && (
+          <div className="space-y-2">
+            {discrepancies.map((d, i) => (
+              <div
+                key={i}
+                className={`rounded-xl px-4 py-3 border text-sm leading-relaxed ${
+                  d.severity === 'alarm'
+                    ? 'bg-warn/[0.08] border-warn/25 text-warn'
+                    : 'bg-surface-alt border-line text-ink-soft'
+                }`}
+              >
+                <span className="font-semibold">{d.severity === 'alarm' ? '⚠ Check this' : 'ℹ Note'}</span> — {d.message}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── START — one gesture: tap the complaint ─────────────────────────── */}
+        <Card elevation="e1" className="p-4 sm:p-5 space-y-3.5">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Presenting complaint</h2>
+            <p className="text-xs text-ink-soft">Tap it — the leading diagnosis follows automatically.</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {cascades.map(c => {
+              const on = patient.activeCascadeId === c.id;
+              const answered = Object.values(patient.cascades?.[c.id]?.selections ?? {}).some(s => s.length > 0);
+              const CIcon = complaintIcon(c.id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => pickComplaint(c, on)}
+                  className={`inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-pill text-sm border transition-colors ${
+                    on
+                      ? 'bg-brand-600 border-brand-600 text-white shadow-card'
+                      : answered
+                        ? 'bg-brand-50 border-brand-200 text-brand-800'
+                        : 'bg-surface border-line text-ink-soft hover:border-brand-300 hover:bg-brand-50'
                   }`}
                 >
-                  <span className="font-semibold">{d.severity === 'alarm' ? '⚠ Check this' : 'ℹ Note'}</span> — {d.message}
-                </div>
-              ))}
-            </div>
+                  <CIcon className="w-4 h-4 shrink-0" aria-hidden />
+                  {c.label}
+                  {answered && !on && <Check className="w-3.5 h-3.5 shrink-0" aria-hidden />}
+                </button>
+              );
+            })}
+          </div>
+          {cc && (
+            <p className="text-sm text-ink-soft bg-surface-alt border border-line rounded-xl px-3.5 py-2.5 leading-relaxed">
+              <span className="text-ink-mute">→ </span>{cc}
+            </p>
           )}
 
-          {/* 1 — Complaint */}
-          <StageCard
-            index={1}
-            title="Complaint"
-            icon={MessageSquareText}
-            summary={cc || 'Tap the presenting complaint — zero typing'}
-            done={!!cc}
-            open={openStage === 'complaint'}
-            onToggle={() => toggle('complaint')}
-          >
-            <div className="space-y-4 pt-3">
-              <div className="flex flex-wrap gap-1.5">
-                {cascades.map(c => {
-                  const on = patient.activeCascadeId === c.id;
-                  const answered = Object.values(patient.cascades?.[c.id]?.selections ?? {}).some(s => s.length > 0);
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => onPatient({ activeCascadeId: on ? undefined : c.id })}
-                      className={`min-h-[44px] px-3.5 rounded-2xl text-sm border transition-colors ${
-                        on
-                          ? 'bg-brand-600 border-brand-600 text-white'
-                          : answered
-                            ? 'bg-brand-50 border-brand-200 text-brand-800'
-                            : 'bg-surface border-line text-ink-soft hover:border-brand-300 hover:bg-brand-50'
-                      }`}
-                    >
-                      {c.icon ? `${c.icon} ` : ''}{c.label}{answered && !on ? ' ✓' : ''}
-                    </button>
-                  );
-                })}
+          {/* De-emphasised accelerator — typing/dictation is optional, never required. */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setQuickBarOpen(o => !o)}
+              className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
+            >
+              <ChevronDown className={`w-3 h-3 transition-transform ${quickBarOpen ? 'rotate-180' : ''}`} aria-hidden />
+              or say/paste it all
+            </button>
+            {quickBarOpen && (
+              <div className="mt-2.5">
+                <QuickBar
+                  toolsKey={toolsKey}
+                  dept={dept}
+                  subDept={subDept}
+                  fields={[...clerkFields, ...examFields]}
+                  context={patientContext(patient, dept, subDept)}
+                  onResults={routeAnyUpdates}
+                />
               </div>
-              {activeCascade && (
-                <div className="border-t border-line pt-4">
-                  <CascadePanel
-                    key={activeCascade.id}
-                    cascade={activeCascade}
-                    value={patient.cascades?.[activeCascade.id] ?? EMPTY_CASCADE_VALUE}
-                    isFemale={isFemale}
-                    onChange={(v, text) => cascadeChanged(activeCascade, v, text)}
+            )}
+          </div>
+        </Card>
+
+        {/* ── CONFIRM — the hero: leading dx + the tap stream ─────────────────── */}
+        {cc && (
+          <div className="space-y-3">
+            <WorkingPicturePanel
+              picture={wp.picture}
+              loading={wp.loading}
+              error={wp.error}
+              onGenerate={wp.generate}
+              generateLabel="Build picture"
+            />
+
+            {wp.picture && (
+              <ConfirmStream
+                features={wp.picture.discriminatingFeatures ?? []}
+                answers={patient.featureAnswers ?? {}}
+                onAnswer={onFeatureAnswer}
+              />
+            )}
+
+            {activeCascade && (
+              <div className="rounded-card border border-line bg-surface shadow-card">
+                <button
+                  type="button"
+                  onClick={() => setMoreDetailOpen(o => !o)}
+                  aria-expanded={moreDetailOpen}
+                  className="w-full flex items-center justify-between gap-2 px-4 sm:px-5 py-3 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
+                >
+                  <span className="text-sm font-medium text-ink-soft">More detail — {activeCascade.label}</span>
+                  <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform ${moreDetailOpen ? 'rotate-180' : ''}`} aria-hidden />
+                </button>
+                {moreDetailOpen && (
+                  <div className="px-4 sm:px-5 pb-4 pt-1 border-t border-line/70">
+                    <CascadePanel
+                      key={activeCascade.id}
+                      cascade={activeCascade}
+                      value={patient.cascades?.[activeCascade.id] ?? EMPTY_CASCADE_VALUE}
+                      isFemale={isFemale}
+                      onChange={(v, text) => cascadeChanged(activeCascade, v, text)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── COMPLETE — collapsed by default; background is last by design ───── */}
+        <div className="rounded-card border border-line bg-surface shadow-card">
+          <button
+            type="button"
+            onClick={() => setCompleteOpen(o => !o)}
+            aria-expanded={completeOpen}
+            className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
+          >
+            <span className="min-w-0">
+              <span className="text-sm font-semibold text-ink">Complete the record</span>
+              <span className="block text-xs text-ink-mute mt-0.5">Background, exam detail, results</span>
+            </span>
+            <span className="shrink-0 flex items-center gap-2">
+              <span className="text-2xs font-medium text-ink-mute bg-surface-alt rounded-pill px-2 py-0.5">{completeDoneCount}/3</span>
+              <ChevronDown className={`w-4 h-4 text-ink-mute transition-transform duration-200 ${completeOpen ? 'rotate-180' : ''}`} aria-hidden />
+            </span>
+          </button>
+
+          {completeOpen && (
+            <div className="px-4 sm:px-5 pb-5 pt-1 border-t border-line/70 space-y-3">
+              {/* Story — background, riding smart blocks along */}
+              <StageCard
+                index={1}
+                title="Story"
+                icon={BookOpenText}
+                summary={storySummary}
+                done={storyDone}
+                open={openStage === 'story'}
+                onToggle={() => toggle('story')}
+              >
+                <div className="space-y-4 pt-3">
+                  <AssistPanel
+                    toolsKey={toolsKey}
+                    dept={dept}
+                    subDept={subDept}
+                    section="Clerking"
+                    fields={clerkFields}
+                    context={patientContext(patient, dept, subDept)}
+                    onUpdates={u => routeClerkUpdates(u as Record<string, string>)}
+                  />
+                  {matchedBlocks.length > 0 && (
+                    <div className="space-y-3">
+                      <SectionHead>Smart Blocks — triggered by this record</SectionHead>
+                      {matchedBlocks.map(b => (
+                        <SmartBlockCard
+                          key={b.id}
+                          block={b}
+                          value={patient.smartBlocks?.[b.id] ?? EMPTY_SMART_BLOCK_VALUE}
+                          onChange={(v, text) => smartBlockChanged(b, v, text)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </StageCard>
+
+              {/* Examine */}
+              <StageCard
+                index={2}
+                title="Examine"
+                icon={Stethoscope}
+                summary={`${checkedCount}/${totalItems} exam items${hasVitals ? ' · vitals in' : ''}`}
+                done={examineDone}
+                open={openStage === 'examine'}
+                onToggle={() => toggle('examine')}
+              >
+                <div className="space-y-4 pt-3">
+                  <ExamChecklist
+                    sections={sections}
+                    checked={checklist.checked}
+                    customNote={checklist.customNote}
+                    onToggle={(id, on) => checklistChanged({ ...checklist.checked, [id]: on }, checklist.customNote)}
+                    onNote={note => checklistChanged(checklist.checked, note)}
+                  />
+                  <ImageCaptureNode
+                    toolsKey={toolsKey}
+                    dept={dept}
+                    subDept={subDept}
+                    context={patientContext(patient, dept, subDept)}
+                    onInject={injectImage}
+                  />
+                  {(patient.imageFindings?.length ?? 0) > 0 && (
+                    <div className="bg-surface border border-line shadow-sm rounded-2xl p-5">
+                      <SectionHead>Image findings on record</SectionHead>
+                      <div className="space-y-1.5">
+                        {patient.imageFindings!.map((f, i) => (
+                          <p key={i} className="text-sm text-ink-soft leading-relaxed">
+                            <span className="text-2xs uppercase tracking-wide text-brand-700 bg-brand-50 rounded px-1.5 py-0.5 mr-2">
+                              {f.modality}
+                            </span>
+                            <span className="text-ink-mute mr-2">{f.date}</span>
+                            {f.injectText}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <AssistPanel
+                    toolsKey={toolsKey}
+                    dept={dept}
+                    subDept={subDept}
+                    section="Examination"
+                    fields={examFields}
+                    context={patientContext(patient, dept, subDept)}
+                    onUpdates={u => onAssessment(u as Record<string, string>)}
                   />
                 </div>
-              )}
-              {cc && (
-                <p className="text-[13px] text-ink-soft bg-surface-alt border border-line rounded-xl px-3.5 py-2.5 leading-relaxed">
-                  <span className="text-ink-mute">→ </span>{cc}
-                </p>
-              )}
-            </div>
-          </StageCard>
+              </StageCard>
 
-          {/* 2 — Story: one clerking conversation, smart blocks riding along */}
-          <StageCard
-            index={2}
-            title="Story"
-            icon={BookOpenText}
-            summary={storySummary}
-            done={filledStory >= 5}
-            open={openStage === 'story'}
-            onToggle={() => toggle('story')}
-          >
-            <div className="space-y-4 pt-3">
-              <AssistPanel
-                toolsKey={toolsKey}
-                dept={dept}
-                subDept={subDept}
-                section="Clerking"
-                fields={clerkFields}
-                context={patientContext(patient, dept, subDept)}
-                onUpdates={u => routeClerkUpdates(u as Record<string, string>)}
-              />
-              {matchedBlocks.length > 0 && (
-                <div className="space-y-3">
-                  <SectionHead>Smart Blocks — triggered by this record</SectionHead>
-                  {matchedBlocks.map(b => (
-                    <SmartBlockCard
-                      key={b.id}
-                      block={b}
-                      value={patient.smartBlocks?.[b.id] ?? EMPTY_SMART_BLOCK_VALUE}
-                      onChange={(v, text) => smartBlockChanged(b, v, text)}
-                    />
-                  ))}
+              {/* Results — the loop's second input, same canvas */}
+              <StageCard
+                index={3}
+                title="Results"
+                icon={FlaskConical}
+                summary={resultsSummary(patient)}
+                done={resultsDone}
+                open={openStage === 'results'}
+                onToggle={() => toggle('results')}
+              >
+                <div className="pt-3">
+                  <ResultsCapture patient={patient} dept={dept} onPatient={onPatient} />
                 </div>
-              )}
+              </StageCard>
             </div>
-          </StageCard>
-
-          {/* 3 — Examine */}
-          <StageCard
-            index={3}
-            title="Examine"
-            icon={Stethoscope}
-            summary={`${checkedCount}/${totalItems} exam items${hasVitals ? ' · vitals in' : ''}`}
-            done={checkedCount > 0 && hasVitals}
-            open={openStage === 'examine'}
-            onToggle={() => toggle('examine')}
-          >
-            <div className="space-y-4 pt-3">
-              <ExamChecklist
-                sections={sections}
-                checked={checklist.checked}
-                customNote={checklist.customNote}
-                onToggle={(id, on) => checklistChanged({ ...checklist.checked, [id]: on }, checklist.customNote)}
-                onNote={note => checklistChanged(checklist.checked, note)}
-              />
-              <ImageCaptureNode
-                toolsKey={toolsKey}
-                dept={dept}
-                subDept={subDept}
-                context={patientContext(patient, dept, subDept)}
-                onInject={injectImage}
-              />
-              {(patient.imageFindings?.length ?? 0) > 0 && (
-                <div className="bg-surface border border-line shadow-sm rounded-2xl p-5">
-                  <SectionHead>Image findings on record</SectionHead>
-                  <div className="space-y-1.5">
-                    {patient.imageFindings!.map((f, i) => (
-                      <p key={i} className="text-[13px] text-ink-soft leading-relaxed">
-                        <span className="text-[11px] uppercase tracking-wide text-brand-700 bg-brand-50 rounded px-1.5 py-0.5 mr-2">
-                          {f.modality}
-                        </span>
-                        <span className="text-ink-mute mr-2">{f.date}</span>
-                        {f.injectText}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <AssistPanel
-                toolsKey={toolsKey}
-                dept={dept}
-                subDept={subDept}
-                section="Examination"
-                fields={examFields}
-                context={patientContext(patient, dept, subDept)}
-                onUpdates={u => onAssessment(u as Record<string, string>)}
-              />
-            </div>
-          </StageCard>
-
-          {/* 4 — Results: the loop's second input, same canvas */}
-          <StageCard
-            index={4}
-            title="Results"
-            icon={FlaskConical}
-            summary={resultsSummary(patient)}
-            done={entryCount > 0}
-            open={openStage === 'results'}
-            onToggle={() => toggle('results')}
-          >
-            <div className="pt-3">
-              <ResultsCapture patient={patient} dept={dept} onPatient={onPatient} />
-            </div>
-          </StageCard>
-        </div>
-
-        {/* ── RIGHT: the living picture, always beside the input ───────────── */}
-        <div className="hidden lg:block lg:col-span-5 lg:sticky lg:top-2 space-y-3 max-h-[calc(100vh-8.5rem)] overflow-y-auto scrollbar-thin pr-0.5 pb-2">
-          {picturePanel}
-          {utilityRow}
+          )}
         </div>
       </div>
-
-      {/* Phone/tablet: the picture pinned to the bottom as a sheet */}
-      <PictureSheet picture={wp.picture}>
-        {picturePanel}
-        {utilityRow}
-      </PictureSheet>
 
       {/* ── Slide-overs: the record and the note, one tap away ─────────────── */}
       <SlideOver open={drawer === 'record'} onClose={() => setDrawer(null)} title="Full record" wide>

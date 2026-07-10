@@ -95,6 +95,12 @@ export interface Patient {
   smartBlocks?: Record<string, SmartBlockPersist>;
   examChecklist?: ExamChecklistPersist;
   imageFindings?: ImageFinding[];
+  // tap-stream answers (Confirm step) — keyed by a stable hash of the
+  // DiscriminatingFeature's prompt, value is 'yes'|'no' or the chosen MCQ
+  // option. The serialized text these produce already lives in history.hpi /
+  // assessment.examination; this map just lets re-answering find + replace
+  // the right line and lets the UI show which taps are already answered.
+  featureAnswers?: Record<string, string>;
   // saved HOD-round syntheses, oldest first
   rounds?: WardRoundUpdate[];
   // serial investigations — trended across the admission (optional, backward compatible)

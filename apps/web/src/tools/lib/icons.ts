@@ -1,6 +1,7 @@
 import {
   Stethoscope, Scissors, Venus, Baby, Activity, Siren, Brain, Bone, Syringe,
-  Ban, TriangleAlert, HeartPulse, type LucideIcon,
+  Ban, TriangleAlert, HeartPulse, Wind, Thermometer, Droplet, Zap, CircleDot,
+  Ambulance, type LucideIcon,
 } from 'lucide-react';
 import type { DeptId } from '../config/departments';
 
@@ -38,4 +39,27 @@ export const SEVERITY_ICONS = {
 export type Severity = keyof typeof SEVERITY_ICONS;
 export function severityIcon(s: Severity): LucideIcon {
   return SEVERITY_ICONS[s];
+}
+
+// Presenting-complaint icons — replaces the emoji on the cockpit's Start chips
+// (keyed by symptomCascade id). Best-effort clinical glyphs; a neutral dot for
+// complaints without an obvious icon, so the chip row stays consistent.
+const COMPLAINT_ICONS: Record<string, LucideIcon> = {
+  'chest-pain': HeartPulse,
+  sob: Wind,
+  'abdo-pain': CircleDot,
+  headache: Brain,
+  fever: Thermometer,
+  trauma: Ambulance,
+  'pv-bleeding': Droplet,
+  'reduced-loc': Activity,
+  seizure: Zap,
+  'joint-limb-pain': Bone,
+  cough: Wind,
+  'vomiting-diarrhoea': Droplet,
+  psych: Brain,
+};
+
+export function complaintIcon(cascadeId: string): LucideIcon {
+  return COMPLAINT_ICONS[cascadeId] ?? CircleDot;
 }
