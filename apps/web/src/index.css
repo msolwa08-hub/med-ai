@@ -2,48 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Calm Clinical design tokens ─────────────────────────────────────────────
+   Semantic surfaces / ink / lines as CSS variables so a dark theme is a single
+   [data-theme="dark"] flip. Values are RGB triples (consumed as rgb(var(--x))). */
+:root {
+  --canvas: 247 249 250;        /* app background — soft cool off-white        */
+  --surface: 255 255 255;       /* cards                                        */
+  --surface-alt: 246 248 250;   /* inset / secondary surface                   */
+  --surface-brand: 240 250 249; /* brand-tinted surface (hero panel)           */
+  --line: 231 236 240;          /* hairline borders                            */
+  --line-strong: 214 222 228;   /* stronger dividers / inputs                  */
+  --ink: 15 23 32;              /* primary text (near-black slate)             */
+  --ink-soft: 71 85 105;        /* secondary text (slate-600)                  */
+  --ink-mute: 148 163 184;      /* tertiary / placeholder (slate-400)          */
+}
+
+:root[data-theme='dark'] {
+  --canvas: 9 14 20;
+  --surface: 17 24 33;
+  --surface-alt: 24 33 44;
+  --surface-brand: 13 40 41;
+  --line: 34 46 58;
+  --line-strong: 51 65 80;
+  --ink: 236 242 247;
+  --ink-soft: 160 174 189;
+  --ink-mute: 107 122 138;
+}
+
 @layer base {
   html {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: theme('fontFamily.sans');
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-canvas text-ink antialiased;
+  }
+  /* Inter's optical niceties */
+  * {
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
   }
 }
 
 @layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-  }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
-  }
+  .scrollbar-thin { scrollbar-width: thin; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
-    border-radius: 4px;
+    background-color: rgb(var(--line-strong)); border-radius: 9999px;
   }
 
-  /* Assist-flow motion: question entrance + row glow when the AI fills a field */
-  @keyframes question-in {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: none; }
+  /* Skeleton shimmer for loading AI panels */
+  .skeleton {
+    position: relative; overflow: hidden;
+    background: rgb(var(--surface-alt));
   }
-  @keyframes field-fill {
-    0% { background-color: rgb(153 246 228 / 0.55); } /* teal-200 */
-    100% { background-color: transparent; }
+  .skeleton::after {
+    content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+    animation: shimmer 1.5s infinite;
   }
-  .animate-question-in {
-    animation: question-in 0.35s ease-out both;
+  :root[data-theme='dark'] .skeleton::after {
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent);
   }
-  .animate-field-fill {
-    animation: field-fill 1.6s ease-out both;
-  }
-  .animate-chip-in {
-    animation: question-in 0.3s ease-out both;
-  }
+
   @media (prefers-reduced-motion: reduce) {
-    .animate-question-in, .animate-field-fill, .animate-chip-in {
-      animation: none;
-    }
+    .animate-question-in, .animate-field-fill, .animate-chip-in, .animate-scale-in,
+    .skeleton::after { animation: none !important; }
   }
 }
