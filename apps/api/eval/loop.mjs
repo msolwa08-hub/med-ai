@@ -250,6 +250,66 @@ export const LOOP_SCENARIOS = [
     resultText: 'Venous lactate 4.6 mmol/L ; WCC 19 ; CXR right lower-lobe consolidation ; BP unresponsive to 30 mL/kg fluids',
     moveDx: ['septic shock', 'sepsis'], direction: 'up',
   },
+
+  // ── Paediatrics (M2) — the canonical "the result moves the diagnosis" cases
+  //    on an SA paediatric take. Age/weight-anchored; the discriminating Ix
+  //    shifts a named dx in a defined direction. ─────────────────────────────
+  {
+    id: 'febrile-child-to-meningitis',
+    title: 'Febrile child + neck stiffness → bacterial meningitis on LP',
+    dept: 'paeds',
+    record: {
+      intake: { name: 'P1', age: '2 years', sex: 'M', admissionDiagnosis: 'fever + irritability', allergies: 'NKDA' },
+      history: { chiefComplaint: 'fever, vomiting and irritability', hpi: '2-day fever with vomiting, now drowsy and irritable, refusing feeds, one episode of possible seizure at home. Immunisations up to date. Weight 12 kg.', pmh: 'nil', medications: 'none', hivStatus: 'exposed, unknown' },
+      assessment: { vitals: 'Temp 39.4, HR 150, RR 34, sats 97%', examination: 'irritable, neck stiffness, no rash, bulging not assessable (closed fontanelle), Kernig positive' },
+    },
+    expectDx: ['bacterial meningitis', 'meningitis'],
+    expectDiscriminator: ['lp', 'lumbar puncture', 'csf', 'gram', 'cell count'],
+    resultText: 'LP: CSF turbid, WCC 1800 (90% neutrophils), protein 2.4 g/L, glucose 1.1 (CSF:serum 0.2), Gram-positive diplococci seen',
+    moveDx: ['bacterial meningitis', 'meningitis'], direction: 'up',
+  },
+  {
+    id: 'child-polyuria-to-dka',
+    title: 'Child polyuria + Kussmaul → new-onset DKA on VBG + ketones',
+    dept: 'paeds',
+    record: {
+      intake: { name: 'P2', age: '8 years', sex: 'F', admissionDiagnosis: 'lethargy + vomiting', allergies: 'NKDA' },
+      history: { chiefComplaint: 'vomiting, lethargy and rapid breathing', hpi: '2 weeks of polyuria, polydipsia and weight loss; last few days vomiting and increasingly drowsy with deep rapid breathing. No known diabetes. Weight 22 kg.', pmh: 'nil', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'HR 138, RR 32 deep, BP 96/60, Temp 36.9', examination: 'clinically dehydrated, deep sighing (Kussmaul) breathing, acetone on breath, drowsy but rousable' },
+    },
+    expectDx: ['diabetic ketoacidosis', 'dka', 'ketoacidosis', 'new-onset', 'type 1'],
+    expectDiscriminator: ['vbg', 'blood gas', 'ketone', 'bicarb', 'ph', 'glucose'],
+    resultText: 'Capillary glucose 31 mmol/L ; blood ketones 5.8 mmol/L ; VBG pH 7.08, HCO3 6, base excess -20 ; K+ 4.9',
+    moveDx: ['diabetic ketoacidosis', 'dka', 'ketoacidosis'], direction: 'up',
+  },
+  {
+    id: 'child-tachypnoea-to-severe-pneumonia',
+    title: 'Child fever + fast breathing → severe pneumonia on CXR + sats',
+    dept: 'paeds',
+    record: {
+      intake: { name: 'P3', age: '18 months', sex: 'M', admissionDiagnosis: 'cough + fast breathing', allergies: 'NKDA' },
+      history: { chiefComplaint: 'cough, fever and fast breathing', hpi: '4 days of cough and fever, today breathing fast and not feeding well. Partially immunised. Weight 10 kg.', pmh: 'nil', medications: 'none', hivStatus: 'exposed, on nevirapine prophylaxis' },
+      assessment: { vitals: 'RR 62, HR 160, Temp 39.0, sats 89% on air', examination: 'lower chest wall indrawing, nasal flaring, bronchial breathing right base, unable to feed' },
+    },
+    expectDx: ['severe pneumonia', 'pneumonia', 'very severe pneumonia'],
+    expectDiscriminator: ['cxr', 'chest x', 'sats', 'saturation', 'oxygen'],
+    resultText: 'CXR: dense right lower- and middle-lobe consolidation with a small effusion ; SpO2 88% persisting on room air',
+    moveDx: ['severe pneumonia', 'pneumonia'], direction: 'up',
+  },
+  {
+    id: 'infant-colic-to-intussusception',
+    title: 'Infant colicky pain + red-currant stool → intussusception on US',
+    dept: 'paeds',
+    record: {
+      intake: { name: 'P4', age: '9 months', sex: 'M', admissionDiagnosis: 'episodic crying + vomiting', allergies: 'NKDA' },
+      history: { chiefComplaint: 'episodes of screaming, drawing up legs, and vomiting', hpi: 'Well until today: intermittent episodes of inconsolable screaming with legs drawn up, lethargic between episodes, bilious vomiting, and one nappy with red jelly-like stool. Weight 9 kg.', pmh: 'nil', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'HR 165, RR 36, Temp 37.4', examination: 'lethargic between spasms, a sausage-shaped mass palpable in the right upper quadrant, abdomen otherwise soft' },
+    },
+    expectDx: ['intussusception'],
+    expectDiscriminator: ['ultrasound', 'us', 'target', 'doughnut', 'air enema', 'contrast enema'],
+    resultText: 'Abdominal US: target/doughnut sign in the right upper quadrant with a bowel-within-bowel appearance, trace free fluid',
+    moveDx: ['intussusception'], direction: 'up',
+  },
 ];
 
 async function runLoop(scenario, base, key) {

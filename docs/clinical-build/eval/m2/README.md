@@ -23,6 +23,12 @@ discipline lenses enriched: **Surgery 100/100, Emergency 100/100** held — no
 regression from the added content. Clinical-content review batch:
 `../../implementation/surgery-emergency.md`.
 
+**Paediatrics 100/100** (2026-07-10) on the existing Paeds content + lens:
+bacterial meningitis on LP, new-onset DKA on VBG+ketones, severe pneumonia on
+CXR+sats, intussusception on US. ~8.9c/loop. Report `loop-paeds-2026-07-10.json`.
+Five departments now gated live at 100/100: O&G, Medicine, Surgery, Emergency,
+Paediatrics.
+
 Every scenario: correct diagnosis present at step 1, the discriminating test
 named against it, a must-not-miss stated, the confidence moved in the right
 direction when the result landed, and the shift narrated. Raw reports in

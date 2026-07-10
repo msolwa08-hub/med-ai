@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "febrile-child-to-meningitis",
+      "title": "Febrile child + neck stiffness → bacterial meningitis on LP",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 95,
+        "dx": "Bacterial meningitis (likely pneumococcal)"
+      }
+    },
+    {
+      "id": "child-polyuria-to-dka",
+      "title": "Child polyuria + Kussmaul → new-onset DKA on VBG + ketones",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 90,
+        "after": 97,
+        "dx": "Diabetic ketoacidosis, new-onset Type 1 diabetes, severe"
+      }
+    },
+    {
+      "id": "child-tachypnoea-to-severe-pneumonia",
+      "title": "Child fever + fast breathing → severe pneumonia on CXR + sats",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 65,
+        "after": 90,
+        "dx": "Severe community-acquired bacterial pneumonia with parapneumonic effusion"
+      }
+    },
+    {
+      "id": "infant-colic-to-intussusception",
+      "title": "Infant colicky pain + red-currant stool → intussusception on US",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 85,
+        "after": 95,
+        "dx": "Intussusception"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 8,
+    "inputTokens": 5690,
+    "outputTokens": 19817,
+    "cacheReadTokens": 5196,
+    "cacheWriteTokens": 10904,
+    "estCostUSD": 0.3567738,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 8,
+        "estCostUSD": 0.3567738
+      }
+    },
+    "maxSingleCallUSD": 0.062949
+  }
+}
