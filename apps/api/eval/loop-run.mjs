@@ -12,6 +12,7 @@ const arg = (n, f) => { const i = process.argv.indexOf(`--${n}`); return i !== -
 const base = arg('base', process.env.EVAL_BASE || 'http://localhost:3000').replace(/\/$/, '');
 const key = arg('key', process.env.EVAL_KEY || '');
 const only = arg('scenario', null);
+const dept = arg('dept', null); // e.g. --dept medicine  (score one department's loop set)
 if (!key) { console.error('No tools key. --key <key> or EVAL_KEY.'); process.exit(1); }
 
 async function post(path, body) {
@@ -20,8 +21,8 @@ async function post(path, body) {
 }
 
 await post('/tools/usage-stats', { reset: true });
-console.log(`\nMedAI M1 LOOP HARNESS — ${base}\n`);
-const { mean, results } = await runAllLoops(base, key, only);
+console.log(`\nMedAI LOOP HARNESS — ${base}${dept ? ` · dept=${dept}` : ''}\n`);
+const { mean, results } = await runAllLoops(base, key, only, dept);
 const usage = await post('/tools/usage-stats', {});
 
 const bar = (n) => `${'█'.repeat(Math.round(n / 5))}${'░'.repeat(20 - Math.round(n / 5))} ${String(n).padStart(5)}`;
@@ -40,5 +41,6 @@ console.log(`  <10c/prompt ceiling: ${usage.maxSingleCallUSD < 0.10 ? 'PASS' : '
 
 const dir = join(__dirname, 'reports'); mkdirSync(dir, { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-writeFileSync(join(dir, `loop-${stamp}.json`), JSON.stringify({ mean, results, usage }, null, 2));
-console.log(`  report → apps/api/eval/reports/loop-${stamp}.json\n`);
+const tag = dept ? `${dept}-` : '';
+writeFileSync(join(dir, `loop-${tag}${stamp}.json`), JSON.stringify({ mean, results, usage }, null, 2));
+console.log(`  report → apps/api/eval/reports/loop-${tag}${stamp}.json\n`);
