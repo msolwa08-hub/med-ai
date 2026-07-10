@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "hot-joint-to-septic-arthritis",
+      "title": "Hot swollen knee → septic arthritis on joint aspirate",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 96,
+        "dx": "Septic arthritis (Staphylococcal)"
+      }
+    },
+    {
+      "id": "elderly-fall-to-nof",
+      "title": "Elderly fall, shortened leg → hip (NOF) fracture on X-ray",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 55,
+        "after": 92,
+        "dx": "Displaced intracapsular fracture neck of femur (Garden IV)"
+      }
+    },
+    {
+      "id": "back-pain-to-cauda-equina",
+      "title": "Back pain + saddle anaesthesia + retention → cauda equina on MRI",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 85,
+        "after": 97,
+        "dx": "Cauda equina syndrome"
+      }
+    },
+    {
+      "id": "tibia-fracture-to-compartment-syndrome",
+      "title": "Tibial fracture, escalating pain → compartment syndrome on pressures",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 80,
+        "after": 95,
+        "dx": "Acute compartment syndrome, leg"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 8,
+    "inputTokens": 7376,
+    "outputTokens": 16404,
+    "cacheReadTokens": 5205,
+    "cacheWriteTokens": 10917,
+    "estCostUSD": 0.31068825,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 8,
+        "estCostUSD": 0.31068825
+      }
+    },
+    "maxSingleCallUSD": 0.0508275
+  }
+}

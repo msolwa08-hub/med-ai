@@ -369,6 +369,65 @@ export const LOOP_SCENARIOS = [
     resultText: 'CXR: new right lower-zone infiltrate ; tracheal aspirate purulent, Gram-negative bacilli on Gram stain, culture sent ; WCC 18 rising, CRP up',
     moveDx: ['ventilator-associated pneumonia', 'vap', 'nosocomial pneumonia', 'hospital-acquired pneumonia'], direction: 'up',
   },
+
+  // ── Orthopaedics & Trauma (M2) — the limb/spine emergencies where an
+  //    investigation confirms the operative diagnosis. ─────────────────────────
+  {
+    id: 'hot-joint-to-septic-arthritis',
+    title: 'Hot swollen knee → septic arthritis on joint aspirate',
+    dept: 'ortho',
+    record: {
+      intake: { name: 'O1', age: '52', sex: 'M', admissionDiagnosis: 'acutely painful swollen knee', allergies: 'NKDA' },
+      history: { chiefComplaint: 'hot, swollen, extremely painful right knee', hpi: '2-day history of a hot swollen right knee, unable to bear weight, febrile, no trauma. Diabetic.', pmh: 'T2DM', medications: 'metformin', hivStatus: 'positive on ART' },
+      assessment: { vitals: 'Temp 38.6, HR 104', examination: 'right knee hot, swollen, tense effusion, exquisitely painful on any passive movement, held flexed' },
+    },
+    expectDx: ['septic arthritis'],
+    expectDiscriminator: ['aspirate', 'aspiration', 'synovial', 'joint fluid', 'gram', 'wcc', 'culture'],
+    resultText: 'Joint aspirate: turbid fluid, synovial WCC 78 000 with 95% neutrophils, Gram-positive cocci in clusters seen, no crystals',
+    moveDx: ['septic arthritis'], direction: 'up',
+  },
+  {
+    id: 'elderly-fall-to-nof',
+    title: 'Elderly fall, shortened leg → hip (NOF) fracture on X-ray',
+    dept: 'ortho',
+    record: {
+      intake: { name: 'O2', age: '79', sex: 'F', admissionDiagnosis: 'fall, unable to weight-bear', allergies: 'NKDA' },
+      history: { chiefComplaint: 'left hip pain and unable to stand after a fall', hpi: 'Mechanical fall at home onto the left side, immediate left hip pain, unable to weight-bear. Lives alone.', pmh: 'HTN, osteoporosis', medications: 'amlodipine', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 138/80, HR 88', examination: 'left leg shortened and externally rotated, pain on any hip movement, neurovascularly intact distally' },
+    },
+    expectDx: ['neck of femur', 'nof', 'hip fracture', 'femoral neck', 'intracapsular'],
+    expectDiscriminator: ['x-ray', 'xray', 'radiograph', 'ap pelvis', 'hip film', 'mri'],
+    resultText: 'AP pelvis + lateral hip X-ray: displaced intracapsular fracture of the left femoral neck (Garden IV)',
+    moveDx: ['neck of femur', 'nof', 'hip fracture', 'femoral neck', 'intracapsular'], direction: 'up',
+  },
+  {
+    id: 'back-pain-to-cauda-equina',
+    title: 'Back pain + saddle anaesthesia + retention → cauda equina on MRI',
+    dept: 'ortho',
+    record: {
+      intake: { name: 'O3', age: '41', sex: 'M', admissionDiagnosis: 'severe low back pain with urinary symptoms', allergies: 'NKDA' },
+      history: { chiefComplaint: 'severe low back pain, numb perineum and cannot pass urine', hpi: 'Acute severe low back pain radiating down both legs after lifting, now with saddle numbness and urinary retention since this morning.', pmh: 'nil', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 132/82, HR 84', examination: 'reduced perianal sensation, lax anal tone, bilateral leg weakness, palpable bladder' },
+    },
+    expectDx: ['cauda equina'],
+    expectDiscriminator: ['mri', 'lumbosacral', 'spine mri', 'imaging'],
+    resultText: 'Urgent MRI lumbosacral spine: large central L4/5 disc prolapse compressing the cauda equina with effaced CSF',
+    moveDx: ['cauda equina'], direction: 'up',
+  },
+  {
+    id: 'tibia-fracture-to-compartment-syndrome',
+    title: 'Tibial fracture, escalating pain → compartment syndrome on pressures',
+    dept: 'ortho',
+    record: {
+      intake: { name: 'O4', age: '24', sex: 'M', admissionDiagnosis: 'closed tibial shaft fracture', allergies: 'NKDA' },
+      history: { chiefComplaint: 'severe and worsening calf pain after a tibial fracture', hpi: 'Closed tibial shaft fracture from a soccer tackle 4 hours ago, in a backslab; escalating pain now far out of proportion and not controlled by opioids.', pmh: 'nil', medications: 'morphine', hivStatus: 'negative' },
+      assessment: { vitals: 'HR 110, BP 132/78', examination: 'tense swollen calf, agonising pain on passive dorsiflexion of the toes, distal pulses still present, sensation intact' },
+    },
+    expectDx: ['compartment syndrome'],
+    expectDiscriminator: ['compartment pressure', 'pressure', 'delta pressure', 'fasciotomy', 'clinical'],
+    resultText: 'Intracompartmental pressure 48 mmHg with a diastolic BP of 78 → delta pressure 30 mmHg and falling; pain still escalating',
+    moveDx: ['compartment syndrome'], direction: 'up',
+  },
 ];
 
 async function runLoop(scenario, base, key) {
