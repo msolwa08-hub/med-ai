@@ -168,28 +168,45 @@ ${resultsBlock ? `${resultsBlock}\n` : ''}
 ${stgBlock}
 ${protocolBlock}`;
 
-  const response = await createMessage({
-    model: MODELS.reasoning,
-    max_tokens: 4000,
-    system: [
-      // The task frame + specialty lens are stable per department; the record
-      // changes every call. Static-first ordering lets repeat calls on the same
-      // ward session hit the prompt cache.
-      { type: 'text', text: system, cache_control: { type: 'ephemeral' } },
-    ],
-    messages: [{ role: 'user', content: userContent }],
-  });
+  // A single attempt occasionally overruns the token budget on verbose cases
+  // (stop=max_tokens → unparseable JSON → empty picture). One retry with more
+  // room + a sterner brevity directive converts that transient into a success.
+  // The retry note rides on the USER side so the cached system block is unchanged.
+  const attempt = (maxTokens: number, extraUser: string) =>
+    createMessage({
+      model: MODELS.reasoning,
+      max_tokens: maxTokens,
+      system: [
+        // The task frame + specialty lens are stable per department; the record
+        // changes every call. Static-first ordering lets repeat calls on the same
+        // ward session hit the prompt cache.
+        { type: 'text', text: system, cache_control: { type: 'ephemeral' } },
+      ],
+      messages: [{ role: 'user', content: userContent + extraUser }],
+    });
 
+  let response = await attempt(4000, '');
   // Join ALL text blocks — some models emit multiple.
-  const text = response.content
-    .map(b => (b.type === 'text' ? b.text : ''))
-    .join('');
-  const parsed = tryExtractJSON<Partial<WorkingPicture>>(text) ?? {};
-  if (!Array.isArray(parsed.differentials) || parsed.differentials.length === 0) {
+  let text = response.content.map(b => (b.type === 'text' ? b.text : '')).join('');
+  let parsed = tryExtractJSON<Partial<WorkingPicture>>(text) ?? {};
+
+  const failed = () => !Array.isArray(parsed.differentials) || parsed.differentials.length === 0;
+  if (failed()) {
+    console.warn(
+      `[working-picture] empty differentials (attempt 1); stop=${response.stop_reason}; retrying terse; text head: ${text.slice(0, 300).replace(/\n/g, ' ')}`
+    );
+    response = await attempt(
+      6000,
+      '\n\nIMPORTANT: the previous attempt overran the token budget and was cut off. Respond with the JSON ONLY, maximally terse: max 4 differentials, max 2 items in each supporting/against, max 2 discriminators per diagnosis, one short sentence per "why" and "narrative".'
+    );
+    text = response.content.map(b => (b.type === 'text' ? b.text : '')).join('');
+    parsed = tryExtractJSON<Partial<WorkingPicture>>(text) ?? {};
+  }
+  if (failed()) {
     // An empty picture is a failed picture — surface WHY in the logs so the
     // failure mode is diagnosable in production, not just locally.
     console.warn(
-      `[working-picture] empty differentials; stop=${response.stop_reason}; text head: ${text.slice(0, 300).replace(/\n/g, ' ')}`
+      `[working-picture] empty differentials (after retry); stop=${response.stop_reason}; text head: ${text.slice(0, 300).replace(/\n/g, ' ')}`
     );
   }
 
