@@ -310,6 +310,65 @@ export const LOOP_SCENARIOS = [
     resultText: 'Abdominal US: target/doughnut sign in the right upper quadrant with a bowel-within-bowel appearance, trace free fluid',
     moveDx: ['intussusception'], direction: 'up',
   },
+
+  // ── Intensive Care (M2) — critical-care cases where a result discriminates
+  //    the picture / support decision. ───────────────────────────────────────
+  {
+    id: 'vent-hypoxia-to-ards',
+    title: 'Worsening ventilated hypoxia → ARDS on CXR + P/F ratio (cardiogenic excluded)',
+    dept: 'icu',
+    record: {
+      intake: { name: 'I1', age: '44', sex: 'M', admissionDiagnosis: 'severe pneumonia, intubated', allergies: 'NKDA' },
+      history: { chiefComplaint: 'worsening hypoxia on the ventilator', hpi: 'Day 2 of invasive ventilation for severe community-acquired pneumonia; over the last hours rising FiO2 requirement and falling saturations despite recruitment. No fluid overload clinically.', pmh: 'nil', medications: 'noradrenaline low dose, sedation', hivStatus: 'negative' },
+      assessment: { vitals: 'FiO2 0.8, PEEP 10, SpO2 88%, BP 104/62 on noradrenaline 0.1 mcg/kg/min', examination: 'bilateral crepitations, no raised JVP, warm peripheries' },
+    },
+    expectDx: ['ards', 'acute respiratory distress'],
+    expectDiscriminator: ['cxr', 'chest x', 'p/f', 'pao2', 'fio2', 'echo', 'ratio'],
+    resultText: 'CXR: new bilateral diffuse infiltrates ; ABG PaO2 8 kPa on FiO2 0.8 → P/F ratio ~75 (≈130 mmHg) ; bedside echo: good LV function, no effusion (cardiogenic oedema excluded)',
+    moveDx: ['ards', 'acute respiratory distress'], direction: 'up',
+  },
+  {
+    id: 'icu-shock-to-septic',
+    title: 'Pressor-dependent hypotension → distributive/septic shock on echo + lactate',
+    dept: 'icu',
+    record: {
+      intake: { name: 'I2', age: '58', sex: 'F', admissionDiagnosis: 'hypotension post-laparotomy', allergies: 'NKDA' },
+      history: { chiefComplaint: 'escalating vasopressor requirement', hpi: 'Day 3 post emergency laparotomy for perforated bowel; rising noradrenaline requirement, oliguria, and new fever. Question the shock type before escalating.', pmh: 'nil', medications: 'noradrenaline escalating, piptazobactam', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 88/44 on noradrenaline 0.4 mcg/kg/min, HR 122, Temp 38.7', examination: 'warm flushed peripheries, bounding pulses, CRT <2s' },
+    },
+    expectDx: ['septic shock', 'distributive shock', 'sepsis'],
+    expectDiscriminator: ['echo', 'lactate', 'scvo2', 'cultures', 'source', 'procalcitonin'],
+    resultText: 'Bedside echo: hyperdynamic LV, low SVR picture, IVC variable ; lactate 5.2 rising ; ScvO2 78% (high) ; cultures sent, likely anastomotic leak source',
+    moveDx: ['septic shock', 'distributive shock', 'sepsis'], direction: 'up',
+  },
+  {
+    id: 'icu-oliguria-to-rrt-aki',
+    title: 'Oliguric AKI → dialysis-requiring on K⁺/pH/fluid overload',
+    dept: 'icu',
+    record: {
+      intake: { name: 'I3', age: '51', sex: 'M', admissionDiagnosis: 'septic AKI', allergies: 'NKDA' },
+      history: { chiefComplaint: 'anuria and rising potassium', hpi: 'Day 4 of septic shock with progressive AKI; urine output has fallen to <0.2 ml/kg/h despite adequate MAP and fluid challenge, now anuric with a rising creatinine.', pmh: 'HTN', medications: 'noradrenaline weaning', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 118/70, HR 96, RR 26, sats 92%', examination: 'anasarca, bibasal crepitations, raised JVP' },
+    },
+    expectDx: ['acute kidney injury', 'aki', 'renal failure', 'dialysis', 'rrt'],
+    expectDiscriminator: ['potassium', 'k+', 'ph', 'bicarb', 'urea', 'fluid', 'rrt', 'dialysis'],
+    resultText: 'K⁺ 6.9 with ECG tenting ; VBG pH 7.16, HCO3 12 ; creatinine 620 rising ; refractory pulmonary oedema, anuric despite furosemide',
+    moveDx: ['acute kidney injury', 'aki', 'renal failure', 'dialysis', 'rrt'], direction: 'up',
+  },
+  {
+    id: 'icu-fever-to-vap',
+    title: 'New ventilator-day fever + hypoxia → VAP on CXR + tracheal aspirate',
+    dept: 'icu',
+    record: {
+      intake: { name: 'I4', age: '39', sex: 'M', admissionDiagnosis: 'polytrauma, ventilated', allergies: 'NKDA' },
+      history: { chiefComplaint: 'new fever and rising oxygen requirement on day 5', hpi: 'Day 5 of invasive ventilation after polytrauma; new fever, purulent secretions and a rising FiO2 requirement having previously been improving.', pmh: 'nil', medications: 'sedation, VTE prophylaxis', hivStatus: 'negative' },
+      assessment: { vitals: 'Temp 38.9, FiO2 up from 0.4 to 0.6, SpO2 93%, HR 108', examination: 'coarse crepitations right base, increased purulent tracheal secretions' },
+    },
+    expectDx: ['ventilator-associated pneumonia', 'vap', 'nosocomial pneumonia', 'hospital-acquired pneumonia'],
+    expectDiscriminator: ['cxr', 'chest x', 'tracheal aspirate', 'culture', 'wcc', 'secretions'],
+    resultText: 'CXR: new right lower-zone infiltrate ; tracheal aspirate purulent, Gram-negative bacilli on Gram stain, culture sent ; WCC 18 rising, CRP up',
+    moveDx: ['ventilator-associated pneumonia', 'vap', 'nosocomial pneumonia', 'hospital-acquired pneumonia'], direction: 'up',
+  },
 ];
 
 async function runLoop(scenario, base, key) {

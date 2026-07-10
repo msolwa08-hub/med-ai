@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "vent-hypoxia-to-ards",
+      "title": "Worsening ventilated hypoxia → ARDS on CXR + P/F ratio (cardiogenic excluded)",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 55,
+        "after": 88,
+        "dx": "ARDS secondary to severe CAP (Berlin severe)"
+      }
+    },
+    {
+      "id": "icu-shock-to-septic",
+      "title": "Pressor-dependent hypotension → distributive/septic shock on echo + lactate",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 65,
+        "after": 92,
+        "dx": "Septic shock - vasodilatory (distributive)"
+      }
+    },
+    {
+      "id": "icu-oliguria-to-rrt-aki",
+      "title": "Oliguric AKI → dialysis-requiring on K⁺/pH/fluid overload",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 80,
+        "after": 95,
+        "dx": "Stage 3 septic AKI, refractory fluid overload, RRT-indicated"
+      }
+    },
+    {
+      "id": "icu-fever-to-vap",
+      "title": "New ventilator-day fever + hypoxia → VAP on CXR + tracheal aspirate",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 70,
+        "after": 88,
+        "dx": "Ventilator-associated pneumonia (VAP)"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 8,
+    "inputTokens": 5125,
+    "outputTokens": 19718,
+    "cacheReadTokens": 5223,
+    "cacheWriteTokens": 11042,
+    "estCostUSD": 0.35411940000000003,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 8,
+        "estCostUSD": 0.35411940000000003
+      }
+    },
+    "maxSingleCallUSD": 0.0543945
+  }
+}
