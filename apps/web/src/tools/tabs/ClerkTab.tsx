@@ -180,7 +180,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   // ── Stage state — progressive disclosure ───────────────────────────────────
   const cc = patient.history.chiefComplaint.trim();
-  const filledStory = clerkFields.filter(f => f.value.trim()).length;
+  const filledStory = clerkFields.filter(f => (f.value ?? '').trim()).length;
   const checkedCount = Object.values(checklist.checked).filter(Boolean).length;
   const totalItems = sections.reduce((a, s) => a + s.items.length, 0);
   const hasVitals = patient.assessment.vitals.trim().length > 0;

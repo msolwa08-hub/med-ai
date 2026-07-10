@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { ChevronDown, ListChecks, Layers, ShieldAlert, type LucideIcon } from 'lucide-react';
 import { toolsApi, type Problem, type SafetyWarning, type ScreeningPrompt } from '../toolsApi';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
@@ -9,6 +11,74 @@ import { TreatmentSetCard } from '../components/TreatmentSetCard';
 import { WhyButton } from '../components/WhyButton';
 
 // ─── PROBLEMS TAB ────────────────────────────────────────────────────────────
+// Calm Clinical progressive disclosure: the problem list is the always-visible
+// primary surface. The supporting panels (screening prompts, protocol treatment
+// sets, medication safety) collapse into StageCard-style rows with a filled
+// one-line summary — a lighter local variant of StageCard since these are
+// independent panels, not a numbered stage sequence. An active safety signal
+// (a BLOCK/WARN warning, or a "safety"-category screening prompt) always forces
+// its panel open — a warning is never left hidden behind a collapsed row.
+
+// A lighter StageCard: same chrome (rounded card, icon, filled summary when
+// collapsed, chevron), but the leading marker is a plain icon badge rather than
+// a numbered/checked stage marker, and the panel can carry a safety "tone".
+function Panel({
+  icon: Icon, title, summary, tone = 'default', open, onToggle, children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  summary?: string;
+  tone?: 'default' | 'warn' | 'danger';
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  const reduce = useReducedMotion();
+  const border = open
+    ? tone === 'danger' ? 'border-red-200 shadow-card-hover' : tone === 'warn' ? 'border-amber-200 shadow-card-hover' : 'border-brand-200 shadow-card-hover'
+    : 'border-line shadow-card';
+  const badge = tone === 'danger' ? 'bg-red-50 text-red-700' : tone === 'warn' ? 'bg-amber-50 text-amber-700' : open ? 'bg-brand-50 text-brand-700' : 'bg-surface-alt text-ink-mute';
+  return (
+    <section className={`rounded-card border bg-surface transition-shadow ${border}`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 text-left group focus:outline-none focus-visible:shadow-focus rounded-card"
+      >
+        <span className={`grid place-items-center w-8 h-8 rounded-full shrink-0 transition-colors ${badge}`}>
+          <Icon className="w-4 h-4" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={`text-[15px] font-semibold tracking-tight ${open ? 'text-ink' : 'text-ink-soft'}`}>{title}</span>
+          {!open && summary && (
+            <span className="block text-[13px] text-ink-mute truncate mt-0.5">{summary}</span>
+          )}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 text-ink-mute transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          aria-hidden
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="body"
+            initial={reduce ? false : { height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={reduce ? undefined : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 sm:px-5 pb-5 pt-1 border-t border-line/70">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
 
 // Category → card colouring for screening prompts. Muted -50 backgrounds so
 // four categories scan at a glance without shouting.
@@ -19,11 +89,9 @@ const SCREENING_STYLE: Record<ScreeningPrompt['category'], { card: string; chip:
   safety: { card: 'bg-rose-50 border-rose-100', chip: 'bg-rose-100 text-rose-800' },
 };
 
-function ScreeningPanel({ prompts, loading }: { prompts: ScreeningPrompt[]; loading: boolean }) {
-  if (!loading && prompts.length === 0) return null;
+function ScreeningList({ prompts, loading }: { prompts: ScreeningPrompt[]; loading: boolean }) {
   return (
     <div className="space-y-2">
-      <SectionHead>Screening & don’t-forget prompts</SectionHead>
       {loading && prompts.length === 0 && (
         <p className="text-xs text-ink-mute">Checking the problem list for screening gaps…</p>
       )}
@@ -53,11 +121,9 @@ function ScreeningPanel({ prompts, loading }: { prompts: ScreeningPrompt[]; load
   );
 }
 
-function SafetyBanner({ warnings }: { warnings: SafetyWarning[] }) {
-  if (warnings.length === 0) return null;
+function SafetyList({ warnings }: { warnings: SafetyWarning[] }) {
   return (
-    <div className="bg-surface border border-line shadow-sm rounded-2xl p-5 space-y-2">
-      <SectionHead>Medication Safety</SectionHead>
+    <div className="space-y-2">
       {warnings.map((w, i) => (
         <div
           key={i}
@@ -90,6 +156,22 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
   const [err, setErr] = useState('');
   const [screening, setScreening] = useState<ScreeningPrompt[]>([]);
   const [screeningLoading, setScreeningLoading] = useState(false);
+
+  // ── Collapsible-panel open state — supporting panels default collapsed, but
+  // an active safety signal (a BLOCK/WARN warning, or a "safety"-category
+  // screening prompt) forces its panel open the moment it appears, so it is
+  // never left hidden behind a collapsed row.
+  const [openScreening, setOpenScreening] = useState(false);
+  const [openSets, setOpenSets] = useState(false);
+  const [openSafety, setOpenSafety] = useState(false);
+
+  useEffect(() => {
+    if (warnings.length > 0) setOpenSafety(true);
+  }, [warnings]);
+
+  useEffect(() => {
+    if (screening.some(s => s.category === 'safety')) setOpenScreening(true);
+  }, [screening]);
 
   // ── Screening prompts — refreshed (debounced) whenever the problems change ─
   const problemLines = problems
@@ -221,6 +303,21 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
     resolved: 'bg-emerald-50 text-emerald-700',
   };
 
+  // ── Filled one-line summaries for the collapsed rows ───────────────────────
+  const screeningSafetyCount = screening.filter(s => s.category === 'safety').length;
+  const screeningSummary = screeningLoading && screening.length === 0
+    ? 'Checking for screening gaps…'
+    : `${screening.length} prompt${screening.length === 1 ? '' : 's'}${screeningSafetyCount ? ` · ${screeningSafetyCount} safety` : ''}`;
+
+  const setsSummary = `${matchedSets.length} set${matchedSets.length === 1 ? '' : 's'} matched`;
+
+  const blockCount = warnings.filter(w => w.severity === 'BLOCK').length;
+  const warnCount = warnings.filter(w => w.severity === 'WARN').length;
+  const safetySummary = [blockCount ? `${blockCount} BLOCK` : '', warnCount ? `${warnCount} WARN` : '']
+    .filter(Boolean)
+    .join(' · ');
+  const safetyTone: 'danger' | 'warn' = blockCount > 0 ? 'danger' : 'warn';
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center flex-wrap gap-2">
@@ -249,16 +346,48 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           {aiNote}
         </p>
       )}
-      <SafetyBanner warnings={warnings} />
-      <ScreeningPanel prompts={screening} loading={screeningLoading} />
+
+      {warnings.length > 0 && (
+        <Panel
+          icon={ShieldAlert}
+          title="Medication safety"
+          summary={safetySummary}
+          tone={safetyTone}
+          open={openSafety}
+          onToggle={() => setOpenSafety(o => !o)}
+        >
+          <SafetyList warnings={warnings} />
+        </Panel>
+      )}
+
+      {(screeningLoading || screening.length > 0) && (
+        <Panel
+          icon={ListChecks}
+          title="Screening & don’t-forget prompts"
+          summary={screeningSummary}
+          tone={screeningSafetyCount > 0 ? 'danger' : 'default'}
+          open={openScreening}
+          onToggle={() => setOpenScreening(o => !o)}
+        >
+          <ScreeningList prompts={screening} loading={screeningLoading} />
+        </Panel>
+      )}
 
       {matchedSets.length > 0 && (
-        <div className="space-y-3">
-          <SectionHead>Protocol sets — tap off what doesn’t apply</SectionHead>
-          {matchedSets.map(s => (
-            <TreatmentSetCard key={s.id} set={s} onAdd={lines => addToPlan(s.pattern, lines)} />
-          ))}
-        </div>
+        <Panel
+          icon={Layers}
+          title="Protocol treatment sets"
+          summary={setsSummary}
+          open={openSets}
+          onToggle={() => setOpenSets(o => !o)}
+        >
+          <p className="text-xs text-ink-mute mb-3">Tap off what doesn’t apply.</p>
+          <div className="space-y-3">
+            {matchedSets.map(s => (
+              <TreatmentSetCard key={s.id} set={s} onAdd={lines => addToPlan(s.pattern, lines)} />
+            ))}
+          </div>
+        </Panel>
       )}
 
       {problems.length === 0 && (
