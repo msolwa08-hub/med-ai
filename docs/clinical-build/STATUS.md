@@ -1,5 +1,33 @@
 # MedAI — Consultant-Depth Build Campaign
 
+## Milestone drops (the master-plan spine — newest first)
+
+- **M-UI — Calm Clinical design system — ✅ SHIPPED** (dev branch). A real
+  design-system build (not a reskin): tokens (`tailwind.config.js` + CSS-var
+  theme), self-hosted Inter, lucide iconography, framer-motion on the Working
+  Picture hero, one accent everywhere (killed the pink/blue/sky/indigo one-offs
+  and the 8-colour dept selector), **plus a shipped dark mode** (sun/moon
+  toggle, no-flash). Proof: `eval/m-ui/` (desktop+phone, light+dark). Reference:
+  `docs/design-system.md`. Presentation-layer only — no API/logic change, so the
+  M1 loop score carries over.
+- **M1 — the bedside loop in O&G — ✅ SHIPPED**. Weighted differential +
+  discriminating investigations + results→confidence→management, narrated.
+  Live loop harness 100/100, ~8.4c/loop. Proof: `eval/og/` + `eval/reports/`.
+- **M2 — department breadth (Medicine → Surgery → Emergency → …) — 🟡 IN
+  PROGRESS**. The confidence engine is already department-generic. Done so far:
+  loop-harness scenario sets authored for **Medicine (4), Surgery (4),
+  Emergency (4)** — `apps/api/eval/loop.mjs`, run per-dept with `--dept`;
+  Medicine field registry added. **Gated on a live tools key** to run the M2
+  live loop gate (≥90 per department) — no key is on disk this session.
+
+> **What unblocks M2 verification:** a tools key in `apps/api/.env`
+> (`ANTHROPIC_API_KEY`) + boot the beta server, then
+> `node apps/api/eval/loop-run.mjs --dept medicine --key <k>`. The scenarios are
+> committed and ready.
+
+---
+
+
 **Goal:** turn MedAI from a generic form-filler into a super-specialist tool that reasons
 like a consultant in *every* department — every differential (common, dangerous, and the
 zebras a consultant genuinely considers, e.g. renal tubular acidosis, the urine-anion-gap
@@ -22,7 +50,7 @@ Explicitly a multi-session undertaking — this file is the resumable tracker.
 
 | Department | Research dossier | Implementation | Notes |
 |---|---|---|---|
-| Internal Medicine | ✅ done (1409 lines) | ⬜ not started | acid-base/RTA, Na+, anaemia, AKI workups — depth confirmed |
+| Internal Medicine | ✅ done (1409 lines) | 🟡 partial | exam checklists + symptom cascades live; field registry added (TB screen, chronic-disease control, functional status); loop scenarios authored. Remaining: smart-blocks, treatment sets, STG floor, investigation panels, live loop gate |
 | Surgery (General) | ✅ done | ⬜ not started | acute abdomen, indication-for-surgery, pre-op, post-op day framework |
 | Emergency Medicine | ✅ done (1018 lines) | ⬜ not started | SATS, undifferentiated, tox, trauma |
 | Intensive Care | ⬜ not started | ⬜ not started | FASTHUGS, organ-support framing, ventilation |
