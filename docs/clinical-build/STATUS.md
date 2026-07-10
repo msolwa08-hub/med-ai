@@ -1,5 +1,36 @@
 # MedAI — Consultant-Depth Build Campaign
 
+## ▶ ACTIVE PRIORITIES for the autonomous UI loop (read this FIRST each tick)
+
+The user rates the UI **7.5/10** (up from 4) and wants it pushed toward **10**,
+in a 5-hourly autonomous loop. M-UI/2 (premium redesign + tap-driven cockpit) is
+SHIPPED. Verify EVERY UI change with screenshots (`apps/web/scripts/shots.mjs`,
+`apps/web/scripts/drive-cockpit.mjs`) before committing — screenshots are the
+proof. Work in committed increments; push to `claude/ai-medical-history-app-1lh4wv`.
+
+1. **Investigations cluster + visual learning aid (the user's explicit next ask).**
+   Build a tool that VISUALISES what each investigation means — a teaching
+   visual, not just a value: e.g. ABG/acid-base on a map (band chart with
+   compensation zones), anion-gap / electrolytes graphically, a per-analyte
+   trend sparkline with the reference band shaded + the delta called out,
+   FBC/differential visualised, and a "what this means + why it moves the
+   differential" learning panel (teach-while-you-work — consultant reasoning on
+   every visual). Cluster Results so related tests group cleanly (renal / LFTs /
+   FBC / ABG / cardiac / sepsis) with interpretation inline. Reuse
+   `lib/investigations.ts` (PANELS/panelsFor/trendAlerts), `ResultsCapture.tsx`,
+   and the confidence engine's results→differential loop. Charts = self-contained
+   SVG/canvas (no new external deps unless already installed), theme-aware
+   (light+dark), mobile-friendly. Increments: interpretation model → visual
+   components → integrate into Results + the cockpit Complete zone → screenshot gate.
+2. **UI polish toward 10/10** (highest-impact first, before/after into `eval/m-ui2/`):
+   cockpit Confirm-stream grouping by differential + subtle motion on confidence
+   shift + a "picture is thinking" state during the ~3-5s re-fire; designed
+   empty/loading/error states (skeletons not spinners); mobile cockpit ergonomics
+   (thumb reach, sticky leading-diagnosis header on scroll); dark-mode refinements
+   (e.g. department icon tiles); any residual congestion / inconsistent spacing.
+3. **The continuum** (once the UI is genuinely strong): home → pre-visit summary
+   pre-fills Clerk → discharge → follow-up → returning patient folds back in.
+
 ## Milestone drops (the master-plan spine — newest first)
 
 - **M-UI/2 — Premium redesign + diagnosis-first tap-driven cockpit — ✅ SHIPPED**
