@@ -8,7 +8,7 @@ import { intakeAssistFields } from '../fields/intake';
 import { historyAssistFields } from '../fields/history';
 import { assessmentAssistFields } from '../fields/assessment';
 import { patientContext } from '../lib/patientContext';
-import { AiBtn, DocOutput, SectionHead } from '../components/ui';
+import { SectionHead } from '../components/ui';
 import { cascadesFor, type SymptomCascade } from '../config/symptomCascades';
 import { smartBlocksFor, type SmartBlock } from '../config/smartBlocks';
 import { CascadePanel, EMPTY_CASCADE_VALUE, type CascadePanelValue } from '../components/CascadePanel';
@@ -24,6 +24,7 @@ import { SlideOver } from '../components/SlideOver';
 import { PictureSheet } from '../components/PictureSheet';
 import { QuickBar } from '../components/QuickBar';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
+import { QuickDocs } from '../components/QuickDocs';
 import { MessageSquareText, BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText } from 'lucide-react';
 
 // ─── BEDSIDE TAB — the cockpit ───────────────────────────────────────────────
@@ -154,31 +155,6 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   // ── The bedside loop: working picture from the clerking so far ─────────────
   const wp = useWorkingPicture(patient, toolsKey, dept, subDept, onPatient);
 
-  // ── Admission note (in a slide-over; the note is a byproduct, not the canvas)
-  const [admLoading, setAdmLoading] = useState(false);
-  const [admNote, setAdmNote] = useState(patient.admissionNote ?? '');
-  const [admErr, setAdmErr] = useState('');
-
-  async function generateAdmission() {
-    setAdmLoading(true);
-    setAdmErr('');
-    try {
-      const r = await toolsApi.admissionNote(toolsKey, {
-        ...patient.intake,
-        ...patient.history,
-        ...patient.assessment,
-        dayOfAdmission: patient.assessment.dayOfAdmission,
-      });
-      const text = `ADMISSION NOTE\n==============\n\n${r.admissionNote}\n\nWORKING DIAGNOSIS: ${r.workingDiagnosis}\n\nDIFFERENTIALS:\n${r.differentials.map((d, i) => `${i + 1}. ${d}`).join('\n')}\n\nINITIAL PLAN:\n${r.initialPlan.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n---\n${r.disclaimer}`;
-      setAdmNote(text);
-      onPatient({ admissionNote: text });
-    } catch {
-      setAdmErr('Failed to generate admission note.');
-    } finally {
-      setAdmLoading(false);
-    }
-  }
-
   // ── Stage state — progressive disclosure ───────────────────────────────────
   const cc = patient.history.chiefComplaint.trim();
   const filledStory = clerkFields.filter(f => (f.value ?? '').trim()).length;
@@ -195,7 +171,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   });
   const toggle = (s: StageId) => setOpenStage(prev => (prev === s ? null : s));
 
-  const [drawer, setDrawer] = useState<null | 'record' | 'note'>(null);
+  const [drawer, setDrawer] = useState<null | 'record' | 'docs'>(null);
 
   // Quick-clerk brain-dump routes a flat {key: value} back to the slice that
   // owns each key — same split as the conversational assist, extended to exam.
@@ -238,10 +214,10 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         <ClipboardList className="w-4 h-4" /> Full record
       </button>
       <button
-        onClick={() => setDrawer('note')}
+        onClick={() => setDrawer('docs')}
         className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-xl border border-line bg-surface text-[13px] font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
       >
-        <FileText className="w-4 h-4" /> Admission note
+        <FileText className="w-4 h-4" /> Documents
       </button>
     </div>
   );
@@ -461,16 +437,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         />
       </SlideOver>
 
-      <SlideOver open={drawer === 'note'} onClose={() => setDrawer(null)} title="Admission note" wide>
-        <div className="space-y-3">
-          <p className="text-ink-mute text-xs">
-            Generated from the clerking so far — the note is a byproduct of the thinking, not the work itself.
-            The consultant presentation and daily round live in Round &amp; Handover.
-          </p>
-          <AiBtn onClick={generateAdmission} loading={admLoading} label="Generate admission note" />
-          {admErr && <p className="text-band-exclude text-xs">{admErr}</p>}
-          {admNote && <DocOutput text={admNote} />}
-        </div>
+      <SlideOver open={drawer === 'docs'} onClose={() => setDrawer(null)} title="Documents" wide>
+        <QuickDocs patient={patient} toolsKey={toolsKey} dept={dept} />
       </SlideOver>
     </>
   );

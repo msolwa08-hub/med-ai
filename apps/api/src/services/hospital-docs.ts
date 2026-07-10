@@ -12,11 +12,17 @@ import {
 async function generate<T>(system: string, content: string): Promise<T> {
   const response = await createMessage({
     model: MODELS.reasoning,
-    max_tokens: 2048,
+    max_tokens: 3000,
     system,
     messages: [{ role: 'user', content }],
   });
-  const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
+  // Join ALL text blocks — reading only content[0] silently yields "{}" whenever
+  // the model emits more than one block (or a non-text block first), which is how
+  // every one of these document endpoints could return an empty object.
+  const text = response.content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map(b => b.text)
+    .join('') || '{}';
   return extractJSON<T>(text);
 }
 

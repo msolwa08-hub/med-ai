@@ -62,6 +62,37 @@ function firstBalanced(s: string): string | null {
   return s.slice(start);
 }
 
+/**
+ * Escape raw control characters (newlines, tabs, etc.) that the model left
+ * UNESCAPED inside string literals. Models routinely put a literal line break
+ * inside a "presentation"/"note" value, which JSON.parse rejects ("Bad control
+ * character in string literal"). We only touch characters inside strings, so
+ * structural whitespace between tokens is untouched.
+ */
+export function escapeControlCharsInStrings(s: string): string {
+  let out = '';
+  let inStr = false, esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    const code = s.charCodeAt(i);
+    if (inStr) {
+      if (esc) { out += ch; esc = false; continue; }
+      if (ch === '\\') { out += ch; esc = true; continue; }
+      if (ch === '"') { out += ch; inStr = false; continue; }
+      if (code < 0x20) {
+        out += ch === '\n' ? '\\n' : ch === '\t' ? '\\t' : ch === '\r' ? '\\r'
+          : `\\u${code.toString(16).padStart(4, '0')}`;
+        continue;
+      }
+      out += ch;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    out += ch;
+  }
+  return out;
+}
+
 export function extractJSON<T = unknown>(text: string): T {
   // Strip markdown code fences
   const stripped = text
@@ -74,12 +105,13 @@ export function extractJSON<T = unknown>(text: string): T {
   } catch {
     const candidate = firstBalanced(stripped);
     if (candidate) {
-      try {
-        return JSON.parse(candidate) as T;
-      } catch {
-        // Truncated or slightly malformed — salvage what we can rather than throw.
-        return JSON.parse(repairTruncatedJSON(candidate)) as T;
+      const attempts = [candidate, escapeControlCharsInStrings(candidate)];
+      for (const a of attempts) {
+        try { return JSON.parse(a) as T; } catch { /* try next salvage */ }
       }
+      // Truncated or slightly malformed — salvage what we can rather than throw.
+      // Repair structure AND escape stray control chars before the final parse.
+      return JSON.parse(escapeControlCharsInStrings(repairTruncatedJSON(candidate))) as T;
     }
     throw new Error(`Could not extract JSON from: ${text.slice(0, 200)}`);
   }

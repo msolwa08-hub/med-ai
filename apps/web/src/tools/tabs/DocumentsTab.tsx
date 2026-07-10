@@ -9,6 +9,7 @@ import {
 import { DEPARTMENTS, type DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
 import { AiBtn, DocOutput, SectionHead, copy } from '../components/ui';
+import { generateDoc, type DocType } from '../lib/docGen';
 
 // ─── DOCUMENTS TAB ──────────────────────────────────────────────────────────
 
@@ -26,39 +27,9 @@ export function DocumentsTab({ patient, toolsKey, dept }: {
     setLoading(docType);
     setErr('');
     try {
-      let text = '';
-      // Include the problem list so every document reflects the intern's working
-      // diagnosis, differentials and management plan — not just the raw clerking.
-      const base = {
-        dept,
-        ...patient.intake,
-        ...patient.history,
-        ...patient.assessment,
-        problems: patient.problems.map(p => ({
-          problem: p.problem,
-          workingDx: p.workingDx,
-          differentials: p.differentials,
-          management: p.management,
-        })),
-      };
-
-      if (docType === 'discharge') {
-        const r = await toolsApi.discharge(toolsKey, base);
-        text = `DISCHARGE SUMMARY\n=================\n\n${r.patientSummary}\n\nDIAGNOSIS: ${r.diagnosis}\n\nTREATMENT: ${r.treatmentProvided}\n\nMEDICATIONS:\n${r.dischargeMedications.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nFOLLOW-UP: ${r.followUpInstructions}\n\nRETURN IF:\n${r.warningSignsToReturn.map(w => `• ${w}`).join('\n')}\n\n---\n${r.disclaimer}`;
-      } else if (docType === 'referral') {
-        const r = await toolsApi.referral(toolsKey, base);
-        text = `REFERRAL LETTER (${r.urgency.toUpperCase()})\n${'='.repeat(30)}\n\n${r.referralLetter}\n\n---\n${r.disclaimer}`;
-      } else if (docType === 'wardnote') {
-        const r = await toolsApi.wardNote(toolsKey, base);
-        text = `${r.note}\n\n---\n${r.disclaimer}`;
-      } else if (docType === 'labs') {
-        const r = await toolsApi.interpretLabs(toolsKey, base);
-        text = `LAB INTERPRETATION\n==================\n\n${r.interpretation}\n\nKEY ABNORMALITIES:\n${r.keyAbnormalities.map(a => `• ${a}`).join('\n')}\n\nCLINICAL SIGNIFICANCE:\n${r.clinicalSignificance}\n\nRECOMMENDATIONS:\n${r.recommendations.map(r2 => `• ${r2}`).join('\n')}\n\n---\n${r.disclaimer}`;
-      } else if (docType === 'presentation') {
-        const r = await toolsApi.presentPatient(toolsKey, base);
-        text = `${r.oneLineSummary}\n\n${r.presentation}\n\n---\n${r.disclaimer}`;
-      }
-
+      // Shared with the cockpit's QuickDocs rail — one payload + formatter per
+      // document type lives in lib/docGen.
+      const text = await generateDoc(toolsKey, docType as DocType, patient, dept);
       setResults(prev => ({ ...prev, [docType]: text }));
       setActiveDoc(docType);
     } catch {
@@ -69,11 +40,11 @@ export function DocumentsTab({ patient, toolsKey, dept }: {
   }
 
   const docs = [
+    { id: 'presentation', label: 'Ward Round Presentation' },
+    { id: 'wardnote', label: 'Ward Note (SOAP)' },
     { id: 'discharge', label: 'Discharge Summary' },
     { id: 'referral', label: 'Referral Letter' },
-    { id: 'wardnote', label: 'Ward Note (SOAP)' },
     { id: 'labs', label: 'Interpret Labs' },
-    { id: 'presentation', label: 'Ward Round Presentation' },
   ];
 
   return (
