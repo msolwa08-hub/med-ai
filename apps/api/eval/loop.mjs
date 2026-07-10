@@ -428,6 +428,66 @@ export const LOOP_SCENARIOS = [
     resultText: 'Intracompartmental pressure 48 mmHg with a diastolic BP of 78 → delta pressure 30 mmHg and falling; pain still escalating',
     moveDx: ['compartment syndrome'], direction: 'up',
   },
+
+  // ── Psychiatry (M2) — the core competency is ORGANIC EXCLUSION: the loop
+  //    tests that the picture does NOT anchor on a psychiatric label when the
+  //    investigation reveals an organic/toxic cause. ─────────────────────────
+  {
+    id: 'first-psychosis-to-substance-induced',
+    title: 'First-episode psychosis → substance-induced (methamphetamine) on urine tox',
+    dept: 'psych',
+    record: {
+      intake: { name: 'Y1', age: '23', sex: 'M', admissionDiagnosis: 'acute psychosis', allergies: 'NKDA' },
+      history: { chiefComplaint: 'paranoid, agitated and hearing voices', hpi: 'Family report 5 days of paranoia, not sleeping, agitation and hearing voices; no prior psychiatric history. Recently mixing with a new crowd. Collateral suggests possible drug use.', pmh: 'nil psychiatric', medications: 'none', hivStatus: 'unknown, testing offered' },
+      assessment: { vitals: 'BP 148/92, HR 108, Temp 37.2', examination: 'agitated, dilated pupils, picking at skin, paranoid persecutory delusions, no orientation deficit' },
+    },
+    expectDx: ['substance-induced', 'methamphetamine', 'stimulant', 'drug-induced psychosis', 'substance'],
+    expectDiscriminator: ['urine', 'tox', 'toxicology', 'drug screen', 'uds'],
+    resultText: 'Urine toxicology: POSITIVE for methamphetamine and cannabis ; TFTs normal, glucose normal, HIV negative',
+    moveDx: ['substance-induced', 'methamphetamine', 'stimulant', 'drug-induced'], direction: 'up',
+  },
+  {
+    id: 'acute-confusion-to-delirium',
+    title: 'Elderly acute behavioural change → delirium (organic), not psychiatric, on septic + metabolic screen',
+    dept: 'psych',
+    record: {
+      intake: { name: 'Y2', age: '74', sex: 'F', admissionDiagnosis: 'acute confusion and agitation', allergies: 'NKDA' },
+      history: { chiefComplaint: 'sudden confusion, agitation and visual hallucinations', hpi: 'Referred as "acute psychosis" — 2-day history of fluctuating confusion, agitation and seeing things, worse at night. No psychiatric history. On multiple medications. Reduced oral intake.', pmh: 'HTN, T2DM', medications: 'amlodipine, metformin, recently started an anticholinergic', hivStatus: 'negative' },
+      assessment: { vitals: 'Temp 38.1, HR 104, BP 128/74, sats 95%', examination: 'fluctuating attention, disoriented to time and place, drowsy then agitated, dry mucous membranes' },
+    },
+    expectDx: ['delirium', 'acute confusional', 'organic'],
+    expectDiscriminator: ['glucose', 'u&e', 'urine', 'septic screen', 'sodium', 'infection', 'ct', 'fbc'],
+    resultText: 'Urine dipstick + MCS: florid UTI ; Na⁺ 126 (hyponatraemia) ; WCC 15 ; CT brain: no acute intracranial pathology',
+    moveDx: ['delirium', 'acute confusional', 'organic'], direction: 'up',
+  },
+  {
+    id: 'antipsychotic-rigidity-to-nms',
+    title: 'Rigidity + fever on antipsychotic → neuroleptic malignant syndrome on CK + temp',
+    dept: 'psych',
+    record: {
+      intake: { name: 'Y3', age: '31', sex: 'M', admissionDiagnosis: 'rigidity and fever', allergies: 'NKDA' },
+      history: { chiefComplaint: 'stiffness, fever and confusion', hpi: 'Known schizophrenia, haloperidol dose recently increased; over 2 days developed generalised rigidity, high fever, sweating, confusion and unstable observations.', pmh: 'schizophrenia', medications: 'haloperidol (recently uptitrated)', hivStatus: 'negative' },
+      assessment: { vitals: 'Temp 40.1, HR 128, BP 165/98 labile, RR 24', examination: 'lead-pipe rigidity, diaphoretic, fluctuating consciousness, tremor' },
+    },
+    expectDx: ['neuroleptic malignant', 'nms'],
+    expectDiscriminator: ['ck', 'creatine kinase', 'temperature', 'temp', 'wcc', 'u&e'],
+    resultText: 'CK 9200 U/L (markedly raised) ; core temp 40.1 ; WCC 16 ; U&E: creatinine rising with myoglobinuria on dipstick',
+    moveDx: ['neuroleptic malignant', 'nms'], direction: 'up',
+  },
+  {
+    id: 'lithium-tremor-to-toxicity',
+    title: 'Tremor, ataxia, confusion on lithium → lithium toxicity on serum level',
+    dept: 'psych',
+    record: {
+      intake: { name: 'Y4', age: '46', sex: 'F', admissionDiagnosis: 'tremor and confusion', allergies: 'NKDA' },
+      history: { chiefComplaint: 'coarse tremor, unsteadiness and drowsiness', hpi: 'Bipolar disorder on lithium; over the last week worsening coarse tremor, unsteadiness, vomiting and diarrhoea (a viral illness), now drowsy and confused. Recently started a diuretic for hypertension.', pmh: 'bipolar disorder, HTN', medications: 'lithium, recently added hydrochlorothiazide', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 118/74, HR 92, Temp 36.8', examination: 'coarse tremor, ataxia, hyperreflexia, mild confusion, clinically dehydrated' },
+    },
+    expectDx: ['lithium toxicity', 'lithium'],
+    expectDiscriminator: ['lithium level', 'level', 'serum lithium', 'u&e', 'creatinine'],
+    resultText: 'Serum lithium 2.6 mmol/L (toxic, target 0.6-0.8) ; creatinine raised at 140 with a low eGFR ; Na⁺ 133',
+    moveDx: ['lithium toxicity', 'lithium'], direction: 'up',
+  },
 ];
 
 async function runLoop(scenario, base, key) {

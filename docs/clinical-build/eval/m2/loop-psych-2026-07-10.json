@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "first-psychosis-to-substance-induced",
+      "title": "First-episode psychosis → substance-induced (methamphetamine) on urine tox",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 65,
+        "after": 88,
+        "dx": "Substance-induced psychosis (methamphetamine intoxication)"
+      }
+    },
+    {
+      "id": "acute-confusion-to-delirium",
+      "title": "Elderly acute behavioural change → delirium (organic), not psychiatric, on septic + metabolic screen",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 70,
+        "after": 88,
+        "dx": "Delirium, multifactorial (UTI sepsis + hyponatraemia + anticholinergic + dehydration)"
+      }
+    },
+    {
+      "id": "antipsychotic-rigidity-to-nms",
+      "title": "Rigidity + fever on antipsychotic → neuroleptic malignant syndrome on CK + temp",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 80,
+        "after": 92,
+        "dx": "Neuroleptic Malignant Syndrome"
+      }
+    },
+    {
+      "id": "lithium-tremor-to-toxicity",
+      "title": "Tremor, ataxia, confusion on lithium → lithium toxicity on serum level",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 85,
+        "after": 96,
+        "dx": "Lithium toxicity (severe)"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 10,
+    "inputTokens": 8443,
+    "outputTokens": 20981,
+    "cacheReadTokens": 8660,
+    "cacheWriteTokens": 10971,
+    "estCostUSD": 0.38378324999999996,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 10,
+        "estCostUSD": 0.38378324999999996
+      }
+    },
+    "maxSingleCallUSD": 0.0490275
+  }
+}
