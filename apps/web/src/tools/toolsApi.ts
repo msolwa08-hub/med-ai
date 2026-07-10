@@ -139,6 +139,16 @@ export interface Discriminator {
   priority: 'now' | 'today' | 'routine';
 }
 
+/** The tap checklist — closed discriminating history/exam items (yes/no or MCQ). */
+export interface DiscriminatingFeature {
+  kind: 'history' | 'exam';
+  prompt: string;
+  dx: string;
+  ifPresent: 'up' | 'down';
+  options?: string[];
+  priority: 'now' | 'today' | 'routine';
+}
+
 export interface WeightedDifferential {
   dx: string;
   icd10?: string;
@@ -156,6 +166,8 @@ export interface WorkingPicture {
   mustNotMiss: string;
   managementNow: string[];
   narrative: string;
+  /** The tap checklist — drives the zero-typing Confirm stream. Optional for back-compat with cached pictures. */
+  discriminatingFeatures?: DiscriminatingFeature[];
   safety: SafetyWarning[];
   disclaimer: string;
 }

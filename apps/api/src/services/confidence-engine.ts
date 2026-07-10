@@ -31,6 +31,29 @@ export interface Discriminator {
   priority: 'now' | 'today' | 'routine';
 }
 
+/**
+ * The TAP CHECKLIST — a closed-form discriminating HISTORY question or
+ * EXAMINATION sign the intern can answer by tapping, not typing. Distinct from
+ * `Discriminator` (an investigation to order): these are the "ask/look" items
+ * that most move the leading differentials, so the whole clerking can be a
+ * stream of yes/no + MCQ taps. The zero-typing path — the note falls out of the
+ * taps.
+ */
+export interface DiscriminatingFeature {
+  /** 'history' = ask the patient; 'exam' = examine/elicit the sign. */
+  kind: 'history' | 'exam';
+  /** The closed prompt, as the clinician asks/looks: "Pain radiates to arm or jaw?", "Murphy's sign positive?" */
+  prompt: string;
+  /** The diagnosis this feature discriminates. */
+  dx: string;
+  /** What a YES (or the chosen option) does to that dx: 'up' raises it, 'down' lowers it. */
+  ifPresent: 'up' | 'down';
+  /** If present, a one-tap MCQ (2-5 short options) instead of a yes/no. */
+  options?: string[];
+  /** So the client asks the most-discriminating first. */
+  priority: 'now' | 'today' | 'routine';
+}
+
 export interface WeightedDifferential {
   dx: string;
   icd10?: string;
@@ -54,6 +77,12 @@ export interface WorkingPicture {
   managementNow: string[];
   /** When results were supplied with a previous picture: the narrated update. */
   narrative: string;
+  /**
+   * The tap checklist — closed discriminating history/exam items, priority-
+   * ordered, that would most move the leading differentials. Drives the
+   * zero-typing "Confirm" stream on the bedside cockpit.
+   */
+  discriminatingFeatures: DiscriminatingFeature[];
 }
 
 export interface WorkingPictureRequest {
@@ -145,6 +174,7 @@ RULES:
 - "supporting"/"against": the ACTUAL recorded findings, quoted tersely — never invented ones. If a classic finding is absent from the record, it belongs in a discriminator or the mustNotMiss, not in "supporting".
 - "discriminators": per diagnosis, the 1-3 tests that MOVE it, each stating the direction ("moves it up if X, down if Y"). Mark status "done" if the record already contains its result, "pending" if ordered/awaited per the record, else "suggested". Priority "now" only for genuinely time-critical ones.
 - "managementNow": only what the CURRENT confidence level already justifies (with doses where STG applies) — do not pre-treat a 20% diagnosis unless it is a must-exclude with a time-critical safety action; say which diagnosis each action serves.
+- "discriminatingFeatures": THE TAP CHECKLIST — the highest-yield discriminating HISTORY questions and EXAMINATION signs that are NOT already in the record and would most move the leading differentials, so the intern confirms/excludes by TAPPING, not typing. Each is CLOSED: a yes/no question, OR an MCQ with 2-5 short "options". Phrase exactly as the clinician asks or looks ("Pain radiates to arm or jaw?", "Murphy's sign positive?"; MCQ "Pain character?" options ["crushing","tearing","pleuritic","burning"]). Give "kind" (history|exam), the "dx" it splits, and "ifPresent" ("up" if YES/the telling option raises that dx, "down" if it lowers it). Order MOST-DISCRIMINATING FIRST — favour items that split the top 2-3 differentials or exclude the must-not-miss. Max 8. Omit anything already recorded. This is the zero-typing path; keep prompts to a few words.
 - "mustNotMiss": the single most dangerous realistic miss for this presentation today, one line.
 - TEACH WHILE YOU WORK: every "why" is the consultant explaining the reasoning to the intern in one tight line — the logic, not a textbook recitation.
 - PLAIN TEXT in every string: no markdown, no *, #, backticks or bullet glyphs.
@@ -157,6 +187,7 @@ Respond with ONLY a JSON object:
       ${prevBlock ? '"shift": { "from": 0, "because": "..." },' : ''}
       "discriminators": [ { "test": "...", "moves": "...", "status": "suggested|pending|done", "priority": "now|today|routine" } ] }
   ],
+  "discriminatingFeatures": [ { "kind": "history|exam", "prompt": "...", "dx": "...", "ifPresent": "up|down", "options": ["..."], "priority": "now|today|routine" } ],
   "mustNotMiss": "...",
   "managementNow": ["..."],
   "narrative": "${prevBlock ? 'the consultant read of what changed and what it means for management today' : 'one-paragraph consultant read of the picture as it stands'}"
@@ -185,7 +216,7 @@ ${protocolBlock}`;
       messages: [{ role: 'user', content: userContent + extraUser }],
     });
 
-  let response = await attempt(4000, '');
+  let response = await attempt(4600, '');
   // Join ALL text blocks — some models emit multiple.
   let text = response.content.map(b => (b.type === 'text' ? b.text : '')).join('');
   let parsed = tryExtractJSON<Partial<WorkingPicture>>(text) ?? {};
@@ -247,6 +278,31 @@ ${protocolBlock}`;
     ? parsed.managementNow.filter((x): x is string => typeof x === 'string')
     : [];
 
+  // The tap checklist — validated + capped. Priority-ordered client-side so the
+  // most-discriminating taps come first (now > today > routine).
+  const featPriority = { now: 0, today: 1, routine: 2 } as const;
+  const rawFeatures: Array<Partial<DiscriminatingFeature>> = Array.isArray(parsed.discriminatingFeatures)
+    ? (parsed.discriminatingFeatures as Array<Partial<DiscriminatingFeature>>)
+    : [];
+  const discriminatingFeatures: DiscriminatingFeature[] = rawFeatures
+    .filter(f => !!f && typeof f.prompt === 'string')
+    .slice(0, 12)
+    .map(f => {
+      const options = Array.isArray(f.options)
+        ? f.options.filter((o): o is string => typeof o === 'string' && o.trim().length > 0).slice(0, 5)
+        : undefined;
+      return {
+        kind: f.kind === 'exam' ? 'exam' : 'history',
+        prompt: (f.prompt as string).trim(),
+        dx: typeof f.dx === 'string' ? f.dx : '',
+        ifPresent: f.ifPresent === 'down' ? 'down' : 'up',
+        options: options && options.length >= 2 ? options : undefined,
+        priority: f.priority === 'now' || f.priority === 'routine' ? f.priority : 'today',
+      } as DiscriminatingFeature;
+    })
+    .sort((a, b) => featPriority[a.priority] - featPriority[b.priority])
+    .slice(0, 8);
+
   // Deterministic post-pass — never trust the model alone with drugs. Advisory
   // allergy mentions are filtered as elsewhere; pregnancy detected from the
   // record so the teratogen net is armed in O&G.
@@ -271,6 +327,7 @@ ${protocolBlock}`;
     mustNotMiss: typeof parsed.mustNotMiss === 'string' ? parsed.mustNotMiss : '',
     managementNow,
     narrative: typeof parsed.narrative === 'string' ? parsed.narrative : '',
+    discriminatingFeatures,
     safety,
     disclaimer: HOD_DISCLAIMER,
   };
