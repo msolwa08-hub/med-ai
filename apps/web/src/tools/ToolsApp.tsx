@@ -7,6 +7,7 @@ import { SubDeptSelector } from './components/SubDeptSelector';
 import { ClerkTab } from './tabs/ClerkTab';
 import { ProblemsTab } from './tabs/ProblemsTab';
 import { FeedbackButton } from './components/FeedbackButton';
+import { ArrowLeft, Plus, X, GraduationCap } from 'lucide-react';
 import { RoundTab } from './tabs/RoundTab';
 import { FormulasTab } from './tabs/FormulasTab';
 import { ResultsTab } from './tabs/ResultsTab';
@@ -77,28 +78,28 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   ] as { id: Tab; label: string; show?: boolean }[]).filter(t => t.show !== false);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-canvas flex flex-col overflow-x-hidden">
       {/* Header — a fixed identity cluster on the left that can shrink and
           truncate, and a fixed action on the right that never clips. */}
-      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3 shrink-0">
+      <header className="bg-surface/85 backdrop-blur-md border-b border-line px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3 shrink-0 sticky top-0 z-20">
         <button
           onClick={onBack}
           aria-label="Back to departments"
-          className="shrink-0 grid place-items-center w-9 h-9 -ml-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+          className="shrink-0 grid place-items-center w-9 h-9 -ml-1 rounded-lg text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors"
         >
-          ←
+          <ArrowLeft className="w-[18px] h-[18px]" />
         </button>
         <img src="/medai-icon.svg" alt="" className="w-7 h-7 shrink-0" />
         {/* Wordmark: carried by the icon on phone, spelled out from sm up */}
-        <span className="hidden sm:inline text-gray-900 font-semibold shrink-0">Intern Tools</span>
-        <span className="hidden sm:inline text-gray-300 shrink-0">·</span>
+        <span className="hidden sm:inline text-ink font-semibold shrink-0 tracking-tight">Intern Tools</span>
+        <span className="hidden sm:inline text-line-strong shrink-0">·</span>
         {/* Context chips: the load-bearing orientation. Allowed to shrink and
             truncate before anything clips the page. */}
         <div className="flex items-center gap-1.5 min-w-0">
           <button
             onClick={() => setDept(null)}
             title="Change department"
-            className="shrink-0 max-w-[34vw] sm:max-w-none truncate text-[13px] text-gray-600 hover:text-gray-900 bg-gray-100 px-2 py-1 rounded-md transition-colors"
+            className="shrink-0 max-w-[34vw] sm:max-w-none truncate text-[13px] font-medium text-ink-soft hover:text-ink bg-surface-alt px-2.5 py-1 rounded-lg transition-colors"
           >
             {deptInfo.icon} {deptInfo.label}
           </button>
@@ -106,7 +107,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
             <button
               onClick={() => setSubDept(null)}
               title="Change ward/unit"
-              className="min-w-0 shrink max-w-[38vw] sm:max-w-none truncate text-[13px] text-teal-700 hover:text-teal-900 bg-teal-50 px-2 py-1 rounded-md transition-colors"
+              className="min-w-0 shrink max-w-[38vw] sm:max-w-none truncate text-[13px] font-medium text-brand-700 hover:text-brand-800 bg-brand-50 px-2.5 py-1 rounded-lg transition-colors"
             >
               {subDeptInfo.icon} {subDeptInfo.label}
             </button>
@@ -117,43 +118,44 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           <button
             onClick={() => updatePatient(activePatient.id, { practice: !activePatient.practice })}
             title="Practice patient — kept out of anything real; for teaching/simulation"
-            className={`shrink-0 text-xs font-semibold h-9 px-2.5 rounded-lg border transition-colors ${
+            className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold h-9 px-2.5 rounded-lg border transition-colors ${
               activePatient.practice
                 ? 'bg-amber-100 border-amber-300 text-amber-800'
-                : 'bg-white border-gray-200 text-gray-400 hover:text-gray-700'
+                : 'bg-surface border-line-strong text-ink-mute hover:text-ink-soft'
             }`}
           >
-            {activePatient.practice ? '● PRACTICE' : 'Practice'}
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{activePatient.practice ? 'Practice' : 'Practice'}</span>
           </button>
         )}
         <button
           onClick={addPatient}
-          className="shrink-0 text-sm font-medium bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white pl-2.5 pr-3 h-9 rounded-lg transition-colors inline-flex items-center gap-1"
+          className="shrink-0 text-sm font-medium bg-brand-700 hover:bg-brand-600 active:bg-brand-800 text-white pl-2.5 pr-3 h-9 rounded-lg transition-colors inline-flex items-center gap-1"
         >
-          <span className="text-base leading-none">+</span>
+          <Plus className="w-4 h-4" />
           <span>Patient</span>
         </button>
       </header>
 
       {activePatient?.practice && (
         <div className="bg-amber-50 border-b border-amber-200 text-amber-800 text-xs font-medium text-center py-1.5 shrink-0">
-          ● Practice patient — for teaching/simulation. Not a record of care.
+          Practice patient — for teaching / simulation. Not a record of care.
         </div>
       )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — patient list */}
         {patients.length > 1 && (
-          <aside className="w-48 border-r border-gray-200 overflow-y-auto shrink-0 bg-gray-50">
+          <aside className="w-48 border-r border-line overflow-y-auto shrink-0 bg-canvas scrollbar-thin">
             <div className="p-2 space-y-1">
               {patients.map((p, i) => (
                 <div key={p.id} className="flex items-center gap-1">
                   <button
                     onClick={() => { setActivePatientId(p.id); setActiveTab('clerk'); }}
-                    className={`flex-1 text-left text-xs px-2 py-2 rounded-lg transition-colors truncate ${
+                    className={`flex-1 text-left text-[13px] px-2.5 py-2 rounded-lg transition-colors truncate ${
                       activePatientId === p.id
-                        ? 'bg-teal-600 text-white'
-                        : 'text-gray-600 hover:bg-white'
+                        ? 'bg-brand-600 text-white font-medium shadow-card'
+                        : 'text-ink-soft hover:bg-surface'
                     }`}
                   >
                     {p.intake.name || `Patient ${i + 1}`}
@@ -161,9 +163,10 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                   {patients.length > 1 && (
                     <button
                       onClick={() => removePatient(p.id)}
-                      className="text-gray-400 hover:text-red-400 px-1"
+                      aria-label="Remove patient"
+                      className="shrink-0 grid place-items-center w-7 h-7 rounded-md text-ink-mute hover:text-band-exclude hover:bg-rose-50 transition-colors"
                     >
-                      ×
+                      <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -175,15 +178,15 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs */}
-          <div className="bg-white border-b border-gray-200 flex overflow-x-auto shrink-0">
+          <div className="bg-surface/85 backdrop-blur-md border-b border-line flex overflow-x-auto shrink-0 scrollbar-thin">
             {tabs.map(t => (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors border-b-2 ${
                   activeTab === t.id
-                    ? 'text-teal-700 border-b-2 border-teal-500 bg-teal-50'
-                    : 'text-gray-500 hover:text-gray-900'
+                    ? 'text-brand-700 border-brand-500 bg-brand-50/60'
+                    : 'text-ink-soft border-transparent hover:text-ink'
                 }`}
               >
                 {t.label}
