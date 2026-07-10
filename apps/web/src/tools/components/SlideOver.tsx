@@ -24,7 +24,7 @@ export function SlideOver({ open, onClose, title, children, wide }: {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label={title}>
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
           <motion.div
             className="absolute inset-0 bg-ink/25 backdrop-blur-[2px]"
             initial={reduce ? false : { opacity: 0 }}

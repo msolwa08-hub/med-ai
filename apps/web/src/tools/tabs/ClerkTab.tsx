@@ -21,6 +21,7 @@ import { WorkingPicturePanel } from '../components/WorkingPicturePanel';
 import { useWorkingPicture } from '../lib/useWorkingPicture';
 import { StageCard } from '../components/StageCard';
 import { SlideOver } from '../components/SlideOver';
+import { PictureSheet } from '../components/PictureSheet';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { MessageSquareText, BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText } from 'lucide-react';
 
@@ -231,7 +232,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     <>
       <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
         {/* ── LEFT: the capture stream ─────────────────────────────────────── */}
-        <div className="lg:col-span-7 space-y-3">
+        <div className="lg:col-span-7 space-y-3 pb-20 lg:pb-0">
           {discrepancies.length > 0 && (
             <div className="space-y-2">
               {discrepancies.map((d, i) => (
@@ -404,12 +405,6 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               <ResultsCapture patient={patient} dept={dept} onPatient={onPatient} />
             </div>
           </StageCard>
-
-          {/* Phone/tablet: the picture + utilities follow the stream */}
-          <div className="lg:hidden space-y-3 pt-1">
-            {picturePanel}
-            {utilityRow}
-          </div>
         </div>
 
         {/* ── RIGHT: the living picture, always beside the input ───────────── */}
@@ -418,6 +413,12 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           {utilityRow}
         </div>
       </div>
+
+      {/* Phone/tablet: the picture pinned to the bottom as a sheet */}
+      <PictureSheet picture={wp.picture}>
+        {picturePanel}
+        {utilityRow}
+      </PictureSheet>
 
       {/* ── Slide-overs: the record and the note, one tap away ─────────────── */}
       <SlideOver open={drawer === 'record'} onClose={() => setDrawer(null)} title="Full record" wide>

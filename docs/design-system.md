@@ -87,6 +87,33 @@ identity, not chrome.
   `SectionHead`.
 - `stripMarkdown` backstops stray model markdown before notes are copied to paper.
 
+## The Bedside cockpit (`tabs/ClerkTab.tsx`)
+
+The core surface is built around one principle: **the input is a single focused
+canvas; everything else is built around it.**
+
+- **The capture stream (left, `lg:col-span-7`)** — four stages: Complaint →
+  Story → Examine → Results, each a `StageCard` with progressive disclosure.
+  Only the active stage is expanded; the rest collapse to one calm row carrying
+  a *filled summary* ("Ms A, 31 — 13/26 captured"). Whatever the depth of the
+  underlying forms, the page reads as ~4 quiet rows plus one working area.
+  Results are input (the loop's second half), so they live in the stream —
+  there is no separate Results tab.
+- **The living picture (right, `lg:col-span-5`, sticky)** — the working
+  picture is always beside the input: enter a finding or a result and the
+  differential moves in the same viewport. On phones the picture becomes a
+  pinned bottom bar (top-2 confidence pills) that springs open into a bottom
+  sheet (`PictureSheet`).
+- **Secondary surfaces are drawers** — the full editable record and the
+  admission note open in a `SlideOver` (right sheet): one tap away, never
+  occupying the canvas. The note is a byproduct, and the layout says so.
+- Cockpit runs `max-w-6xl`; reading tabs keep `max-w-3xl`.
+
+Cognitive-load rules baked into this layout: one decision at a time (a single
+expanded stage), status legible at a glance (stage summaries + done checks),
+zero tab-hopping for the loop, and the reward (the picture moving) always in
+view.
+
 ## The hero — Working Picture (`WorkingPicturePanel.tsx`)
 The bedside loop made visual: a ranked differential with **spring-animated
 confidence bars**, band-coloured by weight; each card shows the "why", what would

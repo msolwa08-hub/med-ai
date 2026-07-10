@@ -41,7 +41,7 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
         <button
           onClick={() => setOpen(true)}
           aria-label="Send feedback"
-          className="fixed bottom-4 right-4 z-40 h-11 rounded-full bg-gray-900/90 hover:bg-gray-900 text-white text-sm font-medium px-4 shadow-lg backdrop-blur flex items-center gap-1.5"
+          className="fixed bottom-20 right-4 lg:bottom-4 z-40 h-11 rounded-full bg-gray-900/90 hover:bg-gray-900 text-white text-sm font-medium px-4 shadow-lg backdrop-blur flex items-center gap-1.5"
         >
           💬 Feedback
         </button>
