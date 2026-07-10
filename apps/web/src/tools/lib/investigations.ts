@@ -199,6 +199,48 @@ export const PANELS: Panel[] = [
       { key: 'compartmentPressure', label: 'Compartment Pressure (ΔP)', unit: 'mmHg' },
     ],
   },
+  {
+    id: 'psych',
+    label: 'Psychiatric Monitoring',
+    icon: '🧠',
+    // The general organic-screen bloods (glucose, U&E, FBC, TFTs, etc. —
+    // dossier §4) already live in the panels above and are deliberately not
+    // duplicated here. This panel is the psychiatry-specific trended set:
+    // lithium and clozapine ANC are genuine therapeutic-drug-monitoring
+    // items with their own bands (dossier §2.6/§2.8/§5); CK and urine
+    // toxicology are captured as free text (own keys, distinct from the
+    // 'cardiac' panel's 'ck' and the 'msk' panel's 'ckCrush', which are read
+    // against different reference contexts) because a bare number misleads
+    // in both directions here — CK needs the "what happened to this patient
+    // physically in the hours before this sample" narrative (struggle/
+    // restraint/IM injection vs true NMS, dossier §2.1/§2.8/§4), and urine
+    // toxicology needs the window-period/false-positive narrative (dossier
+    // §4) rather than a positive/negative flag.
+    depts: ['psych', 'emergency', 'medicine'],
+    analytes: [
+      // Trough only — dossier §2.6/§4: a level drawn at any time other than
+      // 12h post-dose is not interpretable against these bands. Range here
+      // spans the usual acute-mania target (up to ~1.0-1.2); toxicity bands
+      // (1.5/2.0/2.5, dialysis threshold) are handled in trendAlerts below
+      // rather than as a bare 'high', since the clinical picture (acute vs
+      // chronic exposure, renal function) matters as much as the number.
+      { key: 'lithiumLevel', label: 'Lithium (12h post-dose)', unit: 'mmol/L', low: 0.6, high: 1.0 },
+      // [EK — dossier §4] range varies by lab/reference and correlates with
+      // clinical effect less tightly than in epilepsy; trough (pre-dose).
+      { key: 'valproateLevel', label: 'Valproate (trough)', unit: 'mg/L', low: 50, high: 100 },
+      // [JUDGMENT CALL] 1.5×10⁹/L reflects the commonly-cited "amber"
+      // monitoring-frequency threshold used across international clozapine
+      // registries — the dossier explicitly flags that exact numeric action
+      // bands differ by registry/local SASOP protocol and were not
+      // independently confirmed this session (§5); verify against the
+      // protocol in force at your unit. The hard stop threshold
+      // (agranulocytosis range) is handled in trendAlerts below.
+      { key: 'clozapineAnc', label: 'Clozapine ANC', unit: '×10⁹/L', low: 1.5 },
+      // Free text, not a bare number — see panel comment above.
+      { key: 'ckPsych', label: 'CK (agitation / NMS workup)', unit: 'U/L' },
+      { key: 'urineTox', label: 'Urine Toxicology', unit: '' },
+    ],
+  },
 ];
 
 /** Panels offered for a department — unscoped panels surface everywhere. */
@@ -373,6 +415,34 @@ export function trendAlerts(trends: AnalyteTrend[]): TrendAlert[] {
   const ckCrush = t('ckCrush');
   if (ckCrush && ckCrush.latest.value >= 5000)
     alerts.push({ severity: 'red', analyte: 'CK', message: `CK ${ckCrush.latest.raw} — crush/rhabdomyolysis: aggressive IV fluids, hourly urine output, dipstick for myoglobinuria`, why: 'Markedly raised CK after crush injury, prolonged compartment compression, or a "found down" prolonged lie predicts AKI — protect the kidneys with early aggressive IV fluids and hourly urine output rather than waiting on a single creatinine. Dipstick blood-positive with no RBCs on microscopy confirms myoglobinuria; trend CK and renal function together, do not single-point it.' });
+
+  const lith = t('lithiumLevel');
+  if (lith) {
+    if (lith.latest.value >= 2.5)
+      alerts.push({ severity: 'red', analyte: 'Lithium', message: `Lithium ${lith.latest.raw} — severe toxicity range: discuss dialysis now`, why: '≥2.5 mmol/L (and certainly >3-4 in an acute-on-chronic picture) carries a real risk of seizures, coma, and death — this is the range where haemodialysis is actively considered, particularly with renal impairment, a falling conscious level, or inability to tolerate oral fluids. Chronic toxicity (a previously stable patient whose renal clearance has fallen — dehydration, a new NSAID/ACE-inhibitor/ARB/diuretic) can produce severe neurotoxicity at a lower level than acute single-ingestion toxicity, so weigh the clinical picture at least as heavily as the number.' });
+    else if (lith.latest.value >= 2.0)
+      alerts.push({ severity: 'red', analyte: 'Lithium', message: `Lithium ${lith.latest.raw} — severe toxicity: confusion, worsening ataxia, hyperreflexia, seizure risk`, why: 'From 2.0 mmol/L upward toxicity is more severe (confusion, worsening ataxia, hyperreflexia, potential seizures, cardiac conduction changes) — stop lithium, IV fluids, and escalate; the dialysis discussion starts here, not only at 2.5, if renal function is impaired or oral intake cannot be tolerated.' });
+    else if (lith.latest.value >= 1.5)
+      alerts.push({ severity: 'amber', analyte: 'Lithium', message: `Lithium ${lith.latest.raw} — early toxicity range (coarse tremor, GI upset, ataxia, drowsiness)`, why: 'From ~1.5 mmol/L upward early toxicity signs appear. Ask what changed clearance — dehydration, reduced intake, diarrhoea/vomiting, or a newly-started NSAID/ACE-inhibitor/ARB/diuretic are the classic precipitants of toxicity in a patient who was previously stable on this dose, not usually a dosing error.' });
+    else
+      alerts.push({ severity: 'amber', analyte: 'Lithium', message: `Lithium ${lith.latest.raw} — confirm this was drawn 12h post-dose before acting on it`, why: 'The level is only interpretable against the standard therapeutic/toxicity bands as a 12-hour post-dose trough — a level drawn at any other time cannot be read against these ranges, and acting on a mistimed level is a common, avoidable error. Toxicity can still occur at an apparently "therapeutic" level if renal clearance has acutely fallen, so correlate with the clinical picture, not the number alone.' });
+  }
+
+  const ckPsych = t('ckPsych');
+  if (ckPsych) {
+    if (ckPsych.latest.value >= 10000)
+      alerts.push({ severity: 'red', analyte: 'CK', message: `CK ${ckPsych.latest.raw} — into the tens-of-thousands range: true NMS or severe rhabdomyolysis until proven otherwise`, why: 'This is far higher than struggle/restraint/IM injection alone typically produces (usually low-hundreds for an injection, low-to-mid thousands for prolonged struggle) — correlate with rigidity, hyperthermia, autonomic instability, and altered mental status (the full NMS picture), stop the causative antipsychotic now, and protect the kidneys with aggressive IV fluids rather than waiting for the rest of the picture to declare itself.' });
+    else if (ckPsych.previous && delta(ckPsych) > 0)
+      alerts.push({ severity: 'amber', analyte: 'CK', message: `CK rising (${ckPsych.previous.raw} → ${ckPsych.latest.raw}) — trend it, don't anchor on one number`, why: 'A simple IM injection produces a modest, transient rise (low-hundreds); struggle, restraint, or prolonged agitation alone can reach the low-to-mid thousands and mimic early NMS. A single value without a pre-intervention baseline is easy to over- or under-interpret — record what happened physically to this patient in the hours before the sample, and read the trend against the rest of the clinical picture, not the number in isolation.' });
+  }
+
+  const anc = t('clozapineAnc');
+  if (anc) {
+    if (anc.latest.value < 0.5)
+      alerts.push({ severity: 'red', analyte: 'Clozapine ANC', message: `ANC ${anc.latest.raw} — agranulocytosis range: STOP clozapine now, do not taper`, why: 'Clozapine is stopped immediately, not tapered, once agranulocytosis is confirmed — the one mandatory-stop threshold in this formulary. Exact numeric action thresholds vary by monitoring registry (UK/US/local SASOP protocol) — verify against the protocol actually in force at your unit before acting on this number in isolation (verify vs local monitoring protocol).' });
+    else if (anc.latest.value < 1.5)
+      alerts.push({ severity: 'amber', analyte: 'Clozapine ANC', message: `ANC ${anc.latest.raw} — below the routine "green zone": increase monitoring frequency`, why: 'A falling ANC below the routine monitoring threshold used by most clozapine registries triggers increased-frequency monitoring before it reaches the stop threshold — do not wait for the next scheduled sample if the trend is downward. Confirm the exact action bands against your unit\'s registry (verify vs local monitoring protocol).' });
+  }
 
   return alerts;
 }
