@@ -133,6 +133,28 @@ export const PANELS: Panel[] = [
       { key: 'vl', label: 'Viral load', unit: 'copies/mL', high: 50 },
     ],
   },
+  {
+    id: 'abdo',
+    label: 'Surgical / Abdo',
+    icon: '🩻',
+    depts: ['surgery', 'emergency', 'icu'],
+    analytes: [
+      { key: 'amylase', label: 'Amylase', unit: 'U/L', high: 100 },
+      { key: 'lipase', label: 'Lipase', unit: 'U/L', high: 160 },
+      // Free text — blood group + units held/crossmatched, no numeric range.
+      { key: 'groupCrossmatch', label: 'Group & X-match', unit: '' },
+    ],
+  },
+  {
+    id: 'tox',
+    label: 'Toxicology',
+    icon: '☠️',
+    depts: ['emergency', 'medicine', 'icu'],
+    analytes: [
+      { key: 'paracetamol', label: 'Paracetamol', unit: 'mg/L' },
+      { key: 'salicylate', label: 'Salicylate', unit: 'mg/dL', high: 30 },
+    ],
+  },
 ];
 
 /** Panels offered for a department — unscoped panels surface everywhere. */
@@ -253,8 +275,28 @@ export function trendAlerts(trends: AnalyteTrend[]): TrendAlert[] {
     alerts.push({ severity: 'red', analyte: 'Glucose', message: `Glucose ${glu.latest.raw} — treat now, then find the cause`, why: 'Hypoglycaemia kills faster than hyperglycaemia. After treating: insulin chart error, sepsis, liver failure, or an oral agent that outlived the meal.' });
 
   const lact = t('lact');
-  if (lact && lact.previous && delta(lact) >= 0 && lact.latest.value > 2)
-    alerts.push({ severity: 'amber', analyte: 'Lactate', message: `Lactate not clearing (${lact.previous.raw} → ${lact.latest.raw})`, why: 'Lactate clearance is the bedside proof that resuscitation is working — a flat or rising lactate despite fluids means the perfusion problem is not fixed, whatever the blood pressure says.' });
+  if (lact) {
+    if (lact.latest.value >= 4)
+      alerts.push({ severity: 'red', analyte: 'Lactate', message: `Lactate ${lact.latest.raw} — significant hypoperfusion, resuscitate now`, why: '>4 mmol/L signals significant hypoperfusion or possible ischaemia (surgical abdomen, mesenteric ischaemia, occult shock) — this is a resuscitate-and-reassess-in-person threshold, not a number to trend from the desk.' });
+    else if (lact.previous && delta(lact) >= 0 && lact.latest.value > 2)
+      alerts.push({ severity: 'amber', analyte: 'Lactate', message: `Lactate not clearing (${lact.previous.raw} → ${lact.latest.raw})`, why: 'Lactate clearance is the bedside proof that resuscitation is working — a flat or rising lactate despite fluids means the perfusion problem is not fixed, whatever the blood pressure says.' });
+  }
+
+  const amylase = t('amylase');
+  if (amylase && amylase.latest.value >= 300)
+    alerts.push({ severity: 'amber', analyte: 'Amylase', message: `Amylase ${amylase.latest.raw} (>3× ULN) — supports acute pancreatitis`, why: 'Amylase up to ~3× ULN is non-specific (also raised by perforation and mesenteric ischaemia); above 3× it supports pancreatitis — score severity with Glasgow-Imrie/Ranson at 48h and re-examine for a surgical abdomen hiding behind the pancreatitis label.' });
+
+  const paracetamol = t('paracetamol');
+  if (paracetamol) {
+    if (paracetamol.latest.value >= 150)
+      alerts.push({ severity: 'red', analyte: 'Paracetamol', message: `Paracetamol ${paracetamol.latest.raw} — at/above the 4h treatment line, start NAC`, why: 'The Rumack-Matthew nomogram treatment line is 150 mg/L at 4h (~37.5 mg/L at 12h) — a level at or above the line for its timepoint starts the 3-bag NAC regimen; NAC is most effective <8h post-ingestion, so do not wait for a second level to start it.' });
+    else
+      alerts.push({ severity: 'amber', analyte: 'Paracetamol', message: `Paracetamol ${paracetamol.latest.raw} — plot on the Rumack-Matthew nomogram against the EXACT ingestion time`, why: 'A level means nothing without the time since ingestion — a single value cannot be read in isolation. Send a level on every deliberate overdose regardless of the story (it is silent and treatable), and treat empirically if presentation is >8h post-ingestion while awaiting the result.' });
+  }
+
+  const salicylate = t('salicylate');
+  if (salicylate && salicylate.latest.value > 50)
+    alerts.push({ severity: 'red', analyte: 'Salicylate', message: `Salicylate ${salicylate.latest.raw} — severe toxicity range`, why: 'High salicylate levels drive a mixed respiratory alkalosis + metabolic acidosis (part of the MUDPILES high-anion-gap picture) — recheck the gas, consider urine alkalinisation, and involve seniors early for a dialysis discussion.' });
 
   const inr = t('inr');
   if (inr && inr.latest.value >= 4.5)

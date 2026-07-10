@@ -366,4 +366,76 @@ export const SMART_BLOCKS: SmartBlock[] = [
       { id: 'precipitant', label: 'Precipitant', kind: 'select', options: ['Ischaemia', 'Infection', 'Non-adherence', 'Arrhythmia', 'Anaemia', 'Unknown'] },
     ],
   },
+
+  // ── Surgery ──────────────────────────────────────────────────────────────
+
+  {
+    id: 'post-op-review',
+    title: 'Post-operative review',
+    pattern: /post-?op(erative)?|day \d+ post|post-?surgery review/i,
+    depts: ['surgery'],
+    why: 'Tachycardia precedes peritonism — a structured daily review (day, wound, drains, bowels, mobility, VTE prophylaxis) catches the leak or bleed on the trend before it becomes the crisis, and is exactly what the consultant asks for on the ward round.',
+    fields: [
+      { id: 'pod', label: 'Post-op day', kind: 'number', unit: 'POD' },
+      { id: 'procedure', label: 'Procedure performed', kind: 'text-short' },
+      { id: 'wound', label: 'Wound', kind: 'select', options: ['Clean, dry, intact', 'Erythema', 'Discharge', 'Dehiscence'] },
+      { id: 'drain', label: 'Drain present?', kind: 'toggle' },
+      { id: 'drain-character', label: 'Drain character', kind: 'select', options: ['Serous', 'Sanguineous', 'Bilious', 'Faeculent/turbid', 'Chylous', 'None'], showIf: { fieldId: 'drain', equals: true } },
+      { id: 'drain-volume', label: 'Drain output', kind: 'number', unit: 'ml/24h', showIf: { fieldId: 'drain', equals: true } },
+      { id: 'bowels', label: 'Bowels/flatus passing?', kind: 'toggle' },
+      { id: 'mobilising', label: 'Mobilising', kind: 'select', options: ['Bed-bound', 'Sitting out', 'Walking with help', 'Walking independently'] },
+      { id: 'vte-given', label: 'VTE prophylaxis given today?', kind: 'toggle' },
+      { id: 'pain-controlled', label: 'Pain adequately controlled?', kind: 'toggle' },
+      { id: 'hr-trend', label: 'HR trend since yesterday', kind: 'select', options: ['Stable/improving', 'Rising — unexplained'] },
+    ],
+  },
+  {
+    id: 'anticoag-bridging',
+    title: 'Peri-operative anticoagulation / bridging',
+    pattern: /anticoagulat|bridging|warfarin.*(surgery|theatre|operat)|\bDOAC\b|rivaroxaban|apixaban|dabigatran/i,
+    depts: ['surgery'],
+    why: 'Stop/bridge decisions are indication- and bleeding-risk-specific — a mechanical valve or recent VTE needs LMWH bridging, AF alone often just pauses the DOAC. Getting this wrong bleeds the patient in theatre or clots them on the ward.',
+    fields: [
+      { id: 'agent', label: 'Agent', kind: 'select', options: ['Warfarin', 'Rivaroxaban', 'Apixaban', 'Dabigatran', 'Enoxaparin (therapeutic)', 'Other'] },
+      { id: 'indication', label: 'Indication', kind: 'select', options: ['AF', 'Mechanical valve', 'Recent VTE (<3 months)', 'Prior VTE (>3 months)', 'Other'] },
+      { id: 'bridging-plan', label: 'Bridging plan', kind: 'select', options: ['Bridge with therapeutic LMWH', 'Pause only, no bridge', 'Continue through surgery', 'Not yet decided'] },
+      { id: 'last-dose', label: 'Last dose taken', kind: 'date' },
+      { id: 'inr', label: 'Last INR (if warfarin)', kind: 'number', showIf: { fieldId: 'agent', equals: 'Warfarin' } },
+      { id: 'restart-plan', label: 'Planned restart time post-op', kind: 'text-short' },
+    ],
+  },
+
+  // ── Emergency ────────────────────────────────────────────────────────────
+
+  {
+    id: 'sats-triage',
+    title: 'SATS / triage vitals',
+    pattern: /\bSATS\b|\bTEWS\b|triage(d)?|triage colour|triage color/i,
+    depts: ['emergency'],
+    why: 'SATS is the mandated national triage instrument — priority is the HIGHER of the TEWS band or a clinical discriminator, and a re-triage in the waiting room is a safety event, not paperwork. The colour and the time-to-be-seen target are what the record must show.',
+    fields: [
+      { id: 'tews-score', label: 'TEWS total', kind: 'number' },
+      { id: 'colour', label: 'Triage colour', kind: 'select', options: ['Red (immediate)', 'Orange (<10 min)', 'Yellow (<60 min)', 'Green (<240 min)', 'Blue (no vital signs)'] },
+      { id: 'discriminator', label: 'Clinical discriminator overriding TEWS?', kind: 'toggle' },
+      { id: 'discriminator-what', label: 'Which discriminator?', kind: 'text-short', showIf: { fieldId: 'discriminator', equals: true } },
+      { id: 'avpu', label: 'AVPU', kind: 'select', options: ['Alert', 'Voice', 'Pain', 'Unresponsive'] },
+      { id: 'time-triaged', label: 'Time triaged', kind: 'text-short' },
+      { id: 'retriaged', label: 'Re-triaged while waiting?', kind: 'toggle' },
+    ],
+  },
+  {
+    id: 'gcs',
+    title: 'Glasgow Coma Scale',
+    pattern: /\bGCS\b|reduced (consciousness|conscious level)|altered (mental status|mentation)|glasgow coma/i,
+    depts: ['emergency'],
+    why: 'Report the components, not just the total — the Motor score is the most prognostic, and GCS ≤8 is the airway-protection threshold. "GCS 10" without E/V/M tells the next clinician nothing about what actually changed.',
+    fields: [
+      { id: 'eye', label: 'Eye (E)', kind: 'select', options: ['4 — spontaneous', '3 — to voice', '2 — to pain', '1 — none'] },
+      { id: 'verbal', label: 'Verbal (V)', kind: 'select', options: ['5 — oriented', '4 — confused', '3 — inappropriate words', '2 — sounds', '1 — none'] },
+      { id: 'motor', label: 'Motor (M)', kind: 'select', options: ['6 — obeys', '5 — localises', '4 — withdraws', '3 — abnormal flexion', '2 — extension', '1 — none'] },
+      { id: 'total', label: 'GCS total (/15)', kind: 'number' },
+      { id: 'pupils', label: 'Pupils', kind: 'select', options: ['Equal and reactive', 'Unequal', 'Fixed and dilated', 'Pinpoint'] },
+      { id: 'intubate', label: 'Airway protection needed (GCS ≤8)?', kind: 'toggle' },
+    ],
+  },
 ];
