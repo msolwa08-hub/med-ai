@@ -1,0 +1,65 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "pet-to-hellp",
+      "title": "Severe PET → HELLP confirmed on bloods",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 45,
+        "after": 92,
+        "dx": "HELLP syndrome"
+      }
+    },
+    {
+      "id": "ectopic-confirm",
+      "title": "Early-pregnancy pain → ectopic confirmed on TVS",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 92,
+        "dx": "Ectopic pregnancy (ruptured/leaking)"
+      }
+    },
+    {
+      "id": "preterm-to-chorio",
+      "title": "Preterm labour → chorioamnionitis on sepsis markers",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 55,
+        "after": 92,
+        "dx": "Chorioamnionitis (Triple I)"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 6,
+    "inputTokens": 5952,
+    "outputTokens": 11655,
+    "cacheReadTokens": 0,
+    "cacheWriteTokens": 12205,
+    "estCostUSD": 0.23844975000000002,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 6,
+        "estCostUSD": 0.23844975000000002
+      }
+    },
+    "maxSingleCallUSD": 0.04355925
+  }
+}

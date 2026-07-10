@@ -13,17 +13,15 @@
 - **M1 — the bedside loop in O&G — ✅ SHIPPED**. Weighted differential +
   discriminating investigations + results→confidence→management, narrated.
   Live loop harness 100/100, ~8.4c/loop. Proof: `eval/og/` + `eval/reports/`.
-- **M2 — department breadth (Medicine → Surgery → Emergency → …) — 🟡 IN
-  PROGRESS**. The confidence engine is already department-generic. Done so far:
-  loop-harness scenario sets authored for **Medicine (4), Surgery (4),
-  Emergency (4)** — `apps/api/eval/loop.mjs`, run per-dept with `--dept`;
-  Medicine field registry added. **Gated on a live tools key** to run the M2
-  live loop gate (≥90 per department) — no key is on disk this session.
-
-> **What unblocks M2 verification:** a tools key in `apps/api/.env`
-> (`ANTHROPIC_API_KEY`) + boot the beta server, then
-> `node apps/api/eval/loop-run.mjs --dept medicine --key <k>`. The scenarios are
-> committed and ready.
+- **M2 — the loop verified across departments — ✅ LOOP GATES PASSED LIVE**
+  (2026-07-10): **Medicine 100/100, Surgery 100/100, Emergency 100/100, O&G
+  regression 100/100**, ~8c/loop, <10c/prompt everywhere. The Emergency gate
+  caught a real transient (max_tokens truncation → empty picture) now fixed
+  with a cache-friendly retry in `confidence-engine.ts`. Gate record + raw
+  reports: `eval/m2/`. Remaining M2 depth work: implement the
+  Medicine/Surgery/Emergency dossiers into registries (smart-blocks, treatment
+  sets, STG floors, investigation panels — field registry done for Medicine),
+  then the per-department six-agent depth eval.
 
 ---
 

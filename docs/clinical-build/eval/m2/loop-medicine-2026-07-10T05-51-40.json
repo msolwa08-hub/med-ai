@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "chestpain-to-acs",
+      "title": "Central chest pain → ACS confirmed on troponin + ECG",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 92,
+        "dx": "NSTEMI"
+      }
+    },
+    {
+      "id": "hyperglycaemia-to-dka",
+      "title": "Vomiting T1DM → DKA confirmed on VBG + ketones",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 90,
+        "after": 98,
+        "dx": "Diabetic ketoacidosis (severe), precipitated by insulin default"
+      }
+    },
+    {
+      "id": "cough-to-ptb",
+      "title": "Chronic cough + HIV → pulmonary TB confirmed on GeneXpert",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 95,
+        "dx": "Pulmonary Tuberculosis (active, confirmed)"
+      }
+    },
+    {
+      "id": "dyspnoea-to-hf",
+      "title": "Acute dyspnoea → decompensated heart failure on NT-proBNP + CXR",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 80,
+        "after": 92,
+        "dx": "Acute decompensated heart failure (ischaemic cardiomyopathy)"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 8,
+    "inputTokens": 7631,
+    "outputTokens": 16462,
+    "cacheReadTokens": 5187,
+    "cacheWriteTokens": 10940,
+    "estCostUSD": 0.3124041,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 8,
+        "estCostUSD": 0.3124041
+      }
+    },
+    "maxSingleCallUSD": 0.05032875
+  }
+}

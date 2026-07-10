@@ -1,0 +1,80 @@
+{
+  "mean": 100,
+  "results": [
+    {
+      "id": "thunderclap-to-sah",
+      "title": "Thunderclap headache → subarachnoid haemorrhage on CT brain",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 92,
+        "dx": "Aneurysmal subarachnoid haemorrhage"
+      }
+    },
+    {
+      "id": "hemiparesis-to-ischaemic-stroke",
+      "title": "Acute hemiparesis → ischaemic stroke (bleed excluded) on CT",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 65,
+        "after": 92,
+        "dx": "Acute ischaemic stroke, right MCA territory (cardioembolic, AF-related)"
+      }
+    },
+    {
+      "id": "overdose-to-paracetamol-toxicity",
+      "title": "Deliberate overdose → paracetamol toxicity on timed level",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 70,
+        "after": 92,
+        "dx": "Paracetamol toxicity — treatment-threshold ingestion"
+      }
+    },
+    {
+      "id": "febrile-hypotension-to-septic-shock",
+      "title": "Febrile hypotension → septic shock on lactate + source",
+      "overall": 100,
+      "detail": {
+        "dxPresent": 1,
+        "discNamed": 1,
+        "mustNotMiss": 1,
+        "directionOk": 1,
+        "narrated": 1,
+        "before": 75,
+        "after": 90,
+        "dx": "Severe community-acquired pneumonia with septic shock"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 8,
+    "inputTokens": 5413,
+    "outputTokens": 17866,
+    "cacheReadTokens": 6952,
+    "cacheWriteTokens": 9220,
+    "estCostUSD": 0.32088960000000005,
+    "byModel": {
+      "claude-sonnet-5": {
+        "calls": 8,
+        "estCostUSD": 0.32088960000000005
+      }
+    },
+    "maxSingleCallUSD": 0.05283075
+  }
+}
