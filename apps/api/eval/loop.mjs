@@ -132,6 +132,124 @@ export const LOOP_SCENARIOS = [
     resultText: 'NT-proBNP 5200 pg/mL ; CXR: cardiomegaly, upper-lobe diversion, bilateral pleural effusions and Kerley B lines',
     moveDx: ['heart failure', 'cardiac failure', 'decompensated', 'pulmonary oedema', 'ccf'], direction: 'up',
   },
+
+  // ── Surgery (M2+) — the acute surgical take: an imaging/bloods result that
+  //    confirms or refutes the operative diagnosis. ────────────────────────────
+  {
+    id: 'rif-to-appendicitis',
+    title: 'RIF pain → acute appendicitis confirmed on US + inflammatory markers',
+    dept: 'surgery',
+    record: {
+      intake: { name: 'S1', age: '19', sex: 'M', admissionDiagnosis: 'right iliac fossa pain', allergies: 'NKDA' },
+      history: { chiefComplaint: 'right iliac fossa pain', hpi: 'Central abdominal pain yesterday that migrated to the right iliac fossa, now with anorexia, nausea and one vomit. Low-grade fever.', pmh: 'nil', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 124/78, HR 96, Temp 37.8', examination: 'tender at McBurney point with guarding, Rovsing positive, percussion tenderness' },
+    },
+    expectDx: ['appendicitis'],
+    expectDiscriminator: ['wcc', 'crp', 'ultrasound', 'us', 'ct', 'alvarado'],
+    resultText: 'WCC 16.2 with neutrophilia ; CRP 88 ; US: non-compressible blind-ending tubular structure 9 mm with surrounding free fluid',
+    moveDx: ['appendicitis'], direction: 'up',
+  },
+  {
+    id: 'epigastric-to-perforation',
+    title: 'Rigid abdomen → perforated viscus confirmed on erect CXR',
+    dept: 'surgery',
+    record: {
+      intake: { name: 'S2', age: '52', sex: 'M', admissionDiagnosis: 'severe abdominal pain', allergies: 'NKDA' },
+      history: { chiefComplaint: 'sudden severe epigastric pain', hpi: 'Sudden onset severe generalised abdominal pain 4 hours ago, now lying still. Long history of NSAID use for back pain and epigastric pain.', pmh: 'chronic NSAID use', medications: 'ibuprofen', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 108/70, HR 112, Temp 37.9', examination: 'board-like rigid abdomen, generalised rebound and guarding, absent bowel sounds' },
+    },
+    expectDx: ['perforation', 'perforated', 'peptic ulcer', 'hollow viscus', 'peritonitis'],
+    expectDiscriminator: ['erect', 'cxr', 'chest x', 'free air', 'ct', 'axr'],
+    resultText: 'Erect CXR: free air under both hemidiaphragms',
+    moveDx: ['perforation', 'perforated', 'peptic ulcer', 'hollow viscus'], direction: 'up',
+  },
+  {
+    id: 'distension-to-sbo',
+    title: 'Distension + vomiting → small bowel obstruction confirmed on CT',
+    dept: 'surgery',
+    record: {
+      intake: { name: 'S3', age: '61', sex: 'F', admissionDiagnosis: 'abdominal distension + vomiting', allergies: 'NKDA' },
+      history: { chiefComplaint: 'colicky abdominal pain and vomiting', hpi: 'Colicky central abdominal pain, distension, bilious vomiting and absolute constipation for 2 days. Previous open hysterectomy.', pmh: 'previous laparotomy (adhesions)', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 118/76, HR 100', examination: 'distended tympanitic abdomen, high-pitched tinkling bowel sounds, old midline scar' },
+    },
+    expectDx: ['small bowel obstruction', 'bowel obstruction', 'sbo', 'obstruction'],
+    expectDiscriminator: ['ct', 'axr', 'abdominal x', 'transition', 'dilated'],
+    resultText: 'CT abdomen: dilated small-bowel loops to a transition point in the pelvis with collapsed distal bowel; adhesional band, no strangulation',
+    moveDx: ['small bowel obstruction', 'bowel obstruction', 'sbo', 'obstruction'], direction: 'up',
+  },
+  {
+    id: 'ruq-to-cholecystitis',
+    title: 'RUQ pain + Murphy → acute cholecystitis confirmed on US',
+    dept: 'surgery',
+    record: {
+      intake: { name: 'S4', age: '44', sex: 'F', admissionDiagnosis: 'right upper quadrant pain', allergies: 'NKDA' },
+      history: { chiefComplaint: 'right upper quadrant pain', hpi: 'Constant severe RUQ pain radiating to the right shoulder for 18 hours after a fatty meal, with fever and nausea. Previous similar self-limiting episodes.', pmh: 'obesity', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 130/82, HR 94, Temp 38.1', examination: 'RUQ tenderness with a positive Murphy sign, no jaundice' },
+    },
+    expectDx: ['cholecystitis'],
+    expectDiscriminator: ['ultrasound', 'us', 'wcc', 'wall', 'murphy', 'pericholecystic'],
+    resultText: 'US: gallbladder wall 5 mm with pericholecystic fluid and multiple calculi, sonographic Murphy positive ; WCC 14',
+    moveDx: ['cholecystitis'], direction: 'up',
+  },
+
+  // ── Emergency (M2+) — undifferentiated ED: the discriminating test that
+  //    ratifies a time-critical diagnosis. ─────────────────────────────────────
+  {
+    id: 'thunderclap-to-sah',
+    title: 'Thunderclap headache → subarachnoid haemorrhage on CT brain',
+    dept: 'emergency',
+    record: {
+      intake: { name: 'E1', age: '47', sex: 'F', admissionDiagnosis: 'sudden severe headache', allergies: 'NKDA' },
+      history: { chiefComplaint: 'worst headache of life', hpi: 'Instantaneous occipital "thunderclap" headache peaking within seconds while straining, with vomiting and neck stiffness. Reduced GCS transiently.', pmh: 'hypertension', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 178/100, HR 88', examination: 'photophobia, neck stiffness, no focal deficit, fundi normal' },
+    },
+    expectDx: ['subarachnoid', 'sah', 'aneurysm'],
+    expectDiscriminator: ['ct', 'ct brain', 'non-contrast', 'lp', 'lumbar puncture', 'xanthochromia'],
+    resultText: 'Non-contrast CT brain: hyperdensity in the basal cisterns and right Sylvian fissure',
+    moveDx: ['subarachnoid', 'sah'], direction: 'up',
+  },
+  {
+    id: 'hemiparesis-to-ischaemic-stroke',
+    title: 'Acute hemiparesis → ischaemic stroke (bleed excluded) on CT',
+    dept: 'emergency',
+    record: {
+      intake: { name: 'E2', age: '68', sex: 'M', admissionDiagnosis: 'acute weakness', allergies: 'NKDA' },
+      history: { chiefComplaint: 'sudden left-sided weakness', hpi: 'Sudden left face, arm and leg weakness with slurred speech, onset 90 minutes ago, witnessed. Known atrial fibrillation, not anticoagulated.', pmh: 'AF, HTN', medications: 'none (not on warfarin/DOAC)', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 168/92, HR 96 irregular', examination: 'left facial droop, left arm drift, dysarthria, NIHSS 8' },
+    },
+    expectDx: ['ischaemic stroke', 'ischemic stroke', 'stroke', 'cva', 'infarct'],
+    expectDiscriminator: ['ct', 'ct brain', 'non-contrast', 'haemorrhage', 'thrombolysis'],
+    resultText: 'Non-contrast CT brain: no haemorrhage; hyperdense right MCA sign with early loss of grey-white differentiation',
+    moveDx: ['ischaemic stroke', 'ischemic stroke', 'stroke', 'infarct'], direction: 'up',
+  },
+  {
+    id: 'overdose-to-paracetamol-toxicity',
+    title: 'Deliberate overdose → paracetamol toxicity on timed level',
+    dept: 'emergency',
+    record: {
+      intake: { name: 'E3', age: '23', sex: 'F', admissionDiagnosis: 'deliberate self-poisoning', allergies: 'NKDA' },
+      history: { chiefComplaint: 'paracetamol overdose', hpi: 'Impulsive ingestion of ~24 paracetamol 500 mg tablets 5 hours ago after an argument. Currently asymptomatic. No co-ingestants reported.', pmh: 'depression', medications: 'none', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 118/74, HR 82', examination: 'alert, no RUQ tenderness, no jaundice' },
+    },
+    expectDx: ['paracetamol', 'acetaminophen', 'hepatotoxic', 'overdose', 'poisoning'],
+    expectDiscriminator: ['level', 'nomogram', 'paracetamol level', 'inr', 'alt', '4-hour', '4 hour'],
+    resultText: '4-hour paracetamol level 180 mg/L — above the treatment line on the nomogram ; ALT 40, INR 1.1',
+    moveDx: ['paracetamol', 'acetaminophen', 'hepatotoxic', 'toxicity'], direction: 'up',
+  },
+  {
+    id: 'febrile-hypotension-to-septic-shock',
+    title: 'Febrile hypotension → septic shock on lactate + source',
+    dept: 'emergency',
+    record: {
+      intake: { name: 'E4', age: '59', sex: 'M', admissionDiagnosis: 'fever and collapse', allergies: 'NKDA' },
+      history: { chiefComplaint: 'fever, confusion and collapse', hpi: '3 days of productive cough and fever, today confused and collapsed at home. Diabetic.', pmh: 'T2DM', medications: 'metformin', hivStatus: 'negative' },
+      assessment: { vitals: 'BP 84/50, HR 122, RR 28, Temp 39.2, sats 90%', examination: 'confused (GCS 14), warm peripheries, right lower-zone crepitations' },
+    },
+    expectDx: ['septic shock', 'sepsis', 'severe sepsis'],
+    expectDiscriminator: ['lactate', 'culture', 'wcc', 'crp', 'source', 'cxr'],
+    resultText: 'Venous lactate 4.6 mmol/L ; WCC 19 ; CXR right lower-lobe consolidation ; BP unresponsive to 30 mL/kg fluids',
+    moveDx: ['septic shock', 'sepsis'], direction: 'up',
+  },
 ];
 
 async function runLoop(scenario, base, key) {
