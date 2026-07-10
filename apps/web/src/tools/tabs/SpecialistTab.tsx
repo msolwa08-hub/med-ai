@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Baby, Venus, Tag } from 'lucide-react';
 import { toolsApi } from '../toolsApi';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
@@ -18,8 +19,8 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
 
   if (dept !== 'og') {
     return (
-      <div className="text-center py-16 text-gray-400">
-        <p className="text-4xl mb-3">🏷️</p>
+      <div className="text-center py-16 text-ink-mute">
+        <Tag className="w-10 h-10 mx-auto mb-3" aria-hidden />
         <p>Specialist tab is currently available for O&G.</p>
         <p className="text-sm mt-1">More specialties coming soon.</p>
       </div>
@@ -55,18 +56,19 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
           <button
             key={m}
             onClick={() => setMode(m)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               mode === m ? 'bg-brand-700 text-white shadow-card' : 'bg-surface border border-line-strong text-ink-soft hover:bg-surface-alt'
             }`}
           >
-            {m === 'obs' ? '🤱 Obstetrics' : '⚕️ Gynaecology'}
+            {m === 'obs' ? <Baby className="w-4 h-4" aria-hidden /> : <Venus className="w-4 h-4" aria-hidden />}
+            {m === 'obs' ? 'Obstetrics' : 'Gynaecology'}
           </button>
         ))}
       </div>
       <div className="flex gap-3">
         <AiBtn onClick={generate} loading={loading} label={`Generate ${mode === 'obs' ? 'Obs' : 'Gynae'} Note`} />
       </div>
-      {err && <p className="text-band-exclude text-xs">{err}</p>}
+      {err && <p className="text-danger text-xs">{err}</p>}
       {result && <DocOutput text={result} />}
     </div>
   );

@@ -16,7 +16,7 @@ export function WellsDVTCalc() {
     <CalcCard title="Wells' DVT Score">
       {criteria.map(([label], i) => (
         <Row key={i} label={label as string}>
-          <input type="checkbox" checked={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = e.target.checked; setScores(ns); }} className="accent-blue-500 w-4 h-4" />
+          <input type="checkbox" checked={scores[i]} onChange={e => { const ns = [...scores]; ns[i] = e.target.checked; setScores(ns); }} className="accent-brand-600 w-4 h-4" />
         </Row>
       ))}
       <Result label="Wells DVT" value={`${total} — ${risk} probability`} color={risk === 'Low' ? 'green' : risk === 'Moderate' ? 'yellow' : 'red'} />

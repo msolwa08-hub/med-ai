@@ -13,7 +13,7 @@ export function RMICalc() {
       <p className="text-xs text-ink-mute mb-2">RMI = US score × M × CA-125</p>
       <Row label="US score (0/1/3)"><NumInput value={us} onChange={setUs} min={0} max={3} /></Row>
       <Row label="Postmenopausal">
-        <input type="checkbox" checked={meno === 1} onChange={e => setMeno(e.target.checked ? 1 : 0)} className="accent-blue-500 w-4 h-4" />
+        <input type="checkbox" checked={meno === 1} onChange={e => setMeno(e.target.checked ? 1 : 0)} className="accent-brand-600 w-4 h-4" />
       </Row>
       <Row label="CA-125 (U/mL)"><NumInput value={ca125} onChange={setCa125} /></Row>
       {rmi > 0 && <Result label="RMI" value={`${rmi.toFixed(0)} — ${risk} malignancy risk`} color={risk === 'Low' ? 'green' : risk === 'Moderate' ? 'yellow' : 'red'} />}

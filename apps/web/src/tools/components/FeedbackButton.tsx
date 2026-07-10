@@ -1,5 +1,13 @@
 import { useState } from 'react';
+import { MessageCircle, X, Check, ThumbsUp, ThumbsDown, Lightbulb, type LucideIcon } from 'lucide-react';
 import { toolsApi } from '../toolsApi';
+import { Card } from './ui';
+
+const RATINGS: { key: 'good' | 'bad' | 'idea'; label: string; icon: LucideIcon }[] = [
+  { key: 'good', label: 'Works', icon: ThumbsUp },
+  { key: 'bad', label: 'Broke', icon: ThumbsDown },
+  { key: 'idea', label: 'Idea', icon: Lightbulb },
+];
 
 // ─── FEEDBACK BUTTON — the beta loop back from the ward ──────────────────────
 // A floating tab in the corner. One tap opens a tiny form: good / bad / idea +
@@ -41,31 +49,35 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
         <button
           onClick={() => setOpen(true)}
           aria-label="Send feedback"
-          className="fixed bottom-20 right-4 lg:bottom-4 z-40 h-11 rounded-full bg-gray-900/90 hover:bg-gray-900 text-white text-sm font-medium px-4 shadow-lg backdrop-blur flex items-center gap-1.5"
+          className="fixed bottom-20 right-4 lg:bottom-4 z-40 h-11 rounded-full bg-ink/90 hover:bg-ink text-canvas text-sm font-medium px-4 shadow-e3 backdrop-blur flex items-center gap-1.5"
         >
-          💬 Feedback
+          <MessageCircle className="w-4 h-4" aria-hidden /> Feedback
         </button>
       )}
       {open && (
-        <div className="fixed bottom-4 right-4 z-40 w-[min(92vw,340px)] rounded-2xl bg-surface border border-line shadow-2xl p-4 space-y-3">
+        <Card elevation="hero" className="fixed bottom-4 right-4 z-40 w-[min(92vw,340px)] p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-ink">Quick feedback</span>
-            <button onClick={() => setOpen(false)} className="text-ink-mute hover:text-ink-soft text-lg leading-none">×</button>
+            <button onClick={() => setOpen(false)} aria-label="Close" className="text-ink-mute hover:text-ink-soft p-0.5">
+              <X className="w-4 h-4" aria-hidden />
+            </button>
           </div>
           {sent ? (
-            <p className="text-sm text-emerald-700 py-3 text-center">✓ Thanks — logged.</p>
+            <p className="flex items-center justify-center gap-1.5 text-sm text-positive py-3">
+              <Check className="w-4 h-4" aria-hidden /> Thanks — logged.
+            </p>
           ) : (
             <>
               <div className="flex gap-1.5">
-                {([['good', '👍 Works'], ['bad', '👎 Broke'], ['idea', '💡 Idea']] as const).map(([r, label]) => (
+                {RATINGS.map(({ key: r, label, icon: Icon }) => (
                   <button
                     key={r}
                     onClick={() => setRating(r)}
-                    className={`flex-1 text-[13px] rounded-lg py-1.5 border transition-colors ${
+                    className={`flex-1 inline-flex items-center justify-center gap-1 text-sm rounded-lg py-1.5 border transition-colors ${
                       rating === r ? 'bg-brand-600 border-brand-600 text-white' : 'bg-surface border-line text-ink-soft hover:border-brand-300'
                     }`}
                   >
-                    {label}
+                    <Icon className="w-3.5 h-3.5" aria-hidden /> {label}
                   </button>
                 ))}
               </div>
@@ -86,7 +98,7 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
               </button>
             </>
           )}
-        </div>
+        </Card>
       )}
     </>
   );

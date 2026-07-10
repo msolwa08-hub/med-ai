@@ -3,11 +3,12 @@ import { toolsApi } from './toolsApi';
 import { DEPARTMENTS, SUB_DEPARTMENTS } from './config/departments';
 import { useToolsState, type Tab } from './state/useToolsState';
 import { DeptSelector } from './components/DeptSelector';
-import { SubDeptSelector } from './components/SubDeptSelector';
+import { SubDeptSelector, subDeptIcon } from './components/SubDeptSelector';
 import { ClerkTab } from './tabs/ClerkTab';
 import { ProblemsTab } from './tabs/ProblemsTab';
 import { FeedbackButton } from './components/FeedbackButton';
 import { ArrowLeft, Plus, X, GraduationCap } from 'lucide-react';
+import { deptIcon } from './lib/icons';
 import { ThemeToggle } from './components/ThemeToggle';
 import { RoundTab } from './tabs/RoundTab';
 import { FormulasTab } from './tabs/FormulasTab';
@@ -70,6 +71,8 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   // Results capture now lives inside the Bedside stream (the loop's second
   // input) — persisted activeTab 'results' from older sessions maps there.
   const currentTab: Tab = activeTab === 'results' ? 'clerk' : activeTab;
+  const DeptIcon = deptIcon(dept);
+  const SubDeptIcon = subDeptInfo ? subDeptIcon(subDeptInfo.id) : null;
   const tabs = ([
     { id: 'clerk' as Tab, label: 'Bedside' },
     { id: 'problems' as Tab, label: `Problems (${activePatient?.problems.length ?? 0})` },
@@ -101,17 +104,19 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           <button
             onClick={() => setDept(null)}
             title="Change department"
-            className="shrink-0 max-w-[34vw] sm:max-w-none truncate text-[13px] font-medium text-ink-soft hover:text-ink bg-surface-alt px-2.5 py-1 rounded-lg transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 max-w-[34vw] sm:max-w-none truncate text-sm font-medium text-ink-soft hover:text-ink bg-surface-alt px-2.5 py-1 rounded-lg transition-colors"
           >
-            {deptInfo.icon} {deptInfo.label}
+            <DeptIcon className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{deptInfo.label}</span>
           </button>
-          {subDeptInfo && (
+          {subDeptInfo && SubDeptIcon && (
             <button
               onClick={() => setSubDept(null)}
               title="Change ward/unit"
-              className="min-w-0 shrink max-w-[38vw] sm:max-w-none truncate text-[13px] font-medium text-brand-700 hover:text-brand-800 bg-brand-50 px-2.5 py-1 rounded-lg transition-colors"
+              className="min-w-0 shrink inline-flex items-center gap-1.5 max-w-[38vw] sm:max-w-none truncate text-sm font-medium text-brand-700 hover:text-brand-800 bg-brand-50 px-2.5 py-1 rounded-lg transition-colors"
             >
-              {subDeptInfo.icon} {subDeptInfo.label}
+              <SubDeptIcon className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{subDeptInfo.label}</span>
             </button>
           )}
         </div>
@@ -123,7 +128,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
             title="Practice patient — kept out of anything real; for teaching/simulation"
             className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold h-9 px-2.5 rounded-lg border transition-colors ${
               activePatient.practice
-                ? 'bg-amber-100 border-amber-300 text-amber-800'
+                ? 'bg-warn/10 border-warn/30 text-warn'
                 : 'bg-surface border-line-strong text-ink-mute hover:text-ink-soft'
             }`}
           >
@@ -141,7 +146,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
       </header>
 
       {activePatient?.practice && (
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-800 text-xs font-medium text-center py-1.5 shrink-0">
+        <div className="bg-warn/[0.08] border-b border-warn/20 text-warn text-xs font-medium text-center py-1.5 shrink-0">
           Practice patient — for teaching / simulation. Not a record of care.
         </div>
       )}
@@ -155,7 +160,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 <div key={p.id} className="flex items-center gap-1">
                   <button
                     onClick={() => { setActivePatientId(p.id); setActiveTab('clerk'); }}
-                    className={`flex-1 text-left text-[13px] px-2.5 py-2 rounded-lg transition-colors truncate ${
+                    className={`flex-1 text-left text-sm px-2.5 py-2 rounded-lg transition-colors truncate ${
                       activePatientId === p.id
                         ? 'bg-brand-600 text-white font-medium shadow-card'
                         : 'text-ink-soft hover:bg-surface'
@@ -167,7 +172,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     <button
                       onClick={() => removePatient(p.id)}
                       aria-label="Remove patient"
-                      className="shrink-0 grid place-items-center w-7 h-7 rounded-md text-ink-mute hover:text-band-exclude hover:bg-rose-50 transition-colors"
+                      className="shrink-0 grid place-items-center w-7 h-7 rounded-md text-ink-mute hover:text-band-exclude hover:bg-danger/10 transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -186,7 +191,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors border-b-2 ${
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
                   currentTab === t.id
                     ? 'text-brand-700 border-brand-500 bg-brand-50/60'
                     : 'text-ink-soft border-transparent hover:text-ink'
@@ -252,7 +257,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                   <Plus className="w-6 h-6 text-ink-mute" />
                 </div>
                 <p className="text-ink-soft font-medium">No patient selected</p>
-                <p className="text-[13px] text-ink-mute mt-1">Add a patient to start clerking.</p>
+                <p className="text-sm text-ink-mute mt-1">Add a patient to start clerking.</p>
                 <button
                   onClick={addPatient}
                   className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:text-brand-800 transition-colors"

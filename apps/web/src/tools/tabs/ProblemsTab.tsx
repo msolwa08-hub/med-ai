@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronDown, ListChecks, Layers, ShieldAlert, type LucideIcon } from 'lucide-react';
+import { ChevronDown, ListChecks, Layers, ShieldAlert, ClipboardList, BookOpen, Hospital, TriangleAlert, X, type LucideIcon } from 'lucide-react';
 import { toolsApi, type Problem, type SafetyWarning, type ScreeningPrompt } from '../toolsApi';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
 import { uid } from '../lib/patient';
-import { AiBtn, Label, SectionHead, TextArea, TextInput } from '../components/ui';
+import { AiBtn, Card, Label, SectionHead, TextArea, TextInput } from '../components/ui';
+import { severityIcon } from '../lib/icons';
 import { treatmentSetsFor } from '../config/treatmentSets';
 import { TreatmentSetCard } from '../components/TreatmentSetCard';
 import { WhyButton } from '../components/WhyButton';
@@ -35,9 +36,9 @@ function Panel({
 }) {
   const reduce = useReducedMotion();
   const border = open
-    ? tone === 'danger' ? 'border-red-200 shadow-card-hover' : tone === 'warn' ? 'border-amber-200 shadow-card-hover' : 'border-brand-200 shadow-card-hover'
+    ? tone === 'danger' ? 'border-danger/30 shadow-card-hover' : tone === 'warn' ? 'border-warn/30 shadow-card-hover' : 'border-brand-200 shadow-card-hover'
     : 'border-line shadow-card';
-  const badge = tone === 'danger' ? 'bg-red-50 text-red-700' : tone === 'warn' ? 'bg-amber-50 text-amber-700' : open ? 'bg-brand-50 text-brand-700' : 'bg-surface-alt text-ink-mute';
+  const badge = tone === 'danger' ? 'bg-danger/10 text-danger' : tone === 'warn' ? 'bg-warn/10 text-warn' : open ? 'bg-brand-50 text-brand-700' : 'bg-surface-alt text-ink-mute';
   return (
     <section className={`rounded-card border bg-surface transition-shadow ${border}`}>
       <button
@@ -50,9 +51,9 @@ function Panel({
           <Icon className="w-4 h-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className={`text-[15px] font-semibold tracking-tight ${open ? 'text-ink' : 'text-ink-soft'}`}>{title}</span>
+          <span className={`text-base font-semibold tracking-tight ${open ? 'text-ink' : 'text-ink-soft'}`}>{title}</span>
           {!open && summary && (
-            <span className="block text-[13px] text-ink-mute truncate mt-0.5">{summary}</span>
+            <span className="block text-sm text-ink-mute truncate mt-0.5">{summary}</span>
           )}
         </span>
         <ChevronDown
@@ -84,9 +85,9 @@ function Panel({
 // four categories scan at a glance without shouting.
 const SCREENING_STYLE: Record<ScreeningPrompt['category'], { card: string; chip: string }> = {
   monitoring: { card: 'bg-brand-50 border-brand-100', chip: 'bg-brand-100 text-brand-700' },
-  prophylaxis: { card: 'bg-amber-50 border-amber-100', chip: 'bg-amber-100 text-amber-800' },
+  prophylaxis: { card: 'bg-warn/[0.06] border-warn/20', chip: 'bg-warn/15 text-warn' },
   investigation: { card: 'bg-surface-alt border-line-strong', chip: 'bg-line text-ink-soft' },
-  safety: { card: 'bg-rose-50 border-rose-100', chip: 'bg-rose-100 text-rose-800' },
+  safety: { card: 'bg-danger/[0.06] border-danger/20', chip: 'bg-danger/15 text-danger' },
 };
 
 function ScreeningList({ prompts, loading }: { prompts: ScreeningPrompt[]; loading: boolean }) {
@@ -98,17 +99,17 @@ function ScreeningList({ prompts, loading }: { prompts: ScreeningPrompt[]; loadi
       {prompts.map((s, i) => {
         const style = SCREENING_STYLE[s.category] ?? SCREENING_STYLE.monitoring;
         return (
-          <div key={i} className={`border rounded-2xl px-4 py-3 space-y-1.5 ${style.card}`}>
+          <div key={i} className={`border rounded-xl px-4 py-3 space-y-1.5 ${style.card}`}>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[10px] uppercase tracking-wide font-semibold rounded-full px-2 py-0.5 ${style.chip}`}>
+              <span className={`text-2xs uppercase tracking-wide font-semibold rounded-full px-2 py-0.5 ${style.chip}`}>
                 {s.category}
               </span>
-              <span className="text-[13px] font-medium text-ink">{s.trigger}</span>
+              <span className="text-sm font-medium text-ink">{s.trigger}</span>
               <WhyButton why={s.why} />
             </div>
             <ul className="space-y-0.5">
               {s.prompts.map((p, j) => (
-                <li key={j} className="text-[13px] text-ink-soft flex gap-2">
+                <li key={j} className="text-sm text-ink-soft flex gap-2">
                   <span className="text-ink-mute shrink-0">•</span>
                   {p}
                 </li>
@@ -124,20 +125,24 @@ function ScreeningList({ prompts, loading }: { prompts: ScreeningPrompt[]; loadi
 function SafetyList({ warnings }: { warnings: SafetyWarning[] }) {
   return (
     <div className="space-y-2">
-      {warnings.map((w, i) => (
-        <div
-          key={i}
-          className={`text-[13px] rounded-xl px-4 py-2.5 border ${
-            w.severity === 'BLOCK'
-              ? 'bg-red-50 border-red-200 text-red-800'
-              : 'bg-amber-50 border-amber-200 text-amber-800'
-          }`}
-        >
-          <span className="font-semibold">{w.severity === 'BLOCK' ? '⛔' : '⚠️'} {w.drug}</span>
-          <span className="text-[11px] uppercase tracking-wide ml-2 opacity-60">{w.category}</span>
-          <p className="mt-0.5 leading-relaxed">{w.reason}</p>
-        </div>
-      ))}
+      {warnings.map((w, i) => {
+        const isBlock = w.severity === 'BLOCK';
+        const Icon = severityIcon(isBlock ? 'block' : 'warn');
+        return (
+          <div
+            key={i}
+            className={`text-sm rounded-xl px-4 py-2.5 border ${
+              isBlock ? 'bg-danger/[0.08] border-danger/20 text-danger' : 'bg-warn/[0.08] border-warn/20 text-warn'
+            }`}
+          >
+            <span className="inline-flex items-center gap-1.5 font-semibold">
+              <Icon className="w-4 h-4 shrink-0" aria-hidden /> {w.drug}
+            </span>
+            <span className="text-2xs uppercase tracking-wide ml-2 opacity-60">{w.category}</span>
+            <p className="mt-0.5 leading-relaxed">{w.reason}</p>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -298,9 +303,9 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
   }
 
   const statusColors: Record<string, string> = {
-    active: 'bg-red-100 text-red-700',
-    resolving: 'bg-yellow-100 text-yellow-700',
-    resolved: 'bg-emerald-50 text-emerald-700',
+    active: 'bg-danger/10 text-danger',
+    resolving: 'bg-warn/10 text-warn',
+    resolved: 'bg-positive/10 text-positive',
   };
 
   // ── Filled one-line summaries for the collapsed rows ───────────────────────
@@ -327,9 +332,9 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           <button
             onClick={checkInteractions}
             disabled={checking}
-            className="text-[13px] bg-surface-alt hover:bg-amber-50 disabled:opacity-40 text-amber-700 px-3.5 py-2 rounded-full font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm bg-surface-alt hover:bg-warn/10 disabled:opacity-40 text-warn px-3.5 py-2 rounded-full font-medium transition-colors"
           >
-            {checking ? 'Checking…' : '⚠️ Check interactions'}
+            {checking ? 'Checking…' : (<><TriangleAlert className="w-3.5 h-3.5" aria-hidden /> Check interactions</>)}
           </button>
           <button
             onClick={addProblem}
@@ -340,9 +345,9 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
         </div>
       </div>
 
-      {err && <p className="text-red-500 text-xs">{err}</p>}
+      {err && <p className="text-danger text-xs">{err}</p>}
       {aiNote && (
-        <p className="text-[13px] text-brand-800 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
+        <p className="text-sm text-brand-800 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
           {aiNote}
         </p>
       )}
@@ -392,14 +397,14 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
 
       {problems.length === 0 && (
         <div className="text-center py-10 text-ink-mute">
-          <p className="text-3xl mb-2">📋</p>
+          <ClipboardList className="w-8 h-8 mx-auto mb-2" aria-hidden />
           <p className="text-sm">No problems added yet</p>
           <p className="text-xs mt-1">"Suggest from assessment" builds one from the record — or add problems manually</p>
         </div>
       )}
 
       {problems.map((p, idx) => (
-        <div key={p.id} className="bg-surface border border-line rounded-xl p-4 space-y-3">
+        <Card key={p.id} elevation="e1" className="p-4 space-y-3">
           <div className="flex items-start gap-3">
             <span className="text-ink-mute text-sm font-mono mt-2 shrink-0">{idx + 1}.</span>
             <div className="flex-1 space-y-3">
@@ -473,9 +478,10 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
             </div>
             <button
               onClick={() => removeProblem(p.id)}
-              className="text-ink-mute hover:text-red-400 transition-colors text-lg shrink-0"
+              className="text-ink-mute hover:text-danger transition-colors shrink-0 p-1 -mr-1"
+              aria-label="Remove problem"
             >
-              ×
+              <X className="w-4 h-4" aria-hidden />
             </button>
           </div>
 
@@ -485,22 +491,22 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
             </span>
             {p.stgCondition && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-100"
+                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-100"
                 title="Management anchored to this SA Standard Treatment Guideline entry"
               >
-                📖 STG: {p.stgCondition}{p.icd10 ? ` · ${p.icd10}` : ''}
+                <BookOpen className="w-3 h-3" aria-hidden /> STG: {p.stgCondition}{p.icd10 ? ` · ${p.icd10}` : ''}
               </span>
             )}
             {p.protocolTitle && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full bg-surface-alt text-ink-soft border border-line-strong"
+                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-surface-alt text-ink-soft border border-line-strong"
                 title="Management follows this facility's own uploaded protocol — overrides the generic STG where they differ"
               >
-                🏥 {p.protocolTitle}
+                <Hospital className="w-3 h-3" aria-hidden /> {p.protocolTitle}
               </span>
             )}
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );

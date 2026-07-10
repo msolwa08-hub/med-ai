@@ -1,4 +1,5 @@
 import React from 'react';
+import { ClipboardList } from 'lucide-react';
 
 interface Session {
   id: string;
@@ -24,7 +25,7 @@ export function SessionListView({ sessions, onSelect }: Props) {
   if (sessions.length === 0) {
     return (
       <div className="text-center py-16 text-ink-mute">
-        <p className="text-4xl mb-3">📋</p>
+        <ClipboardList className="w-9 h-9 mx-auto mb-3" aria-hidden />
         <p className="font-medium">No sessions yet</p>
         <p className="text-sm mt-1">Patient histories will appear here.</p>
       </div>
@@ -37,13 +38,13 @@ export function SessionListView({ sessions, onSelect }: Props) {
         <button
           key={s.id}
           onClick={() => onSelect(s.id)}
-          className="w-full bg-surface border border-line hover:border-gray-400 rounded-xl p-4 text-left transition-all"
+          className="w-full bg-surface border border-line hover:border-line-strong hover:shadow-card-hover rounded-card p-4 text-left transition-all"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  s.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-yellow-100 text-yellow-700'
+                  s.status === 'completed' ? 'bg-positive/10 text-positive' : 'bg-warn/10 text-warn'
                 }`}>
                   {s.status}
                 </span>

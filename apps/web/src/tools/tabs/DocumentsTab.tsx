@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Brain, Scale, PenLine, X, type LucideIcon } from 'lucide-react';
 import {
   toolsApi,
   type HospitalProtocolSummary,
@@ -8,7 +9,7 @@ import {
 } from '../toolsApi';
 import { DEPARTMENTS, type DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
-import { AiBtn, DocOutput, SectionHead, copy } from '../components/ui';
+import { AiBtn, Card, DocOutput, SectionHead, copy } from '../components/ui';
 import { generateDoc, type DocType } from '../lib/docGen';
 
 // ─── DOCUMENTS TAB ──────────────────────────────────────────────────────────
@@ -65,7 +66,7 @@ export function DocumentsTab({ patient, toolsKey, dept }: {
         ))}
       </div>
 
-      {err && <p className="text-band-exclude text-xs">{err}</p>}
+      {err && <p className="text-danger text-xs">{err}</p>}
 
       {docs.map(d =>
         results[d.id] ? (
@@ -148,7 +149,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
   }
 
   return (
-    <div className="bg-surface border border-line shadow-sm rounded-2xl p-5 space-y-4">
+    <Card elevation="e1" className="p-5 space-y-4">
       <div>
         <SectionHead>Hospital Protocols</SectionHead>
         <p className="text-xs text-ink-mute -mt-2">
@@ -163,11 +164,13 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
             <div key={p.id} className="flex items-center justify-between gap-3 bg-surface-alt rounded-xl px-3 py-2">
               <div className="min-w-0">
                 <p className="text-sm text-ink truncate">{p.title}</p>
-                <p className="text-[11px] text-ink-mute">
+                <p className="text-2xs text-ink-mute">
                   {p.sourceFilename ? `${p.sourceFilename} · ` : ''}{p.charCount.toLocaleString()} chars · added {new Date(p.uploadedAt).toLocaleDateString()}
                 </p>
               </div>
-              <button onClick={() => remove(p.id)} className="text-ink-mute hover:text-red-500 text-lg shrink-0 px-1">×</button>
+              <button onClick={() => remove(p.id)} className="text-ink-mute hover:text-danger shrink-0 p-1" aria-label="Remove protocol">
+                <X className="w-4 h-4" aria-hidden />
+              </button>
             </div>
           ))}
         </div>
@@ -187,13 +190,13 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
           <div className="flex bg-surface-alt rounded-lg p-0.5 shrink-0">
             <button
               onClick={() => setMode('paste')}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'paste' ? 'bg-surface text-ink shadow-sm' : 'text-ink-mute'}`}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'paste' ? 'bg-surface text-ink shadow-card' : 'text-ink-mute'}`}
             >
               Paste text
             </button>
             <button
               onClick={() => setMode('upload')}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'upload' ? 'bg-surface text-ink shadow-sm' : 'text-ink-mute'}`}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'upload' ? 'bg-surface text-ink shadow-card' : 'text-ink-mute'}`}
             >
               Upload file
             </button>
@@ -218,7 +221,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
           />
         )}
 
-        {err && <p className="text-xs text-red-500">{err}</p>}
+        {err && <p className="text-xs text-danger">{err}</p>}
 
         <button
           onClick={add}
@@ -228,7 +231,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
           {adding ? 'Adding…' : '+ Add protocol'}
         </button>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -243,10 +246,10 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
 // ward's business. MHCA paperwork is psychiatry's instrument (initiated via
 // emergency/medicine at district level); the J88 follows assault/injury into
 // any ward; consent belongs to the procedural disciplines.
-const LEGAL_FORMS: { type: LegalFormType; label: string; sub: string; icon: string; depts?: DeptId[] }[] = [
-  { type: 'mhca-72hr', label: 'MHCA 72-hr assessment', sub: 'Mental Health Care Act form', icon: '🧠', depts: ['psych', 'emergency', 'medicine'] },
-  { type: 'j88', label: 'J88', sub: 'Medico-legal injury report', icon: '⚖️' },
-  { type: 'surgical-consent', label: 'Surgical consent', sub: 'Informed consent record', icon: '🖊️', depts: ['surgery', 'ortho', 'og', 'emergency', 'medicine', 'paeds', 'icu'] },
+const LEGAL_FORMS: { type: LegalFormType; label: string; sub: string; icon: LucideIcon; depts?: DeptId[] }[] = [
+  { type: 'mhca-72hr', label: 'MHCA 72-hr assessment', sub: 'Mental Health Care Act form', icon: Brain, depts: ['psych', 'emergency', 'medicine'] },
+  { type: 'j88', label: 'J88', sub: 'Medico-legal injury report', icon: Scale },
+  { type: 'surgical-consent', label: 'Surgical consent', sub: 'Informed consent record', icon: PenLine, depts: ['surgery', 'ortho', 'og', 'emergency', 'medicine', 'paeds', 'icu'] },
 ];
 
 const SECTION_STYLE: Record<LegalFormSection['status'], { card: string; badge: string; badgeLabel: string }> = {
@@ -256,8 +259,8 @@ const SECTION_STYLE: Record<LegalFormSection['status'], { card: string; badge: s
     badgeLabel: 'Prefilled from record — verify & edit',
   },
   'requires-input': {
-    card: 'border-amber-300 bg-amber-50/40',
-    badge: 'bg-amber-100 text-amber-800',
+    card: 'border-warn/30 bg-warn/[0.06]',
+    badge: 'bg-warn/15 text-warn',
     badgeLabel: 'YOU must complete',
   },
   'requires-examination': {
@@ -329,7 +332,7 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
   }
 
   return (
-    <div className="bg-surface border border-line shadow-sm rounded-2xl p-5 space-y-4">
+    <Card elevation="e1" className="p-5 space-y-4">
       <div>
         <SectionHead>Legal & Statutory</SectionHead>
         <p className="text-xs text-ink-mute -mt-2">
@@ -344,14 +347,16 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
             key={f.type}
             onClick={() => pick(f.type)}
             disabled={loading !== ''}
-            className={`min-h-[64px] rounded-2xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
+            className={`min-h-[64px] rounded-card border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
               activeForm === f.type
                 ? 'bg-brand-600 border-brand-600 text-white'
                 : 'bg-surface border-line text-ink hover:border-brand-300 hover:bg-brand-50'
             }`}
           >
-            <span className="block text-sm font-semibold">{f.icon} {f.label}</span>
-            <span className={`block text-[11px] mt-0.5 ${activeForm === f.type ? 'text-brand-100' : 'text-ink-mute'}`}>
+            <span className="flex items-center gap-1.5 text-sm font-semibold">
+              <f.icon className="w-4 h-4 shrink-0" aria-hidden /> {f.label}
+            </span>
+            <span className={`block text-2xs mt-0.5 ${activeForm === f.type ? 'text-brand-100' : 'text-ink-mute'}`}>
               {loading === f.type ? 'Drafting…' : f.sub}
             </span>
           </button>
@@ -377,7 +382,7 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
         </div>
       )}
 
-      {err && <p className="text-red-500 text-xs">{err}</p>}
+      {err && <p className="text-danger text-xs">{err}</p>}
 
       {draft && (
         <div className="space-y-3">
@@ -385,18 +390,18 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
             <p className="text-sm font-semibold text-ink">{draft.formTitle}</p>
             <button
               onClick={copyAll}
-              className="text-[13px] bg-surface-alt hover:bg-brand-50 text-brand-700 px-3.5 rounded-full font-medium transition-colors min-h-[44px]"
+              className="text-sm bg-surface-alt hover:bg-brand-50 text-brand-700 px-3.5 rounded-full font-medium transition-colors min-h-[44px]"
             >
               Copy all
             </button>
           </div>
 
           {draft.missingInfo.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <p className="text-[11px] font-semibold text-amber-800 uppercase tracking-wide mb-1">Missing from the record</p>
+            <div className="bg-warn/[0.08] border border-warn/20 rounded-xl px-4 py-3">
+              <p className="text-2xs font-semibold text-warn uppercase tracking-wide mb-1">Missing from the record</p>
               <ul className="space-y-0.5">
                 {draft.missingInfo.map((m, i) => (
-                  <li key={i} className="text-[13px] text-amber-800 flex gap-2">
+                  <li key={i} className="text-sm text-warn flex gap-2">
                     <span className="shrink-0">•</span>{m}
                   </li>
                 ))}
@@ -409,8 +414,8 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
             return (
               <div key={i} className={`border rounded-xl p-3.5 space-y-2 ${style.card}`}>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <p className="text-[13px] font-semibold text-ink">{s.heading}</p>
-                  <span className={`text-[10px] uppercase tracking-wide font-semibold rounded-full px-2 py-0.5 ${style.badge}`}>
+                  <p className="text-sm font-semibold text-ink">{s.heading}</p>
+                  <span className={`text-2xs uppercase tracking-wide font-semibold rounded-full px-2 py-0.5 ${style.badge}`}>
                     {style.badgeLabel}
                   </span>
                 </div>
@@ -419,21 +424,21 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
                     value={sectionText[i] ?? s.content}
                     onChange={e => setSectionText(prev => ({ ...prev, [i]: e.target.value }))}
                     rows={Math.min(8, Math.max(2, (sectionText[i] ?? s.content).split('\n').length + 1))}
-                    className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-[13px] text-ink leading-relaxed focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+                    className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-ink leading-relaxed focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
                   />
                 ) : (
-                  <p className="text-[13px] text-ink-soft leading-relaxed whitespace-pre-wrap">{s.content}</p>
+                  <p className="text-sm text-ink-soft leading-relaxed whitespace-pre-wrap">{s.content}</p>
                 )}
               </div>
             );
           })}
 
           {draft.legalNotes.length > 0 && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-              <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-1">Legal notes</p>
+            <div className="bg-surface-alt border border-line rounded-xl px-4 py-3">
+              <p className="text-2xs font-semibold text-ink-soft uppercase tracking-wide mb-1">Legal notes</p>
               <ul className="space-y-0.5">
                 {draft.legalNotes.map((n, i) => (
-                  <li key={i} className="text-[13px] text-slate-700 flex gap-2">
+                  <li key={i} className="text-sm text-ink-soft flex gap-2">
                     <span className="shrink-0">•</span>{n}
                   </li>
                 ))}
@@ -441,9 +446,9 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
             </div>
           )}
 
-          <p className="text-[11px] text-ink-mute leading-relaxed">{draft.disclaimer}</p>
+          <p className="text-2xs text-ink-mute leading-relaxed">{draft.disclaimer}</p>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

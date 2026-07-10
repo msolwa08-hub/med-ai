@@ -17,7 +17,7 @@ export function CRB65Calc() {
         ['Age ≥65 (+1)', age, setAge],
       ].map(([label, val, setter]) => (
         <Row key={label as string} label={label as string}>
-          <input type="checkbox" checked={val === 1} onChange={e => (setter as (v: number) => void)(e.target.checked ? 1 : 0)} className="accent-blue-500 w-4 h-4" />
+          <input type="checkbox" checked={val === 1} onChange={e => (setter as (v: number) => void)(e.target.checked ? 1 : 0)} className="accent-brand-600 w-4 h-4" />
         </Row>
       ))}
       <Result label="CRB-65" value={`${score}/4 — 30-day mortality ~${mort}`} color={score === 0 ? 'green' : score <= 2 ? 'yellow' : 'red'} />

@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { Zap, Check } from 'lucide-react';
 import type { TreatmentSet } from '../config/treatmentSets';
+import { Card } from './ui';
 import { EscapeHatch } from './EscapeHatch';
 import { WhyButton } from './WhyButton';
 
@@ -33,9 +35,11 @@ export function TreatmentSetCard({ set, onAdd }: {
   }
 
   return (
-    <div className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
-      <h4 className="text-sm font-semibold text-ink">⚡ {set.title}</h4>
-      <div className="divide-y divide-gray-50">
+    <Card elevation="e1" className="p-5 space-y-3">
+      <h4 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+        <Zap className="w-4 h-4 text-brand-600 shrink-0" aria-hidden /> {set.title}
+      </h4>
+      <div className="divide-y divide-line">
         {set.items.map(item => {
           const on = Boolean(selected[item.id]);
           return (
@@ -51,13 +55,13 @@ export function TreatmentSetCard({ set, onAdd }: {
                     on ? 'bg-brand-600 border-brand-600' : 'border-line-strong bg-surface group-hover:border-brand-400'
                   }`}
                 >
-                  {on && <span className="text-white text-xs font-bold">✓</span>}
+                  {on && <Check className="w-3.5 h-3.5 text-white" aria-hidden />}
                 </span>
                 <span className="min-w-0">
                   <span className={`block text-sm font-medium ${on ? 'text-ink' : 'text-ink-mute'}`}>
                     {item.label}
                   </span>
-                  <span className={`block text-[13px] leading-snug ${on ? 'text-ink-soft' : 'text-gray-300'}`}>
+                  <span className={`block text-sm leading-snug ${on ? 'text-ink-soft' : 'text-ink-mute'}`}>
                     {item.detail}
                   </span>
                 </span>
@@ -76,14 +80,14 @@ export function TreatmentSetCard({ set, onAdd }: {
         type="button"
         onClick={add}
         disabled={n === 0 && !note.trim()}
-        className={`w-full min-h-[44px] rounded-xl text-sm font-medium transition-colors ${
+        className={`w-full min-h-[44px] rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center gap-1.5 ${
           added
             ? 'bg-brand-50 text-brand-700 border border-brand-200'
             : 'bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white'
         }`}
       >
-        {added ? '✓ Added to plan' : `Add ${n} selected to plan`}
+        {added ? (<><Check className="w-4 h-4" aria-hidden /> Added to plan</>) : `Add ${n} selected to plan`}
       </button>
-    </div>
+    </Card>
   );
 }

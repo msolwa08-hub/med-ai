@@ -1,13 +1,14 @@
 import React from 'react';
+import { Card } from '../components/ui';
 
 // ─── CALCULATORS ─────────────────────────────────────────────────────────────
 
 export function CalcCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-surface border border-line rounded-xl p-4">
+    <Card elevation="e1" className="p-4">
       <h4 className="text-sm font-semibold text-ink mb-3">{title}</h4>
       {children}
-    </div>
+    </Card>
   );
 }
 
@@ -37,7 +38,11 @@ export function NumInput({ value, onChange, min, max, placeholder }: {
 }
 
 export function Result({ label, value, color = 'blue' }: { label: string; value: string; color?: string }) {
-  const c = { blue: 'text-brand-700', green: 'text-emerald-700', yellow: 'text-yellow-600', red: 'text-red-600', pink: 'text-pink-600' };
+  // Tokenized onto the confidence-band scale: green/positive results read as
+  // "reassuring", yellow/warn as caution, red/danger as urgent — the same
+  // ramp the rest of the app uses for severity. blue/pink stay the single
+  // brand accent for purely informational (non-graded) values.
+  const c = { blue: 'text-brand-700', green: 'text-positive', yellow: 'text-warn', red: 'text-danger', pink: 'text-brand-700' };
   return (
     <div className={`mt-3 text-sm font-medium ${c[color as keyof typeof c] ?? 'text-brand-700'}`}>
       {label}: {value}

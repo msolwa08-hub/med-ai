@@ -6,7 +6,8 @@ import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
 import { patientContext } from '../lib/patientContext';
 import { serializeLatestResults } from '../lib/investigations';
-import { AiBtn, copy, stripMarkdown } from '../components/ui';
+import { AiBtn, Card, copy, stripMarkdown } from '../components/ui';
+import { severityIcon } from '../lib/icons';
 import { QuickBar } from '../components/QuickBar';
 import type { AssistField } from '../toolsApi';
 
@@ -40,9 +41,9 @@ function Panel({
 }) {
   const reduce = useReducedMotion();
   const border = open
-    ? tone === 'danger' ? 'border-red-200 shadow-card-hover' : tone === 'warn' ? 'border-amber-200 shadow-card-hover' : 'border-brand-200 shadow-card-hover'
+    ? tone === 'danger' ? 'border-danger/30 shadow-card-hover' : tone === 'warn' ? 'border-warn/30 shadow-card-hover' : 'border-brand-200 shadow-card-hover'
     : 'border-line shadow-card';
-  const badge = tone === 'danger' ? 'bg-red-50 text-red-700' : tone === 'warn' ? 'bg-amber-50 text-amber-700' : open ? 'bg-brand-50 text-brand-700' : 'bg-surface-alt text-ink-mute';
+  const badge = tone === 'danger' ? 'bg-danger/10 text-danger' : tone === 'warn' ? 'bg-warn/10 text-warn' : open ? 'bg-brand-50 text-brand-700' : 'bg-surface-alt text-ink-mute';
   return (
     <section className={`rounded-card border bg-surface transition-shadow ${border} ${outerClassName}`}>
       <button
@@ -55,9 +56,9 @@ function Panel({
           <Icon className="w-4 h-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className={`text-[15px] font-semibold tracking-tight ${open ? 'text-ink' : 'text-ink-soft'}`}>{title}</span>
+          <span className={`text-base font-semibold tracking-tight ${open ? 'text-ink' : 'text-ink-soft'}`}>{title}</span>
           {!open && summary && (
-            <span className="block text-[13px] text-ink-mute truncate mt-0.5">{summary}</span>
+            <span className="block text-sm text-ink-mute truncate mt-0.5">{summary}</span>
           )}
         </span>
         <ChevronDown
@@ -91,7 +92,7 @@ function Panel({
 function HandoverSheet({ title, text, onPrint }: { title: string; text: string; onPrint: () => void }) {
   const clean = stripMarkdown(text);
   return (
-    <div className="mt-4 bg-surface rounded-2xl border border-line shadow-sm overflow-hidden print:shadow-none print:border-0">
+    <Card elevation="e1" className="mt-4 overflow-hidden print:shadow-none print:border-0">
       <div className="flex items-center justify-between px-5 py-3 border-b border-line print:hidden">
         <span className="text-sm font-semibold text-ink-soft">{title}</span>
         <div className="flex items-center gap-4">
@@ -99,10 +100,10 @@ function HandoverSheet({ title, text, onPrint }: { title: string; text: string; 
           <button onClick={onPrint} className="text-sm text-ink-soft hover:text-ink font-medium">Print</button>
         </div>
       </div>
-      <pre className="text-[17px] sm:text-lg text-ink whitespace-pre-wrap leading-[1.7] px-5 sm:px-7 py-6 font-sans tracking-normal">
+      <pre className="text-lg text-ink whitespace-pre-wrap leading-[1.7] px-5 sm:px-7 py-6 font-sans tracking-normal">
         {clean}
       </pre>
-    </div>
+    </Card>
   );
 }
 
@@ -314,7 +315,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
             <span className="text-sm text-ink-mute">{roundsOnRecord} previous round{roundsOnRecord === 1 ? '' : 's'} on record</span>
           )}
         </div>
-        {roundErr && <p className="text-red-500 text-sm mt-2 print:hidden">{roundErr}</p>}
+        {roundErr && <p className="text-danger text-sm mt-2 print:hidden">{roundErr}</p>}
 
         {(roundSafety?.length ?? 0) > 0 && (
           <Panel
@@ -327,18 +328,24 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
             outerClassName="mt-4 print:hidden"
           >
             <div className="space-y-2">
-              {roundSafety!.map((w, i) => (
-                <div
-                  key={i}
-                  className={`text-[15px] rounded-xl px-4 py-3 border ${
-                    w.severity === 'BLOCK' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-amber-50 border-amber-200 text-amber-800'
-                  }`}
-                >
-                  <span className="font-semibold">{w.severity === 'BLOCK' ? '⛔' : '⚠️'} {w.drug}</span>
-                  <span className="text-xs uppercase tracking-wide ml-2 opacity-60">{w.category}</span>
-                  <p className="mt-0.5 leading-relaxed">{w.reason}</p>
-                </div>
-              ))}
+              {roundSafety!.map((w, i) => {
+                const isBlock = w.severity === 'BLOCK';
+                const Icon = severityIcon(isBlock ? 'block' : 'warn');
+                return (
+                  <div
+                    key={i}
+                    className={`text-base rounded-xl px-4 py-3 border ${
+                      isBlock ? 'bg-danger/[0.08] border-danger/20 text-danger' : 'bg-warn/[0.08] border-warn/20 text-warn'
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-1.5 font-semibold">
+                      <Icon className="w-4 h-4 shrink-0" aria-hidden /> {w.drug}
+                    </span>
+                    <span className="text-xs uppercase tracking-wide ml-2 opacity-60">{w.category}</span>
+                    <p className="mt-0.5 leading-relaxed">{w.reason}</p>
+                  </div>
+                );
+              })}
             </div>
           </Panel>
         )}
@@ -361,7 +368,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
         <div className="flex items-center gap-3 print:hidden">
           <AiBtn onClick={generatePresentation} loading={presLoading} label="Generate presentation" />
         </div>
-        {presErr && <p className="text-red-500 text-sm mt-2 print:hidden">{presErr}</p>}
+        {presErr && <p className="text-danger text-sm mt-2 print:hidden">{presErr}</p>}
         {presText && <HandoverSheet title="Consultant presentation" text={presText} onPrint={() => printSheet('presentation')} />}
       </Panel>
     </div>

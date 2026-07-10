@@ -10,13 +10,13 @@ export function PCOSCalc() {
   return (
     <CalcCard title="PCOS — Rotterdam Criteria">
       <Row label="Oligomenorrhoea / anovulation">
-        <input type="checkbox" checked={oligo} onChange={e => setOligo(e.target.checked)} className="accent-blue-500 w-4 h-4" />
+        <input type="checkbox" checked={oligo} onChange={e => setOligo(e.target.checked)} className="accent-brand-600 w-4 h-4" />
       </Row>
       <Row label="Clinical/biochemical hyperandrogenism">
-        <input type="checkbox" checked={hyper} onChange={e => setHyper(e.target.checked)} className="accent-blue-500 w-4 h-4" />
+        <input type="checkbox" checked={hyper} onChange={e => setHyper(e.target.checked)} className="accent-brand-600 w-4 h-4" />
       </Row>
       <Row label="Polycystic ovaries on USS">
-        <input type="checkbox" checked={pcosMorph} onChange={e => setPcosMorph(e.target.checked)} className="accent-blue-500 w-4 h-4" />
+        <input type="checkbox" checked={pcosMorph} onChange={e => setPcosMorph(e.target.checked)} className="accent-brand-600 w-4 h-4" />
       </Row>
       <Result label="Rotterdam" value={`${criteria}/3 — ${diagnosis}`} color={criteria >= 2 ? 'yellow' : 'green'} />
     </CalcCard>

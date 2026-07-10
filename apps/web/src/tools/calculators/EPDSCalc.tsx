@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TriangleAlert } from 'lucide-react';
 import { CalcCard, Row, Result } from './shared';
 
 export function EPDSCalc() {
@@ -28,7 +29,11 @@ export function EPDSCalc() {
         </Row>
       ))}
       <Result label="EPDS" value={`${total}/30 — ${risk}`} color={total >= 13 ? 'red' : total >= 10 ? 'yellow' : 'green'} />
-      {scores[9] > 0 && <p className="text-red-400 text-xs mt-2 font-medium">⚠️ Q10 positive — assess for self-harm risk immediately</p>}
+      {scores[9] > 0 && (
+        <p className="flex items-center gap-1.5 text-danger text-xs mt-2 font-medium">
+          <TriangleAlert className="w-3.5 h-3.5 shrink-0" aria-hidden /> Q10 positive — assess for self-harm risk immediately
+        </p>
+      )}
     </CalcCard>
   );
 }
