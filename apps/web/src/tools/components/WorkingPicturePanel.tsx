@@ -61,12 +61,24 @@ function DifferentialCard({ d, reduce, hero }: { d: WeightedDifferential; reduce
           </div>
           <div className="shrink-0 text-right">
             <span className={`font-bold tabular-nums text-ink ${hero ? 'text-3xl sm:text-4xl' : 'text-lg'}`}>{d.confidence}%</span>
-            {d.shift && (
-              <div className={`flex items-center justify-end gap-0.5 tabular-nums ${hero ? 'text-xs' : 'text-2xs'} ${d.shift.from < d.confidence ? 'text-positive' : 'text-warn'}`}>
-                {d.shift.from < d.confidence ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                was {d.shift.from}%
-              </div>
-            )}
+            {d.shift && d.confidence !== d.shift.from && (() => {
+              const delta = d.confidence - d.shift.from;
+              const up = delta > 0;
+              return (
+                <motion.div
+                  // re-keyed on the new confidence so the chip springs in every time a result moves this dx
+                  key={d.confidence}
+                  initial={reduce ? false : { scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 16 }}
+                  title={`was ${d.shift.from}%`}
+                  className={`inline-flex items-center gap-0.5 mt-0.5 rounded-full px-1.5 py-0.5 font-bold tabular-nums ${hero ? 'text-xs' : 'text-2xs'} ${up ? 'bg-positive/[0.10] text-positive' : 'bg-warn/[0.12] text-warn'}`}
+                >
+                  {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {up ? '+' : '−'}{Math.abs(delta)}
+                </motion.div>
+              );
+            })()}
           </div>
         </div>
 
@@ -139,6 +151,10 @@ export function WorkingPicturePanel({
 }) {
   const reduce = useReducedMotion();
   const [hero, ...rest] = picture?.differentials ?? [];
+  // A refresh over an existing picture: keep the numbers on screen but signal
+  // clearly that the tap registered and an update is landing — never wipe the
+  // context back to a skeleton.
+  const refreshing = loading && !!picture;
 
   return (
     <div data-testid="working-picture" className="rounded-card border border-brand-100 bg-surface-brand p-4 sm:p-5 space-y-4 shadow-card">
@@ -161,6 +177,19 @@ export function WorkingPicturePanel({
 
       {loading && !picture && <Skeleton />}
 
+      {refreshing && (
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 rounded-xl bg-surface border border-brand-200 px-3.5 py-2"
+        >
+          <Spinner className="w-3.5 h-3.5 text-brand-600" />
+          <span className="text-xs font-medium text-brand-700">
+            Re-reading the picture with the new finding<span className="animate-pulse">…</span>
+          </span>
+        </motion.div>
+      )}
+
       {picture?.narrative && (
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 6 }}
@@ -172,12 +201,9 @@ export function WorkingPicturePanel({
         </motion.div>
       )}
 
-      {hero && (
-        <DifferentialCard key={`${hero.dx}-hero`} d={hero} reduce={reduce} hero />
-      )}
-
-      {rest.length > 0 && (
-        <div className="space-y-2.5">
+      {(hero || rest.length > 0) && (
+        <div className={`space-y-2.5 transition-opacity duration-300 ${refreshing ? 'opacity-45' : 'opacity-100'}`}>
+          {hero && <DifferentialCard key={`${hero.dx}-hero`} d={hero} reduce={reduce} hero />}
           {rest.map((d, i) => <DifferentialCard key={`${d.dx}-${i}`} d={d} reduce={reduce} />)}
         </div>
       )}
