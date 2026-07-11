@@ -25,7 +25,7 @@ import { SlideOver } from '../components/SlideOver';
 import { QuickBar } from '../components/QuickBar';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { QuickDocs } from '../components/QuickDocs';
-import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check } from 'lucide-react';
+import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check, AlertTriangle, Info } from 'lucide-react';
 import { complaintIcon } from '../lib/icons';
 
 // ─── BEDSIDE TAB — the cockpit ───────────────────────────────────────────────
@@ -275,13 +275,16 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             {discrepancies.map((d, i) => (
               <div
                 key={i}
-                className={`rounded-xl px-4 py-3 border text-sm leading-relaxed ${
+                className={`flex items-start gap-2 rounded-xl px-4 py-3 border text-sm leading-relaxed ${
                   d.severity === 'alarm'
                     ? 'bg-warn/[0.08] border-warn/25 text-warn'
                     : 'bg-surface-alt border-line text-ink-soft'
                 }`}
               >
-                <span className="font-semibold">{d.severity === 'alarm' ? '⚠ Check this' : 'ℹ Note'}</span> — {d.message}
+                {d.severity === 'alarm'
+                  ? <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+                  : <Info className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />}
+                <span><span className="font-semibold">{d.severity === 'alarm' ? 'Check this' : 'Note'}</span> — {d.message}</span>
               </div>
             ))}
           </div>

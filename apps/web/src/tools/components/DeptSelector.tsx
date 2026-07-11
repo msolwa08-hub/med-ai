@@ -23,8 +23,8 @@ export function DeptSelector({ onSelect }: { onSelect: (d: DeptId) => void }) {
               onClick={() => onSelect(d.id)}
               className="group rounded-card border border-line bg-surface p-5 text-center shadow-card-hover transition-all duration-150 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-elevated focus:outline-none focus-visible:shadow-focus"
             >
-              <div className="mx-auto mb-3 grid place-items-center w-12 h-12 rounded-lg bg-brand-50 transition-colors group-hover:bg-brand-100">
-                <Icon className="w-6 h-6 text-brand-600" />
+              <div className="mx-auto mb-3 grid place-items-center w-12 h-12 rounded-lg bg-brand-50 dark:bg-brand-500/15 transition-colors group-hover:bg-brand-100 dark:group-hover:bg-brand-500/25">
+                <Icon className="w-6 h-6 text-brand-600 dark:text-brand-300" />
               </div>
               <p className="text-ink font-medium text-sm">{d.label}</p>
               <p className="text-ink-mute text-xs mt-0.5">{d.abbr}</p>

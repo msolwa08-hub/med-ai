@@ -40,8 +40,8 @@ export function SubDeptSelector({ dept, options, onSelect, onBack }: {
         <button onClick={onBack} className="text-ink-mute hover:text-ink-soft text-sm mb-6 transition-colors">
           ← Back to departments
         </button>
-        <div className="mx-auto mb-4 grid place-items-center w-12 h-12 rounded-lg bg-brand-50">
-          <DeptIcon className="w-6 h-6 text-brand-600" />
+        <div className="mx-auto mb-4 grid place-items-center w-12 h-12 rounded-lg bg-brand-50 dark:bg-brand-500/15">
+          <DeptIcon className="w-6 h-6 text-brand-600 dark:text-brand-300" />
         </div>
         <h1 className="text-ink text-2xl font-bold">{deptInfo.label}</h1>
         <p className="text-ink-mute text-sm mt-2">Which ward or unit is this patient on?</p>
