@@ -71,7 +71,7 @@ export class BetaEngine {
     });
 
     const assistantMsg =
-      response.content[0]?.type === 'text' ? response.content[0].text : 'Hello! How can I help you today?';
+      response.content.map(b => (b.type === 'text' ? b.text : '')).join('') || 'Hello! How can I help you today?';
 
     betaStore.create({
       id: sessionId,
@@ -111,7 +111,7 @@ export class BetaEngine {
     });
 
     const assistantMsg =
-      response.content[0]?.type === 'text' ? response.content[0].text : 'Please continue...';
+      response.content.map(b => (b.type === 'text' ? b.text : '')).join('') || 'Please continue...';
 
     const newMessages: BetaMessage[] = [
       ...session.messages,

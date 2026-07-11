@@ -124,7 +124,7 @@ Respond with ONLY JSON:
     ],
   });
 
-  const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
+  const text = response.content.map(b => (b.type === 'text' ? b.text : '')).join('') || '{}';
   const parsed = tryExtractJSON<Omit<LegalFormDraft, 'disclaimer'>>(text) ?? {} as Omit<LegalFormDraft,'disclaimer'>;
 
   const legalNotes =

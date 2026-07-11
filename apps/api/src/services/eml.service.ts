@@ -91,7 +91,7 @@ costTier must be one of: "Free (public sector)", "Low-cost generic", "Moderate",
 
   logUsage('eml-lookup', CLAUDE_HAIKU_MODEL, response.usage);
 
-  const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+  const raw = response.content.map(b => (b.type === 'text' ? b.text : '')).join('');
   const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   return JSON.parse(cleaned) as EMLEntry;
 }

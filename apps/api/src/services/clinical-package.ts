@@ -256,7 +256,7 @@ Produce the DRAFT clinical package as STRICT JSON per your schema.`;
     messages: [{ role: 'user', content: userContent }],
   });
 
-  const raw = resp.content[0].type === 'text' ? resp.content[0].text : '';
+  const raw = resp.content.map(b => (b.type === 'text' ? b.text : '')).join('');
   const parsed = extractJSON(raw) as Record<string, unknown>;
   return normalise(parsed);
 }

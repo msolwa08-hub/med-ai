@@ -91,7 +91,9 @@ Respond with ONLY a JSON object:
 
   const response = await createMessage({
     model: MODELS.reasoning,
-    max_tokens: 1500,
+    // A busy trace (multi-lead ECG, zone-by-zone CXR) plus injectText can run
+    // past 1500; headroom keeps the closing JSON brace from being truncated.
+    max_tokens: 2200,
     system,
     messages: [
       {
@@ -110,7 +112,7 @@ Respond with ONLY a JSON object:
     ],
   });
 
-  const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
+  const text = response.content.map(b => (b.type === 'text' ? b.text : '')).join('') || '{}';
   const parsed = tryExtractJSON<Omit<ImageAnalysisResult, 'modality' | 'disclaimer'>>(text) ?? {} as Omit<ImageAnalysisResult,'modality'|'disclaimer'>;
 
   return {

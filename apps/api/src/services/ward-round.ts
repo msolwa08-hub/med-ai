@@ -159,12 +159,17 @@ ${protocolBlock}`;
 
   const response = await createMessage({
     model: MODELS.reasoning,
-    max_tokens: 1800,
+    // Six populated fields (exam synthesis + reasoning) run long on rich SA
+    // cases — measured 2938 output tokens truncated at 1800 (stop=max_tokens),
+    // which severed the JSON and produced an empty round. Headroom avoids it.
+    max_tokens: 4000,
     system,
     messages: [{ role: 'user', content: userContent }],
   });
 
-  const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
+  // Concatenate ALL text blocks — sonnet-5 can return a leading non-text block,
+  // so reading only content[0] silently drops the JSON (→ empty round).
+  const text = response.content.map(b => (b.type === 'text' ? b.text : '')).join('') || '{}';
   // Never throw-into-500 on a non-JSON reply: degrade to a usable round with
   // the raw text surfaced, rather than losing ~40s of work to a dead-end.
   const parsed = tryExtractJSON<Partial<WardRoundUpdate>>(text) ?? {};

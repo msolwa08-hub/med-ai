@@ -268,6 +268,12 @@ export async function toolsRoutes(app: FastifyInstance) {
         subDept: typeof body.subDept === 'string' ? body.subDept : undefined,
         patientContext: body.patientContext,
         problems: body.problems,
+        // The client sends these three (RoundTab): they are the baseline the
+        // exam-synthesis compares "expected vs actual" against — forward them
+        // or the round's core exam read runs blind.
+        history: typeof body.history === 'string' ? body.history : undefined,
+        generalExam: typeof body.generalExam === 'string' ? body.generalExam : undefined,
+        focusedExam: typeof body.focusedExam === 'string' ? body.focusedExam : undefined,
         medications: typeof body.medications === 'string' ? body.medications : undefined,
         allergies: typeof body.allergies === 'string' ? body.allergies : undefined,
         previousRounds: Array.isArray(body.previousRounds) ? body.previousRounds : [],
