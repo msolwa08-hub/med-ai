@@ -9,6 +9,8 @@ import {
 import { SectionHead } from './ui';
 import { WhyButton } from './WhyButton';
 import { EscapeHatch } from './EscapeHatch';
+import { InvestigationInsights } from './InvestigationInsights';
+import { panelIcon } from '../lib/icons';
 
 // ─── RESULTS CAPTURE — the loop's second input ───────────────────────────────
 // Panel-based capture, per-analyte trending and the deterministic one-step-ahead
@@ -57,14 +59,14 @@ export function ResultsCapture({ patient, dept, onPatient }: {
               key={i}
               className={`rounded-xl border px-4 py-2.5 ${
                 a.severity === 'red'
-                  ? 'bg-red-50 border-red-200 text-red-800'
-                  : 'bg-amber-50 border-amber-200 text-amber-800'
+                  ? 'bg-danger/[0.08] border-danger/25 text-danger'
+                  : 'bg-warn/[0.08] border-warn/25 text-warn'
               }`}
             >
               <div className="flex items-start gap-2">
                 <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${a.severity === 'red' ? 'bg-band-exclude' : 'bg-band-possible'}`} />
                 <div className="flex-1">
-                  <p className="text-[13px] font-medium leading-snug">{a.message}</p>
+                  <p className="text-sm font-medium leading-snug">{a.message}</p>
                 </div>
                 <WhyButton why={a.why} />
               </div>
@@ -73,34 +75,9 @@ export function ResultsCapture({ patient, dept, onPatient }: {
         </div>
       )}
 
-      {/* Trends — every analyte with more than one value, latest + arrow */}
-      {trends.length > 0 && (
-        <div>
-          <SectionHead>Trends</SectionHead>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <tbody>
-                {trends.map(tr => {
-                  const arrow = !tr.previous ? '' : tr.direction === 'up' ? '↑' : tr.direction === 'down' ? '↓' : '→';
-                  const arrowColor = tr.outOfRange ? (tr.outOfRange === 'high' ? 'text-red-600' : 'text-amber-600') : 'text-ink-mute';
-                  return (
-                    <tr key={tr.key} className="border-b border-line last:border-0">
-                      <td className="py-2 pr-3 font-medium text-ink-soft whitespace-nowrap">{tr.label}</td>
-                      <td className={`py-2 pr-2 text-right tabular-nums font-semibold ${tr.outOfRange ? (tr.outOfRange === 'high' ? 'text-red-700' : 'text-amber-700') : 'text-ink'}`}>
-                        {tr.latest.raw}
-                      </td>
-                      <td className={`py-2 pr-3 ${arrowColor}`}>{arrow}</td>
-                      <td className="py-2 text-xs text-ink-mute whitespace-nowrap">
-                        {tr.points.slice(-4).map(p => p.raw).join(' → ')}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {/* Results, visualised — the learning aid: sparkline vs reference band,
+          status, and a teach-while-you-work reading per analyte, clustered by system. */}
+      <InvestigationInsights trends={trends} />
 
       {/* Capture — pick a panel, enter a dated set of values */}
       <div>
@@ -115,15 +92,17 @@ export function ResultsCapture({ patient, dept, onPatient }: {
           />
         </div>
         <div className="grid sm:grid-cols-2 gap-2">
-          {panelsFor(dept).map(panel => (
-            <div key={panel.id} className="rounded-2xl border border-line overflow-hidden">
+          {panelsFor(dept).map(panel => {
+            const PIcon = panelIcon(panel.id);
+            return (
+            <div key={panel.id} className="rounded-card border border-line overflow-hidden">
               <button
                 onClick={() => { setOpenPanel(openPanel === panel.id ? null : panel.id); setDraft({}); }}
-                className={`w-full min-h-[52px] px-4 py-3 text-left flex items-center gap-2 transition-colors ${
+                className={`w-full min-h-[52px] px-4 py-3 text-left flex items-center gap-2.5 transition-colors ${
                   openPanel === panel.id ? 'bg-brand-50' : 'bg-surface hover:bg-surface-alt'
                 }`}
               >
-                <span>{panel.icon}</span>
+                <PIcon className="w-4 h-4 text-brand-600 shrink-0" aria-hidden />
                 <span className="text-sm font-medium text-ink">{panel.label}</span>
                 <span className="ml-auto text-ink-mute">{openPanel === panel.id ? '−' : '+'}</span>
               </button>
@@ -155,7 +134,8 @@ export function ResultsCapture({ patient, dept, onPatient }: {
                 </div>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import {
   Stethoscope, Scissors, Venus, Baby, Activity, Siren, Brain, Bone, Syringe,
   Ban, TriangleAlert, HeartPulse, Wind, Thermometer, Droplet, Zap, CircleDot,
-  Ambulance, type LucideIcon,
+  Ambulance, Beaker, FlaskConical, type LucideIcon,
 } from 'lucide-react';
 import type { DeptId } from '../config/departments';
 
@@ -62,4 +62,16 @@ const COMPLAINT_ICONS: Record<string, LucideIcon> = {
 
 export function complaintIcon(cascadeId: string): LucideIcon {
   return COMPLAINT_ICONS[cascadeId] ?? CircleDot;
+}
+
+// Investigation-panel icons — replaces the emoji on the Results capture panels
+// and the insights clusters (keyed by PANELS id).
+const PANEL_ICONS: Record<string, LucideIcon> = {
+  uec: Beaker, fbc: Droplet, lft: FlaskConical, inflam: Activity, abg: Activity,
+  cardiac: HeartPulse, glu: FlaskConical, tbhiv: Activity, bone: FlaskConical,
+  tox: FlaskConical, msk: Activity, sepsis: Activity, psych: Brain, paeds: Baby,
+};
+
+export function panelIcon(panelId: string): LucideIcon {
+  return PANEL_ICONS[panelId] ?? FlaskConical;
 }
