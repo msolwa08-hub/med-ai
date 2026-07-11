@@ -24,8 +24,8 @@ const MODALITIES: { id: ImageModality; label: string }[] = [
 
 const CONFIDENCE_STYLE: Record<ImageAnalysisResult['confidence'], string> = {
   high: 'bg-brand-50 text-brand-700 border-brand-200',
-  medium: 'bg-amber-50 text-amber-700 border-amber-200',
-  low: 'bg-red-50 text-red-700 border-red-200',
+  medium: 'bg-warn/[0.10] text-warn border-warn/25',
+  low: 'bg-danger/[0.10] text-danger border-danger/25',
 };
 
 export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }: {
@@ -112,7 +112,7 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
       </button>
 
       {error && (
-        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+        <div className="text-sm text-warn bg-warn/[0.08] border border-warn/20 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
           <span>{error}</span>
           <button type="button" onClick={retake} className="text-brand-700 font-medium shrink-0 min-h-[44px] px-2">
             Retake
@@ -123,19 +123,19 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
       {result && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-[11px] border rounded-full px-2.5 py-1 font-medium ${CONFIDENCE_STYLE[result.confidence]}`}>
+            <span className={`text-2xs border rounded-full px-2.5 py-1 font-medium ${CONFIDENCE_STYLE[result.confidence]}`}>
               {result.confidence} confidence
             </span>
             {result.technicalQuality && (
-              <span className="text-[11px] text-ink-mute">{result.technicalQuality}</span>
+              <span className="text-2xs text-ink-mute">{result.technicalQuality}</span>
             )}
             <WhyButton why={result.disclaimer} />
           </div>
 
           {result.redFlags.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 space-y-1">
+            <div className="bg-danger/[0.08] border border-danger/25 rounded-xl px-4 py-3 space-y-1">
               {result.redFlags.map((r, i) => (
-                <p key={i} className="text-[13px] text-red-800 font-medium">⛔ {r}</p>
+                <p key={i} className="text-sm text-danger font-medium">⛔ {r}</p>
               ))}
             </div>
           )}
@@ -143,7 +143,7 @@ export function ImageCaptureNode({ toolsKey, dept, subDept, context, onInject }:
           {result.findings.length > 0 && (
             <ul className="space-y-1">
               {result.findings.map((f, i) => (
-                <li key={i} className="text-[13px] text-ink-soft flex gap-2">
+                <li key={i} className="text-sm text-ink-soft flex gap-2">
                   <span className="text-brand-500 shrink-0">•</span>
                   {f}
                 </li>

@@ -18,7 +18,7 @@ const BTN_VARIANT: Record<ButtonVariant, string> = {
   primary: 'bg-brand-700 hover:bg-brand-600 active:bg-brand-800 text-white shadow-card',
   secondary: 'bg-surface border border-line-strong text-ink hover:bg-surface-alt',
   ghost: 'text-ink-soft hover:bg-surface-alt hover:text-ink',
-  danger: 'bg-rose-600 hover:bg-rose-500 text-white shadow-card',
+  danger: 'bg-danger hover:bg-danger/90 text-white shadow-card',
 };
 const BTN_SIZE: Record<ButtonSize, string> = {
   sm: 'min-h-[38px] px-3 text-sm gap-1.5 rounded-lg',

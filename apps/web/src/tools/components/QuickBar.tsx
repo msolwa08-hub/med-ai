@@ -29,8 +29,8 @@ function getRecognition(): SpeechRec | null {
 
 const CONF_TONE: Record<ScanFieldResult['confidence'], string> = {
   high: 'bg-brand-50 text-brand-700 border-brand-200',
-  medium: 'bg-amber-50 text-amber-800 border-amber-200',
-  low: 'bg-rose-50 text-rose-800 border-rose-200',
+  medium: 'bg-warn/[0.10] text-warn border-warn/25',
+  low: 'bg-danger/[0.10] text-danger border-danger/25',
 };
 
 export function QuickBar({
@@ -114,7 +114,7 @@ export function QuickBar({
     <div className="rounded-card border border-brand-200 bg-surface-brand p-4 sm:p-5 shadow-card">
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="w-4 h-4 text-brand-600" />
-        <h3 className="text-[15px] font-bold text-ink tracking-tight">{title}</h3>
+        <h3 className="text-base font-bold text-ink tracking-tight">{title}</h3>
         <span className="text-xs text-ink-soft">— {hint}</span>
       </div>
 
@@ -125,7 +125,7 @@ export function QuickBar({
           onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') parse(); }}
           rows={3}
           placeholder={placeholder}
-          className="w-full bg-surface border border-line-strong rounded-xl px-3.5 py-2.5 pr-12 text-[15px] text-ink placeholder:text-ink-mute resize-none transition-shadow focus:outline-none focus:border-brand-500 focus:shadow-focus"
+          className="w-full bg-surface border border-line-strong rounded-xl px-3.5 py-2.5 pr-12 text-base text-ink placeholder:text-ink-mute resize-none transition-shadow focus:outline-none focus:border-brand-500 focus:shadow-focus"
         />
         {supported.current && (
           <button
@@ -133,7 +133,7 @@ export function QuickBar({
             aria-label={listening ? 'Stop dictation' : 'Dictate'}
             title={listening ? 'Stop dictation' : 'Dictate'}
             className={`absolute top-2.5 right-2.5 grid place-items-center w-9 h-9 rounded-lg transition-colors focus:outline-none focus-visible:shadow-focus ${
-              listening ? 'bg-rose-500 text-white animate-pulse' : 'bg-surface-alt text-ink-soft hover:text-brand-700'
+              listening ? 'bg-danger text-white animate-pulse' : 'bg-surface-alt text-ink-soft hover:text-brand-700'
             }`}
           >
             {listening ? <MicOff className="w-[18px] h-[18px]" /> : <Mic className="w-[18px] h-[18px]" />}
@@ -150,13 +150,13 @@ export function QuickBar({
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           {loading ? 'Filing…' : cta}
         </button>
-        <span className="text-[11px] text-ink-mute hidden sm:inline-flex items-center gap-1">
+        <span className="text-2xs text-ink-mute hidden sm:inline-flex items-center gap-1">
           <CornerDownLeft className="w-3 h-3" /> ⌘/Ctrl+Enter
         </span>
-        {listening && <span className="text-[11px] text-rose-600 font-medium">● listening…</span>}
+        {listening && <span className="text-2xs text-danger font-medium">● listening…</span>}
       </div>
 
-      {error && <p className="mt-2 text-[13px] text-band-exclude">{error}</p>}
+      {error && <p className="mt-2 text-sm text-band-exclude">{error}</p>}
 
       <AnimatePresence>
         {filled.length > 0 && (
@@ -166,7 +166,7 @@ export function QuickBar({
             exit={{ opacity: 0 }}
             className="mt-3 space-y-2"
           >
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-700">
+            <p className="flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-brand-700">
               <Check className="w-3.5 h-3.5" /> Filed {filled.length} field{filled.length > 1 ? 's' : ''} — verify the flagged ones
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -174,14 +174,14 @@ export function QuickBar({
                 <span
                   key={i}
                   title={f.note}
-                  className={`inline-flex items-center gap-1 text-[11px] font-medium rounded-pill border px-2 py-1 ${CONF_TONE[f.confidence]}`}
+                  className={`inline-flex items-center gap-1 text-2xs font-medium rounded-pill border px-2 py-1 ${CONF_TONE[f.confidence]}`}
                 >
                   {f.confidence !== 'high' && <AlertTriangle className="w-3 h-3" />}
                   {f.label}
                 </span>
               ))}
             </div>
-            {overall && <p className="text-[12px] text-ink-mute italic leading-snug">{overall}</p>}
+            {overall && <p className="text-xs text-ink-mute italic leading-snug">{overall}</p>}
           </motion.div>
         )}
       </AnimatePresence>

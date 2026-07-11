@@ -33,8 +33,8 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
 
       {sections.map(s => (
         <div key={s.id}>
-          <p className="text-[11px] font-semibold text-brand-700/70 uppercase tracking-wider mb-1.5">{s.title}</p>
-          <div className="divide-y divide-gray-50">
+          <p className="text-2xs font-semibold text-brand-700/70 uppercase tracking-wider mb-1.5">{s.title}</p>
+          <div className="divide-y divide-line">
             {s.items.map(item => {
               const on = Boolean(checked[item.id]);
               const pendingMandatory = item.mandatory && !on;
@@ -42,7 +42,7 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
                 <div
                   key={item.id}
                   className={`flex items-start gap-3 rounded-xl transition-colors ${
-                    pendingMandatory ? 'bg-amber-50/70 dark:bg-amber-400/10' : ''
+                    pendingMandatory ? 'bg-warn/[0.08] dark:bg-warn/[0.10]' : ''
                   }`}
                 >
                   <button
@@ -56,7 +56,7 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
                         on
                           ? 'bg-brand-600 border-brand-600 scale-100'
                           : pendingMandatory
-                            ? 'border-amber-400 bg-surface group-hover:border-amber-500'
+                            ? 'border-warn/70 bg-surface group-hover:border-warn'
                             : 'border-line-strong bg-surface group-hover:border-brand-400'
                       }`}
                     >
@@ -69,7 +69,7 @@ export function ExamChecklist({ sections, checked, customNote, onToggle, onNote 
                     <span className={`text-sm leading-snug ${on ? 'text-ink-mute line-through decoration-brand-300' : 'text-ink'}`}>
                       {item.label}
                       {pendingMandatory && (
-                        <span className="ml-1.5 text-[10px] uppercase tracking-wide text-amber-600 font-semibold no-underline inline-block">
+                        <span className="ml-1.5 text-[10px] uppercase tracking-wide text-warn font-semibold no-underline inline-block">
                           required
                         </span>
                       )}

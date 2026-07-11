@@ -45,15 +45,15 @@ export function QuickDocs({ patient, toolsKey, dept }: {
       <div className="space-y-3">
         <button
           onClick={() => setActive(null)}
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-soft hover:text-ink transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> All documents
         </button>
         <div>
-          <h4 className="text-[15px] font-semibold text-ink tracking-tight">{spec.label}</h4>
+          <h4 className="text-base font-semibold text-ink tracking-tight">{spec.label}</h4>
           <button
             onClick={() => { setCache(prev => ({ ...prev, [active]: undefined })); open(active); }}
-            className="text-[12px] text-brand-700 hover:text-brand-800"
+            className="text-xs text-brand-700 hover:text-brand-800"
           >
             Regenerate
           </button>
@@ -65,10 +65,10 @@ export function QuickDocs({ patient, toolsKey, dept }: {
 
   return (
     <div className="space-y-2.5">
-      <p className="text-[13px] text-ink-soft">
+      <p className="text-sm text-ink-soft">
         Generated from the current record and working diagnosis — pick one, then copy or transcribe onto the chart.
       </p>
-      {error && <p className="text-[13px] text-band-exclude">{error}</p>}
+      {error && <p className="text-sm text-band-exclude">{error}</p>}
       <div className="space-y-2">
         {DOC_SPECS.map(spec => (
           <button
@@ -82,9 +82,9 @@ export function QuickDocs({ patient, toolsKey, dept }: {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[14px] font-medium text-ink">{spec.label}</span>
-              <span className="block text-[12px] text-ink-mute truncate">{cache[spec.id] ? 'Ready — tap to view' : spec.blurb}</span>
+              <span className="block text-xs text-ink-mute truncate">{cache[spec.id] ? 'Ready — tap to view' : spec.blurb}</span>
             </span>
-            {cache[spec.id] && <span className="text-[11px] font-medium text-brand-700 shrink-0">✓</span>}
+            {cache[spec.id] && <span className="text-2xs font-medium text-brand-700 shrink-0">✓</span>}
           </button>
         ))}
       </div>

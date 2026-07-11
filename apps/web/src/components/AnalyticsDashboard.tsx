@@ -54,8 +54,8 @@ export function AnalyticsDashboard({ analytics }: Props) {
 function Stat({ label, value, color }: { label: string; value: number; color: 'blue' | 'green' | 'yellow' }) {
   const colors = {
     blue: 'text-brand-700',
-    green: 'text-emerald-700',
-    yellow: 'text-yellow-600',
+    green: 'text-positive',
+    yellow: 'text-warn',
   };
   return (
     <div className="bg-surface border border-line rounded-xl p-4 text-center">

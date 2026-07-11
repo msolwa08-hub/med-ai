@@ -161,9 +161,9 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
   const busy = loading || scanning;
   const chipStyle: Record<CapturedField['confidence'], string> = {
     spoken: 'bg-brand-50 text-brand-700 border-brand-100',
-    high: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    medium: 'bg-amber-50 text-amber-700 border-amber-200',
-    low: 'bg-red-50 text-red-700 border-red-200',
+    high: 'bg-positive/[0.10] text-positive border-positive/25',
+    medium: 'bg-warn/[0.10] text-warn border-warn/25',
+    low: 'bg-danger/[0.10] text-danger border-danger/25',
   };
   const chipMark: Record<CapturedField['confidence'], string> = {
     spoken: '✓',
@@ -175,7 +175,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
   return (
     <div className="bg-surface border border-line rounded-3xl shadow-sm px-6 py-7 sm:px-8 space-y-5">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h3 className="text-[11px] font-semibold text-brand-600 uppercase tracking-[0.14em]">
+        <h3 className="text-2xs font-semibold text-brand-600 uppercase tracking-[0.14em]">
           {section}
         </h3>
         <div className="flex items-center gap-3">
@@ -192,7 +192,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="text-[13px] bg-surface-alt hover:bg-brand-50 disabled:opacity-40 text-brand-700 px-3.5 py-1.5 rounded-full font-medium transition-colors"
+            className="text-sm bg-surface-alt hover:bg-brand-50 disabled:opacity-40 text-brand-700 px-3.5 py-1.5 rounded-full font-medium transition-colors"
             title="Photograph the doctor's handwritten notes — the AI reads them and fills the form, flagging anything it can't decipher"
           >
             {scanning ? 'Reading handwriting…' : '📷 Scan notes'}
@@ -201,11 +201,11 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       </div>
 
       {error ? (
-        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">{error}</p>
+        <p className="text-sm text-warn bg-warn/[0.08] border border-warn/20 rounded-2xl px-4 py-3">{error}</p>
       ) : (
         <p
           key={question || '__pending__'}
-          className={`animate-question-in text-2xl sm:text-3xl font-semibold leading-snug tracking-tight ${done ? 'text-emerald-700' : 'text-ink'}`}
+          className={`animate-question-in text-2xl sm:text-3xl font-semibold leading-snug tracking-tight ${done ? 'text-positive' : 'text-ink'}`}
         >
           {busy && !question ? (
             <span className="text-ink-mute">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
@@ -216,7 +216,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       )}
 
       {scanNote && (
-        <p className="text-[13px] text-ink-mute leading-relaxed">📷 {scanNote}</p>
+        <p className="text-sm text-ink-mute leading-relaxed">📷 {scanNote}</p>
       )}
 
       {!done && !error && (
@@ -247,7 +247,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
             <span
               key={c.key}
               title={c.note ?? (c.confidence === 'medium' ? 'Read from handwriting — verify' : c.confidence === 'low' ? 'Barely legible — check this' : undefined)}
-              className={`animate-chip-in text-[11px] border rounded-full px-2.5 py-1 ${chipStyle[c.confidence]}`}
+              className={`animate-chip-in text-2xs border rounded-full px-2.5 py-1 ${chipStyle[c.confidence]}`}
             >
               {chipMark[c.confidence]} {c.label}
               {c.confidence === 'medium' && ' — verify'}

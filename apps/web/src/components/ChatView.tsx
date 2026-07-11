@@ -133,7 +133,7 @@ export default function ChatView({ sessionId }: Props) {
           >
             {starting ? 'Starting…' : 'Start'}
           </button>
-          {error && <p className="text-red-500 text-xs mt-3">{error}</p>}
+          {error && <p className="text-danger text-xs mt-3">{error}</p>}
         </div>
       </div>
     );
@@ -148,7 +148,7 @@ export default function ChatView({ sessionId }: Props) {
           <p className="text-ink-mute text-xs">AI-assisted medical history taking</p>
         </div>
         {completed && (
-          <span className="ml-auto bg-emerald-600 text-white text-xs px-2 py-1 rounded-full">
+          <span className="ml-auto bg-positive text-white text-xs px-2 py-1 rounded-full">
             Completed
           </span>
         )}
@@ -182,22 +182,22 @@ export default function ChatView({ sessionId }: Props) {
           <div className="flex justify-start">
             <div className="bg-surface-alt rounded-2xl rounded-bl-sm px-4 py-3">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="w-2 h-2 bg-ink-mute rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-ink-mute rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-ink-mute rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
         )}
         {completed && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
-            <p className="text-emerald-700 text-sm font-medium">History taking complete</p>
-            <p className="text-emerald-600/70 text-xs mt-1">Your doctor can now review your history.</p>
+          <div className="bg-positive/[0.08] border border-positive/25 rounded-xl p-4 text-center">
+            <p className="text-positive text-sm font-medium">History taking complete</p>
+            <p className="text-positive/70 text-xs mt-1">Your doctor can now review your history.</p>
           </div>
         )}
         {error && !starting && (
           <div className="text-center">
-            <p className="text-red-500 text-sm">{error}</p>
+            <p className="text-danger text-sm">{error}</p>
             {messages.length === 0 && (
               <button
                 onClick={() => (betaKey ? startNewSession(betaKey) : setNeedsKey(true))}
