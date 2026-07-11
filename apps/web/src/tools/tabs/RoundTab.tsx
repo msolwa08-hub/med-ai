@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronDown, Presentation as PresentationIcon, ShieldAlert, type LucideIcon } from 'lucide-react';
+import { ChevronDown, Presentation as PresentationIcon, ShieldAlert, History, type LucideIcon } from 'lucide-react';
 import { toolsApi, type WardRoundDeltaResponse, type WardRoundUpdate } from '../toolsApi';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
@@ -165,6 +165,14 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
   const [presErr, setPresErr] = useState('');
 
   const [printing, setPrinting] = useState<'round' | 'presentation' | null>(null);
+  const [openProgress, setOpenProgress] = useState(true);
+
+  // The running day-by-day story (populated by every generated round) — read-only,
+  // reverse-chronological, with a copy-all so it transcribes straight onto the chart.
+  const progressLog = patient.progressLog ?? [];
+  const progressLogText = progressLog
+    .map(e => `${e.date}\n${stripMarkdown(e.note)}`)
+    .join('\n\n────────────\n\n');
   function printSheet(which: 'round' | 'presentation') {
     setPrinting(which);
     setTimeout(() => { window.print(); setPrinting(null); }, 50);
@@ -352,6 +360,32 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
 
         {roundText && <HandoverSheet title="Ward round note" text={roundText} onPrint={() => printSheet('round')} />}
       </section>
+
+      {/* ── Progress log — the running day-by-day story, ready to transcribe ── */}
+      {progressLog.length > 0 && (
+        <Panel
+          icon={History}
+          title="Progress log"
+          summary={`${progressLog.length} dated entr${progressLog.length === 1 ? 'y' : 'ies'} — the running story`}
+          open={openProgress}
+          onToggle={() => setOpenProgress(o => !o)}
+          outerClassName={printing === 'presentation' ? 'print:hidden' : ''}
+        >
+          <div className="flex justify-end mb-2 print:hidden">
+            <button onClick={() => copy(progressLogText)} className="text-sm text-brand-700 hover:text-brand-900 font-medium">
+              Copy all
+            </button>
+          </div>
+          <div className="space-y-3">
+            {[...progressLog].reverse().map((e, i) => (
+              <div key={i} className="rounded-xl border border-line bg-surface px-4 py-3">
+                <p className="text-2xs font-semibold uppercase tracking-wide text-brand-700 mb-1">{e.date}</p>
+                <pre className="whitespace-pre-wrap font-sans text-sm text-ink leading-relaxed">{stripMarkdown(e.note)}</pre>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       {/* ── Consultant Presentation — supporting, on-demand panel ── */}
       <Panel
