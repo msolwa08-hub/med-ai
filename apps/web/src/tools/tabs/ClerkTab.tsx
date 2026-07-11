@@ -350,8 +350,6 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   return (
     <>
       <div className="max-w-3xl mx-auto space-y-3 pb-16">
-        {utilityRow}
-
         {discrepancies.length > 0 && (
           <div className="space-y-2">
             {discrepancies.map((d, i) => (
@@ -376,7 +374,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         <Card elevation="e1" className="p-4 sm:p-5 space-y-3.5">
           <div>
             <h2 className="text-sm font-semibold text-ink">Presenting complaint</h2>
-            <p className="text-xs text-ink-soft">Tap it — the leading diagnosis follows automatically.</p>
+            <p className="text-xs text-ink-soft">
+              {cc ? 'Tap another if it changes — the picture re-reads itself.' : 'Tap your patient’s main complaint — the differential builds itself.'}
+            </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {cascades.map(c => {
@@ -501,6 +501,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             )}
           </div>
         )}
+
+        {/* Record + document shortcuts — below the start moment, not above it. */}
+        {utilityRow}
 
         {/* ── COMPLETE — collapsed by default; background is last by design ───── */}
         <div className="rounded-card border border-line bg-surface shadow-card">
