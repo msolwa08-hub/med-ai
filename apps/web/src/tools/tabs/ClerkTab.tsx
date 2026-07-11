@@ -14,7 +14,7 @@ import { smartBlocksFor, type SmartBlock } from '../config/smartBlocks';
 import { CascadePanel, EMPTY_CASCADE_VALUE, type CascadePanelValue } from '../components/CascadePanel';
 import { SmartBlockCard, EMPTY_SMART_BLOCK_VALUE, type SmartBlockValue } from '../components/SmartBlockCard';
 import { examChecklistFor } from '../config/examChecklists';
-import { ExamChecklist } from '../components/ExamChecklist';
+import { ExamCapture, findingStem, VITAL_META } from '../components/ExamCapture';
 import { ImageCaptureNode } from '../components/ImageCaptureNode';
 import { upsertSerialized } from '../lib/serializeIntoField';
 import { WorkingPicturePanel } from '../components/WorkingPicturePanel';
@@ -148,21 +148,35 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     onPatient({ smartBlocks: { ...patient.smartBlocks, [block.id]: { ...v, lastText: serialized } } });
   }
 
-  // ── Examination checklist + imaging ────────────────────────────────────────
+  // ── Examination capture (values-first) + imaging ───────────────────────────
+  // The exam list is built from the history (presentingText), and the VALUE is
+  // the capture — vitals serialize as a reading line into assessment.vitals,
+  // findings as real clinical lines ("Lung fields: creps at bases", "JVP: NAD")
+  // into assessment.examination. No ticks: "Exam done: BP recorded" documented
+  // ceremony, not findings.
   const sections = examChecklistFor(dept, subDept, presentingText(patient));
   const checklist = patient.examChecklist ?? { checked: {}, customNote: '' };
+  const examValues = checklist.values ?? {};
+  const vitalItems = sections.find(s => s.id === 'vitals')?.items ?? [];
 
-  function checklistChanged(checked: Record<string, boolean>, customNote: string) {
-    const doneLabels = sections
+  function examCaptureChanged(values: Record<string, string>, customNote: string) {
+    const vitalsLine = vitalItems
+      .filter(i => (values[i.id] ?? '').trim())
+      .map(i => `${(VITAL_META[i.id]?.label ?? findingStem(i.label))} ${values[i.id].trim()}`)
+      .join(', ');
+    const nextVitals = upsertSerialized(patient.assessment.vitals, checklist.vitalsLastText, vitalsLine, '\n');
+
+    const findingLines = sections
+      .filter(s => s.id !== 'vitals')
       .flatMap(s => s.items)
-      .filter(i => checked[i.id])
-      .map(i => i.label);
-    const parts = [...doneLabels];
-    if (customNote.trim()) parts.push(customNote.trim());
-    const serialized = parts.length > 0 ? `Exam done: ${parts.join('; ')}` : '';
+      .filter(i => (values[i.id] ?? '').trim())
+      .map(i => `${findingStem(i.label)}: ${values[i.id].trim()}`);
+    if (customNote.trim()) findingLines.push(customNote.trim());
+    const serialized = findingLines.join('\n');
     const nextExam = upsertSerialized(patient.assessment.examination, checklist.lastText, serialized, '\n');
-    onAssessment({ examination: nextExam });
-    onPatient({ examChecklist: { checked, customNote, lastText: serialized } });
+
+    onAssessment({ examination: nextExam, vitals: nextVitals });
+    onPatient({ examChecklist: { ...checklist, values, customNote, lastText: serialized, vitalsLastText: vitalsLine } });
   }
 
   function injectImage(injectText: string, modality: string) {
@@ -209,12 +223,13 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   // ── Complete (collapsed) — background, exam detail, results ────────────────
   const filledStory = clerkFields.filter(f => (f.value ?? '').trim()).length;
-  const checkedCount = Object.values(checklist.checked).filter(Boolean).length;
-  const totalItems = sections.reduce((a, s) => a + s.items.length, 0);
+  const capturedCount = Object.values(examValues).filter(v => v.trim()).length;
+  const vitalsIn = vitalItems.filter(i => (examValues[i.id] ?? '').trim()).length;
+  const findingsIn = capturedCount - vitalsIn;
   const hasVitals = patient.assessment.vitals.trim().length > 0;
   const entryCount = patient.investigations?.length ?? 0;
   const storyDone = filledStory >= 5;
-  const examineDone = checkedCount > 0 && hasVitals;
+  const examineDone = capturedCount > 0 && hasVitals;
   const resultsDone = entryCount > 0;
   const completeDoneCount = [storyDone, examineDone, resultsDone].filter(Boolean).length;
 
@@ -459,18 +474,19 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                 index={2}
                 title="Examine"
                 icon={Stethoscope}
-                summary={`${checkedCount}/${totalItems} exam items${hasVitals ? ' · vitals in' : ''}`}
+                summary={`${vitalsIn}/${vitalItems.length} vitals · ${findingsIn} finding${findingsIn === 1 ? '' : 's'}`}
                 done={examineDone}
                 open={openStage === 'examine'}
                 onToggle={() => toggle('examine')}
               >
                 <div className="space-y-4 pt-3">
-                  <ExamChecklist
+                  <ExamCapture
                     sections={sections}
-                    checked={checklist.checked}
+                    values={examValues}
                     customNote={checklist.customNote}
-                    onToggle={(id, on) => checklistChanged({ ...checklist.checked, [id]: on }, checklist.customNote)}
-                    onNote={note => checklistChanged(checklist.checked, note)}
+                    onValues={values => examCaptureChanged(values, checklist.customNote)}
+                    onNote={note => examCaptureChanged(examValues, note)}
+                    historyEmpty={!patient.history.hpi.trim()}
                   />
                   <ImageCaptureNode
                     toolsKey={toolsKey}

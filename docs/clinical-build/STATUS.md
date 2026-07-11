@@ -29,6 +29,20 @@ job-control kills backgrounded servers). Work in committed increments; push to
 
 ## Milestone drops (the master-plan spine — newest first)
 
+- **M-UI/6 — values-first exam capture — ✅ SHIPPED** (2026-07-11). Direct user
+  feedback: ticking a checklist AND typing the values elsewhere is double work
+  (practicality 4/10), and the exam must follow the history, asking only what
+  the story makes pertinent. Killed the tick-checklist (`ExamChecklist.tsx`
+  removed): `ExamCapture.tsx` makes the VALUE the capture — vitals are a value
+  grid (typing "145/92" IS the record, serialized into `assessment.vitals`),
+  every pertinent exam target is a finding row (one-tap **NAD** or type the
+  actual finding, serialized as real clinical lines — "Lung fields: bibasal
+  crepitations" — into `assessment.examination`, replacing the old
+  "Exam done: BP recorded" ceremony text). Captured cells turn teal, real
+  findings turn amber; "done" is derived from values existing — no checkbox
+  anywhere. The targeted section stays presentation-driven and a hint ties the
+  list to the history. Playwright-proven: typed values verified IN the record
+  text end-to-end. Proof: `eval/m-ui6/` (before/after + filled + record-proof).
 - **M-FINAL/R — end-to-end certify + deploy — ▶ IN PROGRESS** (2026-07-11).
   Finishing the whole build into a deployable product. **R0 shipped** (`8c0c8fd`):
   the ward-round-delta engine was returning empty core fields — two compounding

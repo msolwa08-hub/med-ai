@@ -69,9 +69,15 @@ export interface SmartBlockPersist {
 }
 
 export interface ExamChecklistPersist {
+  /** Legacy tick state (pre values-first capture) — kept so old records load. */
   checked: Record<string, boolean>;
+  /** itemId → captured value ('NAD' or the actual finding / vital reading). */
+  values?: Record<string, string>;
   customNote: string;
+  /** Last serialized findings block upserted into assessment.examination. */
   lastText?: string;
+  /** Last serialized vitals line upserted into assessment.vitals. */
+  vitalsLastText?: string;
 }
 
 export interface ImageFinding {
