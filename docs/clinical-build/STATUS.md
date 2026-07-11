@@ -29,22 +29,28 @@ job-control kills backgrounded servers). Work in committed increments; push to
 
 ## Milestone drops (the master-plan spine — newest first)
 
-- **M-UI/7 — friction-free, differential-driven clerking — ▶ IN PROGRESS**
+- **M-UI/7 — friction-free, differential-driven clerking — ✅ SHIPPED**
   (2026-07-11). User rated clerking 3/10 UI, 2/10 practicality; four principles:
   minimal barrier to entry, engine thinks differentials from the first answers,
   exam **focused + nothing required**, checklist is for **values** (type every
   value). Frontend-only (engine already emits everything) → loop gate 99.6
   unaffected. **Part A** (`72ee083`): nothing in the exam is "required" — dropped
   the `mandatory` flag + amber/"key" UI; removed the redundant 2nd Examination
-  AssistPanel. **Part B**: the exam is now FOCUSED and differential-driven — the
-  Examine stage leads with the engine's `kind:'exam'` discriminating features
-  (the ≤8 signs that actually separate the leading diagnoses, e.g. chest pain →
+  AssistPanel. **Part B** (`79ec646`): the exam is FOCUSED and differential-driven
+  — the Examine stage leads with the engine's `kind:'exam'` discriminating
+  features (the ≤8 signs that separate the leading diagnoses, e.g. chest pain →
   calf tenderness/PE, chest-wall tenderness/MSK) as value rows; the full
   department survey is demoted to a one-tap disclosure; `ConfirmStream` keeps
   only the `kind:'history'` "ask the patient" taps so nothing is asked twice.
-  Playwright-proven end-to-end (focus block populates from the live picture,
-  survey collapsed, values serialize into the record). *Part C pending: compact
-  value-first history + one-tap differential→problem-list bridge.*
+  **Part C**: a *simple* history — the History stage now leads with a value-first
+  `DetailsList` of the essentials (HPI/PMH/meds/allergies) that you type; the
+  16-question AI interview is demoted to an opt-in ("or let the AI interview the
+  patient") and background/ROS/social/admin to a "More history" disclosure. Plus
+  a one-tap **Carry to problem list** on the working picture — the leading
+  differential (its rivals as the differential, the picture's "do now" as the
+  management) flows straight into `patient.problems`, no separate tab/manual
+  Suggest. All Playwright-proven end-to-end (value-first history default, bridge
+  seeds Problems, values serialize into the record).
 - **M-UI/6 — values-first exam capture — ✅ SHIPPED** (2026-07-11). Direct user
   feedback: ticking a checklist AND typing the values elsewhere is double work
   (practicality 4/10), and the exam must follow the history, asking only what

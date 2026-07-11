@@ -25,7 +25,8 @@ import { SlideOver } from '../components/SlideOver';
 import { QuickBar } from '../components/QuickBar';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { QuickDocs } from '../components/QuickDocs';
-import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check, AlertTriangle, Info } from 'lucide-react';
+import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check, AlertTriangle, Info, ListChecks } from 'lucide-react';
+import { uid } from '../lib/patient';
 import { complaintIcon } from '../lib/icons';
 
 // ─── BEDSIDE TAB — the cockpit ───────────────────────────────────────────────
@@ -101,6 +102,18 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   const examFields = assessmentAssistFields(patient.assessment, dept, subDept);
   const clerkFields = [...intakeFields, ...historyFields];
   const intakeKeys = new Set(intakeFields.map(f => f.key));
+
+  // Value-first history: the few high-yield fields the intern types directly
+  // (the complaint is already set by the tap; the differential fires off the
+  // HPI). Everything else — admin, ROS, social/family, HIV — sits behind "More"
+  // so a simple history is a couple of taps, not a 16-question interview.
+  const HISTORY_ESSENTIAL = new Set(['hpi', 'pmh', 'medications', 'allergies']);
+  const essentialHistoryFields = clerkFields.filter(f => HISTORY_ESSENTIAL.has(f.key));
+  const moreHistoryFields = clerkFields.filter(f => !HISTORY_ESSENTIAL.has(f.key) && f.key !== 'chiefComplaint');
+  function editField(key: string, value: string) {
+    if (intakeKeys.has(key)) onIntake({ [key]: value });
+    else onHistory({ [key]: value });
+  }
 
   function routeClerkUpdates(u: Record<string, string>) {
     const intakePatch: Record<string, string> = {};
@@ -242,6 +255,37 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   });
   const wp = useWorkingPicture(patient, toolsKey, dept, subDept, onPatient, wpSignature);
 
+  // ── Differential → problem list bridge ─────────────────────────────────────
+  // The engine's thinking flows straight into the persistent problem list — no
+  // separate tab, no manual "Suggest from assessment". The leading differential
+  // becomes the working problem (its rivals ride along as the differential, the
+  // picture's "do now" as the management); ProblemsTab then layers STG,
+  // screening and treatment sets on top. Idempotent: dedupe by dx.
+  const leadingDx = wp.picture?.differentials?.[0]?.dx?.trim() ?? '';
+  const alreadyCarried =
+    !!leadingDx && (patient.problems ?? []).some(p => p.problem.trim().toLowerCase() === leadingDx.toLowerCase());
+  function carryToProblems() {
+    const pic = wp.picture;
+    if (!pic || !pic.differentials.length) return;
+    const existing = new Set((patient.problems ?? []).map(p => p.problem.trim().toLowerCase()));
+    const lead = pic.differentials[0];
+    if (existing.has(lead.dx.trim().toLowerCase())) return;
+    onPatient({
+      problems: [
+        ...(patient.problems ?? []),
+        {
+          id: uid(),
+          problem: lead.dx,
+          workingDx: lead.dx,
+          differentials: pic.differentials.slice(1).map(d => d.dx),
+          management: Array.isArray(pic.managementNow) ? pic.managementNow : [],
+          status: 'active',
+          icd10: lead.icd10,
+        },
+      ],
+    });
+  }
+
   // ── Complete (collapsed) — background, exam detail, results ────────────────
   const filledStory = clerkFields.filter(f => (f.value ?? '').trim()).length;
   const capturedCount = Object.values(examValues).filter(v => v.trim()).length;
@@ -260,6 +304,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   const [quickBarOpen, setQuickBarOpen] = useState(false);
   const [moreDetailOpen, setMoreDetailOpen] = useState(false);
+  const [moreHistoryOpen, setMoreHistoryOpen] = useState(false);
+  const [aiInterviewOpen, setAiInterviewOpen] = useState(false);
   const [drawer, setDrawer] = useState<null | 'record' | 'docs'>(null);
 
   // Quick-clerk brain-dump routes a flat {key: value} back to the slice that
@@ -399,6 +445,25 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               generateLabel="Build picture"
             />
 
+            {wp.picture && wp.picture.differentials.length > 0 && (
+              <button
+                type="button"
+                onClick={carryToProblems}
+                disabled={alreadyCarried}
+                className={`w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-md border text-sm font-medium transition-colors focus:outline-none focus-visible:shadow-focus ${
+                  alreadyCarried
+                    ? 'border-line bg-surface-alt text-ink-mute cursor-default'
+                    : 'border-brand-200 bg-brand-50 text-brand-800 hover:bg-brand-100'
+                }`}
+              >
+                {alreadyCarried ? (
+                  <><Check className="w-4 h-4" aria-hidden /> On the problem list</>
+                ) : (
+                  <><ListChecks className="w-4 h-4" aria-hidden /> Carry to problem list</>
+                )}
+              </button>
+            )}
+
             {wp.picture && (
               // History-kind discriminators only — the "ask the patient" taps.
               // The exam-kind ones are captured as values in the Examine stage
@@ -468,15 +533,10 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                 onToggle={() => toggle('story')}
               >
                 <div className="space-y-4 pt-3">
-                  <AssistPanel
-                    toolsKey={toolsKey}
-                    dept={dept}
-                    subDept={subDept}
-                    section="Clerking"
-                    fields={clerkFields}
-                    context={patientContext(patient, dept, subDept)}
-                    onUpdates={u => routeClerkUpdates(u as Record<string, string>)}
-                  />
+                  {/* Value-first essentials — type the HPI, the differential
+                      sharpens as you go. No 16-question interview by default. */}
+                  <DetailsList fields={essentialHistoryFields} onEdit={editField} />
+
                   {matchedBlocks.length > 0 && (
                     <div className="space-y-3">
                       <SectionHead>Smart Blocks — triggered by this record</SectionHead>
@@ -490,6 +550,49 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                       ))}
                     </div>
                   )}
+
+                  {/* More — admin, ROS, social/family, HIV — there if wanted. */}
+                  <div className="rounded-xl border border-line">
+                    <button
+                      type="button"
+                      onClick={() => setMoreHistoryOpen(o => !o)}
+                      aria-expanded={moreHistoryOpen}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
+                    >
+                      <span className="text-xs font-medium text-ink-soft">More history — background, ROS, social, HIV, admin</span>
+                      <ChevronDown className={`w-4 h-4 text-ink-mute transition-transform ${moreHistoryOpen ? 'rotate-180' : ''}`} aria-hidden />
+                    </button>
+                    {moreHistoryOpen && (
+                      <div className="px-3 pb-3 pt-0.5 border-t border-line/70">
+                        <DetailsList fields={moreHistoryFields} onEdit={editField} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Optional accelerator: let the AI interview instead of typing. */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setAiInterviewOpen(o => !o)}
+                      className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
+                    >
+                      <ChevronDown className={`w-3 h-3 transition-transform ${aiInterviewOpen ? 'rotate-180' : ''}`} aria-hidden />
+                      or let the AI interview the patient
+                    </button>
+                    {aiInterviewOpen && (
+                      <div className="mt-2.5">
+                        <AssistPanel
+                          toolsKey={toolsKey}
+                          dept={dept}
+                          subDept={subDept}
+                          section="Clerking"
+                          fields={clerkFields}
+                          context={patientContext(patient, dept, subDept)}
+                          onUpdates={u => routeClerkUpdates(u as Record<string, string>)}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </StageCard>
 
