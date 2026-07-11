@@ -2,37 +2,43 @@
 
 ## ▶ ACTIVE PRIORITIES for the autonomous UI loop (read this FIRST each tick)
 
-The user rates the UI **7.5/10** (up from 4) and wants it pushed toward **10**,
-in a 5-hourly autonomous loop. M-UI/2 (premium redesign + tap-driven cockpit) is
-SHIPPED. Verify EVERY UI change with screenshots (`apps/web/scripts/shots.mjs`,
-`apps/web/scripts/drive-cockpit.mjs`) before committing — screenshots are the
-proof. Work in committed increments; push to `claude/ai-medical-history-app-1lh4wv`.
+The user rates the UI **7.5/10** (up from 4) and wants it pushed toward **10**.
+M-UI/2 (premium redesign + tap-driven cockpit) and **M-UI/3** (investigations
+visual learning aid + ABG map + confirm-flow motion + polish) are SHIPPED. Verify
+EVERY UI change — screenshots are the proof, and a `vite.createServer` +
+playwright single-process capture is the reliable path in this sandbox (shell
+job-control kills backgrounded servers). Work in committed increments; push to
+`claude/ai-medical-history-app-1lh4wv`.
 
-1. **Investigations cluster + visual learning aid (the user's explicit next ask).**
-   Build a tool that VISUALISES what each investigation means — a teaching
-   visual, not just a value: e.g. ABG/acid-base on a map (band chart with
-   compensation zones), anion-gap / electrolytes graphically, a per-analyte
-   trend sparkline with the reference band shaded + the delta called out,
-   FBC/differential visualised, and a "what this means + why it moves the
-   differential" learning panel (teach-while-you-work — consultant reasoning on
-   every visual). Cluster Results so related tests group cleanly (renal / LFTs /
-   FBC / ABG / cardiac / sepsis) with interpretation inline. Reuse
-   `lib/investigations.ts` (PANELS/panelsFor/trendAlerts), `ResultsCapture.tsx`,
-   and the confidence engine's results→differential loop. Charts = self-contained
-   SVG/canvas (no new external deps unless already installed), theme-aware
-   (light+dark), mobile-friendly. Increments: interpretation model → visual
-   components → integrate into Results + the cockpit Complete zone → screenshot gate.
-2. **UI polish toward 10/10** (highest-impact first, before/after into `eval/m-ui2/`):
-   cockpit Confirm-stream grouping by differential + subtle motion on confidence
-   shift + a "picture is thinking" state during the ~3-5s re-fire; designed
-   empty/loading/error states (skeletons not spinners); mobile cockpit ergonomics
-   (thumb reach, sticky leading-diagnosis header on scroll); dark-mode refinements
-   (e.g. department icon tiles); any residual congestion / inconsistent spacing.
+1. ✅ **Investigations cluster + visual learning aid — SHIPPED** (M-UI/2 e47f756:
+   sparklines + shaded reference bands + teach-while-you-work per analyte,
+   clustered by system; M-UI/3 2af6f78: the **acid–base / ABG visual map** —
+   a deterministic interpreter + reference-banded SVG gauges + 5-step teaching,
+   `lib/acidBase.ts` + `AcidBaseMap.tsx`). Reused `lib/investigations.ts`,
+   `ResultsCapture.tsx`. Verified: 10 classic gases + light/dark screenshots.
+2. **UI polish toward 10/10** — PARTIALLY DONE (M-UI/3): confidence-shift delta
+   chip + motion, "picture is thinking" refresh state, dark-mode department tiles,
+   discrepancy-banner icons all shipped. *Remaining:* designed empty/error states
+   sweep; any residual congestion / inconsistent spacing; a genuine
+   confirm-stream grouping if a live re-fire flow is wired. (Mobile sticky
+   leading-dx header is already covered by the `PictureSheet` bottom bar.)
 3. **The continuum** (once the UI is genuinely strong): home → pre-visit summary
    pre-fills Clerk → discharge → follow-up → returning patient folds back in.
 
 ## Milestone drops (the master-plan spine — newest first)
 
+- **M-UI/3 — polish toward 10/10 — ✅ SHIPPED** (2026-07-11). Three committed
+  increments on top of M-UI/2. **(A)** the Confirm flow feels alive — a signed
+  confidence-delta chip springs in on each result-driven shift + a "re-reading…"
+  refresh state that dims (not wipes) the picture. **(B)** the headline: the
+  **acid–base / ABG visual learning map** — `lib/acidBase.ts` (deterministic:
+  primary driver by the 7.40-side rule, Winter-window compensation in kPa, anion
+  gap + delta–delta, hidden high-gap acidosis surfaced) + `AcidBaseMap.tsx`
+  (theme-aware SVG gauges + 5-step teaching), atop `InvestigationInsights` when a
+  gas is present; chloride added to the U&E panel. **(C)** dark-mode dept tiles +
+  tokenised discrepancy banner. Verified: interpreter against 10 classic gases +
+  light/dark render screenshots. Engine untouched (pure client layer). Proof:
+  `eval/m-ui3/` (`GATE.md`).
 - **M-UI/2 — Premium redesign + diagnosis-first tap-driven cockpit — ✅ SHIPPED**
   (2026-07-11). User rated the UI 4/10 (cheap/plastic/congested); rebuilt in 5
   committed increments to the principle **lowest-level input → highest-level
