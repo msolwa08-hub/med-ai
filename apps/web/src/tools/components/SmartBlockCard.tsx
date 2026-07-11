@@ -55,7 +55,7 @@ function FieldRow({ field, state, onSet }: {
             type="button"
             onClick={() => onSet(field.id, off ? '' : false)}
             className={`min-h-[44px] px-4 rounded-r-xl text-sm border transition-colors ${
-              off ? 'bg-gray-700 border-gray-700 text-white' : 'bg-surface border-line text-ink-mute hover:bg-surface-alt'
+              off ? 'bg-surface-alt border-line text-ink-soft' : 'bg-surface border-line text-ink-mute hover:bg-surface-alt'
             }`}
           >
             No

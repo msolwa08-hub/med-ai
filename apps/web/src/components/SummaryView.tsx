@@ -32,7 +32,7 @@ export function SummaryView({ session, onBack }: Props) {
       <div className="bg-surface rounded-xl border border-line p-5">
         <div className="flex items-center gap-2 mb-3">
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            session.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-yellow-100 text-yellow-700'
+            session.status === 'completed' ? 'bg-positive/10 text-positive' : 'bg-warn/10 text-warn'
           }`}>
             {session.status}
           </span>
@@ -45,7 +45,7 @@ export function SummaryView({ session, onBack }: Props) {
             <h3 className="text-xs font-semibold text-ink-mute uppercase tracking-wider mb-2">Chief Complaints</h3>
             <div className="flex flex-wrap gap-2">
               {session.complaints.map((c, i) => (
-                <span key={i} className="bg-blue-50 text-brand-700 text-xs px-2 py-1 rounded-lg">{c}</span>
+                <span key={i} className="bg-brand-50 text-brand-700 text-xs px-2 py-1 rounded-lg">{c}</span>
               ))}
             </div>
           </div>
@@ -76,7 +76,7 @@ export function SummaryView({ session, onBack }: Props) {
           {session.messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
-                m.role === 'user' ? 'bg-brand-50/60 text-blue-100' : 'bg-surface-alt text-ink-soft'
+                m.role === 'user' ? 'bg-brand-50/60 text-ink' : 'bg-surface-alt text-ink-soft'
               }`}>
                 {m.content.replace(/```json[\s\S]*?```/g, '').trim()}
               </div>

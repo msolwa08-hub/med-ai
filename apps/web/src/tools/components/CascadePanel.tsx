@@ -94,7 +94,7 @@ export function CascadePanel({ cascade, value, isFemale, onChange }: {
         />
       ))}
       {firstUnanswered !== -1 && shown.length < blocks.length && (
-        <p className="text-[11px] text-gray-300">More questions follow as you answer…</p>
+        <p className="text-2xs text-ink-mute">More questions follow as you answer…</p>
       )}
       <EscapeHatch
         value={value.customNote}
