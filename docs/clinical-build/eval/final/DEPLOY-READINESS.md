@@ -104,15 +104,29 @@ _Running at report time — results appended on completion._
 
 ## 7. Deploy
 
-- `render.yaml` → service `medai-beta` (docker, frankfurt, free), builds the root
-  `Dockerfile` → `dist/beta-server.js`, `healthCheckPath /health`,
-  `autoDeploy: true` on `claude/ai-medical-history-app-1lh4wv`. Pushes auto-deploy.
+- **Live URL: https://medai-beta.onrender.com** (service `medai-beta`,
+  confirmed connected + live by the user).
+- `render.yaml` → docker (frankfurt, free), builds the root `Dockerfile` →
+  `dist/beta-server.js`, `healthCheckPath /health`, `autoDeploy: true` on
+  `claude/ai-medical-history-app-1lh4wv` — every push above auto-deployed.
 - **Secrets are `sync:false`** — `ANTHROPIC_API_KEY` and `BETA_TOOLS_KEYS` (plus
   `BETA_ACCESS_KEYS`/`BETA_DOCTOR_KEYS`) must be set in the Render dashboard, or
   `/tools` calls 500 with no key. `DATABASE_URL` optional (blank = memory-only,
   nothing breaks). Marketplace stays unmounted without JWT+ENCRYPTION_KEY.
-- Live-verify step (pending the service URL): poll `/health`, one live `/tools`
-  smoke on the deployed origin.
+- **In-sandbox live verification was NOT possible**: this build session's egress
+  proxy denies `*.onrender.com` by network policy (CONNECT → 403 at the gateway;
+  confirmed via the proxy status endpoint — a policy denial, not an app failure).
+  What stands in for it: the exact artifact Render runs (`dist/beta-server.js`
+  from the same Dockerfile CMD) passed the full local smoke in §4, and Render's
+  own `/health` check gates the deploy green before it goes live.
+- **User self-verify (60 seconds, from any phone/browser):**
+  1. Open https://medai-beta.onrender.com/health → expect `{"status":"ok",...}`
+     (free tier may cold-start ~30–60 s first).
+  2. Open https://medai-beta.onrender.com/tools → enter your intern tools key →
+     the department selector should render.
+  3. Pick a department, tap a presenting-complaint chip, and generate a working
+     picture → a weighted differential with For/Against should appear. That one
+     call proves the dashboard `ANTHROPIC_API_KEY` is wired.
 
 ## 8. Known limitations (honest)
 
