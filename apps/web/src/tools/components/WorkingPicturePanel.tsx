@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { Sparkles, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, ListChecks, ShieldAlert, Ban, CircleDot } from 'lucide-react';
+import { Sparkles, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, ListChecks, ShieldAlert, Ban, CircleDot, Check, X } from 'lucide-react';
 import type { WorkingPicture, WeightedDifferential } from '../toolsApi';
 import { WhyButton } from './WhyButton';
 import { Spinner, Card } from './ui';
@@ -89,9 +89,30 @@ function DifferentialCard({ d, reduce, hero }: { d: WeightedDifferential; reduce
         )}
 
         <div className="flex items-start gap-2">
-          <p className={`text-ink-soft leading-snug flex-1 ${hero ? 'text-sm' : 'text-sm'}`}>{d.why}</p>
-          {d.why && <WhyButton why={`${d.dx}\n\nFor: ${d.supporting.join('; ') || '—'}\nAgainst: ${d.against.join('; ') || '—'}\n\n${d.why}`} />}
+          <p className="text-sm text-ink-soft leading-snug flex-1">{d.why}</p>
+          {d.why && <WhyButton why={d.why} />}
         </div>
+
+        {(d.supporting.length > 0 || d.against.length > 0) && (
+          <div className="space-y-1.5 rounded-lg bg-surface-alt/60 border border-line px-3 py-2">
+            {d.supporting.length > 0 && (
+              <div className="flex items-start gap-2">
+                <span className="shrink-0 inline-flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-positive">
+                  <Check className="w-3 h-3" aria-hidden /> For
+                </span>
+                <p className="text-xs text-ink-soft leading-snug flex-1">{d.supporting.join(' · ')}</p>
+              </div>
+            )}
+            {d.against.length > 0 && (
+              <div className="flex items-start gap-2">
+                <span className="shrink-0 inline-flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-warn">
+                  <X className="w-3 h-3" aria-hidden /> Against
+                </span>
+                <p className="text-xs text-ink-soft leading-snug flex-1">{d.against.join(' · ')}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {d.discriminators.length > 0 && (
           <div className="space-y-1.5 pt-1">

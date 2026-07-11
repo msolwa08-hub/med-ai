@@ -418,10 +418,10 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
           {completeOpen && (
             <div className="px-4 sm:px-5 pb-5 pt-1 border-t border-line/70 space-y-3">
-              {/* Story — background, riding smart blocks along */}
+              {/* History — background, riding smart blocks along */}
               <StageCard
                 index={1}
-                title="Story"
+                title="History"
                 icon={BookOpenText}
                 summary={storySummary}
                 done={storyDone}
