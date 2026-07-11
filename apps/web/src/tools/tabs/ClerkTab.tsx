@@ -25,8 +25,9 @@ import { SlideOver } from '../components/SlideOver';
 import { QuickBar } from '../components/QuickBar';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { QuickDocs } from '../components/QuickDocs';
-import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check, AlertTriangle, Info, ListChecks } from 'lucide-react';
+import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check, AlertTriangle, Info, ListChecks, Sparkles } from 'lucide-react';
 import { uid } from '../lib/patient';
+import { demoPatientFor, hasDemo } from '../lib/demoPatients';
 import { complaintIcon } from '../lib/icons';
 
 // ─── BEDSIDE TAB — the cockpit ───────────────────────────────────────────────
@@ -286,6 +287,16 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     });
   }
 
+  // ── "See it in action" — seed a worked example so a newcomer watches the
+  //    whole loop build itself. Only offered on a truly empty patient. ─────────
+  const patientIsEmpty =
+    !cc && !patient.history.hpi.trim() && (patient.problems?.length ?? 0) === 0 && !patient.assessment.vitals.trim();
+  function loadExample() {
+    const demo = demoPatientFor(dept);
+    if (!demo) return;
+    onPatient({ intake: demo.intake, history: demo.history, assessment: demo.assessment, practice: true });
+  }
+
   // ── Complete (collapsed) — background, exam detail, results ────────────────
   const filledStory = clerkFields.filter(f => (f.value ?? '').trim()).length;
   const capturedCount = Object.values(examValues).filter(v => v.trim()).length;
@@ -432,6 +443,18 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               </div>
             )}
           </div>
+
+          {/* First-run: seed a worked example so the loop demonstrates itself. */}
+          {patientIsEmpty && hasDemo(dept) && (
+            <button
+              type="button"
+              onClick={loadExample}
+              className="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 text-sm font-medium text-brand-800 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:shadow-focus"
+            >
+              <Sparkles className="w-4 h-4" aria-hidden />
+              New here? See it in action — load an example patient
+            </button>
+          )}
         </Card>
 
         {/* ── CONFIRM — the hero: leading dx + the tap stream ─────────────────── */}

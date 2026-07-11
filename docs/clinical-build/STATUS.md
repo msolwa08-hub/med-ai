@@ -29,6 +29,21 @@ job-control kills backgrounded servers). Work in committed increments; push to
 
 ## Milestone drops (the master-plan spine — newest first)
 
+- **M-UI/8 — a premium first impression — ✅ SHIPPED** (2026-07-11). The first 5
+  seconds, three parts. **A** (`30ee14a`): warmed the cold `AccessKeyGate` (a
+  product story — live differential / focused exam / the note falls out — before
+  the key box) and unified the `DeptSelector`/`SubDeptSelector` (both on
+  `bg-canvas`, matched tiles, staggered fade-up). **B** (`9fe178d`): the START
+  moment leads — the Presenting-complaint card is now first (the Full record /
+  Documents utility row moved below the hero), warmer first-run copy. **C**: a
+  "See it in action — load an example patient" affordance on a fresh empty
+  patient (`lib/demoPatients.ts` — one worked presentation per department,
+  presentation data only, no doses) that seeds the record and lets the live
+  picture build itself, so a newcomer instantly watches the whole loop (e.g. med
+  chest-pain → ACS 75% must-exclude + For/Against + discriminating ECG/troponin).
+  Fixed the Practice dead-label bug (now "Practice"/"Practice on"). Frontend
+  only → loop gate 99.6 stands. Playwright-proven; before/after (light+dark,
+  desktop+phone) in `eval/m-ui8/`.
 - **M-UI/7 — friction-free, differential-driven clerking — ✅ SHIPPED**
   (2026-07-11). User rated clerking 3/10 UI, 2/10 practicality; four principles:
   minimal barrier to entry, engine thinks differentials from the first answers,

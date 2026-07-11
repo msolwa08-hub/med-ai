@@ -133,7 +133,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{activePatient.practice ? 'Practice' : 'Practice'}</span>
+            <span className="hidden sm:inline">{activePatient.practice ? 'Practice on' : 'Practice'}</span>
           </button>
         )}
         <button
