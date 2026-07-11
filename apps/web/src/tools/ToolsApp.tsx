@@ -202,11 +202,11 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
             ))}
           </div>
 
-          {/* Tab content — the Bedside cockpit runs wide (input + live picture
-              side by side); the secondary tabs keep the reading column. */}
+          {/* Tab content — every tab is a single centred reading column
+              (the Bedside cockpit is diagnosis-first: complaint → live picture → record). */}
           <div className="flex-1 overflow-y-auto px-5 py-8">
             {activePatient ? (
-              <div className={`${currentTab === 'clerk' ? 'max-w-6xl' : 'max-w-3xl'} mx-auto`}>
+              <div className="max-w-3xl mx-auto">
                 {currentTab === 'clerk' && (
                   <ClerkTab
                     key={activePatient.id}

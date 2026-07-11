@@ -267,7 +267,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   return (
     <>
-      <div className="max-w-3xl mx-auto space-y-3 pb-20">
+      <div className="max-w-3xl mx-auto space-y-3 pb-16">
         {utilityRow}
 
         {discrepancies.length > 0 && (
