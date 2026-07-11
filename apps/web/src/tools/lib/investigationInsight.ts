@@ -71,6 +71,19 @@ const KNOWLEDGE: Record<string, Teach> = {
       };
     return null;
   },
+  cl: s => {
+    if (s === 'high' || s === 'critical-high')
+      return {
+        meaning: 'Hyperchloraemia — high serum chloride.',
+        why: 'Read it with the bicarbonate and the anion gap: a high Cl⁻ with a low HCO₃⁻ and a NORMAL anion gap is a hyperchloraemic (normal-gap) metabolic acidosis — think GI bicarb loss (diarrhoea), renal tubular acidosis, or large-volume 0.9% saline. The acid–base map below works the gap for you.',
+      };
+    if (s === 'low' || s === 'critical-low')
+      return {
+        meaning: 'Hypochloraemia — low serum chloride.',
+        why: 'Usually tracks with vomiting/NG losses or diuretics — the classic partner of a hypokalaemic, hypochloraemic metabolic alkalosis. Correlate with the bicarbonate and the volume status.',
+      };
+    return null;
+  },
   creat: s => {
     if (s === 'high' || s === 'critical-high')
       return {

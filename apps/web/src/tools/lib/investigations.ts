@@ -44,6 +44,7 @@ export const PANELS: Panel[] = [
     analytes: [
       { key: 'na', label: 'Na', unit: 'mmol/L', low: 135, high: 145 },
       { key: 'k', label: 'K', unit: 'mmol/L', low: 3.5, high: 5.1 },
+      { key: 'cl', label: 'Cl', unit: 'mmol/L', low: 98, high: 107 },
       { key: 'urea', label: 'Urea', unit: 'mmol/L', low: 2.6, high: 7.0 },
       { key: 'creat', label: 'Creat', unit: 'µmol/L', low: 60, high: 110 },
       { key: 'egfr', label: 'eGFR', unit: 'mL/min', low: 60 },

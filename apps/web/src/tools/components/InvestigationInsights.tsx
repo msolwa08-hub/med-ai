@@ -3,8 +3,10 @@ import { TrendingUp, TrendingDown, Minus, ChevronDown, FlaskConical } from 'luci
 import type { LucideIcon } from 'lucide-react';
 import { PANELS, ALL_ANALYTES, type AnalyteTrend } from '../lib/investigations';
 import { insightFor, statusTone } from '../lib/investigationInsight';
+import { interpretAcidBase, acidBaseFromTrends } from '../lib/acidBase';
 import { panelIcon } from '../lib/icons';
 import { AnalyteSparkline } from './AnalyteSparkline';
+import { AcidBaseMap } from './AcidBaseMap';
 import { SectionHead } from './ui';
 
 // ─── INVESTIGATION INSIGHTS — the clustered visual learning aid ───────────────
@@ -106,6 +108,12 @@ function InsightRow({ trend }: { trend: AnalyteTrend }) {
 export function InvestigationInsights({ trends }: { trends: AnalyteTrend[] }) {
   if (trends.length === 0) return null;
 
+  // The acid–base map — the headline synthesis when a gas has been entered.
+  // Built from the latest value of each relevant analyte across the trends.
+  const latestByKey: Record<string, number> = {};
+  for (const t of trends) latestByKey[t.key] = t.latest.value;
+  const acidBase = interpretAcidBase(acidBaseFromTrends(latestByKey));
+
   // Cluster by owning panel, in PANELS order, so related tests read together.
   const groups: { id: string; label: string; Icon: LucideIcon; rows: AnalyteTrend[] }[] = [];
   for (const p of PANELS) {
@@ -119,6 +127,7 @@ export function InvestigationInsights({ trends }: { trends: AnalyteTrend[] }) {
   return (
     <div className="space-y-4">
       <SectionHead>Results — what they mean</SectionHead>
+      {acidBase.available && <AcidBaseMap reading={acidBase} />}
       {groups.map(g => (
         <div key={g.id} className="space-y-2">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
