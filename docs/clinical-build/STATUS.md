@@ -10,12 +10,14 @@ playwright single-process capture is the reliable path in this sandbox (shell
 job-control kills backgrounded servers). Work in committed increments; push to
 `claude/ai-medical-history-app-1lh4wv`.
 
-1. ✅ **Investigations cluster + visual learning aid — SHIPPED** (M-UI/2 e47f756:
-   sparklines + shaded reference bands + teach-while-you-work per analyte,
-   clustered by system; M-UI/3 2af6f78: the **acid–base / ABG visual map** —
-   a deterministic interpreter + reference-banded SVG gauges + 5-step teaching,
-   `lib/acidBase.ts` + `AcidBaseMap.tsx`). Reused `lib/investigations.ts`,
-   `ResultsCapture.tsx`. Verified: 10 classic gases + light/dark screenshots.
+1. ✅ **Investigations visual learning aid — SHIPPED, then PIVOTED (M-UI/5)** —
+   the ABG/anaemia gauge maps + per-analyte sparklines were superseded by a
+   single **data-driven organ-system schematic** (`lib/systemsMap.ts` +
+   `SystemsMap.tsx`, wired into `ResultsCapture.tsx`): abnormal analytes + the
+   weighted differential light up organ-system nodes with active relationship
+   edges, "see what's wrong with the body at a glance" beside the interpretation.
+   Reuses `lib/investigations.ts` (`analyteTrends`/`trendAlerts`). Deterministic
+   client layer — engine untouched.
 2. **UI polish toward 10/10** — PARTIALLY DONE (M-UI/3): confidence-shift delta
    chip + motion, "picture is thinking" refresh state, dark-mode department tiles,
    discrepancy-banner icons all shipped. *Remaining:* designed empty/error states
@@ -27,6 +29,36 @@ job-control kills backgrounded servers). Work in committed increments; push to
 
 ## Milestone drops (the master-plan spine — newest first)
 
+- **M-FINAL/R — end-to-end certify + deploy — ▶ IN PROGRESS** (2026-07-11).
+  Finishing the whole build into a deployable product. **R0 shipped** (`8c0c8fd`):
+  the ward-round-delta engine was returning empty core fields — two compounding
+  causes fixed and verified live on a severe pre-eclampsia → HELLP trajectory
+  (all six fields + screening + safety populate; the exam read flags the
+  trajectory discordance and MgSO4-in-oliguria toxicity): (1) brittle
+  `content[0]` extraction that dropped the JSON whenever the model emitted a
+  leading non-text block — replaced with all-text-block concatenation at every
+  live-path Anthropic JSON call-site (ward-round, image-analysis, clinical-forms,
+  clinical-package, eml, beta-engine ×2), matching the confidence-engine pattern;
+  (2) `max_tokens: 1800` truncating the six-field round (measured 2938 tokens) —
+  bumped to 4000 (image-analysis 1500→2200). Also: the `/tools/ward-round-delta`
+  route was dropping `history`/`generalExam`/`focusedExam` though the client
+  sends them, so the exam-synthesis "expected vs actual" read ran blind — now
+  forwarded. Certification underway: typecheck/lint/audit/build all green; the
+  full 9-department loop gate (40 scenarios) re-running as confirmation (R0 does
+  not touch the working-picture engine the loop scores); then eval + stress +
+  deploy-readiness report. Deploy: `render.yaml` auto-deploys this branch on push
+  (`medai-beta`, `/health`, secrets `sync:false` set in the Render dashboard).
+- **M-UI/5 — organ-system schematic (pivot) — ✅ SHIPPED** (2026-07-11).
+  Superseded the ABG/anaemia gauge maps + per-analyte sparklines (`acidBase.ts`,
+  `AnaemiaMap.tsx`, `AnalyteSparkline.tsx`, `InvestigationInsights.tsx` removed)
+  with a single **data-driven organ-system schematic** — `lib/systemsMap.ts`
+  (deterministic: analytes + weighted differential → lit systems, active edges
+  when both endpoints fire, dx rings) + `SystemsMap.tsx` (theme-aware SVG),
+  wired into `ResultsCapture.tsx`. "See what's wrong with the body at a glance"
+  beside the interpretation. Also this drop: **For/Against factors** on every
+  differential (+ Story→History rename) and the **progress-log day-by-day
+  timeline** surfaced in RoundTab with Copy-all (`patient.progressLog` was
+  written but never shown). Pure client layer — loop score carries over.
 - **M-UI/3 — polish toward 10/10 — ✅ SHIPPED** (2026-07-11). Three committed
   increments on top of M-UI/2. **(A)** the Confirm flow feels alive — a signed
   confidence-delta chip springs in on each result-driven shift + a "re-reading…"
