@@ -1,19 +1,19 @@
 import type { DeptId } from './departments';
 
-// ─── Exam checklists ─────────────────────────────────────────────────────────
-// Proactive, tappable examination checklists: a universal vitals block, a
-// per-department block, and presentation-adaptive additions triggered by
-// regex over the intake+history text ("chest pain" → "Auscultated lung
-// fields?", ECG done, BP both arms). Each item carries a teaching "why".
-// Checked state is persisted per patient; checked items serialize into the
-// examination text alongside anything the intern types.
+// ─── Exam targets (value-capture) ────────────────────────────────────────────
+// The pertinent things to look for: a universal vitals block, a per-department
+// survey, and presentation-adaptive additions. These are VALUE targets — the
+// intern types the reading/finding (or taps NAD); nothing is "required" and
+// nothing is a "did you do it" tick. Each item carries a teaching "why".
+// Captured values serialize into the vitals/examination text.
+// (The differential-driven focused list — the engine's kind:'exam'
+// discriminating features — is layered on top of this at the ClerkTab call
+// site; see M-UI/7.)
 
 export interface ChecklistItem {
   id: string;
   label: string;
   why: string;
-  /** Mandatory items render amber until checked. */
-  mandatory?: boolean;
 }
 
 export interface ChecklistSection {
@@ -22,8 +22,12 @@ export interface ChecklistSection {
   items: ChecklistItem[];
 }
 
-function item(id: string, label: string, why: string, mandatory?: boolean): ChecklistItem {
-  return { id, label, why, mandatory };
+// The 4th arg (historically `mandatory`) is accepted for call-site
+// compatibility but deliberately IGNORED — nothing in the exam is "required"
+// any more (M-UI/7). A value existing is the only "done"; the exam is a
+// value-capture aid, never a demand.
+function item(id: string, label: string, why: string, _mandatory?: boolean): ChecklistItem {
+  return { id, label, why };
 }
 
 // ── Universal vitals ─────────────────────────────────────────────────────────

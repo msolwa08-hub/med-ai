@@ -511,15 +511,6 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                       </div>
                     </div>
                   )}
-                  <AssistPanel
-                    toolsKey={toolsKey}
-                    dept={dept}
-                    subDept={subDept}
-                    section="Examination"
-                    fields={examFields}
-                    context={patientContext(patient, dept, subDept)}
-                    onUpdates={u => onAssessment(u as Record<string, string>)}
-                  />
                 </div>
               </StageCard>
 

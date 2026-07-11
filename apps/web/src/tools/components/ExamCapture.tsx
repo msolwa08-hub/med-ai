@@ -71,20 +71,17 @@ export function ExamCapture({ sections, values, customNote, onValues, onNote, hi
             {vitalsSection.items.map(item => {
               const meta = VITAL_META[item.id] ?? { label: findingStem(item.label), placeholder: '' };
               const v = values[item.id] ?? '';
-              const pending = item.mandatory && !v.trim();
               return (
                 <label
                   key={item.id}
                   className={`block rounded-xl border px-3 py-2 transition-colors ${
                     v.trim()
                       ? 'border-brand-300 bg-brand-50/60'
-                      : pending
-                        ? 'border-warn/50 bg-warn/[0.06]'
-                        : 'border-line bg-surface-alt/50'
+                      : 'border-line bg-surface-alt/50'
                   }`}
                 >
                   <span className="flex items-center justify-between gap-1">
-                    <span className={`text-xs font-semibold ${v.trim() ? 'text-brand-800' : pending ? 'text-warn' : 'text-ink-soft'}`}>
+                    <span className={`text-xs font-semibold ${v.trim() ? 'text-brand-800' : 'text-ink-soft'}`}>
                       {meta.label}
                     </span>
                     <WhyButton why={item.why} />
@@ -113,7 +110,6 @@ export function ExamCapture({ sections, values, customNote, onValues, onNote, hi
               const v = values[item.id] ?? '';
               const isNad = v === 'NAD';
               const hasFinding = v.trim().length > 0 && !isNad;
-              const pending = item.mandatory && !v.trim();
               return (
                 <div
                   key={item.id}
@@ -122,17 +118,12 @@ export function ExamCapture({ sections, values, customNote, onValues, onNote, hi
                       ? 'border-warn/40 bg-warn/[0.05]'
                       : isNad
                         ? 'border-brand-200 bg-brand-50/50'
-                        : pending
-                          ? 'border-warn/40 bg-warn/[0.06]'
-                          : 'border-line bg-surface'
+                        : 'border-line bg-surface'
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <span className={`text-sm leading-snug flex-1 min-w-0 ${v.trim() ? 'text-ink' : 'text-ink-soft'}`}>
                       {findingStem(item.label)}
-                      {pending && (
-                        <span className="ml-1.5 text-[10px] uppercase tracking-wide text-warn font-semibold">key</span>
-                      )}
                     </span>
                     <button
                       type="button"
