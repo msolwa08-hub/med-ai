@@ -9,7 +9,7 @@ import {
 import { SectionHead } from './ui';
 import { WhyButton } from './WhyButton';
 import { EscapeHatch } from './EscapeHatch';
-import { InvestigationInsights } from './InvestigationInsights';
+import { SystemsMap } from './SystemsMap';
 import { panelIcon } from '../lib/icons';
 
 // ─── RESULTS CAPTURE — the loop's second input ───────────────────────────────
@@ -75,9 +75,9 @@ export function ResultsCapture({ patient, dept, onPatient }: {
         </div>
       )}
 
-      {/* Results, visualised — the learning aid: sparkline vs reference band,
-          status, and a teach-while-you-work reading per analyte, clustered by system. */}
-      <InvestigationInsights trends={trends} />
+      {/* See what's wrong with the body — the organ-system schematic lights up
+          from the entered results + the working diagnosis, with the interpretation beside it. */}
+      <SystemsMap trends={trends} picture={patient.workingPicture} />
 
       {/* Capture — pick a panel, enter a dated set of values */}
       <div>
