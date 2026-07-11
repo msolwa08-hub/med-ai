@@ -158,6 +158,29 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   const checklist = patient.examChecklist ?? { checked: {}, customNote: '' };
   const examValues = checklist.values ?? {};
   const vitalItems = sections.find(s => s.id === 'vitals')?.items ?? [];
+  const surveySections = sections.filter(s => s.id !== 'vitals');
+
+  // The FOCUSED exam is the engine's differential-driven kind:'exam' features —
+  // the ≤8 signs that actually discriminate the leading diagnoses. Mapped to
+  // value-capture rows (type the finding / tap NAD), keyed by a stable prompt
+  // hash so re-entry replaces the same line. The static department survey is
+  // demoted to the optional disclosure inside ExamCapture.
+  const examFocusItems = (patient.workingPicture?.discriminatingFeatures ?? [])
+    .filter(f => f.kind === 'exam')
+    .map(f => ({
+      id: hashFeature(f.prompt),
+      label: f.prompt,
+      why: `Discriminates ${f.dx} — ${f.ifPresent === 'up' ? 'raises' : 'lowers'} it if present.`,
+    }));
+
+  // Everything the intern might type a finding into — vitals + focus + survey —
+  // so serialization covers whichever block the value came from.
+  const allFindingItems = [...examFocusItems, ...surveySections.flatMap(s => s.items)];
+  // De-dupe by normalized stem (a focus feature can restate a survey item) —
+  // keep the first (focus wins), so a finding never serializes twice.
+  const dedupFindingItems = allFindingItems.filter(
+    (it, i) => allFindingItems.findIndex(o => findingStem(o.label).toLowerCase() === findingStem(it.label).toLowerCase()) === i
+  );
 
   function examCaptureChanged(values: Record<string, string>, customNote: string) {
     const vitalsLine = vitalItems
@@ -166,9 +189,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
       .join(', ');
     const nextVitals = upsertSerialized(patient.assessment.vitals, checklist.vitalsLastText, vitalsLine, '\n');
 
-    const findingLines = sections
-      .filter(s => s.id !== 'vitals')
-      .flatMap(s => s.items)
+    const findingLines = dedupFindingItems
       .filter(i => (values[i.id] ?? '').trim())
       .map(i => `${findingStem(i.label)}: ${values[i.id].trim()}`);
     if (customNote.trim()) findingLines.push(customNote.trim());
@@ -379,8 +400,11 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             />
 
             {wp.picture && (
+              // History-kind discriminators only — the "ask the patient" taps.
+              // The exam-kind ones are captured as values in the Examine stage
+              // (ExamCapture focus block), so nothing is asked in two places.
               <ConfirmStream
-                features={wp.picture.discriminatingFeatures ?? []}
+                features={(wp.picture.discriminatingFeatures ?? []).filter(f => f.kind === 'history')}
                 answers={patient.featureAnswers ?? {}}
                 onAnswer={onFeatureAnswer}
               />
@@ -481,7 +505,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               >
                 <div className="space-y-4 pt-3">
                   <ExamCapture
-                    sections={sections}
+                    vitals={vitalItems}
+                    focus={examFocusItems}
+                    survey={surveySections}
                     values={examValues}
                     customNote={checklist.customNote}
                     onValues={values => examCaptureChanged(values, checklist.customNote)}

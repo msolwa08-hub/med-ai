@@ -1,17 +1,18 @@
-import type { ChecklistSection } from '../config/examChecklists';
+import { useState } from 'react';
+import type { ChecklistItem, ChecklistSection } from '../config/examChecklists';
 import { EscapeHatch } from './EscapeHatch';
 import { WhyButton } from './WhyButton';
-import { Check } from 'lucide-react';
+import { Check, ChevronDown, Sparkles } from 'lucide-react';
 
 // ─── Exam capture — values ARE the record ────────────────────────────────────
-// Replaces the tick-checklist: ticking "BP recorded" while typing the value
-// somewhere else was double work that documented ceremony, not findings.
-// Here the value is the capture: vitals are a compact value grid (typing the
-// number IS the record), and every pertinent exam target is a finding row —
-// one tap for NAD, or type the actual finding. "Done" is derived from a value
-// existing; there is no checkbox anywhere. The list stays history-driven: the
-// targeted section is built from the presentation, so history comes first and
-// the exam asks only what this patient's story makes pertinent.
+// The value is the capture. Vitals are a compact value grid (typing the number
+// IS the record); every pertinent exam target is a finding row — tap NAD or type
+// the actual finding. Nothing is required; a value existing is the only "done".
+//
+// The exam is FOCUSED, not exhaustive: the top block is driven by the engine's
+// differential (the ≤8 signs that discriminate the leading diagnoses), so you
+// examine what the story implicates. The full department survey is one tap away
+// but never in the way.
 
 /** Short label + realistic placeholder for the universal vitals grid. */
 export const VITAL_META: Record<string, { label: string; placeholder: string }> = {
@@ -29,8 +30,57 @@ export function findingStem(label: string): string {
   return label.replace(/\s*\([^)]*\)/g, '').replace(/\?\s*$/, '').trim();
 }
 
-export function ExamCapture({ sections, values, customNote, onValues, onNote, historyEmpty }: {
-  sections: ChecklistSection[];
+function FindingRow({ item, value, onSet }: {
+  item: ChecklistItem;
+  value: string;
+  onSet: (v: string) => void;
+}) {
+  const isNad = value === 'NAD';
+  const hasFinding = value.trim().length > 0 && !isNad;
+  return (
+    <div
+      className={`rounded-xl border px-3 py-2 transition-colors ${
+        hasFinding ? 'border-warn/40 bg-warn/[0.05]' : isNad ? 'border-brand-200 bg-brand-50/50' : 'border-line bg-surface'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span className={`text-sm leading-snug flex-1 min-w-0 ${value.trim() ? 'text-ink' : 'text-ink-soft'}`}>
+          {findingStem(item.label)}
+        </span>
+        <button
+          type="button"
+          onClick={() => onSet(isNad ? '' : 'NAD')}
+          aria-pressed={isNad}
+          className={`inline-flex items-center gap-1 shrink-0 min-h-[36px] px-2.5 rounded-pill text-xs font-medium border transition-colors ${
+            isNad
+              ? 'bg-brand-600 border-brand-600 text-white'
+              : 'bg-surface border-line-strong text-ink-soft hover:border-brand-400 hover:text-brand-700'
+          }`}
+        >
+          {isNad && <Check className="w-3 h-3" aria-hidden />} NAD
+        </button>
+        <span className="shrink-0"><WhyButton why={item.why} /></span>
+      </div>
+      {!isNad && (
+        <input
+          type="text"
+          value={isNad ? '' : value}
+          placeholder="finding…"
+          onChange={e => onSet(e.target.value)}
+          className="mt-1 w-full bg-transparent text-sm text-ink placeholder:text-ink-mute/50 focus:outline-none border-b border-transparent focus:border-brand-300 pb-0.5 transition-colors"
+        />
+      )}
+    </div>
+  );
+}
+
+export function ExamCapture({ vitals, focus, survey, values, customNote, onValues, onNote, historyEmpty }: {
+  /** The always-on universal vitals items (rendered as a value grid). */
+  vitals: ChecklistItem[];
+  /** The differential-driven focused exam (engine kind:'exam' features). */
+  focus: ChecklistItem[];
+  /** The full department survey — optional, one tap away. */
+  survey: ChecklistSection[];
   /** itemId → captured value ('NAD' or the actual finding / vital reading). */
   values: Record<string, string>;
   customNote: string;
@@ -38,10 +88,9 @@ export function ExamCapture({ sections, values, customNote, onValues, onNote, hi
   onNote: (v: string) => void;
   historyEmpty?: boolean;
 }) {
-  const vitalsSection = sections.find(s => s.id === 'vitals');
-  const findingSections = sections.filter(s => s.id !== 'vitals');
+  const [surveyOpen, setSurveyOpen] = useState(false);
   const captured = Object.values(values).filter(v => v.trim()).length;
-
+  const surveyCount = survey.reduce((a, s) => a + s.items.length, 0);
   const set = (id: string, v: string) => onValues({ ...values, [id]: v });
 
   return (
@@ -57,33 +106,23 @@ export function ExamCapture({ sections, values, customNote, onValues, onNote, hi
         </span>
       </div>
 
-      {historyEmpty && (
-        <p className="text-xs text-ink-soft bg-surface-alt border border-line rounded-xl px-3 py-2 leading-relaxed">
-          Take the history first — this list is built from it, so the targeted block below asks only what the story makes pertinent.
-        </p>
-      )}
-
       {/* ── Vitals: a value grid. Typing the number IS the capture. ── */}
-      {vitalsSection && (
+      {vitals.length > 0 && (
         <div>
-          <p className="text-2xs font-semibold text-brand-700/70 uppercase tracking-wider mb-2">{vitalsSection.title}</p>
+          <p className="text-2xs font-semibold text-brand-700/70 uppercase tracking-wider mb-2">Vitals — every patient</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {vitalsSection.items.map(item => {
+            {vitals.map(item => {
               const meta = VITAL_META[item.id] ?? { label: findingStem(item.label), placeholder: '' };
               const v = values[item.id] ?? '';
               return (
                 <label
                   key={item.id}
                   className={`block rounded-xl border px-3 py-2 transition-colors ${
-                    v.trim()
-                      ? 'border-brand-300 bg-brand-50/60'
-                      : 'border-line bg-surface-alt/50'
+                    v.trim() ? 'border-brand-300 bg-brand-50/60' : 'border-line bg-surface-alt/50'
                   }`}
                 >
                   <span className="flex items-center justify-between gap-1">
-                    <span className={`text-xs font-semibold ${v.trim() ? 'text-brand-800' : 'text-ink-soft'}`}>
-                      {meta.label}
-                    </span>
+                    <span className={`text-xs font-semibold ${v.trim() ? 'text-brand-800' : 'text-ink-soft'}`}>{meta.label}</span>
                     <WhyButton why={item.why} />
                   </span>
                   <input
@@ -101,65 +140,56 @@ export function ExamCapture({ sections, values, customNote, onValues, onNote, hi
         </div>
       )}
 
-      {/* ── Pertinent exam targets: one tap = NAD, or type the finding. ── */}
-      {findingSections.map(s => (
-        <div key={s.id}>
-          <p className="text-2xs font-semibold text-brand-700/70 uppercase tracking-wider mb-1.5">{s.title}</p>
+      {/* ── FOCUSED: the exam the differential asks for. ── */}
+      {focus.length > 0 ? (
+        <div>
+          <p className="flex items-center gap-1.5 text-2xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+            <Sparkles className="w-3.5 h-3.5" aria-hidden /> Focused — what discriminates the diagnosis
+          </p>
           <div className="space-y-1.5">
-            {s.items.map(item => {
-              const v = values[item.id] ?? '';
-              const isNad = v === 'NAD';
-              const hasFinding = v.trim().length > 0 && !isNad;
-              return (
-                <div
-                  key={item.id}
-                  className={`rounded-xl border px-3 py-2 transition-colors ${
-                    hasFinding
-                      ? 'border-warn/40 bg-warn/[0.05]'
-                      : isNad
-                        ? 'border-brand-200 bg-brand-50/50'
-                        : 'border-line bg-surface'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm leading-snug flex-1 min-w-0 ${v.trim() ? 'text-ink' : 'text-ink-soft'}`}>
-                      {findingStem(item.label)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => set(item.id, isNad ? '' : 'NAD')}
-                      aria-pressed={isNad}
-                      className={`inline-flex items-center gap-1 shrink-0 min-h-[36px] px-2.5 rounded-pill text-xs font-medium border transition-colors ${
-                        isNad
-                          ? 'bg-brand-600 border-brand-600 text-white'
-                          : 'bg-surface border-line-strong text-ink-soft hover:border-brand-400 hover:text-brand-700'
-                      }`}
-                    >
-                      {isNad && <Check className="w-3 h-3" aria-hidden />} NAD
-                    </button>
-                    <span className="shrink-0"><WhyButton why={item.why} /></span>
-                  </div>
-                  {!isNad && (
-                    <input
-                      type="text"
-                      value={isNad ? '' : v}
-                      placeholder="finding…"
-                      onChange={e => set(item.id, e.target.value)}
-                      className="mt-1 w-full bg-transparent text-sm text-ink placeholder:text-ink-mute/50 focus:outline-none border-b border-transparent focus:border-brand-300 pb-0.5 transition-colors"
-                    />
-                  )}
-                </div>
-              );
-            })}
+            {focus.map(item => (
+              <FindingRow key={item.id} item={item} value={values[item.id] ?? ''} onSet={v => set(item.id, v)} />
+            ))}
           </div>
         </div>
-      ))}
+      ) : (
+        historyEmpty && (
+          <p className="text-xs text-ink-soft bg-surface-alt border border-line rounded-xl px-3 py-2 leading-relaxed">
+            Add the history above — the focused exam appears here, built from the differential, so you examine only what the story implicates.
+          </p>
+        )
+      )}
 
-      <EscapeHatch
-        value={customNote}
-        onChange={onNote}
-        placeholder="Anything else found on examination…"
-      />
+      {/* ── Full survey: everything else, one tap away, never in the way. ── */}
+      {surveyCount > 0 && (
+        <div className="rounded-xl border border-line">
+          <button
+            type="button"
+            onClick={() => setSurveyOpen(o => !o)}
+            aria-expanded={surveyOpen}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
+          >
+            <span className="text-xs font-medium text-ink-soft">Full survey — {surveyCount} more, if you want them</span>
+            <ChevronDown className={`w-4 h-4 text-ink-mute transition-transform ${surveyOpen ? 'rotate-180' : ''}`} aria-hidden />
+          </button>
+          {surveyOpen && (
+            <div className="px-3 pb-3 pt-0.5 space-y-4 border-t border-line/70">
+              {survey.map(s => (
+                <div key={s.id}>
+                  <p className="text-2xs font-semibold text-brand-700/70 uppercase tracking-wider mb-1.5 mt-3">{s.title}</p>
+                  <div className="space-y-1.5">
+                    {s.items.map(item => (
+                      <FindingRow key={item.id} item={item} value={values[item.id] ?? ''} onSet={v => set(item.id, v)} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <EscapeHatch value={customNote} onChange={onNote} placeholder="Anything else found on examination…" />
     </div>
   );
 }
