@@ -1,31 +1,69 @@
 # MedAI — Consultant-Depth Build Campaign
 
-## ▶ ACTIVE PRIORITIES for the autonomous UI loop (read this FIRST each tick)
+## ▶▶ M-GLANCE — THE ACTIVE DIRECTIVE (read this FIRST each tick; supersedes ALL prior UI priorities)
 
-The user rates the UI **7.5/10** (up from 4) and wants it pushed toward **10**.
-M-UI/2 (premium redesign + tap-driven cockpit) and **M-UI/3** (investigations
-visual learning aid + ABG map + confirm-flow motion + polish) are SHIPPED. Verify
-EVERY UI change — screenshots are the proof, and a `vite.createServer` +
-playwright single-process capture is the reliable path in this sandbox (shell
-job-control kills backgrounded servers). Work in committed increments; push to
-`claude/ai-medical-history-app-1lh4wv`.
+**2026-07-12: the user reset the product model in a brainstorm.** Prior tick
+priorities (M-UI/2 polish framing, tap-driven cockpit, continuum) are RETIRED.
+Do not resume them. The user then ordered an autonomous run **starting at the
+scheduled kick-off (a send_later fires ~2h after 2026-07-12 arming)** that
+builds the model below and self-evaluates until it holds. **Before that
+kick-off fires: build NOTHING** — the window is the user's to add corrections.
+After it fires: work in committed increments, self-evaluate each against the
+acceptance criteria, iterate to green.
 
-1. ✅ **Investigations visual learning aid — SHIPPED, then PIVOTED (M-UI/5)** —
-   the ABG/anaemia gauge maps + per-analyte sparklines were superseded by a
-   single **data-driven organ-system schematic** (`lib/systemsMap.ts` +
-   `SystemsMap.tsx`, wired into `ResultsCapture.tsx`): abnormal analytes + the
-   weighted differential light up organ-system nodes with active relationship
-   edges, "see what's wrong with the body at a glance" beside the interpretation.
-   Reuses `lib/investigations.ts` (`analyteTrends`/`trendAlerts`). Deterministic
-   client layer — engine untouched.
-2. **UI polish toward 10/10** — PARTIALLY DONE (M-UI/3): confidence-shift delta
-   chip + motion, "picture is thinking" refresh state, dark-mode department tiles,
-   discrepancy-banner icons all shipped. *Remaining:* designed empty/error states
-   sweep; any residual congestion / inconsistent spacing; a genuine
-   confirm-stream grouping if a live re-fire flow is wired. (Mobile sticky
-   leading-dx header is already covered by the `PictureSheet` bottom bar.)
-3. **The continuum** (once the UI is genuinely strong): home → pre-visit summary
-   pre-fills Clerk → discharge → follow-up → returning patient folds back in.
+### The model — the two-glance encounter (the user's own words, condensed)
+The mainstay is WRITING THE PAPER NOTES. The app is a professional sidekick you
+glance at — never software you operate in front of a patient.
+- **Glance 1 (≤10s, before the encounter):** based on the discipline +
+  complaint, show exactly what history to take, what not to miss, what the exam
+  should focus on — one glanceable briefing, then the phone goes away.
+- **The encounter:** no app. Real medicine. Paper.
+- **Glance 2 (≤60s, after):** ONE chatbox (type/dictate terse fragments —
+  "tachy", "creps L base", "BP 145/92") and/or PHOTOGRAPH the handwritten note.
+  Everything routes itself — the user must NEVER hunt for a field, tick a box,
+  or fill a form. Screen then leads with: compact working picture (differential
+  + must-not-miss) and a **"For the paper notes" block** — investigations +
+  management as terse chart-ready lines to transcribe — plus a quiet, ignorable
+  **"Still to do — suggested"** list.
+- **On-demand documents:** consultant ward-round presentation, discharge
+  summary, referral letter, MSE formulation — one tap, from everything
+  accumulated (including photo-ingested notes).
+
+### Acceptance criteria (self-evaluate every increment against these)
+1. Glance 1 reachable in ≤1 tap from opening a patient; readable in 10s on a
+   390px phone; zero required interaction.
+2. Zero ticks, zero forms, zero field-hunting on the default path. The chatbox
+   (with photo button) is the ONLY input surface on the main path.
+3. Fragments typed into the chatbox land in the right record slots and refresh
+   the picture (playwright-proven: "BP 145/92, tachy, creps L base" → record).
+4. "For the paper notes" block: terse, big-type, chart-transcribable Ix + Mx;
+   doses only STG-anchored and flagged for clinician sign-off if unverifiable.
+5. "Still to do" renders as quiet suggestions — ignorable, never gating.
+6. Docs (presentation / discharge / referral / MSE) each one tap from the
+   record; MSE formulation added for psych.
+7. Content fine-tune: fix the class of over-matching bugs — e.g. the epilepsy
+   smart-block (`smartBlocks.ts` pattern `/…|convuls|…/`) fires because the
+   paeds IMCI danger-sign text writes "convulsions" into every sick-child
+   record → epilepsy workup in a GIT case. Audit ALL regex triggers
+   (smartBlocks, examChecklists conditionals, treatmentSets, adaptive content)
+   for word-boundary/negation/context errors; dept-scope where needed.
+8. Demote (don't necessarily delete) everything else: stages/"Complete the
+   record" forms, ConfirmStream tap-streams, exam grids, DetailsList-first
+   history — allowed to exist off-path only if they add zero navigation burden
+   to the default flow.
+9. Gates every increment: web build + typecheck clean; loop-run ≥90 if the
+   engine/API is touched; playwright drive + screenshots (phone 390px first,
+   light+dark) recorded to `docs/clinical-build/eval/m-glance/`; committed +
+   pushed (auto-deploys).
+10. Self-evaluation record: `docs/clinical-build/eval/m-glance/SELF-EVAL.md` —
+    after each increment, score criteria 1-9 honestly, list gaps, iterate until
+    all green; then final certify + report.
+
+### Standing constraints (unchanged)
+Live key only in gitignored `apps/api/.env` (never commit/print). No free-hand
+drug doses — research→implement→flag for clinician sign-off. Push ONLY to
+`claude/ai-medical-history-app-1lh4wv`. No PRs unless asked. Screenshots are
+the only accepted proof of UI claims.
 
 ## Milestone drops (the master-plan spine — newest first)
 
