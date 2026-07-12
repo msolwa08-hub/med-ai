@@ -162,13 +162,16 @@ function Skeleton() {
 }
 
 export function WorkingPicturePanel({
-  picture, loading, error, onGenerate, generateLabel,
+  picture, loading, error, onGenerate, generateLabel, hideManagement,
 }: {
   picture?: WorkingPicture;
   loading: boolean;
   error?: string;
   onGenerate: () => void;
   generateLabel: string;
+  /** ClerkTab: the "For the paper notes" block owns Ix/Mx there — the hero
+   *  stays compact (differential + must-not-miss + safety only). */
+  hideManagement?: boolean;
 }) {
   const reduce = useReducedMotion();
   const [hero, ...rest] = picture?.differentials ?? [];
@@ -239,7 +242,7 @@ export function WorkingPicturePanel({
         </div>
       )}
 
-      {picture && picture.managementNow.length > 0 && (
+      {picture && !hideManagement && picture.managementNow.length > 0 && (
         <div className="rounded-xl bg-surface border border-line px-4 py-3">
           <p className="flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-mute mb-1.5">
             <ListChecks className="w-3.5 h-3.5" /> Do now — justified by the current picture

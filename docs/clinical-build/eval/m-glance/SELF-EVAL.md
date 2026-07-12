@@ -204,3 +204,34 @@ residual: docs chips appear only on Bedside — Round tab has its own paths).
 
 **Biggest gap → next**: criterion 8 — demote everything else off the
 default path. That is increment (f).
+
+---
+
+## Increment (f) — the demotion pass (2026-07-12)
+
+**What shipped**
+- **Complaint card collapses** post-encounter to one line ("Complaint —
+  chest pain · Briefing · Change"); the chip grid returns only on Change.
+- **Tap stream demoted**: ConfirmStream now lives behind a single collapsed
+  disclosure ("Answer by tapping"); **StillToDo absorbs ALL unanswered
+  discriminating features** (history + exam) as the quiet default surface.
+- **Hero compacted**: `WorkingPicturePanel hideManagement` on the bedside —
+  "For the paper notes" is the single Mx surface (the (c) known gap closed).
+  Results/Round panels unchanged.
+- DocumentsTab also gained the psych MSE entry (parity with the chip row).
+
+**Proof** (committed here, live API, medicine chest-pain end-to-end)
+- `f-default-path-{light,dark}-phone.png` — full-page 390px: the entire
+  default path in one scroll = chatbox → collapsed complaint → differential
+  with confidence + must-not-miss → paper notes (Ix NOW-tagged + Mx + STG
+  note) → quiet still-to-do → one collapsed tap-stream disclosure → one-tap
+  docs chips → collapsed "Complete the record 0/3".
+- Playwright 22/22 incl. STRUCTURAL asserts on the documented-encounter
+  view: **0 visible checkboxes, 0 visible text inputs, exactly 1 textarea
+  (the chatbox)** — zero ticks, zero forms, zero field-hunting, proven not
+  claimed. Build + typecheck clean; frontend-only → psych gate (100/100,
+  this morning) stands; a medicine-subset spot check runs for the final
+  certification below.
+
+**Score movement** — criterion 8: 3→9; criterion 2: 7→9 (the chatbox is
+now provably the only input surface on the default path).

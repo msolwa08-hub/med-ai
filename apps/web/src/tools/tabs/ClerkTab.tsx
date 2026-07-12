@@ -141,6 +141,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   const preEncounter =
     !patient.history.hpi.trim() && !patient.assessment.vitals.trim() && !patient.assessment.examination.trim();
   const [briefingPeek, setBriefingPeek] = useState(false);
+  const [changingComplaint, setChangingComplaint] = useState(false);
+  const [tapStreamOpen, setTapStreamOpen] = useState(false);
   const showBriefing =
     !!activeCascade && briefingAvailable(activeCascade, dept) && (preEncounter || briefingPeek);
 
@@ -417,7 +419,35 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           />
         )}
 
-        {/* ── START — one gesture: tap the complaint ─────────────────────────── */}
+        {/* ── START — one gesture: tap the complaint. Once the encounter is
+            documented the whole card collapses to one line (criterion 8):
+            the default path is chatbox → picture → paper notes, nothing else. */}
+        {!preEncounter && cc && !changingComplaint ? (
+          <div className="flex items-center justify-between gap-3 rounded-card border border-line bg-surface shadow-card px-4 py-3">
+            <p className="min-w-0 text-sm text-ink-soft truncate">
+              <span className="text-2xs font-semibold uppercase tracking-wider text-ink-mute mr-2">Complaint</span>
+              {cc}
+            </p>
+            <div className="shrink-0 flex items-center gap-3">
+              {!!activeCascade && briefingAvailable(activeCascade, dept) && (
+                <button
+                  type="button"
+                  onClick={() => setBriefingPeek(o => !o)}
+                  className="text-xs text-ink-mute hover:text-ink-soft transition-colors"
+                >
+                  {briefingPeek ? 'Hide briefing' : 'Briefing'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setChangingComplaint(true)}
+                className="text-xs font-medium text-brand-700 hover:text-brand-800 transition-colors"
+              >
+                Change
+              </button>
+            </div>
+          </div>
+        ) : (
         <Card elevation="e1" className="p-4 sm:p-5 space-y-3.5">
           <div>
             <h2 className="text-sm font-semibold text-ink">Presenting complaint</h2>
@@ -456,15 +486,14 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             </p>
           )}
 
-          {/* Quiet re-peek once the encounter is documented and the briefing
-              has yielded — still one tap away, never in the way. */}
-          {!!activeCascade && briefingAvailable(activeCascade, dept) && !preEncounter && (
+          {/* When re-picking mid-encounter, offer the way back down. */}
+          {!preEncounter && cc && (
             <button
               type="button"
-              onClick={() => setBriefingPeek(o => !o)}
+              onClick={() => setChangingComplaint(false)}
               className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
             >
-              {briefingPeek ? 'Hide briefing' : 'Show briefing'}
+              Done — collapse
             </button>
           )}
 
@@ -480,6 +509,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             </button>
           )}
         </Card>
+        )}
 
         {/* ── GLANCE 1 — before the encounter: ask / don't miss / exam focus ─── */}
         {showBriefing && activeCascade && (
@@ -512,6 +542,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               error={wp.error}
               onGenerate={wp.generate}
               generateLabel="Build picture"
+              hideManagement
             />
 
             {wp.picture && wp.picture.differentials.length > 0 && (
@@ -536,24 +567,39 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             {/* What gets transcribed onto the chart — Ix + Mx, big type. */}
             {wp.picture && <PaperNotes picture={wp.picture} />}
 
+            {/* Quiet, ignorable: everything a consultant might still ask
+                about — history and exam gaps together. Never gating. */}
             {wp.picture && (
-              // History-kind discriminators only — the "ask the patient" taps.
-              // The exam-kind ones are captured as values in the Examine stage
-              // (ExamCapture focus block), so nothing is asked in two places.
-              <ConfirmStream
-                features={(wp.picture.discriminatingFeatures ?? []).filter(f => f.kind === 'history')}
+              <StillToDo
+                features={wp.picture.discriminatingFeatures ?? []}
                 answers={patient.featureAnswers ?? {}}
-                onAnswer={onFeatureAnswer}
               />
             )}
 
-            {/* Quiet, ignorable: exam gaps a consultant might still ask about.
-                (History gaps are the tap stream above until it demotes.) */}
-            {wp.picture && (
-              <StillToDo
-                features={(wp.picture.discriminatingFeatures ?? []).filter(f => f.kind === 'exam')}
-                answers={patient.featureAnswers ?? {}}
-              />
+            {/* The tap stream, DEMOTED off the default path (criterion 8):
+                available behind one disclosure for those who want to answer
+                the discriminating questions by tapping. */}
+            {wp.picture && (wp.picture.discriminatingFeatures ?? []).some(f => f.kind === 'history') && (
+              <div className="rounded-card border border-line bg-surface shadow-card">
+                <button
+                  type="button"
+                  onClick={() => setTapStreamOpen(o => !o)}
+                  aria-expanded={tapStreamOpen}
+                  className="w-full flex items-center justify-between gap-2 px-4 sm:px-5 py-3 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
+                >
+                  <span className="text-sm font-medium text-ink-soft">Answer by tapping — the discriminating questions</span>
+                  <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform ${tapStreamOpen ? 'rotate-180' : ''}`} aria-hidden />
+                </button>
+                {tapStreamOpen && (
+                  <div className="px-4 sm:px-5 pb-4 pt-1 border-t border-line/70">
+                    <ConfirmStream
+                      features={(wp.picture.discriminatingFeatures ?? []).filter(f => f.kind === 'history')}
+                      answers={patient.featureAnswers ?? {}}
+                      onAnswer={onFeatureAnswer}
+                    />
+                  </div>
+                )}
+              </div>
             )}
 
             {/* One-tap documents — each chip generates straight from the
