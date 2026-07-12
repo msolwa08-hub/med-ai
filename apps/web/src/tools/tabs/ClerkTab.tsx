@@ -23,6 +23,7 @@ import { useWorkingPicture } from '../lib/useWorkingPicture';
 import { StageCard } from '../components/StageCard';
 import { SlideOver } from '../components/SlideOver';
 import { QuickBar } from '../components/QuickBar';
+import { PaperNotes, StillToDo } from '../components/PaperNotes';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { QuickDocs } from '../components/QuickDocs';
 import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check, AlertTriangle, Info, ListChecks, Sparkles } from 'lucide-react';
@@ -478,6 +479,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               </button>
             )}
 
+            {/* What gets transcribed onto the chart — Ix + Mx, big type. */}
+            {wp.picture && <PaperNotes picture={wp.picture} />}
+
             {wp.picture && (
               // History-kind discriminators only — the "ask the patient" taps.
               // The exam-kind ones are captured as values in the Examine stage
@@ -486,6 +490,15 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                 features={(wp.picture.discriminatingFeatures ?? []).filter(f => f.kind === 'history')}
                 answers={patient.featureAnswers ?? {}}
                 onAnswer={onFeatureAnswer}
+              />
+            )}
+
+            {/* Quiet, ignorable: exam gaps a consultant might still ask about.
+                (History gaps are the tap stream above until it demotes.) */}
+            {wp.picture && (
+              <StillToDo
+                features={(wp.picture.discriminatingFeatures ?? []).filter(f => f.kind === 'exam')}
+                answers={patient.featureAnswers ?? {}}
               />
             )}
 

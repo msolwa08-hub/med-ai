@@ -152,9 +152,9 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar — patient list */}
+        {/* Sidebar — patient list (desktop; phones get the chip strip below) */}
         {patients.length > 1 && (
-          <aside className="w-48 border-r border-line overflow-y-auto shrink-0 bg-canvas scrollbar-thin">
+          <aside className="hidden md:block w-48 border-r border-line overflow-y-auto shrink-0 bg-canvas scrollbar-thin">
             <div className="p-2 space-y-1">
               {patients.map((p, i) => (
                 <div key={p.id} className="flex items-center gap-1">
@@ -184,7 +184,26 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         )}
 
         {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* Phone patient switcher — the w-48 sidebar would crush a 390px
+              bedside column, so on small screens the list is a chip strip. */}
+          {patients.length > 1 && (
+            <div className="md:hidden flex gap-1.5 overflow-x-auto px-3 py-2 border-b border-line bg-canvas shrink-0 scrollbar-thin">
+              {patients.map((p, i) => (
+                <button
+                  key={p.id}
+                  onClick={() => { setActivePatientId(p.id); setActiveTab('clerk'); }}
+                  className={`shrink-0 max-w-[46vw] truncate text-xs font-medium px-3 py-1.5 rounded-pill border transition-colors ${
+                    activePatientId === p.id
+                      ? 'bg-brand-600 border-brand-600 text-white'
+                      : 'bg-surface border-line text-ink-soft'
+                  }`}
+                >
+                  {p.intake.name || `Patient ${i + 1}`}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Tabs */}
           <div className="bg-surface/85 backdrop-blur-md border-b border-line flex overflow-x-auto shrink-0 scrollbar-thin">
             {tabs.map(t => (

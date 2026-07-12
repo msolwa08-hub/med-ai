@@ -89,3 +89,41 @@ chips/stages still visible below → full credit comes with (f)). Criterion 3:
 
 **Biggest gap → next**: criterion 4+5 — the "For the paper notes" block and
 quiet "Still to do" suggestions. That is increment (c).
+
+---
+
+## Increment (c) — "For the paper notes" + quiet "Still to do" (2026-07-12)
+
+**What shipped**
+- `components/PaperNotes.tsx` — **PaperNotes**: the transcription surface.
+  Ix = deduped discriminating investigations across the differential
+  (status ≠ done, priority-sorted, NOW-tagged, cap 8); Mx = the picture's
+  managementNow lines. 17px type, tap-to-dim as each line is written on the
+  chart. Reading surface, never a form. STG-anchor footnote on Mx
+  (criterion 4 dose rule).
+- **StillToDo**: quiet, ignorable, zero-interaction muted list of unanswered
+  exam-kind discriminating features (history-kind stays in the tap stream
+  until (f) demotes it) — capped at 5, never gating (criterion 5).
+- **Phone-layout root-cause fix found by this increment's proof**: with 2+
+  patients the fixed `w-48` sidebar rendered at 390px and crushed the
+  bedside column to 158px (every real ward user hits this). Sidebar is now
+  `hidden md:block`; phones get a horizontal patient chip strip above the
+  tabs.
+
+**Proof** (committed here, live API)
+- `c-paper-notes-{light,dark}-phone.png` — live ACS demo patient: Ix
+  "12-lead ECG NOW / Troponin (serial) NOW / BP in both arms NOW / CXR NOW /
+  CT aortogram…", Mx lines, STG footnote, quiet still-to-do — full-width
+  390px layout post-fix. Playwright 10/10 (light+dark).
+- Build + typecheck clean; client-only → loop gate not triggered.
+
+**Score movement** — criterion 4: 1→8 (block live and transcribable; dose
+lines inherit the gated engine's STG anchoring). Criterion 5: 1→8 (quiet
+list live; history-kind gaps still ride the tap stream until (f)).
+
+**Known gap carried to (f)**: managementNow renders in both the hero panel
+and PaperNotes — compact the hero to differential + must-not-miss so the
+paper-notes block is the single Mx surface.
+
+**Biggest gap → next**: criterion 1 — Glance 1, the ≤10s pre-encounter
+briefing. That is increment (d).
