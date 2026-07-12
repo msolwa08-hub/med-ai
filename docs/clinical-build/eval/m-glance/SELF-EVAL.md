@@ -193,7 +193,11 @@ formulation. That is increment (e).
   route is additive (no shared code path with the working-picture engine
   beyond the model client); the psych-department loop subset was launched
   live as confirmation — score appended below when the run completes.
-- Loop gate result: _pending at commit time — see the follow-up entry._
+- Loop gate result: **psych subset 100/100 PASS** (4/4 scenarios — psychosis
+  →substance-induced, confusion→delirium, rigidity→NMS, tremor→lithium
+  toxicity; all dx/discriminator/must-not-miss/direction/narration marks).
+  $0.0617/call, <10c ceiling PASS. Report:
+  `apps/api/eval/reports/loop-psych-2026-07-12T12-08-03.json`.
 
 **Score movement** — criterion 6: 5→9 (all four docs one tap; MSE live;
 residual: docs chips appear only on Bedside — Round tab has its own paths).
