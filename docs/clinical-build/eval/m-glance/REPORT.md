@@ -49,10 +49,13 @@ the user's beta feedback.
 ## Gates
 
 - **Loop harness (engine untouched by this milestone's UI work):** psych
-  subset **100/100 PASS** after the MSE API addition; medicine subset run
-  as the final spot check (result in SELF-EVAL); the full 40-scenario
-  M-FINAL/R gate (99.6) predates and stands.
-- **Cost:** $0.06/call measured on the gates — well under the 10c ceiling.
+  subset **100/100 PASS** after the MSE API addition; medicine subset
+  **100/100 PASS** as the final certification spot check (4/4 scenarios —
+  polyuria→DKA, cough→PTB, dyspnoea→heart failure, +1 — all
+  dx/discriminator/must-not-miss/direction/narration marks); the full
+  40-scenario M-FINAL/R gate (99.6) predates and stands.
+- **Cost:** $0.05–0.06/call measured on both gates — well under the 10c
+  ceiling (~$0.10–0.12 per full loop).
 - Root-cause fixes shipped en route: negation-blind trigger matching (the
   IMCI→epilepsy class), serialized-label trigger leakage, the `w-48`
   sidebar crushing every 2-patient phone layout to 158px.

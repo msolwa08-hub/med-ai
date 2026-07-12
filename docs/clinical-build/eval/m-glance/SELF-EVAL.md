@@ -235,3 +235,14 @@ default path. That is increment (f).
 
 **Score movement** — criterion 8: 3→9; criterion 2: 7→9 (the chatbox is
 now provably the only input surface on the default path).
+
+---
+
+## FINAL CERTIFICATION (2026-07-12)
+
+All 10 criteria green with committed proof — final scorecard in
+`REPORT.md`. Loop gates for the certification: **psych 100/100** and
+**medicine 100/100** live on the built server ($0.05–0.06/call, <10c
+ceiling PASS); the full 40-scenario M-FINAL/R gate (99.6) stands. The
+milestone is closed; the next input is the user's real-ward beta
+feedback (standing directive at the top of STATUS.md).
