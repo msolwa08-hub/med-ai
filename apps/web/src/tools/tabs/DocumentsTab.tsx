@@ -46,6 +46,7 @@ export function DocumentsTab({ patient, toolsKey, dept }: {
     { id: 'discharge', label: 'Discharge Summary' },
     { id: 'referral', label: 'Referral Letter' },
     { id: 'labs', label: 'Interpret Labs' },
+    ...(dept === 'psych' ? [{ id: 'mse', label: 'MSE + Formulation' }] : []),
   ];
 
   return (

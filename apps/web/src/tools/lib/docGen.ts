@@ -8,13 +8,15 @@ import type { Patient } from '../fields/types';
 // This centralises the payload + the per-type call/format so the cockpit's
 // QuickDocs rail and the Documents tab share exactly one implementation.
 
-export type DocType = 'admission' | 'presentation' | 'wardnote' | 'discharge' | 'referral' | 'labs';
+export type DocType = 'admission' | 'presentation' | 'wardnote' | 'discharge' | 'referral' | 'labs' | 'mse';
 
 export interface DocSpec {
   id: DocType;
   label: string;
   /** One-line hint of when to reach for it. */
   blurb: string;
+  /** Restrict to these departments; omit = everywhere. */
+  depts?: DeptId[];
 }
 
 export const DOC_SPECS: DocSpec[] = [
@@ -24,7 +26,12 @@ export const DOC_SPECS: DocSpec[] = [
   { id: 'discharge', label: 'Discharge summary', blurb: 'Diagnosis, treatment, meds, follow-up, red flags' },
   { id: 'referral', label: 'Referral letter', blurb: 'To another discipline, with urgency' },
   { id: 'labs', label: 'Interpret labs', blurb: 'Read the investigations against the picture' },
+  { id: 'mse', label: 'MSE + formulation', blurb: 'Mental state exam, risk, biopsychosocial formulation', depts: ['psych'] },
 ];
+
+export function docSpecsFor(dept: DeptId): DocSpec[] {
+  return DOC_SPECS.filter(s => !s.depts || s.depts.includes(dept));
+}
 
 export function docBase(patient: Patient, dept: DeptId) {
   return {
@@ -69,6 +76,10 @@ export async function generateDoc(toolsKey: string, type: DocType, patient: Pati
     case 'presentation': {
       const r = await toolsApi.presentPatient(toolsKey, base);
       return `${r.oneLineSummary}\n\n${r.presentation}\n\n---\n${r.disclaimer}`;
+    }
+    case 'mse': {
+      const r = await toolsApi.mseFormulation(toolsKey, base);
+      return `MENTAL STATE EXAMINATION\n========================\n\n${r.mse}\n\nRISK\n----\n${r.riskSummary}\n\nFORMULATION (4 Ps)\n------------------\n${r.formulation}\n\nPROVISIONAL DIAGNOSIS: ${r.provisionalDiagnosis}\n\nDIFFERENTIALS:\n${r.differentials.map((d, i) => `${i + 1}. ${d}`).join('\n')}\n\nPLAN:\n${r.plan.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n---\n${r.disclaimer}`;
     }
   }
 }

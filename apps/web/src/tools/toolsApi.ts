@@ -371,4 +371,7 @@ export const toolsApi = {
 
   gynaeNote: (key: string, input: unknown) =>
     post<{ note: string; workingDiagnosis: string; differentials: string[]; plan: string[]; disclaimer: string }>('/tools/gynae-note', key, input),
+
+  mseFormulation: (key: string, input: unknown) =>
+    post<{ mse: string; riskSummary: string; formulation: string; provisionalDiagnosis: string; differentials: string[]; plan: string[]; disclaimer: string }>('/tools/mse-formulation', key, input),
 };

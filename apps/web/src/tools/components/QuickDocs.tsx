@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, FileText } from 'lucide-react';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
-import { DOC_SPECS, generateDoc, type DocType } from '../lib/docGen';
+import { docSpecsFor, generateDoc, type DocType } from '../lib/docGen';
 import { DocOutput, Spinner } from './ui';
 
 // ─── QUICKDOCS — every chart document, one tap from the bedside ──────────────
@@ -12,10 +12,12 @@ import { DocOutput, Spinner } from './ui';
 // competes with the capture canvas. Generated docs are cached per type for the
 // session so re-opening is instant.
 
-export function QuickDocs({ patient, toolsKey, dept }: {
+export function QuickDocs({ patient, toolsKey, dept, initialDoc }: {
   patient: Patient;
   toolsKey: string;
   dept: DeptId;
+  /** One-tap entry: generate + open this document immediately on mount. */
+  initialDoc?: DocType;
 }) {
   const [cache, setCache] = useState<Partial<Record<DocType, string>>>(
     patient.admissionNote ? { admission: patient.admissionNote } : {}
@@ -23,6 +25,16 @@ export function QuickDocs({ patient, toolsKey, dept }: {
   const [active, setActive] = useState<DocType | null>(null);
   const [loading, setLoading] = useState<DocType | null>(null);
   const [error, setError] = useState('');
+  const specs = docSpecsFor(dept);
+
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (initialDoc && !autoOpened.current) {
+      autoOpened.current = true;
+      void open(initialDoc);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDoc]);
 
   async function open(type: DocType) {
     setError('');
@@ -40,7 +52,7 @@ export function QuickDocs({ patient, toolsKey, dept }: {
   }
 
   if (active && cache[active]) {
-    const spec = DOC_SPECS.find(d => d.id === active)!;
+    const spec = specs.find(d => d.id === active)!;
     return (
       <div className="space-y-3">
         <button
@@ -70,7 +82,7 @@ export function QuickDocs({ patient, toolsKey, dept }: {
       </p>
       {error && <p className="text-sm text-band-exclude">{error}</p>}
       <div className="space-y-2">
-        {DOC_SPECS.map(spec => (
+        {specs.map(spec => (
           <button
             key={spec.id}
             onClick={() => open(spec.id)}

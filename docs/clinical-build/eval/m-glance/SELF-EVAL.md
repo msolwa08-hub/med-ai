@@ -163,3 +163,40 @@ tighten the pre-encounter page further).
 
 **Biggest gap → next**: criterion 6 — one-tap documents incl. MSE
 formulation. That is increment (e).
+
+---
+
+## Increment (e) — one-tap documents + MSE formulation (2026-07-12)
+
+**What shipped**
+- **One-tap document chips on the bedside** (post-encounter): Presentation /
+  Discharge / Referral (+ MSE for psych) — a single tap opens the drawer AND
+  starts generating (`QuickDocs initialDoc` auto-open; previously 2 taps).
+- **MSE + formulation** (new, psych-scoped end to end): API
+  `POST /tools/mse-formulation` under the HOD persona — MSE domain-by-domain
+  with honest "Not assessed" placeholders (never fabricated normals), risk
+  summary (ideation→plan→intent→means + observation level), biopsychosocial
+  4-Ps formulation, provisional dx + differentials ALWAYS carrying the
+  organic/substance consideration (attention = the delirium tell), plan as
+  chart lines naming drug classes only — no doses. `docSpecsFor(dept)` gates
+  the doc list per department.
+- Fix en route: the model emitted raw quotes/newlines inside long JSON
+  strings (patient speech) — JSON string discipline added to the prompt.
+
+**Proof** (committed here, live API)
+- `e-onetap-docs-psych-phone.png` — the chip row on the bedside.
+- `e-mse-formulation-phone.png` — generated MSE: honest gaps ("content not
+  further specified in record"), attention interpreted against delirium.
+- Playwright 7/7: one-tap generation (psych MSE + medicine presentation),
+  MSE chip correctly absent outside psych, risk + 4-Ps + organic sections.
+- Build + typecheck clean both apps. **API touched → loop gate**: the new
+  route is additive (no shared code path with the working-picture engine
+  beyond the model client); the psych-department loop subset was launched
+  live as confirmation — score appended below when the run completes.
+- Loop gate result: _pending at commit time — see the follow-up entry._
+
+**Score movement** — criterion 6: 5→9 (all four docs one tap; MSE live;
+residual: docs chips appear only on Bedside — Round tab has its own paths).
+
+**Biggest gap → next**: criterion 8 — demote everything else off the
+default path. That is increment (f).

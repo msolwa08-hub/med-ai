@@ -29,6 +29,7 @@ import {
   generateObsNote,
   generateGynaeNote,
   generateRoundNote,
+  generateMseFormulation,
   type RoundNoteInput,
 } from '../services/hospital-docs.js';
 
@@ -484,6 +485,18 @@ export async function toolsRoutes(app: FastifyInstance) {
     } catch (err) {
       app.log.error(err);
       return reply.status(500).send({ error: 'Failed to generate referral' });
+    }
+  });
+
+  // MSE + biopsychosocial formulation (psychiatry)
+  app.post('/tools/mse-formulation', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    try {
+      const result = await generateMseFormulation(req.body as Record<string, unknown>);
+      return reply.send(result);
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Failed to generate MSE formulation' });
     }
   });
 

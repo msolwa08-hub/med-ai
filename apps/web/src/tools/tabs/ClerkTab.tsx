@@ -25,6 +25,7 @@ import { SlideOver } from '../components/SlideOver';
 import { QuickBar } from '../components/QuickBar';
 import { PaperNotes, StillToDo } from '../components/PaperNotes';
 import { Glance1Briefing, briefingAvailable } from '../components/Glance1Briefing';
+import { docSpecsFor, type DocType } from '../lib/docGen';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { QuickDocs } from '../components/QuickDocs';
 import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check, AlertTriangle, Info, ListChecks, Sparkles } from 'lucide-react';
@@ -328,6 +329,12 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   const [moreHistoryOpen, setMoreHistoryOpen] = useState(false);
   const [aiInterviewOpen, setAiInterviewOpen] = useState(false);
   const [drawer, setDrawer] = useState<null | 'record' | 'docs'>(null);
+  // One-tap documents: a chip both opens the drawer AND starts generating.
+  const [docsInitial, setDocsInitial] = useState<DocType | undefined>(undefined);
+  function openDoc(type: DocType) {
+    setDocsInitial(type);
+    setDrawer('docs');
+  }
 
   // Quick-clerk brain-dump routes a flat {key: value} back to the slice that
   // owns each key — same split as the conversational assist, extended to exam.
@@ -549,6 +556,26 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               />
             )}
 
+            {/* One-tap documents — each chip generates straight from the
+                accumulated record (incl. photo-ingested notes). */}
+            {!preEncounter && (
+              <div className="flex flex-wrap items-center gap-1.5 px-1.5">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-ink-mute mr-0.5">Documents</span>
+                {docSpecsFor(dept)
+                  .filter(s => ['presentation', 'discharge', 'referral', 'mse'].includes(s.id))
+                  .map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => openDoc(s.id)}
+                      className="inline-flex items-center min-h-[36px] px-3 rounded-pill border border-line bg-surface text-xs font-medium text-ink-soft hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800 transition-colors focus:outline-none focus-visible:shadow-focus"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+              </div>
+            )}
+
             {activeCascade && (
               <div className="rounded-card border border-line bg-surface shadow-card">
                 <button
@@ -751,8 +778,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         />
       </SlideOver>
 
-      <SlideOver open={drawer === 'docs'} onClose={() => setDrawer(null)} title="Documents" wide>
-        <QuickDocs patient={patient} toolsKey={toolsKey} dept={dept} />
+      <SlideOver open={drawer === 'docs'} onClose={() => { setDrawer(null); setDocsInitial(undefined); }} title="Documents" wide>
+        <QuickDocs key={docsInitial ?? 'all'} patient={patient} toolsKey={toolsKey} dept={dept} initialDoc={docsInitial} />
       </SlideOver>
     </>
   );

@@ -5,7 +5,7 @@ import { MEDAI_SYSTEM_PROMPT } from './hod-prompt.js';
 import {
   DISCHARGE_SYSTEM, REFERRAL_SYSTEM, WARD_NOTE_SYSTEM, ADMISSION_NOTE_SYSTEM,
   LAB_INTERPRET_SYSTEM, PRESENT_PATIENT_SYSTEM, OBS_NOTE_SYSTEM, GYNAE_NOTE_SYSTEM,
-  ROUND_NOTE_SYSTEM,
+  ROUND_NOTE_SYSTEM, MSE_FORMULATION_SYSTEM,
 } from './medai-prompt.js';
 
 
@@ -93,6 +93,16 @@ export interface RoundNote {
   disclaimer: string;
 }
 
+export interface MseFormulation {
+  mse: string;
+  riskSummary: string;
+  formulation: string;
+  provisionalDiagnosis: string;
+  differentials: string[];
+  plan: string[];
+  disclaimer: string;
+}
+
 export interface RoundNoteInput {
   patientName: string;
   age: string;
@@ -149,4 +159,8 @@ export function generateGynaeNote(input: Record<string, unknown>): Promise<Gynae
 
 export function generateRoundNote(input: RoundNoteInput): Promise<RoundNote> {
   return generate<RoundNote>(hod(ROUND_NOTE_SYSTEM), JSON.stringify(input));
+}
+
+export function generateMseFormulation(input: Record<string, unknown>): Promise<MseFormulation> {
+  return generate<MseFormulation>(hod(MSE_FORMULATION_SYSTEM), JSON.stringify(input));
 }

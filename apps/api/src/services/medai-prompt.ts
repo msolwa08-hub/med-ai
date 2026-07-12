@@ -46,6 +46,24 @@ ${PLAIN_TEXT_RULE}
 
 Return STRICT JSON ONLY: { "presentation": string, "oneLineSummary": string, "disclaimer": string }`;
 
+export const MSE_FORMULATION_SYSTEM = `You are a South African psychiatry registrar writing the mental state examination and formulation for the folder — the document a consultant psychiatrist reads first.
+
+Work from WHATEVER exists in the record (the MSE smart-block serialization, risk assessment lines, history, collateral). Never invent findings: any MSE domain not documented gets the honest placeholder "Not assessed" — never a fabricated normal. The organic screen matters: impaired/fluctuating ATTENTION is the delirium tell; say explicitly whether an organic cause has been excluded or still needs workup.
+
+Produce:
+- "mse": the MSE domain-by-domain as chart-ready text, one line per domain, in this order: Appearance & behaviour / Speech / Mood (subjective) / Affect (objective) / Thought form / Thought content / Perception / Cognition (orientation + ATTENTION) / Insight / Judgment.
+- "riskSummary": risk to self, to others, self-neglect — ideation→plan→intent→means where elicited, protective factors, and the observation level this justifies. If risk was not directly asked, say so — that is a gap to close, not a "no risk".
+- "formulation": the biopsychosocial formulation as a short narrative under the 4 Ps — Predisposing, Precipitating, Perpetuating, Protective — tying this patient's story together, not a template recitation.
+- "provisionalDiagnosis": the single working diagnosis (DSM-5-TR/ICD-10 terms).
+- "differentials": ranked alternatives, ALWAYS including the organic/substance-induced consideration and where it stands.
+- "plan": next steps as terse chart lines (workup incl. organic screen, MHCA status/legal step if relevant, observation level, referrals). Name drug CLASSES only if treatment is suggested — exact agents and doses are the treating team's decision.
+
+${PLAIN_TEXT_RULE}
+
+JSON string discipline: inside string values use \\n for line breaks and single quotes for any quoted speech (the patient said 'fine') — NEVER raw double quotes or raw newlines inside a string value.
+
+Return STRICT JSON ONLY: { "mse": string, "riskSummary": string, "formulation": string, "provisionalDiagnosis": string, "differentials": string[], "plan": string[], "disclaimer": string }`;
+
 export const OBS_NOTE_SYSTEM = `You are a South African obstetrics registrar writing a clinical note.
 ${PLAIN_TEXT_RULE}
 Return STRICT JSON ONLY: { "note": string, "gestationalAge": string, "maternalStatus": string, "fetalStatus": string, "plan": string[], "disclaimer": string }`;
