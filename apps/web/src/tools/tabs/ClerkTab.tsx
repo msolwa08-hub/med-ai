@@ -24,6 +24,7 @@ import { StageCard } from '../components/StageCard';
 import { SlideOver } from '../components/SlideOver';
 import { QuickBar } from '../components/QuickBar';
 import { PaperNotes, StillToDo } from '../components/PaperNotes';
+import { Glance1Briefing, briefingAvailable } from '../components/Glance1Briefing';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { QuickDocs } from '../components/QuickDocs';
 import { BookOpenText, Stethoscope, FlaskConical, ClipboardList, FileText, ChevronDown, Check, AlertTriangle, Info, ListChecks, Sparkles } from 'lucide-react';
@@ -132,6 +133,15 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   const cascades = cascadesFor(dept);
   const activeCascade: SymptomCascade | undefined = cascades.find(c => c.id === patient.activeCascadeId);
   const isFemale = /^f/i.test(patient.intake.sex.trim());
+
+  // ── Glance 1 — the pre-encounter briefing (M-GLANCE) ───────────────────────
+  // One tap (the complaint chip) surfaces it; it yields automatically the
+  // moment encounter findings land, with a quiet re-peek afterwards.
+  const preEncounter =
+    !patient.history.hpi.trim() && !patient.assessment.vitals.trim() && !patient.assessment.examination.trim();
+  const [briefingPeek, setBriefingPeek] = useState(false);
+  const showBriefing =
+    !!activeCascade && briefingAvailable(activeCascade, dept) && (preEncounter || briefingPeek);
 
   function cascadeChanged(cascade: SymptomCascade, v: CascadePanelValue, serialized: string) {
     const persist = patient.cascades?.[cascade.id];
@@ -383,19 +393,22 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
         {/* ── THE CHATBOX — the one input surface (Glance 2). The encounter
             happened on paper; fragments or a photo land here and everything
-            routes itself. The working picture refreshes right below. ───────── */}
-        <QuickBar
-          toolsKey={toolsKey}
-          dept={dept}
-          subDept={subDept}
-          fields={[...clerkFields, ...examFields]}
-          context={patientContext(patient, dept, subDept)}
-          onResults={routeAnyUpdates}
-          title="Tell me what you found"
-          hint="fragments are fine — everything files itself"
-          cta="File it"
-          placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
-        />
+            routes itself. Pre-encounter it steps aside for Glance 1 (the
+            briefing is the star before you go in; the chatbox after). ──────── */}
+        {!preEncounter && (
+          <QuickBar
+            toolsKey={toolsKey}
+            dept={dept}
+            subDept={subDept}
+            fields={[...clerkFields, ...examFields]}
+            context={patientContext(patient, dept, subDept)}
+            onResults={routeAnyUpdates}
+            title="Tell me what you found"
+            hint="fragments are fine — everything files itself"
+            cta="File it"
+            placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
+          />
+        )}
 
         {/* ── START — one gesture: tap the complaint ─────────────────────────── */}
         <Card elevation="e1" className="p-4 sm:p-5 space-y-3.5">
@@ -436,6 +449,18 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             </p>
           )}
 
+          {/* Quiet re-peek once the encounter is documented and the briefing
+              has yielded — still one tap away, never in the way. */}
+          {!!activeCascade && briefingAvailable(activeCascade, dept) && !preEncounter && (
+            <button
+              type="button"
+              onClick={() => setBriefingPeek(o => !o)}
+              className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
+            >
+              {briefingPeek ? 'Hide briefing' : 'Show briefing'}
+            </button>
+          )}
+
           {/* First-run: seed a worked example so the loop demonstrates itself. */}
           {patientIsEmpty && hasDemo(dept) && (
             <button
@@ -448,6 +473,28 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             </button>
           )}
         </Card>
+
+        {/* ── GLANCE 1 — before the encounter: ask / don't miss / exam focus ─── */}
+        {showBriefing && activeCascade && (
+          <Glance1Briefing cascade={activeCascade} dept={dept} subDept={subDept} isFemale={isFemale} />
+        )}
+
+        {/* Pre-encounter, the chatbox waits below the briefing — ready for the
+            moment the paper notes exist. */}
+        {preEncounter && (
+          <QuickBar
+            toolsKey={toolsKey}
+            dept={dept}
+            subDept={subDept}
+            fields={[...clerkFields, ...examFields]}
+            context={patientContext(patient, dept, subDept)}
+            onResults={routeAnyUpdates}
+            title="Tell me what you found"
+            hint="fragments are fine — everything files itself"
+            cta="File it"
+            placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
+          />
+        )}
 
         {/* ── CONFIRM — the hero: leading dx + the tap stream ─────────────────── */}
         {cc && (

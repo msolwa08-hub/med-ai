@@ -127,3 +127,39 @@ paper-notes block is the single Mx surface.
 
 **Biggest gap → next**: criterion 1 — Glance 1, the ≤10s pre-encounter
 briefing. That is increment (d).
+
+---
+
+## Increment (d) — Glance 1: the pre-encounter briefing (2026-07-12)
+
+**What shipped**
+- `config/briefings.ts` — the must-not-miss registry: 20 presenting
+  complaints × 3-5 consultant-ordered red flags, discipline-specific killers
+  prepended per department (paeds fever → IMCI danger signs first; og
+  headache → eclampsia first; ortho trauma → antibiotic clock +
+  neurovascular before/after). Conditions and flags only — zero doses.
+- `components/Glance1Briefing.tsx` — "Before you go in — 10 seconds, then
+  the phone goes away": ASK (top-level cascade questions = the history to
+  take), DON'T MISS (registry), EXAM (presentation-adaptive checklist stems,
+  + full vitals). Fully deterministic local content — 122-158ms from tap to
+  rendered, no model call inside a 10-second glance.
+- Encounter-phase ordering: pre-encounter the briefing is the star (chatbox
+  waits below); the moment findings land it yields automatically to the
+  Glance-2 layout, with a quiet one-tap "Show briefing" re-peek. The
+  complaint tap smooth-scrolls the reader onto the briefing.
+
+**Proof** (committed here)
+- `d-briefing-medicine-light-phone.png`, `d-briefing-paeds-dark-phone.png` —
+  390px, briefing in view after ONE tap.
+- Playwright 11/11: one-tap reachability, <2.5s render (measured ~130ms),
+  all three clusters, dept tuning (paeds IMCI + <3mo, og eclampsia,
+  medicine dissection), auto-yield + re-peek.
+- Build + typecheck clean; deterministic client content → loop gate not
+  triggered.
+
+**Score movement** — criterion 1: 2→9 (one tap, instant, 390px-readable,
+zero required interaction; residual: chips card above is tall — (f) will
+tighten the pre-encounter page further).
+
+**Biggest gap → next**: criterion 6 — one-tap documents incl. MSE
+formulation. That is increment (e).
