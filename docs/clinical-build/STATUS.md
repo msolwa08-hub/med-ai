@@ -1,17 +1,21 @@
 # MedAI — Consultant-Depth Build Campaign
 
-## ▶▶ M-GLANCE — THE ACTIVE DIRECTIVE (read this FIRST each tick; supersedes ALL prior UI priorities)
+## ▶▶ M-GLANCE — ✅ SHIPPED & CERTIFIED (2026-07-12; see eval/m-glance/REPORT.md)
 
-**2026-07-12: the user reset the product model in a brainstorm.** Prior tick
-priorities (M-UI/2 polish framing, tap-driven cockpit, continuum) are RETIRED.
-Do not resume them. The user then ordered an autonomous run **starting at the
-scheduled kick-off (a send_later fires ~2h after 2026-07-12 arming)** that
-builds the model below and self-evaluates until it holds. **Before that
-kick-off fires: build NOTHING** — the window is the user's to add corrections.
-After it fires: work in committed increments, self-evaluate each against the
-acceptance criteria, iterate to green.
+**The two-glance encounter is built, proven and pushed** — six increments
+(a→f), each gated (build+tsc, phone-first playwright light+dark, loop where
+the API was touched: psych 100/100 + medicine spot check). Final scores and
+proofs: `docs/clinical-build/eval/m-glance/` (REPORT.md + SELF-EVAL.md).
 
-### The model — the two-glance encounter (the user's own words, condensed)
+**Directive to future autonomous ticks:** M-GLANCE is DONE — do not rebuild
+it. Do NOT start a new milestone without fresh user direction: the model was
+user-reset once and can be again; the next input is the user's real-ward
+beta feedback. A tick that fires now should only (1) verify deploy health,
+(2) fix anything broken with the standard gates, (3) triage any user
+feedback into the backlog. Retired priorities (M-UI/2 framing, tap-driven
+cockpit) STAY retired.
+
+### The model as shipped (kept for reference — the user's own words, condensed)
 The mainstay is WRITING THE PAPER NOTES. The app is a professional sidekick you
 glance at — never software you operate in front of a patient.
 - **Glance 1 (≤10s, before the encounter):** based on the discipline +
@@ -67,6 +71,25 @@ the only accepted proof of UI claims.
 
 ## Milestone drops (the master-plan spine — newest first)
 
+- **M-GLANCE — the two-glance encounter — ✅ SHIPPED & CERTIFIED**
+  (2026-07-12). The user's product-model reset, built in six gated
+  increments in one autonomous run. **(a)** negation-aware trigger matching
+  (`lib/clinicalText.ts`) killed the IMCI→epilepsy over-match class + a
+  17-fix regex audit across all four trigger registries. **(b)** THE
+  chatbox: QuickBar promoted to the always-visible single input — fragments
+  ("BP 145/92, tachy, creps L base" → proven into vitals/exam slots) and a
+  Photo button through the scan pipeline. **(c)** "For the paper notes"
+  (chart-transcribable Ix NOW-tagged + Mx, STG footnote, tap-to-dim) +
+  quiet "Still to do"; also fixed the w-48 sidebar crushing 2-patient phone
+  layouts. **(d)** Glance 1: deterministic ~130ms pre-encounter briefing
+  (ASK / DON'T MISS / EXAM; `config/briefings.ts`, 20 complaints,
+  dept-tuned killers, no doses) that auto-yields once findings land.
+  **(e)** one-tap documents + new psych MSE + formulation end-to-end
+  (`/tools/mse-formulation`; psych loop gate 100/100 after). **(f)** the
+  demotion pass — structural proof: 0 checkboxes, 0 text inputs, exactly 1
+  textarea on the documented-encounter default path. Full proofs:
+  `eval/m-glance/` (REPORT.md, SELF-EVAL.md, phone-first screenshots ×6
+  increments, light+dark).
 - **M-UI/8 — a premium first impression — ✅ SHIPPED** (2026-07-11). The first 5
   seconds, three parts. **A** (`30ee14a`): warmed the cold `AccessKeyGate` (a
   product story — live differential / focused exam / the note falls out — before
