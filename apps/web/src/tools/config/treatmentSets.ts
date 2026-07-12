@@ -22,13 +22,16 @@ export interface TreatmentSet {
   items: TreatmentSetItem[];
 }
 
+import { stripNegated } from '../lib/clinicalText';
+
 function it(id: string, label: string, detail: string, why: string, defaultOn = true): TreatmentSetItem {
   return { id, label, detail, why, defaultOn };
 }
 
 export function treatmentSetsFor(problemsText: string): TreatmentSet[] {
   if (!problemsText.trim()) return [];
-  return TREATMENT_SETS.filter(s => s.pattern.test(problemsText));
+  const positiveText = stripNegated(problemsText);
+  return TREATMENT_SETS.filter(s => s.pattern.test(positiveText));
 }
 
 export function serializeTreatmentItems(items: TreatmentSetItem[]): string[] {
@@ -190,7 +193,7 @@ export const TREATMENT_SETS: TreatmentSet[] = [
   {
     id: 'paeds-gastro',
     title: 'Paeds gastroenteritis (IMCI)',
-    pattern: /gastro|diarrh|dehydrat/i,
+    pattern: /gastroenteritis|\bgastro\b|diarrh|dehydrat/i,
     items: [
       it('pg-ors', 'ORS per IMCI plan', 'Plan A no dehydration: 10ml/kg after each loose stool. Plan B some dehydration: 75ml/kg ORS over 4h', 'Oral rehydration saves more children than any other treatment on earth — the plan and volume come from the classification.'),
       it('pg-zinc', 'Zinc', '<6m: 10mg daily x14 days; ≥6m: 20mg daily x14 days', 'Zinc shortens this episode and prevents the next one for 2-3 months.'),
@@ -280,7 +283,7 @@ export const TREATMENT_SETS: TreatmentSet[] = [
   {
     id: 'acs-initial',
     title: 'ACS initial bundle',
-    pattern: /\bACS\b|NSTEMI|STEMI|unstable angina|myocardial/i,
+    pattern: /\bACS\b|NSTEMI|STEMI|unstable angina|myocardial infarc/i,
     items: [
       it('acsi-aspirin', 'Aspirin', '300mg PO CHEWED stat, then 75mg PO daily', 'Chewing gets antiplatelet effect in minutes instead of an hour; the daily dose continues indefinitely.'),
       it('acsi-second-ap', 'Second antiplatelet', 'Clopidogrel 300mg PO stat (75mg, no load, if >75y), then 75mg PO daily', 'Dual antiplatelet therapy halts the platelet cascade actively occluding the vessel — per STG clopidogrel is the second agent at state level.'),
@@ -308,7 +311,7 @@ export const TREATMENT_SETS: TreatmentSet[] = [
   {
     id: 'hyperkalaemia',
     title: 'Hyperkalaemia emergency',
-    pattern: /hyperkal(a)?emia|raised potassium|high potassium|K\+?\s*(of\s*)?[>≥]?\s*[6-9](\.\d)?\b/i,
+    pattern: /hyperkal(a)?emia|raised potassium|high potassium|\bK\+?\s*(of\s*)?[>≥]?\s*[6-9](\.\d)?\b/i,
     items: [
       it('hyperk-ecg', 'ECG NOW + cardiac monitor', '12-lead ECG immediately + continuous cardiac monitoring (peaked T → flat P/long PR → wide QRS → sine wave)', 'ECG changes and the K+ number correlate poorly — treat the ECG. The progression to sine wave is the road to VF, and the monitor watches it while you treat.'),
       it('hyperk-calcium', 'Calcium gluconate if ECG changes', 'Calcium gluconate 10% 10ml IV over 5-10min if ANY ECG changes; repeat at 5min if ECG unchanged', 'Membrane stabilisation works in minutes and buys time for everything else — but it does NOT lower the K+; the shift and removal steps still follow.'),
@@ -322,7 +325,7 @@ export const TREATMENT_SETS: TreatmentSet[] = [
   {
     id: 'cap-adult',
     title: 'Community-acquired pneumonia (adult)',
-    pattern: /pneumonia|\bCAP\b/i,
+    pattern: /pneumonia|\bCAP\b(?!\s*refill)/i,
     items: [
       it('cap-curb', 'CURB-65 decides disposition', 'Score 1 each: Confusion, Urea >7, RR ≥30, SBP <90 or DBP ≤60, age ≥65. 0-1 → outpatient; 2 → admit; 3-5 → admit + discuss ICU', 'Mortality climbs from <1% at score 0 to >20% at 4 — the score, not the gestalt, decides ward vs ICU and IV vs oral.'),
       it('cap-cultures', 'Blood cultures BEFORE antibiotics', 'Blood cultures x2 + sputum MC&S before the first antibiotic dose (do not delay antibiotics >45min for them)', 'Cultures drawn after antibiotics are sterile — one dose can cost the organism and the chance to de-escalate.'),
@@ -874,7 +877,7 @@ export const TREATMENT_SETS: TreatmentSet[] = [
   {
     id: 'nai-child-protection',
     title: 'NAI / child protection pathway',
-    pattern: /non-accidental injury|\bNAI\b|child abuse|child protection|suspected abuse[^.]{0,30}(child|infant)|skeletal survey|safeguarding concern/i,
+    pattern: /non-accidental injury|\bNAI\b|child abuse|child protection|suspected abuse[^.]{0,30}(child|infant)|safeguarding concern/i,
     items: [
       it('cp-history', 'Document the history exactly as told, verbatim, dated', 'Record each caregiver\'s account separately, in their own words, with date/time — note explicitly if the history changes between tellings or between caregivers', 'A changing or inconsistent history is itself one of the most important red flags and must be preserved in the record as it was actually given.'),
       it('cp-mismatch', 'Injury-vs-developmental-stage mismatch check', 'Does the stated mechanism explain the injury given the child\'s actual developmental stage? Any fracture in a non-mobile (pre-crawling/pre-cruising) infant without an adequately explaining history is a red flag by itself, regardless of fracture type', 'A non-mobile infant cannot generate a fracture by "rolling off a low bed" the way a mobile toddler\'s fall might — a caregiver\'s plausibility/demeanour is not a reliable screen.'),

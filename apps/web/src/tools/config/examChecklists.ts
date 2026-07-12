@@ -1,4 +1,5 @@
 import type { DeptId } from './departments';
+import { stripNegated } from '../lib/clinicalText';
 
 // ─── Exam targets (value-capture) ────────────────────────────────────────────
 // The pertinent things to look for: a universal vitals block, a per-department
@@ -270,7 +271,7 @@ const ADAPTIVE_RULES: AdaptiveRule[] = [
   },
   {
     id: 'adapt-abdo',
-    pattern: /abdo|abdominal|epigastr|\bRIF\b|\bLIF\b|\bRUQ\b|\bLUQ\b|suprapubic/i,
+    pattern: /abdo|abdominal|epigastr|(?<!MTB\/)(?<!MTB )(?<!Xpert )\bRIF\b(?!\s*Ultra)|\bLIF\b|\bRUQ\b|\bLUQ\b|suprapubic/i,
     title: 'Abdominal pain — targeted',
     items: [
       item('abdo-guarding', 'Checked for guarding/rebound tenderness?', 'Peritonism is the surgical-abdomen trigger — actively examine for it and write down present OR absent.', true),
@@ -355,13 +356,16 @@ const ADAPTIVE_RULES: AdaptiveRule[] = [
 // ── Builder ──────────────────────────────────────────────────────────────────
 
 export function examChecklistFor(dept: DeptId, subDept: string | undefined, presentingText: string): ChecklistSection[] {
-  const sections: ChecklistSection[] = [universalVitals(presentingText)];
+  // Negated mentions ("no seizures", "denies vomiting") must not pull in
+  // adaptive sections — strip them once before every pattern test.
+  const positiveText = stripNegated(presentingText);
+  const sections: ChecklistSection[] = [universalVitals(positiveText)];
   const raw = DEPT_SECTIONS[dept];
   const deptSection = typeof raw === 'function' ? raw(subDept) : raw;
   if (deptSection) sections.push(deptSection);
   for (const rule of ADAPTIVE_RULES) {
     if (rule.depts && !rule.depts.includes(dept)) continue;
-    if (rule.pattern.test(presentingText)) {
+    if (rule.pattern.test(positiveText)) {
       sections.push({ id: rule.id, title: rule.title, items: rule.items });
     }
   }

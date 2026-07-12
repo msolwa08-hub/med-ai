@@ -1,6 +1,7 @@
 import type React from 'react';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
+import { stripNegated } from '../lib/clinicalText';
 import { GCSCalc } from './GCSCalc';
 import { BMICalc } from './BMICalc';
 import { GFRCalc } from './GFRCalc';
@@ -71,20 +72,20 @@ export const CALCULATORS: CalculatorEntry[] = [
 // actually relevant to this patient.
 const CALC_TRIGGERS: Array<{ calc: string; pattern: RegExp; reason: string }> = [
   { calc: 'aki', pattern: /\baki\b|acute kidney|creatinine|oligur|anuri|renal (failure|impair|injur)|urea/i, reason: 'renal function mentioned' },
-  { calc: 'gfr', pattern: /\baki\b|creatinine|renal|kidney|ckd|nephro/i, reason: 'renal function mentioned' },
+  { calc: 'gfr', pattern: /\baki\b|creatinine|renal|kidney|\bckd\b|nephro/i, reason: 'renal function mentioned' },
   { calc: 'heart', pattern: /chest pain|\bacs\b|troponin|angina|\bstemi\b|\bnstemi\b/i, reason: 'possible cardiac chest pain' },
-  { calc: 'crb65', pattern: /pneumonia|\bcap\b|consolidat/i, reason: 'pneumonia severity' },
+  { calc: 'crb65', pattern: /pneumonia|\bcap\b(?!\s*refill)|consolidat/i, reason: 'pneumonia severity' },
   { calc: 'wellspe', pattern: /pulmonary embol|\bpe\b(?![a-z])|pleuritic/i, reason: 'PE in the differential' },
   { calc: 'wellsdvt', pattern: /\bdvt\b|deep vein|leg swelling|calf (pain|swelling)/i, reason: 'DVT in the differential' },
   { calc: 'qsofa', pattern: /sepsis|septic|infection.*hypotens|\bsirs\b/i, reason: 'sepsis screen' },
   { calc: 'sofa', pattern: /sepsis|septic shock|organ (failure|dysfunction)/i, reason: 'organ dysfunction' },
   { calc: 'gcs', pattern: /\bgcs\b|head injur|reduced (loc|level of consciousness)|unconscious|confus/i, reason: 'consciousness assessment' },
-  { calc: 'phq9', pattern: /depress|low mood|suicid/i, reason: 'mood screen' },
+  { calc: 'phq9', pattern: /(?<!st[ -])(?<!segment )(?<!respiratory )(?<!myocardial )(?<!cns )(?<!cortical )depress|low mood|suicid/i, reason: 'mood screen' },
   { calc: 'eddga', pattern: /pregnan|gestation|antenatal|\blmp\b/i, reason: 'pregnancy dating' },
   { calc: 'meows', pattern: /pregnan|obstetric|antenatal/i, reason: 'obstetric early warning' },
   { calc: 'epds', pattern: /postnatal|postpartum|puerperal/i, reason: 'postnatal mood screen' },
   { calc: 'ectopic', pattern: /ectopic|\bpv bleed|amenorrhoea.*pain/i, reason: 'possible ectopic' },
-  { calc: 'bishop', pattern: /induction|labour|labor/i, reason: 'labour assessment' },
+  { calc: 'bishop', pattern: /\blabour\b|\blabor\b/i, reason: 'labour assessment' },
   { calc: 'bmi', pattern: /obes|overweight|malnutri|underweight/i, reason: 'weight assessment' },
 ];
 
@@ -103,10 +104,11 @@ export function suggestCalculators(patient: Patient): Array<{ calc: string; reas
 
   const seen = new Set<string>();
   const out: Array<{ calc: string; reason: string }> = [];
+  const positiveText = stripNegated(text);
   if (text.trim()) {
     for (const t of CALC_TRIGGERS) {
       if (seen.has(t.calc)) continue;
-      if (t.pattern.test(text)) {
+      if (t.pattern.test(positiveText)) {
         seen.add(t.calc);
         out.push({ calc: t.calc, reason: t.reason });
       }

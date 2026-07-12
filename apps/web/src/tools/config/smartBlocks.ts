@@ -9,6 +9,7 @@
 // separate data model.
 
 import type { DeptId } from './departments';
+import { stripNegated } from '../lib/clinicalText';
 
 export interface SmartField {
   id: string;
@@ -39,8 +40,11 @@ export type SmartBlockState = Record<string, string | boolean | undefined>;
 
 export function smartBlocksFor(recordText: string, dept?: DeptId): SmartBlock[] {
   if (!recordText.trim()) return [];
+  // Negation-stripped ONCE, tested by every pattern: "no convulsions" or
+  // "Convulsions: no" must never surface the epilepsy block.
+  const positiveText = stripNegated(recordText);
   return SMART_BLOCKS.filter(
-    b => (!b.depts || !dept || b.depts.includes(dept)) && b.pattern.test(recordText),
+    b => (!b.depts || !dept || b.depts.includes(dept)) && b.pattern.test(positiveText),
   );
 }
 
@@ -76,7 +80,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'neonatal-jaundice',
     title: 'Neonatal jaundice',
-    pattern: /jaundice|hyperbilirubin|TSB|phototherapy/i,
+    pattern: /jaundice|hyperbilirubin|\bTSB\b|phototherapy/i,
     why: 'Management hinges on TSB plotted against hours of life — and "on phototherapy" is meaningless without knowing how many lights and whether exchange criteria are close.',
     fields: [
       { id: 'photo', label: 'Phototherapy?', kind: 'toggle' },
@@ -90,7 +94,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'syphilis-rpr',
     title: 'Syphilis (RPR positive)',
-    pattern: /RPR|syphilis|VDRL/i,
+    pattern: /\bRPR\b|syphilis|\bVDRL\b/i,
     why: 'An RPR+ mother needs 3 weekly benzathine penicillin doses ≥4 weeks before delivery to count as adequately treated — dates and dose count decide whether the baby needs treatment.',
     fields: [
       { id: 'penicillin', label: 'Benzathine penicillin given?', kind: 'toggle' },
@@ -103,7 +107,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'pprom-ptl',
     title: 'PPROM / preterm labour',
-    pattern: /PPROM|PROM|preterm labour|preterm labor|\bPTL\b|threatened preterm/i,
+    pattern: /\bPPROM\b|\bPROM\b|preterm labour|preterm labor|\bPTL\b|threatened preterm/i,
     why: 'Antenatal corticosteroids before 34w are the single biggest survival intervention for the preterm baby; MgSO4 <32w protects the brain. Doses and timing must be explicit.',
     fields: [
       { id: 'steroid', label: 'Corticosteroids administered', kind: 'select', options: ['Betamethasone', 'Dexamethasone', 'None'] },
@@ -117,7 +121,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'hiv-art',
     title: 'HIV / ART',
-    pattern: /HIV\s*(pos|positive|\+)|\bART\b|\bTLD\b|tenofovir|dolutegravir|RVD/i,
+    pattern: /HIV\s*(pos|positive|\+)|\bART\b|\bTLD\b|tenofovir|dolutegravir|\bRVD\b/i,
     // Medicine/emergency run the deeper hiv-art-status block (CD4, cotrimoxazole,
     // TB history) instead — this clinic-framed one stays for the other wards.
     depts: ['og', 'paeds', 'surgery', 'ortho', 'psych', 'icu'],
@@ -150,7 +154,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'banc-supplements',
     title: 'BANC supplements & logistics',
-    pattern: /antenatal|BANC|\bANC\b|pregnan|gravida|booking/i,
+    pattern: /antenatal|\bBANC\b|\bANC\b|pregnan|gravida/i,
     why: 'Supplement adherence is asked by colour because that is how patients know their tablets; visit count and booking date expose the unbooked or late-booked pregnancy.',
     fields: [
       { id: 'feso4', label: 'Taking iron (FeSO4)?', kind: 'toggle', cue: { color: 'red/brown', label: 'Red/brown blood tablet' } },
@@ -201,7 +205,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'asthma-copd',
     title: 'Asthma / COPD',
-    pattern: /asthma|COPD|inhaler|salbutamol|budesonide|wheez/i,
+    pattern: /asthma|\bCOPD\b|inhaler|salbutamol|budesonide|wheez/i,
     why: 'Reliever overuse (>2 canisters/yr or daily use) and a previous ICU admission are the two strongest predictors of asthma death — technique failure masquerades as treatment failure.',
     fields: [
       { id: 'technique', label: 'Inhaler technique checked?', kind: 'toggle' },
@@ -215,6 +219,10 @@ export const SMART_BLOCKS: SmartBlock[] = [
     id: 'anaemia-pregnancy',
     title: 'Anaemia in pregnancy',
     pattern: /an(a)?emia|low (Hb|h(a)?emoglobin)|\bHb\s*[<0-9]/i,
+    // "Anaemia"/"low Hb" are generic findings surfaced in every department —
+    // but this block's fields (BANC treatment vs prophylactic dose, near-term
+    // transfusion/delivery planning) only make sense for an obstetric patient.
+    depts: ['og'],
     why: 'Hb <8 near term changes delivery planning; the treatment dose (not the prophylactic BANC dose) and a transfusion trigger must be explicit.',
     fields: [
       { id: 'hb', label: 'Latest Hb', kind: 'number', unit: 'g/dL' },
@@ -237,7 +245,11 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'gdm',
     title: 'Gestational diabetes',
-    pattern: /GDM|gestational diabet|OGTT|glucose tolerance/i,
+    pattern: /\bGDM\b|gestational diabet|\bOGTT\b|glucose tolerance/i,
+    // OGTT/"glucose tolerance" alone are also ordered for non-obstetric
+    // endocrine workups (e.g. reactive hypoglycaemia, acromegaly) — this
+    // block's fields are GDM-management-only, so keep it to obstetrics.
+    depts: ['og'],
     why: 'The OGTT values decide diet vs insulin; the modality decides fetal surveillance intensity and delivery timing.',
     fields: [
       { id: 'ogtt-fasting', label: 'OGTT fasting', kind: 'number', unit: 'mmol/L' },
@@ -249,7 +261,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'previous-cs',
     title: 'Previous Caesarean section',
-    pattern: /previous (C\/?S|c(a)?esar)|\bprev C\/?S\b|\bC\/S x|VBAC/i,
+    pattern: /previous (C\/?S|c(a)?esar)|\bprev C\/?S\b|\bC\/S x|\bVBAC\b/i,
     why: 'The number of previous sections and the original indication determine whether VBAC is even on the table — and that counselling must be documented.',
     fields: [
       { id: 'count', label: 'Number of previous C/S', kind: 'select', options: ['1', '2', '3+'] },
@@ -335,7 +347,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'tb-workup',
     title: 'TB workup',
-    pattern: /\bTB\b|tuberculos|\bPTB\b|GeneXpert|Xpert|night sweats|cough[^.\n]{0,24}(week|\/52)/i,
+    pattern: /\bTB\b|tuberculos|\bPTB\b|GeneXpert|\bXpert\b|night sweats|cough[^.\n]{0,24}(week|\/52)/i,
     depts: ['medicine', 'emergency'],
     why: 'Xpert Ultra is the initial test and a rifampicin-resistant call changes the entire pathway; urine LAM catches the disseminated TB the sputum misses in the sick low-CD4 inpatient. Prior default or MDR contact predicts resistance before the lab does — and TB is notifiable.',
     fields: [
@@ -726,7 +738,10 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'neonatal-admission-core',
     title: 'Neonatal admission core',
-    pattern: /\bgestation\b|\bAPGAR\b|day of life|\bDOL\b\s*\d|birth weight|neonatal admission|admitted to (the )?(neonatal|NICU|nursery)/i,
+    // Deliberately no bare "gestation" trigger: the pprom-ptl block also has a
+    // field labelled "Gestation", and its serialized "Gestation: 34w" text
+    // would otherwise fire this admission block off a label, not a finding.
+    pattern: /\bAPGAR\b|day of life|\bDOL\b\s*\d|birth weight|neonatal admission|admitted to (the )?(neonatal|NICU|nursery)/i,
     depts: ['paeds'],
     why: 'Gestation, birth weight and the resuscitation given are what every subsequent decision (fluids, drug doses, sepsis risk, feeding volumes) is anchored to — "term, normal delivery" without the numbers cannot be safely acted on by the next clinician.',
     fields: [
@@ -751,7 +766,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
   {
     id: 'imci-danger-signs',
     title: 'IMCI danger signs',
-    pattern: /IMCI|danger sign|unable to (drink|breastfeed)|vomit(s|ing) everything|convulsion|lethargic|unconscious/i,
+    pattern: /\bIMCI\b|danger sign|unable to (drink|breastfeed)|vomit(s|ing) everything|convulsion|lethargic|unconscious/i,
     depts: ['paeds'],
     why: 'Any ONE positive general danger sign overrides the syndrome-specific algorithm and classifies the child for immediate referral/admission and pre-referral treatment — this is a discipline run on every child under 5 at every contact, not a checklist completed once and forgotten.',
     fields: [

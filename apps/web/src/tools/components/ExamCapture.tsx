@@ -25,9 +25,12 @@ export const VITAL_META: Record<string, { label: string; placeholder: string }> 
   'vit-glucose': { label: 'Glucose', placeholder: '5.4' },
 };
 
-/** Serialization-friendly stem: drop teaching parentheticals + trailing "?". */
+/** Serialization-friendly stem: drop teaching parentheticals, trailing "?",
+ *  and the ": enumerated teaching detail" tail — the enumeration is full of
+ *  trigger words ("…convulsions, lethargic…") that must not enter the record
+ *  as if they were findings; the typed value carries the substance. */
 export function findingStem(label: string): string {
-  return label.replace(/\s*\([^)]*\)/g, '').replace(/\?\s*$/, '').trim();
+  return label.split(':')[0].replace(/\s*\([^)]*\)/g, '').replace(/\?\s*$/, '').trim();
 }
 
 function FindingRow({ item, value, onSet }: {
