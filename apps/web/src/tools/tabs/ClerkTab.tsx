@@ -313,7 +313,6 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   const [openStage, setOpenStage] = useState<CompleteStageId | null>('story');
   const toggle = (s: CompleteStageId) => setOpenStage(prev => (prev === s ? null : s));
 
-  const [quickBarOpen, setQuickBarOpen] = useState(false);
   const [moreDetailOpen, setMoreDetailOpen] = useState(false);
   const [moreHistoryOpen, setMoreHistoryOpen] = useState(false);
   const [aiInterviewOpen, setAiInterviewOpen] = useState(false);
@@ -381,6 +380,22 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           </div>
         )}
 
+        {/* ── THE CHATBOX — the one input surface (Glance 2). The encounter
+            happened on paper; fragments or a photo land here and everything
+            routes itself. The working picture refreshes right below. ───────── */}
+        <QuickBar
+          toolsKey={toolsKey}
+          dept={dept}
+          subDept={subDept}
+          fields={[...clerkFields, ...examFields]}
+          context={patientContext(patient, dept, subDept)}
+          onResults={routeAnyUpdates}
+          title="Tell me what you found"
+          hint="fragments are fine — everything files itself"
+          cta="File it"
+          placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
+        />
+
         {/* ── START — one gesture: tap the complaint ─────────────────────────── */}
         <Card elevation="e1" className="p-4 sm:p-5 space-y-3.5">
           <div>
@@ -419,30 +434,6 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               <span className="text-ink-mute">→ </span>{cc}
             </p>
           )}
-
-          {/* De-emphasised accelerator — typing/dictation is optional, never required. */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setQuickBarOpen(o => !o)}
-              className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
-            >
-              <ChevronDown className={`w-3 h-3 transition-transform ${quickBarOpen ? 'rotate-180' : ''}`} aria-hidden />
-              or say/paste it all
-            </button>
-            {quickBarOpen && (
-              <div className="mt-2.5">
-                <QuickBar
-                  toolsKey={toolsKey}
-                  dept={dept}
-                  subDept={subDept}
-                  fields={[...clerkFields, ...examFields]}
-                  context={patientContext(patient, dept, subDept)}
-                  onResults={routeAnyUpdates}
-                />
-              </div>
-            )}
-          </div>
 
           {/* First-run: seed a worked example so the loop demonstrates itself. */}
           {patientIsEmpty && hasDemo(dept) && (

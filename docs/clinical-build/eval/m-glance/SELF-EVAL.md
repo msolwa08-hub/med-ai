@@ -55,3 +55,37 @@ after every increment. A criterion is **green** only with committed proof
 
 **Biggest gap → next**: criterion 2+3 (Glance 2 — the one chatbox with photo,
 auto-routing everything). That is increment (b).
+
+---
+
+## Increment (b) — Glance 2: THE chatbox leads (2026-07-12)
+
+**What shipped**
+- `QuickBar` is now the chatbox of the two-glance model: always visible,
+  FIRST card on Bedside (no more "or say/paste it all" disclosure), with a
+  **Photo** button beside "File it" — `<input capture="environment">` →
+  `downscaleImage` → `scanNotes`, same routing + per-field confidence chips
+  as typed fragments. Title: "Tell me what you found — fragments are fine".
+- Fields = full clerking + exam set; `routeAnyUpdates` splits results to
+  intake/history/assessment; the working picture recomputes off the same
+  record signature, so filing refreshes the picture below.
+
+**Proof** (committed here, live API)
+- `b-chatbox-{light,dark}-phone.png` — the chatbox leads the 390px page,
+  Photo button visible.
+- `b-fragments-filed-phone.png` — typed `"BP 145/92, tachy, creps L base"`
+  → **vitals slot** `BP 145/92, HR tachycardic (rate not specified)`,
+  **exam slot** `Resp: crepitations at left lung base`; UI flags "Vitals —
+  verify" with a consultant-grade note (exact HR/RR/Temp/SpO2 still needed).
+  Playwright assertions 11/11 on layout + routing (state-level, not just UI).
+- `b-photo-scan-phone.png` — the scratchpad handwritten-note test image via
+  the chatbox Photo button filed 8 intake fields end-to-end live.
+- Build + typecheck clean. Engine/API untouched (client-only) → loop gate
+  not triggered.
+
+**Score movement** — criterion 2: 4→7 (chatbox+photo IS the lead surface;
+chips/stages still visible below → full credit comes with (f)). Criterion 3:
+5→9 (playwright-proven exact directive scenario). Others unchanged.
+
+**Biggest gap → next**: criterion 4+5 — the "For the paper notes" block and
+quiet "Still to do" suggestions. That is increment (c).
