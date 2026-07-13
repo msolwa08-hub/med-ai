@@ -246,3 +246,26 @@ All 10 criteria green with committed proof — final scorecard in
 ceiling PASS); the full 40-scenario M-FINAL/R gate (99.6) stands. The
 milestone is closed; the next input is the user's real-ward beta
 feedback (standing directive at the top of STATUS.md).
+
+---
+
+## REGATE (2026-07-13) — user rejected the certification; fixed for real
+
+The user reviewed the deployed beta: "it still has all the required
+information as a gate before going forward." They were right — the
+certification over-credited criteria 2/8. Shipped in `2e47d8f`:
+- Picture/paper-notes/docs build from ANY content (typed fragments alone);
+  typed complaints drive the briefing; no chip required.
+- All counters/step-numbers/"required"-implying failure copy removed.
+- "General / decide later" on every ward list.
+- Version honesty: /health returns the deploy sha; v-<sha> badge app-wide
+  (the deployed-version question is now answerable from the phone).
+
+Proof: `regate/` — playwright 23/23 phone light+dark (fragments-only →
+picture + paper notes; typed complaint → briefing; one-tap doc from sparse
+record; 0 checkboxes / 0 inputs / ≤1 textarea / no counters). Docker build
+steps replicated clean. Loop gate (medicine, /health being the only API
+touch): **100/100 PASS**, $0.049/call.
+
+Lesson recorded: certification is the USER's on their real screen — the
+deploy sha badge exists so "which version" can never be ambiguous again.
