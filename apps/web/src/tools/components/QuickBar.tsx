@@ -98,7 +98,7 @@ export function QuickBar({
         flash.push({ label: labelFor(k), confidence: v.confidence, note: v.note });
       }
       if (Object.keys(updates).length === 0) {
-        setError('Nothing recognised to file yet — add a bit more, or use the guided clerking below.');
+        setError('Couldn’t make out anything clinical in that — try saying it another way.');
       } else {
         onResults(updates);
         setFilled(flash);

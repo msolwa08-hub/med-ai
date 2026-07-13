@@ -233,7 +233,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
       onPatient({ rounds: [...(patient.rounds ?? []), entry] });
       onLog(stripMarkdown(text));
     } catch {
-      setRoundErr('Could not generate the round — add today’s findings or check the record, then try again.');
+      setRoundErr('Couldn’t reach the engine just now — tap to retry.');
     } finally {
       setRoundLoading(false);
     }

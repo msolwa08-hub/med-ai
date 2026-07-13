@@ -1,24 +1,24 @@
 import React from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Check, ChevronDown, type LucideIcon } from 'lucide-react';
+import { ChevronDown, type LucideIcon } from 'lucide-react';
 
-// ─── STAGE CARD — progressive disclosure for the capture stream ──────────────
-// The bedside canvas is a sequence of stages (Complaint → Story → Examine →
-// Results). Only the active stage is expanded; the rest collapse to a single
-// calm row: number, title, and a one-line summary of what's already captured.
-// This is the core anti-congestion mechanic: the page is always ~4 quiet rows
-// plus ONE working area, whatever the depth of the underlying forms.
+// ─── STAGE CARD — progressive disclosure for optional detail ─────────────────
+// A quiet collapsible section. Deliberately NOT a step: no numbers, no
+// checkmarks, no done-state — nothing here is required, in any order, ever
+// (M-GLANCE: the record is never "incomplete"). The icon+title row and a
+// one-line summary are all a collapsed section shows.
 
 export function StageCard({
-  index, title, icon: Icon, summary, done, open, onToggle, children,
+  title, icon: Icon, summary, open, onToggle, children,
 }: {
-  index: number;
+  /** Accepted for call-site compatibility; intentionally unused — sections
+   *  are not steps. */
+  index?: number;
+  done?: boolean;
   title: string;
   icon: LucideIcon;
   /** One-line filled-state description shown when collapsed. */
   summary?: string;
-  /** Renders the step marker as a confident check. */
-  done?: boolean;
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
@@ -36,17 +36,6 @@ export function StageCard({
         aria-expanded={open}
         className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 text-left group focus:outline-none focus-visible:shadow-focus rounded-card"
       >
-        <span
-          className={`grid place-items-center w-8 h-8 rounded-full shrink-0 text-[13px] font-semibold transition-colors ${
-            done
-              ? 'bg-brand-600 text-white'
-              : open
-                ? 'bg-brand-50 text-brand-700'
-                : 'bg-surface-alt text-ink-mute group-hover:text-ink-soft'
-          }`}
-        >
-          {done ? <Check className="w-4 h-4" /> : index}
-        </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <Icon className={`w-4 h-4 shrink-0 ${open ? 'text-brand-700' : 'text-ink-mute'}`} aria-hidden />

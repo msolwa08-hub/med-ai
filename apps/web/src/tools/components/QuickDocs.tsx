@@ -45,7 +45,7 @@ export function QuickDocs({ patient, toolsKey, dept, initialDoc }: {
       setCache(prev => ({ ...prev, [type]: text }));
       setActive(type);
     } catch {
-      setError('Could not generate that document — check the record has the basics, then retry.');
+      setError('Couldn’t reach the engine just now — tap to retry. Any record works, however sparse.');
     } finally {
       setLoading(null);
     }

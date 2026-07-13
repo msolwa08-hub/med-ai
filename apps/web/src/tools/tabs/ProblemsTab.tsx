@@ -253,7 +253,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           : res.note
       );
     } catch {
-      setErr('Could not generate the problem list — check the record has enough detail, or add problems manually.');
+      setErr('Couldn’t reach the engine just now — tap to retry, or add problems manually.');
     } finally {
       setSuggesting(false);
     }

@@ -301,7 +301,7 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
       setDraft(res);
       setSectionText(Object.fromEntries(res.sections.map((s, i) => [i, s.content])));
     } catch {
-      setErr('Could not draft the form — check the record has the basics (name, age, presentation) and retry.');
+      setErr('Couldn’t reach the engine just now — tap to retry.');
     } finally {
       setLoading('');
     }

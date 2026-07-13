@@ -24,7 +24,7 @@ import { StageCard } from '../components/StageCard';
 import { SlideOver } from '../components/SlideOver';
 import { QuickBar } from '../components/QuickBar';
 import { PaperNotes, StillToDo } from '../components/PaperNotes';
-import { Glance1Briefing, briefingAvailable } from '../components/Glance1Briefing';
+import { Glance1Briefing, briefingAvailable, cascadeForComplaint } from '../components/Glance1Briefing';
 import { docSpecsFor, type DocType } from '../lib/docGen';
 import { ResultsCapture, resultsSummary } from '../components/ResultsCapture';
 import { QuickDocs } from '../components/QuickDocs';
@@ -136,15 +136,18 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   const isFemale = /^f/i.test(patient.intake.sex.trim());
 
   // ── Glance 1 — the pre-encounter briefing (M-GLANCE) ───────────────────────
-  // One tap (the complaint chip) surfaces it; it yields automatically the
-  // moment encounter findings land, with a quiet re-peek afterwards.
+  // A tapped chip OR a typed complaint surfaces it — nothing is required; it
+  // yields automatically the moment encounter findings land, with a quiet
+  // re-peek afterwards.
   const preEncounter =
     !patient.history.hpi.trim() && !patient.assessment.vitals.trim() && !patient.assessment.examination.trim();
   const [briefingPeek, setBriefingPeek] = useState(false);
   const [changingComplaint, setChangingComplaint] = useState(false);
   const [tapStreamOpen, setTapStreamOpen] = useState(false);
+  const briefingCascade =
+    activeCascade ?? cascadeForComplaint(patient.history.chiefComplaint, cascades);
   const showBriefing =
-    !!activeCascade && briefingAvailable(activeCascade, dept) && (preEncounter || briefingPeek);
+    !!briefingCascade && briefingAvailable(briefingCascade, dept) && (preEncounter || briefingPeek);
 
   function cascadeChanged(cascade: SymptomCascade, v: CascadePanelValue, serialized: string) {
     const persist = patient.cascades?.[cascade.id];
@@ -316,12 +319,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   const capturedCount = Object.values(examValues).filter(v => v.trim()).length;
   const vitalsIn = vitalItems.filter(i => (examValues[i.id] ?? '').trim()).length;
   const findingsIn = capturedCount - vitalsIn;
-  const hasVitals = patient.assessment.vitals.trim().length > 0;
-  const entryCount = patient.investigations?.length ?? 0;
-  const storyDone = filledStory >= 5;
-  const examineDone = capturedCount > 0 && hasVitals;
-  const resultsDone = entryCount > 0;
-  const completeDoneCount = [storyDone, examineDone, resultsDone].filter(Boolean).length;
+  // Nothing here is "done" or "not done" — sections describe what exists,
+  // never progress toward a requirement.
 
   const [completeOpen, setCompleteOpen] = useState(false);
   const [openStage, setOpenStage] = useState<CompleteStageId | null>('story');
@@ -350,14 +349,22 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
       else if (examKeys.has(k)) aPatch[k] = v;
       else hPatch[k] = v;
     }
+    // A typed story is as good as a tapped chip: if nothing has named the
+    // complaint yet, seed it from the first clause of the HPI so the picture
+    // and briefing fire without the user ever hunting for a field.
+    if (!patient.history.chiefComplaint.trim() && !hPatch.chiefComplaint && hPatch.hpi?.trim()) {
+      hPatch.chiefComplaint = hPatch.hpi.split(/[.;\n]/)[0].trim().slice(0, 80);
+    }
     if (Object.keys(iPatch).length) onIntake(iPatch);
     if (Object.keys(hPatch).length) onHistory(hPatch);
     if (Object.keys(aPatch).length) onAssessment(aPatch);
   }
 
+  // No X/Y counters anywhere — a summary says who this is, never how much is
+  // "still missing".
   const storySummary = (() => {
     const who = [patient.intake.name, patient.intake.age && `${patient.intake.age}`].filter(Boolean).join(', ');
-    return `${who ? `${who} — ` : ''}${filledStory}/${clerkFields.length} captured`;
+    return who || 'type what you have — nothing is required';
   })();
 
   const utilityRow = (
@@ -429,7 +436,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               {cc}
             </p>
             <div className="shrink-0 flex items-center gap-3">
-              {!!activeCascade && briefingAvailable(activeCascade, dept) && (
+              {!!briefingCascade && briefingAvailable(briefingCascade, dept) && (
                 <button
                   type="button"
                   onClick={() => setBriefingPeek(o => !o)}
@@ -512,8 +519,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         )}
 
         {/* ── GLANCE 1 — before the encounter: ask / don't miss / exam focus ─── */}
-        {showBriefing && activeCascade && (
-          <Glance1Briefing cascade={activeCascade} dept={dept} subDept={subDept} isFemale={isFemale} />
+        {showBriefing && briefingCascade && (
+          <Glance1Briefing cascade={briefingCascade} dept={dept} subDept={subDept} isFemale={isFemale} />
         )}
 
         {/* Pre-encounter, the chatbox waits below the briefing — ready for the
@@ -533,8 +540,10 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           />
         )}
 
-        {/* ── CONFIRM — the hero: leading dx + the tap stream ─────────────────── */}
-        {cc && (
+        {/* ── CONFIRM — the hero. Builds from WHATEVER exists: a tapped or
+            typed complaint, or nothing but chatbox fragments. Never gated on
+            a required field (M-GLANCE). ─────────────────────────────────────── */}
+        {(cc || !preEncounter) && (
           <div className="space-y-3">
             <WorkingPicturePanel
               picture={wp.picture}
@@ -652,7 +661,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
         {/* Record + document shortcuts — below the start moment, not above it. */}
         {utilityRow}
 
-        {/* ── COMPLETE — collapsed by default; background is last by design ───── */}
+        {/* ── MORE DETAIL — optional, collapsed, never counted. No "complete",
+            no n/3: the record is never incomplete (M-GLANCE criterion 8). ───── */}
         <div className="rounded-card border border-line bg-surface shadow-card">
           <button
             type="button"
@@ -661,24 +671,19 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
           >
             <span className="min-w-0">
-              <span className="text-sm font-semibold text-ink">Complete the record</span>
-              <span className="block text-xs text-ink-mute mt-0.5">Background, exam detail, results</span>
+              <span className="text-sm font-semibold text-ink">More detail</span>
+              <span className="block text-xs text-ink-mute mt-0.5">Background, exam, results — if and when you want</span>
             </span>
-            <span className="shrink-0 flex items-center gap-2">
-              <span className="text-2xs font-medium text-ink-mute bg-surface-alt rounded-pill px-2 py-0.5">{completeDoneCount}/3</span>
-              <ChevronDown className={`w-4 h-4 text-ink-mute transition-transform duration-200 ${completeOpen ? 'rotate-180' : ''}`} aria-hidden />
-            </span>
+            <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform duration-200 ${completeOpen ? 'rotate-180' : ''}`} aria-hidden />
           </button>
 
           {completeOpen && (
             <div className="px-4 sm:px-5 pb-5 pt-1 border-t border-line/70 space-y-3">
               {/* History — background, riding smart blocks along */}
               <StageCard
-                index={1}
                 title="History"
                 icon={BookOpenText}
                 summary={storySummary}
-                done={storyDone}
                 open={openStage === 'story'}
                 onToggle={() => toggle('story')}
               >
@@ -746,13 +751,11 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                 </div>
               </StageCard>
 
-              {/* Examine */}
+              {/* Examine — the summary states what EXISTS, never what's "left". */}
               <StageCard
-                index={2}
                 title="Examine"
                 icon={Stethoscope}
-                summary={`${vitalsIn}/${vitalItems.length} vitals · ${findingsIn} finding${findingsIn === 1 ? '' : 's'}`}
-                done={examineDone}
+                summary={capturedCount > 0 ? `${capturedCount} value${capturedCount === 1 ? '' : 's'} captured` : 'values, if you have them'}
                 open={openStage === 'examine'}
                 onToggle={() => toggle('examine')}
               >
@@ -795,11 +798,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
               {/* Results — the loop's second input, same canvas */}
               <StageCard
-                index={3}
                 title="Results"
                 icon={FlaskConical}
                 summary={resultsSummary(patient)}
-                done={resultsDone}
                 open={openStage === 'results'}
                 onToggle={() => toggle('results')}
               >

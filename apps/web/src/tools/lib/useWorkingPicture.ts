@@ -13,7 +13,8 @@ import { serializeLatestResults } from './investigations';
  * Auto-fire: pass `autoSignature` — a string that changes whenever the record
  * changes (e.g. JSON of the fields that feed the picture) — and the hook will
  * debounce ~700ms and call `generate()` on its own, as long as there's a seed
- * (a non-empty chief complaint) and nothing is already in flight. The effect
+ * (ANY clinical content — complaint, HPI, vitals or exam) and nothing is
+ * already in flight. The effect
  * depends ONLY on the signature (and the seed's presence), so it fires exactly
  * once per real change — never in a render loop. Omit `autoSignature` to keep
  * the hook fully manual (existing callers).
@@ -54,18 +55,31 @@ export function useWorkingPicture(
       });
       onPatient({ workingPicture: picture });
     } catch {
-      setError('Could not build the working picture — add a bit more to the record and try again.');
+      // Honest failure copy: the engine takes ANY record, however sparse —
+      // never imply the user owes it more information.
+      setError('Couldn’t reach the engine — it will retry as you go, or tap Refresh.');
     } finally {
       inFlightRef.current = false;
       setLoading(false);
     }
   }
 
-  const seed = patient.history.chiefComplaint.trim();
+  // ANY clinical content is a seed — a chief complaint, typed fragments that
+  // landed in the HPI, vitals, or exam findings. The picture must build from
+  // whatever exists; nothing is a prerequisite (M-GLANCE).
+  const seed = [
+    patient.history.chiefComplaint,
+    patient.history.hpi,
+    patient.assessment.vitals,
+    patient.assessment.examination,
+  ]
+    .map(s => s?.trim() ?? '')
+    .join('')
+    .trim();
 
   useEffect(() => {
     if (autoSignature === undefined) return; // manual mode — no auto-fire
-    if (!seed) return; // nothing to build a picture from yet
+    if (!seed) return; // truly empty patient — nothing to read yet
     const t = setTimeout(() => {
       if (!inFlightRef.current) generate();
     }, 700);

@@ -72,8 +72,14 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
     }
   );
 
-  // Health check
-  app.get('/health', async () => ({ status: 'ok', env: betaConfig.NODE_ENV }));
+  // Health check — includes the deployed git sha (Render injects
+  // RENDER_GIT_COMMIT) so a stale deploy is visible in one glance, from a
+  // phone, without guessing.
+  app.get('/health', async () => ({
+    status: 'ok',
+    env: betaConfig.NODE_ENV,
+    sha: (process.env.RENDER_GIT_COMMIT ?? '').slice(0, 7) || 'dev',
+  }));
 
   // A clinical tool must never dead-end a request on an unexpected throw. Any
   // error that escapes a route handler becomes a clean JSON 500 (or the error's

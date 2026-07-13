@@ -59,6 +59,17 @@ export function SubDeptSelector({ dept, options, onSelect, onBack }: {
         animate="show"
         variants={{ show: { transition: { staggerChildren: reduce ? 0 : 0.04 } } }}
       >
+        {/* Never a dead-end: the ward pick is context, not a requirement. */}
+        {!options.some(o => o.id === 'general') && (
+          <motion.button
+            key="general-skip"
+            variants={{ hidden: reduce ? {} : { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+            onClick={() => onSelect('general')}
+            className="col-span-2 group bg-surface border border-dashed border-line hover:border-brand-200 rounded-card px-5 py-3.5 text-center transition-all duration-150 shadow-card focus:outline-none focus-visible:shadow-focus"
+          >
+            <p className="text-ink-soft font-medium text-sm">General / decide later</p>
+          </motion.button>
+        )}
         {options.map(s => {
           const Icon = subDeptIcon(s.id);
           return (

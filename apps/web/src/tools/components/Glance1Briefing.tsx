@@ -16,6 +16,34 @@ export function briefingAvailable(cascade: SymptomCascade | undefined, dept: Dep
   return !!cascade && mustNotMissFor(cascade.id, dept).length > 0;
 }
 
+// A TYPED complaint is as good as a tapped chip: match free text to a cascade
+// so the briefing never depends on the user finding the right button.
+const COMPLAINT_ALIASES: Record<string, RegExp> = {
+  'chest-pain': /chest (pain|tight|discomfort)|angina/i,
+  sob: /short(ness)? of breath|dyspn|\bsob\b|difficulty breathing|can'?t breathe/i,
+  'abdo-pain': /abdo|stomach (pain|ache)|belly|epigastr|tummy/i,
+  headache: /headache|head ache|head pain/i,
+  fever: /fever|febrile|pyrexi|high temp/i,
+  trauma: /trauma|injur|accident|\bMVA\b|\bPVA\b|assault|stab|shot|fell|fall\b/i,
+  'pv-bleeding': /pv bleed|vaginal bleed|bleeding pv|bleeding per vagina/i,
+  'reduced-loc': /reduced (loc|level)|unconscious|unresponsive|drowsy|confus|not waking/i,
+  seizure: /seizure|convuls|fitting|\bfits?\b|epilep/i,
+  'joint-limb-pain': /joint pain|limb pain|leg pain|arm pain|knee|hip pain|shoulder pain|swollen joint/i,
+  cough: /cough|coughing/i,
+  'vomiting-diarrhoea': /vomit|diarrh|gastro\b|loose stool/i,
+  'psych-presentation': /psych|halluc|suicid|self-?harm|aggress|psychosis|behaviou?r/i,
+};
+
+export function cascadeForComplaint(text: string, cascades: SymptomCascade[]): SymptomCascade | undefined {
+  const t = text.trim();
+  if (!t) return undefined;
+  return (
+    cascades.find(c => c.label.toLowerCase() === t.toLowerCase()) ??
+    cascades.find(c => COMPLAINT_ALIASES[c.id]?.test(t)) ??
+    cascades.find(c => t.toLowerCase().includes(c.label.toLowerCase()))
+  );
+}
+
 function Cluster({ icon: Icon, title, items, tone }: {
   icon: typeof Eye;
   title: string;

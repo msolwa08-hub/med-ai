@@ -3,6 +3,7 @@ import LandingPage from './LandingPage';
 import ChatView from './components/ChatView';
 import { DoctorApp } from './doctor/DoctorApp';
 import { ToolsApp } from './tools/ToolsApp';
+import { VersionBadge } from './components/VersionBadge';
 
 type Route = 'landing' | 'chat' | 'doctor' | 'tools';
 
@@ -31,12 +32,20 @@ export default function App() {
     setRoute(r);
   }
 
-  if (route === 'chat') {
-    const sessionId = new URLSearchParams(window.location.search).get('s') ?? '';
-    return <ChatView sessionId={sessionId} />;
-  }
-  if (route === 'doctor') return <DoctorApp onBack={() => navigate('landing')} />;
-  if (route === 'tools') return <ToolsApp onBack={() => navigate('landing')} />;
+  const view = (() => {
+    if (route === 'chat') {
+      const sessionId = new URLSearchParams(window.location.search).get('s') ?? '';
+      return <ChatView sessionId={sessionId} />;
+    }
+    if (route === 'doctor') return <DoctorApp onBack={() => navigate('landing')} />;
+    if (route === 'tools') return <ToolsApp onBack={() => navigate('landing')} />;
+    return <LandingPage onNavigate={navigate} />;
+  })();
 
-  return <LandingPage onNavigate={navigate} />;
+  return (
+    <>
+      {view}
+      <VersionBadge />
+    </>
+  );
 }
