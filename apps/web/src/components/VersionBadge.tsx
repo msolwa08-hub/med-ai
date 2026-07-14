@@ -19,7 +19,8 @@ export function VersionBadge() {
   return (
     <div
       aria-hidden
-      className="fixed bottom-1 left-2 z-50 text-[10px] leading-none text-ink-mute/60 select-none pointer-events-none"
+      className="fixed bottom-3 left-3 z-[999] rounded-full bg-black/70 px-2 py-1 text-[11px] font-mono leading-none text-white shadow-e2 select-none pointer-events-none"
+      style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
     >
       v-{sha}
     </div>
