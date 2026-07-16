@@ -14,6 +14,8 @@ function getRoute(): Route {
   if (params.get('s')) return 'chat';
   if (path === '/doctor') return 'doctor';
   if (path === '/tools') return 'tools';
+  // Auto-route to tools if the user has already set up their key
+  if (path === '/' && localStorage.getItem('medai_tools_key')) return 'tools';
   return 'landing';
 }
 
