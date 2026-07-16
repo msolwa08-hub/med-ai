@@ -192,7 +192,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="text-sm bg-surface-alt hover:bg-brand-50 disabled:opacity-40 text-brand-700 px-3.5 py-1.5 rounded-full font-medium transition-colors"
+            className="text-sm bg-surface-alt hover:bg-brand-50 disabled:opacity-40 text-brand-700 px-3.5 min-h-[44px] rounded-full font-medium transition-colors inline-flex items-center"
             title="Photograph the doctor's handwritten notes — the AI reads them and fills the form, flagging anything it can't decipher"
           >
             {scanning ? 'Reading handwriting…' : '📷 Scan notes'}

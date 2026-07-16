@@ -17,7 +17,7 @@ function Line({ text, tag, struck, onTap }: { text: string; tag?: string; struck
       type="button"
       onClick={onTap}
       aria-pressed={struck}
-      className={`w-full flex items-baseline gap-2 text-left rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-surface-alt focus:outline-none focus-visible:shadow-focus ${
+      className={`w-full flex items-baseline gap-2 text-left rounded-lg px-2 min-h-[44px] py-2 -mx-2 transition-colors hover:bg-surface-alt focus:outline-none focus-visible:shadow-focus ${
         struck ? 'opacity-40' : ''
       }`}
     >

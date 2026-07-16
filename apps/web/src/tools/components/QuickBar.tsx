@@ -166,7 +166,7 @@ export function QuickBar({
             onClick={toggleMic}
             aria-label={listening ? 'Stop dictation' : 'Dictate'}
             title={listening ? 'Stop dictation' : 'Dictate'}
-            className={`absolute top-2.5 right-2.5 grid place-items-center w-9 h-9 rounded-lg transition-colors focus:outline-none focus-visible:shadow-focus ${
+            className={`absolute top-2 right-2 grid place-items-center w-11 h-11 rounded-lg transition-colors focus:outline-none focus-visible:shadow-focus ${
               listening ? 'bg-danger text-white animate-pulse' : 'bg-surface-alt text-ink-soft hover:text-brand-700'
             }`}
           >

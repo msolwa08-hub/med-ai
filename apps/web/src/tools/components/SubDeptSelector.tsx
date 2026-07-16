@@ -44,7 +44,7 @@ export function SubDeptSelector({ dept, options, onSelect, onBack }: {
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         className="mb-9 text-center"
       >
-        <button onClick={onBack} className="text-ink-mute hover:text-ink-soft text-sm mb-6 transition-colors">
+        <button onClick={onBack} className="text-ink-mute hover:text-ink-soft text-sm min-h-[44px] px-3 mb-6 rounded-lg transition-colors">
           ← Back to departments
         </button>
         <div className="mx-auto mb-4 grid place-items-center w-12 h-12 rounded-lg bg-brand-50 dark:bg-brand-500/15">

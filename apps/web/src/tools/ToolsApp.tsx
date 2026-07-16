@@ -132,7 +132,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         <button
           onClick={() => setSettingsOpen(true)}
           title={`${deptInfo.label} — tap to change`}
-          className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink bg-surface-alt px-2.5 py-1.5 rounded-lg transition-colors"
+          className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink bg-surface-alt px-2.5 min-h-[44px] rounded-lg transition-colors"
         >
           <DeptIcon className="w-4 h-4 shrink-0" />
           <span className="hidden sm:inline truncate">{deptInfo.label}</span>
@@ -213,7 +213,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     <button
                       onClick={() => removePatient(p.id)}
                       aria-label="Remove patient"
-                      className="shrink-0 grid place-items-center w-9 h-9 rounded-md text-ink-mute hover:text-danger hover:bg-danger/10 transition-colors"
+                      className="shrink-0 grid place-items-center w-11 h-11 rounded-md text-ink-mute hover:text-danger hover:bg-danger/10 transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>

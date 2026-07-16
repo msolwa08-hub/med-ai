@@ -510,7 +510,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
             </div>
             <button
               onClick={() => removeProblem(p.id)}
-              className="text-ink-mute hover:text-danger transition-colors shrink-0 p-1 -mr-1"
+              className="text-ink-mute hover:text-danger transition-colors shrink-0 grid place-items-center w-11 h-11 rounded-lg -mr-2 -mt-1"
               aria-label="Remove problem"
             >
               <X className="w-4 h-4" aria-hidden />

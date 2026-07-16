@@ -30,7 +30,7 @@ export function SettingsPanel({ dept, subDept, onDept, onSubDept, onClearData }:
               <button
                 key={d.id}
                 onClick={() => onDept(d.id)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors text-left ${
+                className={`flex items-center gap-2 px-3 min-h-[44px] rounded-xl border text-sm font-medium transition-colors text-left ${
                   active
                     ? 'bg-brand-50 border-brand-200 text-brand-800'
                     : 'bg-surface border-line text-ink-soft hover:border-brand-200 hover:bg-brand-50/50'
@@ -56,7 +56,7 @@ export function SettingsPanel({ dept, subDept, onDept, onSubDept, onClearData }:
                 <button
                   key={s.id}
                   onClick={() => onSubDept(s.id)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors text-left ${
+                  className={`flex items-center gap-2 px-3 min-h-[44px] rounded-xl border text-sm font-medium transition-colors text-left ${
                     active
                       ? 'bg-brand-50 border-brand-200 text-brand-800'
                       : 'bg-surface border-line text-ink-soft hover:border-brand-200 hover:bg-brand-50/50'
