@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 // go stale, and a cached old bundle will still reveal itself by disagreeing
 // with what the user expects.
 
+const APP_VERSION = '2.1.0';
+
 export function VersionBadge() {
   const [sha, setSha] = useState('');
   useEffect(() => {
@@ -15,18 +17,13 @@ export function VersionBadge() {
       .then(d => setSha(typeof d?.sha === 'string' ? d.sha : ''))
       .catch(() => {});
   }, []);
-  if (!sha) return null;
   return (
     <div
       aria-hidden
-      // Sits just under the top status bar / app header row (which occupies
-      // roughly the first ~3.25rem on the screens that have one) rather than
-      // in a corner, where in-app back/theme buttons or a mobile browser's
-      // own toolbar chrome can otherwise sit on top of it.
       className="fixed right-2 z-[999] rounded-full bg-black/70 px-2 py-1 text-[10px] font-mono leading-none text-white shadow-e2 select-none pointer-events-none"
       style={{ top: 'calc(env(safe-area-inset-top, 0px) + 3.25rem)' }}
     >
-      v-{sha}
+      {APP_VERSION}{sha ? `-${sha}` : ''}
     </div>
   );
 }
