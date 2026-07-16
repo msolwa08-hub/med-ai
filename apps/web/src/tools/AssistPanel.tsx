@@ -173,7 +173,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
   };
 
   return (
-    <div className="bg-surface border border-line rounded-3xl shadow-sm px-6 py-7 sm:px-8 space-y-5">
+    <div className="bg-surface border border-line rounded-3xl shadow-sm px-4 py-5 sm:px-6 space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h3 className="text-2xs font-semibold text-brand-600 uppercase tracking-[0.14em]">
           {section}
@@ -205,7 +205,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       ) : (
         <p
           key={question || '__pending__'}
-          className={`animate-question-in text-2xl sm:text-3xl font-semibold leading-snug tracking-tight ${done ? 'text-positive' : 'text-ink'}`}
+          className={`animate-question-in text-lg sm:text-xl font-semibold leading-snug tracking-tight ${done ? 'text-positive' : 'text-ink'}`}
         >
           {busy && !question ? (
             <span className="text-ink-mute">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>

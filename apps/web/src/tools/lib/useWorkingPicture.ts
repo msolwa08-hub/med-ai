@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toolsApi, type WorkingPicture } from '../toolsApi';
 import type { DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
@@ -29,40 +29,54 @@ export function useWorkingPicture(
 ) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // Mirrors `loading` synchronously so the debounced auto-fire timer can check
-  // "is a request already in flight" without depending on `loading` state
-  // (which would re-trigger the effect and risk a loop).
   const inFlightRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const strip = (o: Record<string, unknown>): Record<string, string | undefined> =>
     Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'string' ? v : undefined]));
 
-  async function generate() {
+  const patientRef = useRef(patient);
+  patientRef.current = patient;
+  const deptRef = useRef(dept);
+  deptRef.current = dept;
+  const subDeptRef = useRef(subDept);
+  subDeptRef.current = subDept;
+
+  const generate = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     inFlightRef.current = true;
     setLoading(true);
     setError('');
     try {
-      const resultsText = serializeLatestResults(patient.investigations ?? []);
+      const p = patientRef.current;
+      const resultsText = serializeLatestResults(p.investigations ?? []);
       const picture = await toolsApi.workingPicture(toolsKey, {
-        dept,
-        subDept,
-        intake: strip(patient.intake),
-        history: strip(patient.history),
-        assessment: strip(patient.assessment),
-        problems: patient.problems.map(p => [p.problem, p.workingDx].filter(Boolean).join(' — ')).filter(Boolean),
+        dept: deptRef.current,
+        subDept: subDeptRef.current,
+        intake: strip(p.intake),
+        history: strip(p.history),
+        assessment: strip(p.assessment),
+        problems: p.problems.map(pr => [pr.problem, pr.workingDx].filter(Boolean).join(' — ')).filter(Boolean),
         resultsText: resultsText || undefined,
-        previousPicture: patient.workingPicture ? { differentials: patient.workingPicture.differentials } : null,
+        previousPicture: p.workingPicture ? { differentials: p.workingPicture.differentials } : null,
       });
-      onPatient({ workingPicture: picture });
+      if (!controller.signal.aborted) {
+        onPatient({ workingPicture: picture });
+      }
     } catch {
-      // Honest failure copy: the engine takes ANY record, however sparse —
-      // never imply the user owes it more information.
-      setError('Couldn’t reach the engine — it will retry as you go, or tap Refresh.');
+      if (!controller.signal.aborted) {
+        setError("Couldn't reach the engine — it will retry as you go, or tap Refresh.");
+      }
     } finally {
-      inFlightRef.current = false;
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        inFlightRef.current = false;
+        setLoading(false);
+      }
     }
-  }
+  }, [toolsKey, onPatient]);
 
   // ANY clinical content is a seed — a chief complaint, typed fragments that
   // landed in the HPI, vitals, or exam findings. The picture must build from

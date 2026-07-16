@@ -59,8 +59,11 @@ function Row({ field, editing, onStart, onDone, onEdit }: {
 
   return (
     <div
-      className={`px-5 py-3.5 flex gap-4 cursor-pointer transition-colors ${editing ? 'bg-brand-50/40' : 'hover:bg-surface-alt/70'} ${kind === 'textarea' ? 'items-start' : 'items-center'} ${flash ? 'animate-field-fill' : ''}`}
+      role={editing ? undefined : 'button'}
+      tabIndex={editing ? -1 : 0}
+      className={`px-5 py-3.5 flex gap-4 cursor-pointer transition-colors ${editing ? 'bg-brand-50/40' : 'hover:bg-surface-alt/70 focus-visible:bg-surface-alt/70 focus-visible:shadow-focus'} ${kind === 'textarea' ? 'items-start' : 'items-center'} ${flash ? 'animate-field-fill' : ''}`}
       onClick={() => { if (!editing) onStart(); }}
+      onKeyDown={e => { if (!editing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onStart(); } }}
     >
       <div className={`w-36 sm:w-44 shrink-0 text-sm text-ink-mute ${kind === 'textarea' ? 'pt-1' : ''}`}>
         {field.label}

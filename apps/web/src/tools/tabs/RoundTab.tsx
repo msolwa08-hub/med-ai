@@ -221,8 +221,17 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
       setRoundSafety(res.safety ?? []);
       // Persist silently so the trajectory feeds the next round — no accordion,
       // just a quiet one-line count.
+      const entryDate = res.date || new Date().toISOString().slice(0, 10);
+      const prevRounds = patient.rounds ?? [];
+      const lastRound = prevRounds[prevRounds.length - 1];
+      if (lastRound && lastRound.date === entryDate && lastRound.onHistory === res.onHistory) {
+        setRoundText(text);
+        setRoundSafety(res.safety ?? []);
+        setRoundLoading(false);
+        return;
+      }
       const entry: WardRoundUpdate = {
-        date: res.date || new Date().toISOString().slice(0, 10),
+        date: entryDate,
         onHistory: res.onHistory,
         onExamination: res.onExamination,
         examsToRepeatToday: res.examsToRepeatToday ?? [],

@@ -46,6 +46,7 @@
     font-family: theme('fontFamily.sans');
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    overscroll-behavior-y: contain;
   }
   body {
     @apply bg-canvas text-ink antialiased;
@@ -57,6 +58,7 @@
 }
 
 @layer utilities {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
   .scrollbar-thin { scrollbar-width: thin; }
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {

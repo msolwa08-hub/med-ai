@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { storage } from '../../storage';
 import { SUB_DEPARTMENTS, type DeptId } from '../config/departments';
 import type { Patient } from '../fields/types';
@@ -28,60 +28,77 @@ export function useToolsState() {
   );
   const [activeTab, setActiveTab] = useState<Tab>('clerk');
 
+  const persistTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
-    storage.setToolsState({ dept, subDept, patients, activePatientId });
+    clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => {
+      storage.setToolsState({ dept, subDept, patients, activePatientId });
+    }, 400);
+    return () => clearTimeout(persistTimer.current);
   }, [dept, subDept, patients, activePatientId]);
 
-  function handleKey(k: string) {
+  const handleKey = useCallback((k: string) => {
     storage.setToolsKey(k);
     setKey(k);
-  }
+  }, []);
 
-  function ensurePatient(d: DeptId) {
-    if (patients.length === 0) {
-      const p = newPatient(d);
-      setPatients([p]);
-      setActivePatientId(p.id);
-    } else if (!activePatientId) {
-      setActivePatientId(patients[0].id);
-    }
-  }
+  const deptRef = useRef(dept);
+  deptRef.current = dept;
 
-  function selectDept(d: DeptId) {
+  const selectDept = useCallback((d: DeptId) => {
     setDept(d);
     setSubDept(null);
-    // Departments without sub-departments skip straight to the patient view.
-    if (!SUB_DEPARTMENTS[d]) ensurePatient(d);
-  }
+    if (!SUB_DEPARTMENTS[d]) {
+      setPatients(prev => {
+        if (prev.length === 0) {
+          const p = newPatient(d);
+          setActivePatientId(p.id);
+          return [p];
+        }
+        setActivePatientId(cur => cur ?? prev[0].id);
+        return prev;
+      });
+    }
+  }, []);
 
-  function selectSubDept(s: string) {
+  const selectSubDept = useCallback((s: string) => {
     setSubDept(s);
-    if (dept) ensurePatient(dept);
-  }
+    const d = deptRef.current;
+    if (d) {
+      setPatients(prev => {
+        if (prev.length === 0) {
+          const p = newPatient(d);
+          setActivePatientId(p.id);
+          return [p];
+        }
+        setActivePatientId(cur => cur ?? prev[0].id);
+        return prev;
+      });
+    }
+  }, []);
 
-  function addPatient() {
-    if (!dept) return;
-    const p = newPatient(dept);
+  const addPatient = useCallback(() => {
+    const d = deptRef.current;
+    if (!d) return;
+    const p = newPatient(d);
     setPatients(prev => [...prev, p]);
     setActivePatientId(p.id);
     setActiveTab('clerk');
-  }
+  }, []);
 
-  function removePatient(id: string) {
+  const removePatient = useCallback((id: string) => {
     setPatients(prev => {
       const next = prev.filter(p => p.id !== id);
-      if (activePatientId === id) {
-        setActivePatientId(next[0]?.id ?? null);
-      }
+      setActivePatientId(cur => cur === id ? (next[0]?.id ?? null) : cur);
       return next;
     });
-  }
+  }, []);
 
   const updatePatient = useCallback((id: string, patch: Partial<Patient>) => {
     setPatients(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)));
   }, []);
 
-  return {
+  return useMemo(() => ({
     key,
     handleKey,
     dept,
@@ -98,5 +115,5 @@ export function useToolsState() {
     addPatient,
     removePatient,
     updatePatient,
-  };
+  }), [key, handleKey, dept, subDept, patients, activePatientId, activeTab, selectDept, selectSubDept, addPatient, removePatient, updatePatient]);
 }

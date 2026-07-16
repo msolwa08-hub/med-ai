@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toolsApi, type Discrepancy, type DiscriminatingFeature } from '../toolsApi';
 import { AssistPanel } from '../AssistPanel';
 import { DetailsList } from '../DetailsList';
@@ -86,14 +86,16 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
   // The "alarmed discrepancy" net — deterministic, instant, flag-and-guide.
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
+  const consistencySeq = useRef(0);
   const intakeSig = JSON.stringify(patient.intake);
   const historySig = JSON.stringify(patient.history);
   const assessmentSig = JSON.stringify(patient.assessment);
   useEffect(() => {
     const record: Record<string, string | undefined> = { ...patient.intake, ...patient.history, ...patient.assessment };
+    const seq = ++consistencySeq.current;
     const t = setTimeout(() => {
       toolsApi.checkConsistency(toolsKey, { record, subDept })
-        .then(r => setDiscrepancies(r.discrepancies || []))
+        .then(r => { if (seq === consistencySeq.current) setDiscrepancies(r.discrepancies || []); })
         .catch(() => {});
     }, 600);
     return () => clearTimeout(t);

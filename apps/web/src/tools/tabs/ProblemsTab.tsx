@@ -466,12 +466,22 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
                 />
                 {p.management.length > 0 && (
                   <ul className="mt-2 space-y-1">
-                    {p.management.map((m, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-ink-soft">
-                        <input type="checkbox" className="mt-0.5 accent-brand-600" />
-                        {m}
-                      </li>
-                    ))}
+                    {p.management.map((m, i) => {
+                      const done = !!(p.managementDone?.[i]);
+                      return (
+                        <li key={i} className={`flex items-start gap-2 text-xs text-ink-soft ${done ? 'line-through opacity-60' : ''}`}>
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 accent-brand-600"
+                            checked={done}
+                            onChange={() => updateProblem(p.id, {
+                              managementDone: { ...p.managementDone, [i]: !done },
+                            })}
+                          />
+                          {m}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>

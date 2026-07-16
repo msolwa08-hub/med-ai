@@ -23,7 +23,7 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState<'good' | 'bad' | 'idea'>('idea');
   const [note, setNote] = useState('');
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<'ok' | 'err' | false>(false);
   const [sending, setSending] = useState(false);
 
   async function send() {
@@ -31,13 +31,12 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
     setSending(true);
     try {
       await toolsApi.sendFeedback(toolsKey, { screen, dept, subDept, rating, note: note.trim() });
-      setSent(true);
+      setSent('ok');
       setNote('');
       setTimeout(() => { setSent(false); setOpen(false); }, 1400);
     } catch {
-      // A dropped beta note is not worth an error dialog on a ward.
-      setSent(true);
-      setTimeout(() => { setSent(false); setOpen(false); }, 1400);
+      setSent('err');
+      setTimeout(() => setSent(false), 2500);
     } finally {
       setSending(false);
     }
@@ -63,8 +62,10 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
             </button>
           </div>
           {sent ? (
-            <p className="flex items-center justify-center gap-1.5 text-sm text-positive py-3">
-              <Check className="w-4 h-4" aria-hidden /> Thanks — logged.
+            <p className={`flex items-center justify-center gap-1.5 text-sm py-3 ${sent === 'ok' ? 'text-positive' : 'text-warn'}`}>
+              {sent === 'ok'
+                ? <><Check className="w-4 h-4" aria-hidden /> Thanks — logged.</>
+                : 'Could not send — try again later.'}
             </p>
           ) : (
             <>

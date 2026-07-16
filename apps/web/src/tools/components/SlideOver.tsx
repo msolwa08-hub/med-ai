@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 
 // ─── SLIDE-OVER — a right-hand sheet for secondary surfaces ──────────────────
 // The full editable record and generated documents live here: one tap away,
 // never occupying the bedside canvas. Esc / backdrop / X all close it.
+// Focus is trapped inside while open so Tab never escapes behind the overlay.
+
+const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 export function SlideOver({ open, onClose, title, children, wide }: {
   open: boolean;
@@ -14,11 +17,32 @@ export function SlideOver({ open, onClose, title, children, wide }: {
   wide?: boolean;
 }) {
   const reduce = useReducedMotion();
+  const panelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusable = panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const t = setTimeout(() => {
+      const firstFocusable = panelRef.current?.querySelector<HTMLElement>(FOCUSABLE);
+      firstFocusable?.focus();
+    }, 50);
+    return () => { window.removeEventListener('keydown', onKey); clearTimeout(t); };
   }, [open, onClose]);
 
   return (
@@ -33,6 +57,7 @@ export function SlideOver({ open, onClose, title, children, wide }: {
             onClick={onClose}
           />
           <motion.div
+            ref={panelRef}
             className={`absolute inset-y-0 right-0 w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'} bg-canvas shadow-elevated flex flex-col`}
             initial={reduce ? false : { x: '100%' }}
             animate={{ x: 0 }}

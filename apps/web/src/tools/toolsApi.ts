@@ -53,6 +53,7 @@ export interface Problem {
   differentials: string[];
   management: string[];
   status: 'active' | 'resolving' | 'resolved';
+  managementDone?: Record<number, boolean>;
   icd10?: string;
   stgCondition?: string;
   protocolTitle?: string;
