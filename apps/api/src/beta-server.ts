@@ -43,9 +43,7 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
 try {
   await app.listen({ port: betaConfig.PORT, host: '0.0.0.0' });
   console.log(`\n🏥 MedAI Beta Server running on http://localhost:${betaConfig.PORT}`);
-  console.log(`   API Key (beta):   ${betaConfig.BETA_ACCESS_KEYS}`);
-  console.log(`   API Key (doctor): ${betaConfig.BETA_DOCTOR_KEYS}`);
-  console.log(`   API Key (tools):  ${betaConfig.BETA_TOOLS_KEYS}\n`);
+  console.log(`   Access keys:      configured (${[betaConfig.BETA_ACCESS_KEYS, betaConfig.BETA_DOCTOR_KEYS, betaConfig.BETA_TOOLS_KEYS].filter(Boolean).length} of 3 set)\n`);
 } catch (err) {
   app.log.error(err);
   process.exit(1);

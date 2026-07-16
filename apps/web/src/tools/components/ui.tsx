@@ -133,7 +133,8 @@ export function DocOutput({ text, onCopy }: { text: string; onCopy?: () => void 
       <div className="flex justify-end px-3 py-1.5 border-b border-line">
         <button
           onClick={() => { copy(clean); setCopied(true); setTimeout(() => setCopied(false), 1400); onCopy?.(); }}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-soft hover:text-ink transition-colors"
+          aria-label="Copy to clipboard"
+          className="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-xs text-ink-soft hover:text-ink transition-colors"
         >
           {copied ? <Check className="w-3.5 h-3.5 text-band-confirmed" /> : <CopyIcon className="w-3.5 h-3.5" />}
           {copied ? 'Copied' : 'Copy'}

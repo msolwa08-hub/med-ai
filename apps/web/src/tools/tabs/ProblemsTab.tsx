@@ -332,13 +332,13 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           <button
             onClick={checkInteractions}
             disabled={checking}
-            className="inline-flex items-center gap-1.5 text-sm bg-surface-alt hover:bg-warn/10 disabled:opacity-40 text-warn px-3.5 py-2 rounded-full font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm bg-surface-alt hover:bg-warn/10 disabled:opacity-40 text-warn min-h-[44px] px-3.5 rounded-full font-medium transition-colors"
           >
             {checking ? 'Checking…' : (<><TriangleAlert className="w-3.5 h-3.5" aria-hidden /> Check interactions</>)}
           </button>
           <button
             onClick={addProblem}
-            className="text-sm text-brand-600 hover:text-brand-700 transition-colors"
+            className="inline-flex items-center min-h-[44px] px-3 text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
           >
             + Add Problem
           </button>

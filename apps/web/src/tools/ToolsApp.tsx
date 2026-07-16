@@ -92,7 +92,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         <button
           onClick={onBack}
           aria-label="Back"
-          className="shrink-0 grid place-items-center w-9 h-9 -ml-1 rounded-lg text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors"
+          className="shrink-0 grid place-items-center w-11 h-11 -ml-1 rounded-lg text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors"
         >
           <ArrowLeft className="w-[18px] h-[18px]" />
         </button>
@@ -121,7 +121,8 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           <button
             onClick={() => updatePatient(activePatient.id, { practice: !activePatient.practice })}
             title="Toggle practice mode"
-            className={`shrink-0 grid place-items-center w-9 h-9 rounded-lg border transition-colors ${
+            aria-label="Toggle practice mode"
+            className={`shrink-0 grid place-items-center w-11 h-11 rounded-lg border transition-colors ${
               activePatient.practice
                 ? 'bg-warn/10 border-warn/30 text-warn'
                 : 'bg-surface border-line text-ink-mute hover:text-ink-soft'
@@ -134,14 +135,14 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         <button
           onClick={() => setSettingsOpen(true)}
           aria-label="Settings"
-          className="shrink-0 grid place-items-center w-9 h-9 rounded-lg text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors"
+          className="shrink-0 grid place-items-center w-11 h-11 rounded-lg text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors"
         >
           <Settings className="w-[18px] h-[18px]" />
         </button>
 
         <button
           onClick={addPatient}
-          className="shrink-0 text-sm font-medium bg-brand-700 hover:bg-brand-600 active:bg-brand-800 text-white pl-2.5 pr-3 h-9 rounded-lg transition-colors inline-flex items-center gap-1"
+          className="shrink-0 text-sm font-medium bg-brand-700 hover:bg-brand-600 active:bg-brand-800 text-white pl-2.5 pr-3 h-11 rounded-lg transition-colors inline-flex items-center gap-1"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Patient</span>
@@ -181,7 +182,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     <button
                       onClick={() => removePatient(p.id)}
                       aria-label="Remove patient"
-                      className="shrink-0 grid place-items-center w-9 h-9 rounded-md text-ink-mute hover:text-band-exclude hover:bg-danger/10 transition-colors"
+                      className="shrink-0 grid place-items-center w-9 h-9 rounded-md text-ink-mute hover:text-danger hover:bg-danger/10 transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -214,12 +215,14 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           )}
 
           {/* Tabs */}
-          <div className="bg-surface/85 backdrop-blur-md border-b border-line flex overflow-x-auto shrink-0 scrollbar-thin">
+          <div role="tablist" aria-label="Patient sections" className="bg-surface/85 backdrop-blur-md border-b border-line flex overflow-x-auto shrink-0 scrollbar-thin">
             {tabs.map(t => (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={currentTab === t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                className={`px-4 min-h-[44px] text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
                   currentTab === t.id
                     ? 'text-brand-700 border-brand-500 bg-brand-50/60'
                     : 'text-ink-soft border-transparent hover:text-ink'

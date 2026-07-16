@@ -39,8 +39,10 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
     bodyLimit: 12 * 1024 * 1024,
   });
 
+  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173,http://localhost:3000')
+    .split(',').map(o => o.trim()).filter(Boolean);
   await app.register(cors, {
-    origin: true,
+    origin: betaConfig.NODE_ENV === 'production' ? ALLOWED_ORIGINS : true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 

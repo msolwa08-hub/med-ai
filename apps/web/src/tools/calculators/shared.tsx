@@ -12,11 +12,13 @@ export function CalcCard({ title, children }: { title: string; children: React.R
   );
 }
 
+let rowCounter = 0;
 export function Row({ label, children }: { label: string; children?: React.ReactNode }) {
+  const id = React.useMemo(() => `calc-${++rowCounter}`, []);
   return (
     <div className="flex items-center gap-3 py-1">
-      <span className="text-xs text-ink-mute w-40 shrink-0">{label}</span>
-      <div className="flex-1">{children}</div>
+      <label htmlFor={id} className="text-xs text-ink-mute w-40 shrink-0">{label}</label>
+      <div className="flex-1">{children && React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<{ id?: string }>, { id }) : children}</div>
     </div>
   );
 }

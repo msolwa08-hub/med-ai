@@ -98,7 +98,7 @@ function DifferentialCard({ d, reduce, hero }: { d: WeightedDifferential; reduce
                 <span className="shrink-0 inline-flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-positive">
                   <Check className="w-3 h-3" aria-hidden /> For
                 </span>
-                <p className="text-xs text-ink-soft leading-snug flex-1">{d.supporting.join(' · ')}</p>
+                <p className="text-xs text-ink leading-snug flex-1">{d.supporting.join(' · ')}</p>
               </div>
             )}
             {d.against.length > 0 && (
@@ -106,7 +106,7 @@ function DifferentialCard({ d, reduce, hero }: { d: WeightedDifferential; reduce
                 <span className="shrink-0 inline-flex items-center gap-1 text-2xs font-bold uppercase tracking-wide text-warn">
                   <X className="w-3 h-3" aria-hidden /> Against
                 </span>
-                <p className="text-xs text-ink-soft leading-snug flex-1">{d.against.join(' · ')}</p>
+                <p className="text-xs text-ink leading-snug flex-1">{d.against.join(' · ')}</p>
               </div>
             )}
           </div>
@@ -123,7 +123,7 @@ function DifferentialCard({ d, reduce, hero }: { d: WeightedDifferential; reduce
                 <p className="text-sm leading-snug flex-1">
                   <span className="font-semibold text-ink">{t.test}</span>
                   {t.priority === 'now' && <span className="ml-1.5 text-danger font-bold">NOW</span>}
-                  <span className="text-ink-soft"> — {t.moves}</span>
+                  <span className="text-ink"> — {t.moves}</span>
                 </p>
               </div>
             ))}

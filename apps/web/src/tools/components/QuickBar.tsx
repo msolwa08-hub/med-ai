@@ -205,7 +205,7 @@ export function QuickBar({
         {listening && <span className="text-2xs text-danger font-medium">● listening…</span>}
       </div>
 
-      {error && <p className="mt-2 text-sm text-band-exclude">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       <AnimatePresence>
         {filled.length > 0 && (

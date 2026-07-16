@@ -99,9 +99,9 @@ function HandoverSheet({ title, text, onChange, onPrint }: {
     <Card elevation="e1" className="mt-4 overflow-hidden print:shadow-none print:border-0">
       <div className="flex items-center justify-between px-5 py-3 border-b border-line print:hidden">
         <span className="text-sm font-semibold text-ink-soft">{title}</span>
-        <div className="flex items-center gap-4">
-          <button onClick={() => copy(stripMarkdown(text))} className="text-sm text-brand-700 hover:text-brand-900 font-medium">Copy</button>
-          <button onClick={onPrint} className="text-sm text-ink-soft hover:text-ink font-medium">Print</button>
+        <div className="flex items-center gap-1">
+          <button onClick={() => copy(stripMarkdown(text))} aria-label="Copy note" className="text-sm text-brand-700 hover:text-brand-900 font-medium min-h-[44px] px-3">Copy</button>
+          <button onClick={onPrint} aria-label="Print note" className="text-sm text-ink-soft hover:text-ink font-medium min-h-[44px] px-3">Print</button>
         </div>
       </div>
       <textarea
@@ -466,7 +466,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
           outerClassName={printing === 'presentation' ? 'print:hidden' : ''}
         >
           <div className="flex justify-end mb-2 print:hidden">
-            <button onClick={() => copy(progressLogText)} className="text-sm text-brand-700 hover:text-brand-900 font-medium">
+            <button onClick={() => copy(progressLogText)} aria-label="Copy all progress notes" className="text-sm text-brand-700 hover:text-brand-900 font-medium min-h-[44px] px-3">
               Copy all
             </button>
           </div>

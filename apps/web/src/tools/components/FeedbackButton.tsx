@@ -58,7 +58,7 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
         <Card elevation="hero" className="fixed right-4 z-40 w-[min(92vw,340px)] p-4 space-y-3" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-ink">Quick feedback</span>
-            <button onClick={() => setOpen(false)} aria-label="Close" className="text-ink-mute hover:text-ink-soft p-0.5">
+            <button onClick={() => setOpen(false)} aria-label="Close" className="text-ink-mute hover:text-ink-soft grid place-items-center w-11 h-11 -mr-2 -my-1 rounded-lg">
               <X className="w-4 h-4" aria-hidden />
             </button>
           </div>
@@ -75,7 +75,7 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
                   <button
                     key={r}
                     onClick={() => setRating(r)}
-                    className={`flex-1 inline-flex items-center justify-center gap-1 text-sm rounded-lg py-1.5 border transition-colors ${
+                    className={`flex-1 inline-flex items-center justify-center gap-1 text-sm rounded-lg min-h-[44px] border transition-colors ${
                       rating === r ? 'bg-brand-600 border-brand-600 text-white' : 'bg-surface border-line text-ink-soft hover:border-brand-300'
                     }`}
                   >
@@ -94,7 +94,7 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
               <button
                 onClick={send}
                 disabled={!note.trim() || sending}
-                className="w-full bg-brand-700 hover:bg-brand-600 disabled:opacity-40 text-white text-sm font-medium py-2 rounded-xl"
+                className="w-full bg-brand-700 hover:bg-brand-600 disabled:opacity-40 text-white text-sm font-medium min-h-[44px] rounded-xl"
               >
                 {sending ? 'Sending…' : 'Send'}
               </button>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowLeft } from 'lucide-react';
 
 interface Message {
   role: string;
@@ -25,8 +26,8 @@ interface Props {
 export function SummaryView({ session, onBack }: Props) {
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="text-ink-mute hover:text-ink text-sm flex items-center gap-1">
-        ← Back to sessions
+      <button onClick={onBack} aria-label="Back to sessions" className="text-ink-mute hover:text-ink text-sm flex items-center gap-1.5 min-h-[44px] px-2 -ml-2 rounded-lg">
+        <ArrowLeft className="w-4 h-4" aria-hidden /> Back to sessions
       </button>
 
       <div className="bg-surface rounded-xl border border-line p-5">

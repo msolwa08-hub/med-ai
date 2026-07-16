@@ -56,7 +56,7 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
           <button
             key={m}
             onClick={() => setMode(m)}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-4 min-h-[44px] rounded-lg text-sm font-medium transition-colors ${
               mode === m ? 'bg-brand-700 text-white shadow-card' : 'bg-surface border border-line-strong text-ink-soft hover:bg-surface-alt'
             }`}
           >

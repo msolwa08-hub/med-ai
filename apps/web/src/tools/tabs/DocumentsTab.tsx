@@ -169,7 +169,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
                   {p.sourceFilename ? `${p.sourceFilename} · ` : ''}{p.charCount.toLocaleString()} chars · added {new Date(p.uploadedAt).toLocaleDateString()}
                 </p>
               </div>
-              <button onClick={() => remove(p.id)} className="text-ink-mute hover:text-danger shrink-0 p-1" aria-label="Remove protocol">
+              <button onClick={() => remove(p.id)} className="text-ink-mute hover:text-danger shrink-0 grid place-items-center w-11 h-11 rounded-lg" aria-label="Remove protocol">
                 <X className="w-4 h-4" aria-hidden />
               </button>
             </div>
@@ -191,13 +191,13 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
           <div className="flex bg-surface-alt rounded-lg p-0.5 shrink-0">
             <button
               onClick={() => setMode('paste')}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'paste' ? 'bg-surface text-ink shadow-card' : 'text-ink-mute'}`}
+              className={`text-xs px-3 min-h-[44px] rounded-md transition-colors ${mode === 'paste' ? 'bg-surface text-ink shadow-card' : 'text-ink-mute'}`}
             >
               Paste text
             </button>
             <button
               onClick={() => setMode('upload')}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${mode === 'upload' ? 'bg-surface text-ink shadow-card' : 'text-ink-mute'}`}
+              className={`text-xs px-3 min-h-[44px] rounded-md transition-colors ${mode === 'upload' ? 'bg-surface text-ink shadow-card' : 'text-ink-mute'}`}
             >
               Upload file
             </button>
@@ -227,7 +227,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
         <button
           onClick={add}
           disabled={adding}
-          className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors"
+          className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 min-h-[44px] rounded-lg font-medium transition-colors"
         >
           {adding ? 'Adding…' : '+ Add protocol'}
         </button>

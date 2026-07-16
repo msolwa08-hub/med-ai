@@ -76,7 +76,7 @@ export function AccessKeyGate({ onKey, validate }: Props) {
                 autoFocus
               />
             </label>
-            {error && <p className="text-band-exclude text-sm">{error}</p>}
+            {error && <p className="text-danger text-sm">{error}</p>}
             <Button type="submit" size="md" loading={loading} disabled={!input} className="w-full">
               {loading ? 'Verifying…' : 'Continue'}
             </Button>

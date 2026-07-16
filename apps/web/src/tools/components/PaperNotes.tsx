@@ -37,6 +37,7 @@ export function PaperNotes({ picture }: { picture: WorkingPicture }) {
 
   const seen = new Set<string>();
   const ix = picture.differentials
+    .filter(d => d.confidence >= 25 || d.band === 'must-exclude')
     .flatMap(d => d.discriminators ?? [])
     .filter(d => d.status !== 'done')
     .filter(d => {

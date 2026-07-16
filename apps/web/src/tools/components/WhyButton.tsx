@@ -13,12 +13,13 @@ export function WhyButton({ why }: { why: string }) {
       <button
         type="button"
         onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        className={`text-xs px-1.5 py-0.5 rounded-md transition-colors ${
+        className={`text-xs min-h-[44px] min-w-[44px] px-2.5 py-1 rounded-lg transition-colors ${
           open ? 'text-brand-800 bg-brand-50' : 'text-brand-600/70 hover:text-brand-800 hover:bg-brand-50'
         }`}
         aria-expanded={open}
+        aria-label="Show reasoning"
       >
-        🔍 Why?
+        Why?
       </button>
       {open && (
         <span
