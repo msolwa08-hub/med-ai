@@ -70,6 +70,18 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
         {!result && !loading && <span className="text-xs text-ink-mute">Generates a structured {mode === 'obs' ? 'obstetric' : 'gynaecology'} note from the bedside record.</span>}
       </div>
       {err && <p className="text-danger text-xs">{err}</p>}
+      {loading && !result && (
+        <div className="rounded-card border border-line bg-surface p-5 space-y-3" aria-hidden>
+          <div className="skeleton h-5 w-56 rounded" />
+          <div className="skeleton h-3 w-full rounded" />
+          <div className="skeleton h-3 w-5/6 rounded" />
+          <div className="skeleton h-3 w-full rounded" />
+          <div className="skeleton h-3 w-3/4 rounded" />
+          <div className="skeleton h-5 w-40 rounded mt-4" />
+          <div className="skeleton h-3 w-full rounded" />
+          <div className="skeleton h-3 w-2/3 rounded" />
+        </div>
+      )}
       {result && <DocOutput text={result} />}
     </div>
   );

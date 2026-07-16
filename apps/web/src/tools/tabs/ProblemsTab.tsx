@@ -346,6 +346,28 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
       </div>
 
       {err && <p className="text-danger text-xs">{err}</p>}
+
+      {suggesting && (
+        <div className="space-y-3" aria-hidden>
+          {[0, 1, 2].map(i => (
+            <Card key={i} elevation="e1" className="p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="skeleton h-5 w-5 rounded mt-1 shrink-0" />
+                <div className="flex-1 space-y-2.5">
+                  <div className="skeleton h-4 w-3/5 rounded" />
+                  <div className="skeleton h-3 w-full rounded" />
+                  <div className="skeleton h-3 w-4/5 rounded" />
+                  <div className="flex gap-2 mt-1">
+                    <div className="skeleton h-5 w-16 rounded-full" />
+                    <div className="skeleton h-5 w-20 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {aiNote && (
         <p className="text-sm text-brand-800 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
           {aiNote}

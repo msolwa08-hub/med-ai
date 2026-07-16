@@ -400,6 +400,28 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
         </div>
         {roundErr && <p className="text-danger text-sm mt-2 print:hidden">{roundErr}</p>}
 
+        {roundLoading && !roundText && (
+          <div className="mt-4 space-y-3 print:hidden" aria-hidden>
+            <div className="rounded-card border border-line bg-surface p-5 space-y-3">
+              <div className="skeleton h-4 w-48 rounded" />
+              <div className="skeleton h-3 w-full rounded" />
+              <div className="skeleton h-3 w-5/6 rounded" />
+              <div className="skeleton h-3 w-3/4 rounded" />
+            </div>
+            <div className="rounded-card border border-line bg-surface p-5 space-y-3">
+              <div className="skeleton h-4 w-32 rounded" />
+              <div className="skeleton h-3 w-full rounded" />
+              <div className="skeleton h-3 w-2/3 rounded" />
+            </div>
+            <div className="rounded-card border border-line bg-surface p-5 space-y-3">
+              <div className="skeleton h-4 w-40 rounded" />
+              <div className="space-y-2">
+                {[0, 1, 2].map(i => <div key={i} className="skeleton h-3 w-full rounded" />)}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Safety alerts — auto-opens when present */}
         {(roundSafety?.length ?? 0) > 0 && (
           <Panel

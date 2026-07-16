@@ -202,16 +202,17 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
 
       {error ? (
         <p className="text-sm text-warn bg-warn/[0.08] border border-warn/20 rounded-2xl px-4 py-3">{error}</p>
+      ) : busy && !question ? (
+        <div className="space-y-2" aria-hidden>
+          <div className="skeleton h-5 w-4/5 rounded" />
+          <div className="skeleton h-5 w-3/5 rounded" />
+        </div>
       ) : (
         <p
           key={question || '__pending__'}
           className={`animate-question-in text-lg sm:text-xl font-semibold leading-snug tracking-tight ${done ? 'text-positive' : 'text-ink'}`}
         >
-          {busy && !question ? (
-            <span className="text-ink-mute">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
-          ) : (
-            <>{done ? '✓ ' : ''}{question}</>
-          )}
+          {done ? '✓ ' : ''}{question}
         </p>
       )}
 
