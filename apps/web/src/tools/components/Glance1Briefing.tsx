@@ -101,7 +101,7 @@ export function Glance1Briefing({ cascade, dept, subDept, isFemale }: {
       <div className="flex items-center gap-2">
         <Eye className="w-4 h-4 text-brand-600" aria-hidden />
         <h3 className="text-base font-bold text-ink tracking-tight">Before you go in</h3>
-        <span className="text-xs text-ink-soft">— 10 seconds, then the phone goes away</span>
+        <span className="text-xs text-ink-soft">— quick reference</span>
       </div>
       <Cluster icon={MessageCircleQuestion} title="Ask" items={ask} />
       <Cluster icon={ShieldAlert} title="Don't miss" items={dontMiss} tone="danger" />

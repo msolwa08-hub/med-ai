@@ -140,9 +140,7 @@ export function ResultsCapture({ patient, dept, onPatient }: {
       </div>
 
       {entries.length === 0 && alerts.length === 0 && (
-        <p className="text-sm text-ink-mute text-center py-4">
-          No results yet. Add a panel above and the app will trend it and flag the deltas that matter.
-        </p>
+        <p className="text-sm text-ink-mute text-center py-4">No results yet.</p>
       )}
 
       <EscapeHatch

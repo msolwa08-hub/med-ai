@@ -408,7 +408,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           open={openSets}
           onToggle={() => setOpenSets(o => !o)}
         >
-          <p className="text-xs text-ink-mute mb-3">Deselect items not applicable to this patient.</p>
+          <div className="mb-1" />
           <div className="space-y-3">
             {matchedSets.map(s => (
               <TreatmentSetCard key={s.id} set={s} onAdd={lines => addToPlan(s.pattern, lines)} />
@@ -421,7 +421,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
         <div className="text-center py-10 text-ink-mute">
           <ClipboardList className="w-8 h-8 mx-auto mb-2" aria-hidden />
           <p className="text-sm">No problems added yet</p>
-          <p className="text-xs mt-1">Use "Suggest from assessment" to generate from the clinical record, or add problems manually</p>
+          <p className="text-xs mt-1">Add problems manually or use Suggest.</p>
         </div>
       )}
 

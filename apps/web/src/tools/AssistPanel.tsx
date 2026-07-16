@@ -87,7 +87,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       // Give the intern their answer back — a failed call must never eat what
       // they typed.
       if (failedAnswer) setAnswer(failedAnswer);
-      setError('AI assist is unavailable right now — you can fill the form below directly.');
+      setError('AI assist unavailable — fill the form directly.');
     } finally {
       setLoading(false);
     }
@@ -151,7 +151,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       setDone(false);
       await step([...transcript, { role: 'user', content: scanSummary }], merged);
     } catch {
-      setError('Could not scan the photo — try again with better lighting, or answer by typing.');
+      setError('Could not scan the photo — try better lighting or retake.');
     } finally {
       setScanning(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -193,7 +193,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
             onClick={() => fileRef.current?.click()}
             disabled={busy}
             className="text-sm bg-surface-alt hover:bg-brand-50 disabled:opacity-40 text-brand-700 px-3.5 min-h-[44px] rounded-full font-medium transition-colors inline-flex items-center"
-            title="Photograph the doctor's handwritten notes — the AI reads them and fills the form, flagging anything it can't decipher"
+            title="Scan handwritten notes"
           >
             {scanning ? 'Reading handwriting…' : '📷 Scan notes'}
           </button>

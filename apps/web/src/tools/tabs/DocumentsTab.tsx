@@ -154,8 +154,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
       <div>
         <SectionHead>Hospital Protocols</SectionHead>
         <p className="text-xs text-ink-mute -mt-2">
-          Upload this facility's own protocols for {DEPARTMENTS.find(d => d.id === dept)?.label}. Once added, the AI
-          follows them over the generic guideline wherever they differ — cited by name on affected problems.
+          Facility protocols for {DEPARTMENTS.find(d => d.id === dept)?.label}.
         </p>
       </div>
 
@@ -339,10 +338,7 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
     <Card elevation="e1" className="p-5 space-y-4">
       <div>
         <SectionHead>Legal & Statutory</SectionHead>
-        <p className="text-xs text-ink-mute -mt-2">
-          Drafted from this patient's record. Teal sections are prefilled for checking; amber and grey sections the AI
-          will not invent — they are yours.
-        </p>
+        <div className="-mt-1" />
       </div>
 
       <div className="grid sm:grid-cols-3 gap-2">

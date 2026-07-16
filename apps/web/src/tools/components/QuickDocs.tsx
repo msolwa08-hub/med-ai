@@ -77,9 +77,6 @@ export function QuickDocs({ patient, toolsKey, dept, initialDoc }: {
 
   return (
     <div className="space-y-2.5">
-      <p className="text-sm text-ink-soft">
-        Generated from the current record and working diagnosis — pick one, then copy or transcribe onto the chart.
-      </p>
       {error && <p className="text-sm text-danger">{error}</p>}
       <div className="space-y-2">
         {specs.map(spec => (

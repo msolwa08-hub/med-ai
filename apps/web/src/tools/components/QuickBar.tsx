@@ -147,7 +147,7 @@ export function QuickBar({
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="w-4 h-4 text-brand-600" />
         <h3 className="text-base font-bold text-ink tracking-tight">{title}</h3>
-        <span className="text-xs text-ink-soft">— {hint}</span>
+        {hint && <span className="text-xs text-ink-soft">— {hint}</span>}
         <kbd className="hidden lg:inline-block ml-auto text-2xs text-ink-mute/50 font-mono border border-line rounded px-1.5 py-0.5">⌘K</kbd>
       </div>
 

@@ -21,8 +21,7 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
     return (
       <div className="text-center py-16 text-ink-mute">
         <Tag className="w-10 h-10 mx-auto mb-3" aria-hidden />
-        <p>Specialist tab is currently available for O&G.</p>
-        <p className="text-sm mt-1">Additional specialties will be available in future updates.</p>
+        <p>Specialist tab available for O&G only.</p>
       </div>
     );
   }
@@ -67,7 +66,6 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
       </div>
       <div className="flex items-center gap-3">
         <AiBtn onClick={generate} loading={loading} label={`Generate ${mode === 'obs' ? 'Obs' : 'Gynae'} Note`} />
-        {!result && !loading && <span className="text-xs text-ink-mute">Generates a structured {mode === 'obs' ? 'obstetric' : 'gynaecology'} note from the bedside record.</span>}
       </div>
       {err && <p className="text-danger text-xs">{err}</p>}
       {loading && !result && (

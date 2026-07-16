@@ -74,7 +74,7 @@ export function ConfirmStream({ features, answers, onAnswer }: {
 
   return (
     <div className="rounded-card border border-line bg-surface shadow-card p-4 sm:p-5">
-      <SectionHead>Confirm the diagnosis — tap what you find</SectionHead>
+      <SectionHead>Confirm findings</SectionHead>
       <div className="divide-y divide-line">
         {features.map((f, i) => (
           <FeatureRow

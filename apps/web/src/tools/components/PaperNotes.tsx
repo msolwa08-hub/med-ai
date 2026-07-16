@@ -56,7 +56,7 @@ export function PaperNotes({ picture }: { picture: WorkingPicture }) {
       <div className="flex items-center gap-2">
         <NotebookPen className="w-4 h-4 text-brand-600" aria-hidden />
         <h3 className="text-base font-bold text-ink tracking-tight">For the paper notes</h3>
-        <span className="text-xs text-ink-soft">— transcribe, tap what&rsquo;s written</span>
+        <span className="text-xs text-ink-soft">— tap when written</span>
       </div>
 
       {ix.length > 0 && (

@@ -57,8 +57,8 @@ export function SystemsMap({ trends, picture }: { trends: AnalyteTrend[]; pictur
           <p className="text-2xs font-semibold uppercase tracking-wide text-brand-700">Body systems</p>
           <p className="text-sm font-bold text-ink leading-snug">
             {model.anyActive
-              ? `${activeSystems.length} system${activeSystems.length > 1 ? 's' : ''} flagged — see what the results point to`
-              : 'Nothing flagged yet — results normal so far'}
+              ? `${activeSystems.length} system${activeSystems.length > 1 ? 's' : ''} flagged`
+              : 'No systems flagged'}
           </p>
         </div>
       </div>
@@ -81,9 +81,7 @@ export function SystemsMap({ trends, picture }: { trends: AnalyteTrend[]; pictur
         {/* The interpretation, beside it */}
         <div className="space-y-2">
           {activeSystems.length === 0 && (
-            <p className="text-sm text-ink-mute py-6 text-center lg:text-left">
-              Add results and the systems they belong to light up here — with what's deranged and how they relate.
-            </p>
+            <p className="text-sm text-ink-mute py-6 text-center lg:text-left">No results to map.</p>
           )}
           {activeSystems.map(s => {
             const why = s.drivers.map(d => `${d.label} ${d.value} — ${d.meaning}\n${d.why}`).join('\n\n')

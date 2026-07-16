@@ -422,9 +422,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             context={patientContext(patient, dept, subDept)}
             onResults={routeAnyUpdates}
             title="Enter clinical findings"
-            hint="free-text accepted — findings are categorised automatically"
             cta="Submit"
-            placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
+            placeholder={'e.g. "BP 145/92, tachy, creps L base"'}
           />
         )}
 
@@ -458,12 +457,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           </div>
         ) : (
         <Card elevation="e1" className="p-4 sm:p-5 space-y-3.5">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Presenting complaint</h2>
-            <p className="text-xs text-ink-soft">
-              {cc ? 'Tap another if it changes — the picture re-reads itself.' : 'Tap your patient’s main complaint — the differential builds itself.'}
-            </p>
-          </div>
+          <h2 className="text-sm font-semibold text-ink">Presenting complaint</h2>
           <div className="flex flex-wrap gap-1.5">
             {cascades.map(c => {
               const on = patient.activeCascadeId === c.id;
@@ -536,9 +530,8 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             context={patientContext(patient, dept, subDept)}
             onResults={routeAnyUpdates}
             title="Enter clinical findings"
-            hint="free-text accepted — findings are categorised automatically"
             cta="Submit"
-            placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
+            placeholder={'e.g. "BP 145/92, tachy, creps L base"'}
           />
         )}
 
@@ -598,7 +591,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                   aria-expanded={tapStreamOpen}
                   className="w-full flex items-center justify-between gap-2 px-4 sm:px-5 py-3 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
                 >
-                  <span className="text-sm font-medium text-ink-soft">Answer by tapping — the discriminating questions</span>
+                  <span className="text-sm font-medium text-ink-soft">Tap to confirm findings</span>
                   <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform ${tapStreamOpen ? 'rotate-180' : ''}`} aria-hidden />
                 </button>
                 {tapStreamOpen && (
@@ -641,7 +634,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                   aria-expanded={moreDetailOpen}
                   className="w-full flex items-center justify-between gap-2 px-4 sm:px-5 py-3 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
                 >
-                  <span className="text-sm font-medium text-ink-soft">More detail — {activeCascade.label}</span>
+                  <span className="text-sm font-medium text-ink-soft">{activeCascade.label}</span>
                   <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform ${moreDetailOpen ? 'rotate-180' : ''}`} aria-hidden />
                 </button>
                 {moreDetailOpen && (
@@ -672,10 +665,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             aria-expanded={completeOpen}
             className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
           >
-            <span className="min-w-0">
-              <span className="text-sm font-semibold text-ink">More detail</span>
-              <span className="block text-xs text-ink-mute mt-0.5">Background, examination, results — complete as indicated</span>
-            </span>
+            <span className="text-sm font-semibold text-ink">More detail</span>
             <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform duration-200 ${completeOpen ? 'rotate-180' : ''}`} aria-hidden />
           </button>
 
@@ -696,7 +686,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
                   {matchedBlocks.length > 0 && (
                     <div className="space-y-3">
-                      <SectionHead>Smart Blocks — triggered by this record</SectionHead>
+                      <SectionHead>Smart Blocks</SectionHead>
                       {matchedBlocks.map(b => (
                         <SmartBlockCard
                           key={b.id}
@@ -716,7 +706,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                       aria-expanded={moreHistoryOpen}
                       className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
                     >
-                      <span className="text-xs font-medium text-ink-soft">More history — background, ROS, social, HIV, admin</span>
+                      <span className="text-xs font-medium text-ink-soft">More history</span>
                       <ChevronDown className={`w-4 h-4 text-ink-mute transition-transform ${moreHistoryOpen ? 'rotate-180' : ''}`} aria-hidden />
                     </button>
                     {moreHistoryOpen && (

@@ -349,7 +349,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
         </div>
         {!patient.intake.name && !activeProblems.length && !currentVitals && (
           <p className="text-sm text-ink-mute mt-1">
-            Complete the bedside clerking first — the round builds on that record.
+            No patient data yet.
           </p>
         )}
       </Card>
@@ -357,9 +357,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
       {/* ── Daily Ward Round — today's progress ── */}
       <section className={printing === 'presentation' ? 'print:hidden' : ''}>
         <h2 className="text-2xl font-bold text-ink tracking-tight">Daily Ward Round</h2>
-        <p className="text-ink-mute text-sm mt-1 mb-4 print:hidden">
-          Add today's subjective and objective findings. The AI synthesizes a complete ward round note with clinical reasoning and trend analysis.
-        </p>
+        <div className="mb-4" />
 
         <div className="mb-3 print:hidden">
           <QuickBar
@@ -512,9 +510,7 @@ export function RoundTab({ patient, toolsKey, dept, subDept, onLog, onPatient }:
         onToggle={() => setOpenPresentation(o => !o)}
         outerClassName={printing === 'round' ? 'print:hidden' : ''}
       >
-        <p className="text-ink-mute text-sm mb-4 print:hidden">
-          Structured SBAR hand-over for the consultant round. Generates from the complete record.
-        </p>
+        <div className="mb-2" />
         <div className="flex items-center gap-3 print:hidden">
           <AiBtn onClick={generatePresentation} loading={presLoading} label="Generate presentation" />
         </div>

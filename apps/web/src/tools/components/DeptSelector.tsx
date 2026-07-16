@@ -20,7 +20,7 @@ export function DeptSelector({ onSelect }: { onSelect: (d: DeptId) => void }) {
       >
         <img src="/medai-icon.svg" alt="" className="w-12 h-12 mx-auto mb-5 rounded-2xl shadow-card" />
         <h1 className="text-ink text-3xl font-bold tracking-tight">Intern Tools</h1>
-        <p className="text-ink-soft text-base mt-2.5">Select your department — the clinical assistant adapts accordingly.</p>
+        <p className="text-ink-soft text-base mt-2.5">Select your department</p>
       </motion.div>
       <motion.div
         className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full max-w-3xl"

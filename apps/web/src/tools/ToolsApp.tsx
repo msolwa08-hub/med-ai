@@ -131,7 +131,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         {/* Department identity — icon on phone, icon+name on desktop */}
         <button
           onClick={() => setSettingsOpen(true)}
-          title={`${deptInfo.label} — tap to change`}
+          title={deptInfo.label}
           className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink bg-surface-alt px-2.5 min-h-[44px] rounded-lg transition-colors"
         >
           <DeptIcon className="w-4 h-4 shrink-0" />

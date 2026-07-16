@@ -51,7 +51,7 @@ export function SubDeptSelector({ dept, options, onSelect, onBack }: {
           <DeptIcon className="w-6 h-6 text-brand-600 dark:text-brand-300" />
         </div>
         <h1 className="text-ink text-2xl font-bold">{deptInfo.label}</h1>
-        <p className="text-ink-soft text-sm mt-2">Which ward or unit is this patient on?</p>
+        <p className="text-ink-soft text-sm mt-2">Select ward or unit</p>
       </motion.div>
       <motion.div
         className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-lg"

@@ -5,7 +5,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { storage } from '../../storage';
 import { Trash2 } from 'lucide-react';
 
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.3.0';
 
 export function SettingsPanel({ dept, subDept, onDept, onSubDept, onClearData }: {
   dept: DeptId;
