@@ -17,8 +17,10 @@ import { SpecialistTab } from './tabs/SpecialistTab';
 import { SlideOver } from './components/SlideOver';
 import { SettingsPanel } from './components/SettingsPanel';
 import { storage } from '../storage';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 
 export function ToolsApp({ onBack }: { onBack: () => void }) {
+  const online = useOnlineStatus();
   const {
     key,
     handleKey,
@@ -152,6 +154,12 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
+      {!online && (
+        <div className="bg-ink/90 text-white text-xs font-medium text-center py-2 shrink-0">
+          You are offline — cached content only, AI features unavailable
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — patient list (desktop only) */}
         {patients.length > 1 && (
@@ -173,7 +181,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                     <button
                       onClick={() => removePatient(p.id)}
                       aria-label="Remove patient"
-                      className="shrink-0 grid place-items-center w-7 h-7 rounded-md text-ink-mute hover:text-band-exclude hover:bg-danger/10 transition-colors"
+                      className="shrink-0 grid place-items-center w-9 h-9 rounded-md text-ink-mute hover:text-band-exclude hover:bg-danger/10 transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -193,7 +201,7 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 <button
                   key={p.id}
                   onClick={() => { setActivePatientId(p.id); setActiveTab('clerk'); }}
-                  className={`shrink-0 max-w-[46vw] truncate text-xs font-medium px-3 py-1.5 rounded-pill border transition-colors ${
+                  className={`shrink-0 max-w-[46vw] truncate text-sm font-medium px-3.5 py-2.5 min-h-[44px] rounded-pill border transition-colors ${
                     activePatientId === p.id
                       ? 'bg-brand-600 border-brand-600 text-white'
                       : 'bg-surface border-line text-ink-soft'

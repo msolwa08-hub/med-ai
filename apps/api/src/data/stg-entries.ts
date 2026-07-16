@@ -516,7 +516,7 @@ export const STG_ENTRIES: STGSeedEntry[] = [
         dose: '300mg',
         route: 'Oral',
         frequency: 'Once daily',
-        duration: '6 months (repeat annually)',
+        duration: '12 months',
         notes: 'IPT per SA guidelines after TB excluded. Give with Pyridoxine 25mg daily.',
       },
     ],

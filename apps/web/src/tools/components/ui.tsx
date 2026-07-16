@@ -62,9 +62,9 @@ const CARD_ELEV: Record<CardElevation, string> = {
   hero: 'shadow-elevated',
 };
 export function Card({
-  children, className = '', as: Tag = 'div', elevation = 'e1',
-}: { children: React.ReactNode; className?: string; as?: 'div' | 'section'; elevation?: CardElevation }) {
-  return <Tag className={`rounded-card border border-line bg-surface ${CARD_ELEV[elevation]} ${className}`}>{children}</Tag>;
+  children, className = '', as: Tag = 'div', elevation = 'e1', style,
+}: { children: React.ReactNode; className?: string; as?: 'div' | 'section'; elevation?: CardElevation; style?: React.CSSProperties }) {
+  return <Tag style={style} className={`rounded-card border border-line bg-surface ${CARD_ELEV[elevation]} ${className}`}>{children}</Tag>;
 }
 
 export function Label({ children }: { children: React.ReactNode }) {

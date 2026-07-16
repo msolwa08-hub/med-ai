@@ -373,13 +373,13 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
     <div className="flex gap-2">
       <button
         onClick={() => setDrawer('record')}
-        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
+        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
       >
         <ClipboardList className="w-4 h-4" /> Full record
       </button>
       <button
         onClick={() => setDrawer('docs')}
-        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
+        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
       >
         <FileText className="w-4 h-4" /> Documents
       </button>
@@ -625,7 +625,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                       key={s.id}
                       type="button"
                       onClick={() => openDoc(s.id)}
-                      className="inline-flex items-center min-h-[36px] px-3 rounded-pill border border-line bg-surface text-xs font-medium text-ink-soft hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800 transition-colors focus:outline-none focus-visible:shadow-focus"
+                      className="inline-flex items-center min-h-[44px] px-3.5 rounded-pill border border-line bg-surface text-sm font-medium text-ink-soft hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800 transition-colors focus:outline-none focus-visible:shadow-focus"
                     >
                       {s.label}
                     </button>

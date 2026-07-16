@@ -1,7 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { Sparkles, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, ListChecks, ShieldAlert, Ban, CircleDot, Check, X } from 'lucide-react';
 import type { WorkingPicture, WeightedDifferential } from '../toolsApi';
-import { WhyButton } from './WhyButton';
 import { Spinner, Card } from './ui';
 
 // ─── WORKING PICTURE — the bedside loop, on screen (the hero) ────────────────
@@ -88,10 +87,9 @@ function DifferentialCard({ d, reduce, hero }: { d: WeightedDifferential; reduce
           <p className="text-xs text-ink-mute italic leading-snug">↳ {d.shift.because}</p>
         )}
 
-        <div className="flex items-start gap-2">
-          <p className="text-sm text-ink-soft leading-snug flex-1">{d.why}</p>
-          {d.why && <WhyButton why={d.why} />}
-        </div>
+        {d.why && (
+          <p className="text-sm text-ink-soft leading-snug">{d.why}</p>
+        )}
 
         {(d.supporting.length > 0 || d.against.length > 0) && (
           <div className="space-y-1.5 rounded-lg bg-surface-alt/60 border border-line px-3 py-2">
@@ -115,17 +113,17 @@ function DifferentialCard({ d, reduce, hero }: { d: WeightedDifferential; reduce
         )}
 
         {d.discriminators.length > 0 && (
-          <div className="space-y-1.5 pt-1">
-            <p className="text-2xs font-semibold uppercase tracking-wide text-ink-mute">What would move this</p>
+          <div className="space-y-2 pt-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">What would move this</p>
             {d.discriminators.map((t, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className={`shrink-0 text-2xs uppercase tracking-wide rounded-full border px-1.5 py-0.5 ${DISC_STATUS[t.status] ?? DISC_STATUS.suggested}`}>
+              <div key={i} className="flex items-start gap-2.5">
+                <span className={`shrink-0 text-xs uppercase tracking-wide rounded-full border px-2 py-0.5 font-medium ${DISC_STATUS[t.status] ?? DISC_STATUS.suggested}`}>
                   {t.status === 'done' ? '✓ done' : t.status}
                 </span>
-                <p className="text-xs text-ink-soft leading-snug flex-1">
-                  <span className="font-medium text-ink">{t.test}</span>
-                  {t.priority === 'now' && <span className="ml-1 text-danger font-semibold">· now</span>}
-                  <span className="text-ink-mute"> — {t.moves}</span>
+                <p className="text-sm leading-snug flex-1">
+                  <span className="font-semibold text-ink">{t.test}</span>
+                  {t.priority === 'now' && <span className="ml-1.5 text-danger font-bold">NOW</span>}
+                  <span className="text-ink-soft"> — {t.moves}</span>
                 </p>
               </div>
             ))}
@@ -190,7 +188,7 @@ export function WorkingPicturePanel({
         <button
           onClick={onGenerate}
           disabled={loading}
-          className="shrink-0 inline-flex items-center gap-1.5 bg-surface border border-line-strong hover:bg-surface-alt disabled:opacity-50 text-ink-soft hover:text-ink text-xs font-medium px-3 min-h-[38px] rounded-md transition-colors focus:outline-none focus-visible:shadow-focus"
+          className="shrink-0 inline-flex items-center gap-1.5 bg-surface border border-line-strong hover:bg-surface-alt disabled:opacity-50 text-ink-soft hover:text-ink text-sm font-medium px-3.5 min-h-[44px] rounded-md transition-colors focus:outline-none focus-visible:shadow-focus"
         >
           {loading ? <Spinner className="w-3.5 h-3.5" /> : picture ? <RefreshCw className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
           {picture ? 'Refresh' : generateLabel}
@@ -258,17 +256,32 @@ export function WorkingPicturePanel({
       )}
 
       {picture && picture.safety.length > 0 && (
-        <div className="space-y-1.5">
-          {picture.safety.map((w, i) => (
-            <div key={i} className={`flex items-start gap-2 text-sm rounded-xl px-4 py-2.5 border ${w.severity === 'BLOCK' ? 'bg-danger/[0.08] border-danger/25 text-danger' : 'bg-warn/[0.08] border-warn/25 text-warn'}`}>
-              {w.severity === 'BLOCK' ? <Ban className="w-4 h-4 shrink-0 mt-0.5" /> : <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />}
-              <div>
-                <span className="font-semibold">{w.drug}</span>
-                <span className="text-2xs uppercase tracking-wide ml-2 opacity-60">{w.category}</span>
-                <p className="mt-0.5 leading-relaxed">{w.reason}</p>
+        <div className="space-y-2">
+          {picture.safety.map((w, i) => {
+            const isBlock = w.severity === 'BLOCK';
+            return (
+              <div key={i} className={`flex items-start gap-3 rounded-xl px-4 py-3 border-2 ${
+                isBlock
+                  ? 'bg-danger/[0.06] border-danger/40 text-danger'
+                  : 'bg-warn/[0.06] border-warn/30 text-warn'
+              }`}>
+                <div className={`shrink-0 mt-0.5 grid place-items-center w-7 h-7 rounded-full ${
+                  isBlock ? 'bg-danger/15' : 'bg-warn/15'
+                }`}>
+                  {isBlock ? <Ban className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className={`text-base font-bold ${isBlock ? 'text-danger' : 'text-warn'}`}>
+                      {isBlock ? 'STOP' : 'CAUTION'} — {w.drug}
+                    </span>
+                    <span className="text-xs uppercase tracking-wide opacity-50">{w.category}</span>
+                  </div>
+                  <p className={`mt-1 text-sm leading-relaxed ${isBlock ? 'text-danger/90' : 'text-warn/90'}`}>{w.reason}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

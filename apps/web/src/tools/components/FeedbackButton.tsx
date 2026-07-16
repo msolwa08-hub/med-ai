@@ -48,13 +48,14 @@ export function FeedbackButton({ toolsKey, screen, dept, subDept }: {
         <button
           onClick={() => setOpen(true)}
           aria-label="Send feedback"
-          className="fixed bottom-4 right-4 z-40 h-11 rounded-full bg-ink/90 hover:bg-ink text-canvas text-sm font-medium px-4 shadow-e3 backdrop-blur flex items-center gap-1.5"
+          className="fixed right-4 z-40 h-11 rounded-full bg-ink/90 hover:bg-ink text-canvas text-sm font-medium px-4 shadow-e3 backdrop-blur flex items-center gap-1.5"
+          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
         >
           <MessageCircle className="w-4 h-4" aria-hidden /> Feedback
         </button>
       )}
       {open && (
-        <Card elevation="hero" className="fixed bottom-4 right-4 z-40 w-[min(92vw,340px)] p-4 space-y-3">
+        <Card elevation="hero" className="fixed right-4 z-40 w-[min(92vw,340px)] p-4 space-y-3" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-ink">Quick feedback</span>
             <button onClick={() => setOpen(false)} aria-label="Close" className="text-ink-mute hover:text-ink-soft p-0.5">

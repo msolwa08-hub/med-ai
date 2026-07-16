@@ -14,7 +14,7 @@
  *   - Generates clinical O&G summary for doctor review
  */
 
-import { anthropic, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL } from '../lib/claude.js';
+import { anthropic, CLAUDE_HAIKU_MODEL, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL } from '../lib/claude.js';
 import type { SaLanguage, ConversationMessage } from '../types/index.js';
 import { SA_LANGUAGE_NAMES } from '../types/index.js';
 
@@ -273,7 +273,7 @@ Reply with ONLY one word: OBSTETRIC or GYNAECOLOGICAL`;
 
   try {
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: CLAUDE_HAIKU_MODEL,
       max_tokens: 10,
       temperature: 0,
       messages: [{ role: 'user', content: prompt }],
@@ -312,7 +312,7 @@ export async function startOGHistorySession(
   const response = await anthropic.messages.create({
     model: CLAUDE_HISTORY_MODEL,
     max_tokens: 512,
-    system: systemPrompt,
+    system: [{ type: 'text' as const, text: systemPrompt, cache_control: { type: 'ephemeral' as const } }],
     messages: [{ role: 'user', content: openingInstruction }],
   });
 
@@ -354,7 +354,7 @@ export async function continueOGHistorySession(
   const response = await anthropic.messages.create({
     model: CLAUDE_HISTORY_MODEL,
     max_tokens: 600,
-    system: systemPrompt,
+    system: [{ type: 'text' as const, text: systemPrompt, cache_control: { type: 'ephemeral' as const } }],
     messages,
   });
 

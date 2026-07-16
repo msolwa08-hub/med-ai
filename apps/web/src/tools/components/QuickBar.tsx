@@ -177,7 +177,7 @@ export function QuickBar({
         <button
           onClick={parse}
           disabled={loading || scanning || !text.trim()}
-          className="inline-flex items-center gap-2 bg-brand-700 hover:bg-brand-600 active:bg-brand-800 disabled:opacity-45 disabled:pointer-events-none text-white text-sm font-medium px-4 min-h-[42px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
+          className="inline-flex items-center gap-2 bg-brand-700 hover:bg-brand-600 active:bg-brand-800 disabled:opacity-45 disabled:pointer-events-none text-white text-sm font-medium px-4 min-h-[44px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           {loading ? 'Filing…' : cta}
@@ -194,7 +194,7 @@ export function QuickBar({
           onClick={() => fileRef.current?.click()}
           disabled={loading || scanning}
           aria-label="Photograph the paper notes"
-          className="inline-flex items-center gap-2 border border-brand-300 bg-surface text-brand-800 hover:bg-brand-50 disabled:opacity-45 disabled:pointer-events-none text-sm font-medium px-3.5 min-h-[42px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
+          className="inline-flex items-center gap-2 border border-brand-300 bg-surface text-brand-800 hover:bg-brand-50 disabled:opacity-45 disabled:pointer-events-none text-sm font-medium px-3.5 min-h-[44px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
         >
           {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
           {scanning ? 'Reading…' : 'Photo'}

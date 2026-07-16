@@ -51,7 +51,7 @@ export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient 
             <button
               key={c.id}
               onClick={() => setCalc(calc === c.id ? '' : c.id)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+              className={`text-sm px-3.5 py-2.5 min-h-[44px] rounded-lg border transition-colors ${
                 calc === c.id
                   ? 'bg-brand-600 border-brand-500 text-white'
                   : 'bg-surface border-line text-ink-soft hover:border-line-strong'
@@ -71,7 +71,7 @@ export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient 
               <button
                 key={c.id}
                 onClick={() => setCalc(calc === c.id ? '' : c.id)}
-                className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                className={`text-sm px-3.5 py-2.5 min-h-[44px] rounded-lg border transition-colors ${
                   calc === c.id
                     ? 'bg-brand-600 border-brand-500 text-white'
                     : 'bg-surface border-line text-ink-mute hover:border-line-strong hover:text-ink-soft'

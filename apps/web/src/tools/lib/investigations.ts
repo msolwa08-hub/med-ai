@@ -55,7 +55,7 @@ export const PANELS: Panel[] = [
     label: 'FBC',
     icon: '🩸',
     analytes: [
-      { key: 'hb', label: 'Hb', unit: 'g/dL', low: 12, high: 17 },
+      { key: 'hb', label: 'Hb', unit: 'g/dL', low: 13, high: 17 },
       { key: 'wcc', label: 'WCC', unit: '×10⁹/L', low: 4, high: 11 },
       { key: 'plt', label: 'Plt', unit: '×10⁹/L', low: 150, high: 450 },
       { key: 'mcv', label: 'MCV', unit: 'fL', low: 80, high: 100 },
@@ -88,7 +88,10 @@ export const PANELS: Panel[] = [
     label: 'Glucose',
     icon: '🍬',
     analytes: [
-      { key: 'glu', label: 'Glucose', unit: 'mmol/L', low: 4, high: 7.8 },
+      // Fasting reference range (a random/post-prandial glucose can be
+      // higher than this without being diabetic — do not apply this
+      // range to non-fasting samples).
+      { key: 'glu', label: 'Glucose (fasting)', unit: 'mmol/L', low: 4, high: 5.6 },
       { key: 'hba1c', label: 'HbA1c', unit: '%', high: 6.5 },
     ],
   },

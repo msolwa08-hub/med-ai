@@ -54,7 +54,7 @@ function FindingRow({ item, value, onSet }: {
           type="button"
           onClick={() => onSet(isNad ? '' : 'NAD')}
           aria-pressed={isNad}
-          className={`inline-flex items-center gap-1 shrink-0 min-h-[36px] px-2.5 rounded-pill text-xs font-medium border transition-colors ${
+          className={`inline-flex items-center gap-1 shrink-0 min-h-[44px] px-2.5 rounded-pill text-xs font-medium border transition-colors ${
             isNad
               ? 'bg-brand-600 border-brand-600 text-white'
               : 'bg-surface border-line-strong text-ink-soft hover:border-brand-400 hover:text-brand-700'
