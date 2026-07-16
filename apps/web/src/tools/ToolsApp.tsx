@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AccessKeyGate } from '../components/AccessKeyGate';
 import { toolsApi } from './toolsApi';
 import { DEPARTMENTS, SUB_DEPARTMENTS } from './config/departments';
@@ -41,6 +42,36 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
   } = useToolsState();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const handleKeyboard = useCallback((e: KeyboardEvent) => {
+    if (!key || !dept) return;
+    const meta = e.metaKey || e.ctrlKey;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (meta && e.key >= '1' && e.key <= '6') {
+      e.preventDefault();
+      const visibleTabs = ([
+        { id: 'clerk' as Tab }, { id: 'problems' as Tab }, { id: 'round' as Tab },
+        ...(dept === 'og' ? [{ id: 'specialist' as Tab }] : []),
+        { id: 'documents' as Tab }, { id: 'formulas' as Tab },
+      ]);
+      const idx = parseInt(e.key) - 1;
+      if (idx < visibleTabs.length) setActiveTab(visibleTabs[idx].id);
+    }
+    if (meta && e.key === 'k') {
+      e.preventDefault();
+      const input = document.querySelector<HTMLInputElement>('[data-quickbar-input]');
+      input?.focus();
+    }
+    if (e.key === 'n' && meta) {
+      e.preventDefault();
+      addPatient();
+    }
+  }, [key, dept, setActiveTab, addPatient]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [handleKeyboard]);
 
   if (!key) {
     return (
@@ -216,19 +247,20 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
 
           {/* Tabs */}
           <div role="tablist" aria-label="Patient sections" className="bg-surface/85 backdrop-blur-md border-b border-line flex overflow-x-auto shrink-0 scrollbar-thin">
-            {tabs.map(t => (
+            {tabs.map((t, i) => (
               <button
                 key={t.id}
                 role="tab"
                 aria-selected={currentTab === t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`px-4 min-h-[44px] text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                className={`px-4 min-h-[44px] text-sm font-medium whitespace-nowrap transition-colors border-b-2 group ${
                   currentTab === t.id
                     ? 'text-brand-700 border-brand-500 bg-brand-50/60'
                     : 'text-ink-soft border-transparent hover:text-ink'
                 }`}
               >
                 {t.label}
+                <kbd className="hidden lg:inline-block ml-1.5 text-2xs text-ink-mute/60 font-mono opacity-0 group-hover:opacity-100 transition-opacity">⌘{i + 1}</kbd>
               </button>
             ))}
           </div>
@@ -236,7 +268,15 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
           {/* Tab content */}
           <div className="flex-1 overflow-y-auto px-5 py-8">
             {activePatient ? (
-              <div className="max-w-3xl mx-auto">
+              <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${activePatient.id}-${currentTab}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="max-w-3xl mx-auto"
+              >
                 {currentTab === 'clerk' && (
                   <ClerkTab
                     key={activePatient.id}
@@ -280,7 +320,8 @@ export function ToolsApp({ onBack }: { onBack: () => void }) {
                 {currentTab === 'specialist' && (
                   <SpecialistTab key={activePatient.id} patient={activePatient} toolsKey={key} dept={dept} />
                 )}
-              </div>
+              </motion.div>
+              </AnimatePresence>
             ) : (
               <div className="text-center py-20 text-ink-mute">
                 <div className="mx-auto mb-4 grid place-items-center w-14 h-14 rounded-full bg-surface-alt">

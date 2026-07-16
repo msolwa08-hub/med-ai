@@ -148,10 +148,12 @@ export function QuickBar({
         <Sparkles className="w-4 h-4 text-brand-600" />
         <h3 className="text-base font-bold text-ink tracking-tight">{title}</h3>
         <span className="text-xs text-ink-soft">— {hint}</span>
+        <kbd className="hidden lg:inline-block ml-auto text-2xs text-ink-mute/50 font-mono border border-line rounded px-1.5 py-0.5">⌘K</kbd>
       </div>
 
       <div className="relative">
         <textarea
+          data-quickbar-input
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') parse(); }}
