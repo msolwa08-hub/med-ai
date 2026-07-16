@@ -48,32 +48,20 @@ export function useToolsState() {
   const selectDept = useCallback((d: DeptId) => {
     setDept(d);
     setSubDept(null);
-    if (!SUB_DEPARTMENTS[d]) {
-      setPatients(prev => {
-        if (prev.length === 0) {
-          const p = newPatient(d);
-          setActivePatientId(p.id);
-          return [p];
-        }
-        setActivePatientId(cur => cur ?? prev[0].id);
-        return prev;
-      });
-    }
+    const p = newPatient(d);
+    setPatients([p]);
+    setActivePatientId(p.id);
+    setActiveTab('clerk');
   }, []);
 
   const selectSubDept = useCallback((s: string) => {
     setSubDept(s);
     const d = deptRef.current;
     if (d) {
-      setPatients(prev => {
-        if (prev.length === 0) {
-          const p = newPatient(d);
-          setActivePatientId(p.id);
-          return [p];
-        }
-        setActivePatientId(cur => cur ?? prev[0].id);
-        return prev;
-      });
+      const p = newPatient(d);
+      setPatients([p]);
+      setActivePatientId(p.id);
+      setActiveTab('clerk');
     }
   }, []);
 

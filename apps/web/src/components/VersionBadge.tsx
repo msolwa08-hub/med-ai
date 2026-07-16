@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 // go stale, and a cached old bundle will still reveal itself by disagreeing
 // with what the user expects.
 
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
 
 export function VersionBadge() {
   const [sha, setSha] = useState('');
