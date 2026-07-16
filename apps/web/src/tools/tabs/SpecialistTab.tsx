@@ -65,8 +65,9 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
           </button>
         ))}
       </div>
-      <div className="flex gap-3">
+      <div className="flex items-center gap-3">
         <AiBtn onClick={generate} loading={loading} label={`Generate ${mode === 'obs' ? 'Obs' : 'Gynae'} Note`} />
+        {!result && !loading && <span className="text-xs text-ink-mute">Generates a structured {mode === 'obs' ? 'obstetric' : 'gynaecology'} note from the bedside record.</span>}
       </div>
       {err && <p className="text-danger text-xs">{err}</p>}
       {result && <DocOutput text={result} />}

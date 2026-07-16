@@ -287,7 +287,7 @@ export function WorkingPicturePanel({
 
       {!picture && !loading && (
         <p className="text-sm text-ink-mute text-center py-4">
-          Select the presenting complaint to generate the differential diagnosis.
+          Enter or select a presenting complaint to generate the differential diagnosis.
         </p>
       )}
     </div>

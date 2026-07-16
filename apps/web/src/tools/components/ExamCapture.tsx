@@ -156,11 +156,11 @@ export function ExamCapture({ vitals, focus, survey, values, customNote, onValue
           </div>
         </div>
       ) : (
-        historyEmpty && (
-          <p className="text-xs text-ink-soft bg-surface-alt border border-line rounded-xl px-3 py-2 leading-relaxed">
-            Add the history above — the focused exam appears here, built from the differential, so you examine only what the story implicates.
-          </p>
-        )
+        <p className="text-xs text-ink-soft bg-surface-alt border border-line rounded-xl px-3 py-2 leading-relaxed">
+          {historyEmpty
+            ? 'Add the history above — the focused exam appears here, built from the differential, so you examine only what the story implicates.'
+            : 'Waiting for the differential to identify discriminating exam targets — use the full survey below in the meantime.'}
+        </p>
       )}
 
       {/* ── Full survey: everything else, one tap away, never in the way. ── */}

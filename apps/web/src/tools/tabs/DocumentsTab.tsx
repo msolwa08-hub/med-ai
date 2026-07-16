@@ -159,6 +159,9 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
         </p>
       </div>
 
+      {loading && protocols.length === 0 && (
+        <p className="text-xs text-ink-mute animate-pulse">Loading protocols…</p>
+      )}
       {!loading && protocols.length > 0 && (
         <div className="space-y-1.5">
           {protocols.map(p => (

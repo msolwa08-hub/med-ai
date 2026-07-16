@@ -44,7 +44,7 @@ export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient 
         </Card>
       )}
 
-      <div>
+      {relevant.length > 0 && <div>
         <SectionHead>Recommended for {DEPARTMENTS.find(d => d.id === dept)?.label}</SectionHead>
         <div className="flex flex-wrap gap-2">
           {relevant.map(c => (
@@ -61,7 +61,7 @@ export function FormulasTab({ dept, patient }: { dept: DeptId; patient: Patient 
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {others.length > 0 && (
         <div>
