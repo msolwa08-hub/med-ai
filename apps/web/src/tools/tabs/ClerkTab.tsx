@@ -366,7 +366,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   // "still missing".
   const storySummary = (() => {
     const who = [patient.intake.name, patient.intake.age && `${patient.intake.age}`].filter(Boolean).join(', ');
-    return who || 'type what you have — nothing is required';
+    return who || 'enter clinical details as available';
   })();
 
   const utilityRow = (
@@ -421,9 +421,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             fields={[...clerkFields, ...examFields]}
             context={patientContext(patient, dept, subDept)}
             onResults={routeAnyUpdates}
-            title="Tell me what you found"
-            hint="fragments are fine — everything files itself"
-            cta="File it"
+            title="Enter clinical findings"
+            hint="free-text accepted — findings are categorised automatically"
+            cta="Submit"
             placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
           />
         )}
@@ -502,7 +502,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               onClick={() => setChangingComplaint(false)}
               className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
             >
-              Done — collapse
+              Collapse
             </button>
           )}
 
@@ -514,7 +514,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               className="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 text-sm font-medium text-brand-800 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:shadow-focus"
             >
               <Sparkles className="w-4 h-4" aria-hidden />
-              New here? See it in action — load an example patient
+              Load a demonstration case
             </button>
           )}
         </Card>
@@ -535,9 +535,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             fields={[...clerkFields, ...examFields]}
             context={patientContext(patient, dept, subDept)}
             onResults={routeAnyUpdates}
-            title="Tell me what you found"
-            hint="fragments are fine — everything files itself"
-            cta="File it"
+            title="Enter clinical findings"
+            hint="free-text accepted — findings are categorised automatically"
+            cta="Submit"
             placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
           />
         )}
@@ -552,7 +552,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               loading={wp.loading}
               error={wp.error}
               onGenerate={wp.generate}
-              generateLabel="Build picture"
+              generateLabel="Generate picture"
               hideManagement
             />
 
@@ -674,7 +674,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           >
             <span className="min-w-0">
               <span className="text-sm font-semibold text-ink">More detail</span>
-              <span className="block text-xs text-ink-mute mt-0.5">Background, exam, results — if and when you want</span>
+              <span className="block text-xs text-ink-mute mt-0.5">Background, examination, results — complete as indicated</span>
             </span>
             <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform duration-200 ${completeOpen ? 'rotate-180' : ''}`} aria-hidden />
           </button>
@@ -734,7 +734,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                       className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
                     >
                       <ChevronDown className={`w-3 h-3 transition-transform ${aiInterviewOpen ? 'rotate-180' : ''}`} aria-hidden />
-                      or let the AI interview the patient
+                      or use AI-assisted history-taking
                     </button>
                     {aiInterviewOpen && (
                       <div className="mt-2.5">
@@ -757,7 +757,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               <StageCard
                 title="Examine"
                 icon={Stethoscope}
-                summary={capturedCount > 0 ? `${capturedCount} value${capturedCount === 1 ? '' : 's'} captured` : 'values, if you have them'}
+                summary={capturedCount > 0 ? `${capturedCount} finding${capturedCount === 1 ? '' : 's'} recorded` : 'enter findings as obtained'}
                 open={openStage === 'examine'}
                 onToggle={() => toggle('examine')}
               >

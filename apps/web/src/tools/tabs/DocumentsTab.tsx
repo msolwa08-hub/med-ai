@@ -134,7 +134,7 @@ function HospitalProtocolsPanel({ toolsKey, dept }: { toolsKey: string; dept: De
       if (fileRef.current) fileRef.current.value = '';
       await refresh();
     } catch {
-      setErr('Could not add that protocol — for a PDF, make sure it contains selectable text (not a scanned image).');
+      setErr('Unable to add protocol — ensure PDF contains selectable text (not a scanned image).');
     } finally {
       setAdding(false);
     }
@@ -301,7 +301,7 @@ function LegalFormsPanel({ patient, toolsKey, dept }: { patient: Patient; toolsK
       setDraft(res);
       setSectionText(Object.fromEntries(res.sections.map((s, i) => [i, s.content])));
     } catch {
-      setErr('Couldn’t reach the engine just now — tap to retry.');
+      setErr('Unable to reach the clinical engine — retry to generate.');
     } finally {
       setLoading('');
     }

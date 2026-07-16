@@ -114,7 +114,7 @@ function DifferentialCard({ d, reduce, hero }: { d: WeightedDifferential; reduce
 
         {d.discriminators.length > 0 && (
           <div className="space-y-2 pt-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">What would move this</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Discriminating investigations</p>
             {d.discriminators.map((t, i) => (
               <div key={i} className="flex items-start gap-2.5">
                 <span className={`shrink-0 text-xs uppercase tracking-wide rounded-full border px-2 py-0.5 font-medium ${DISC_STATUS[t.status] ?? DISC_STATUS.suggested}`}>
@@ -183,7 +183,7 @@ export function WorkingPicturePanel({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-ink tracking-tight">Working picture</h3>
-          <p className="text-xs text-ink-soft">The live differential — what it is, how sure, and what would prove it.</p>
+          <p className="text-xs text-ink-soft">Live differential diagnosis — ranked probability with discriminating investigations.</p>
         </div>
         <button
           onClick={onGenerate}
@@ -243,7 +243,7 @@ export function WorkingPicturePanel({
       {picture && !hideManagement && picture.managementNow.length > 0 && (
         <div className="rounded-xl bg-surface border border-line px-4 py-3">
           <p className="flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-mute mb-1.5">
-            <ListChecks className="w-3.5 h-3.5" /> Do now — justified by the current picture
+            <ListChecks className="w-3.5 h-3.5" /> Immediate management — indicated by current clinical picture
           </p>
           <ul className="space-y-1">
             {picture.managementNow.map((m, i) => (
@@ -287,7 +287,7 @@ export function WorkingPicturePanel({
 
       {!picture && !loading && (
         <p className="text-sm text-ink-mute text-center py-4">
-          Tap the presenting complaint — the leading diagnosis appears here on its own, then live as you confirm.
+          Select the presenting complaint to generate the differential diagnosis.
         </p>
       )}
     </div>

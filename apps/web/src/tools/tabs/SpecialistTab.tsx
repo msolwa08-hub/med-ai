@@ -22,7 +22,7 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
       <div className="text-center py-16 text-ink-mute">
         <Tag className="w-10 h-10 mx-auto mb-3" aria-hidden />
         <p>Specialist tab is currently available for O&G.</p>
-        <p className="text-sm mt-1">More specialties coming soon.</p>
+        <p className="text-sm mt-1">Additional specialties will be available in future updates.</p>
       </div>
     );
   }
