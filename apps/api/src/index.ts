@@ -53,7 +53,20 @@ await fastify.register(cors, {
   credentials: true,
 });
 
-await fastify.register(helmet, { contentSecurityPolicy: false });
+await fastify.register(helmet, {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+});
 await fastify.register(jwt, { secret: config.JWT_SECRET });
 await fastify.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 // PayFast ITN posts application/x-www-form-urlencoded

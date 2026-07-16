@@ -69,7 +69,7 @@ export default function ChatView({ sessionId }: Props) {
   async function loadSession() {
     if (sessionId) {
       try {
-        const session = await api.getSession(sessionId);
+        const session = await api.getSession(sessionId, betaKey ?? undefined);
         setActiveSessionId(sessionId);
         setMessages(session.messages as Message[]);
         if (session.status === 'completed') setCompleted(true);

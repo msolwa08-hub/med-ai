@@ -234,7 +234,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
             onClick={submit}
             disabled={busy || !answer.trim()}
             aria-label="Send"
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-brand-700 hover:bg-brand-600 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-brand-700 hover:bg-brand-600 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
           >
             {busy ? '…' : '↑'}
           </button>
