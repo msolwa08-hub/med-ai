@@ -1,14 +1,14 @@
 # MedAI — Session Continuity Status
 
-**Last updated:** 2026-07-16
+**Last updated:** 2026-07-17
 **Branch:** `claude/ai-medical-history-app-1lh4wv`
-**Latest commit:** `dc138b4` — Wave 8: skeleton loaders for all AI panels
+**Latest commit:** `3b6b31b` — feat: implement Family Medicine / PHC department
 
 ## Current state
 
 The app is **feature-complete for beta use**. All 10 departments (Internal
 Medicine, Surgery, Emergency, ICU, O&G, Paediatrics, Orthopaedics, Psychiatry,
-Anaesthetics, plus a dormant Family Med slot) carry consultant-depth dossiers,
+Anaesthetics, Family Medicine) carry consultant-depth dossiers,
 loop-gated at 100/100 each. The two-glance encounter model (M-GLANCE) is
 shipped and certified. The Calm Clinical design system is fully applied with
 dark mode, Inter Variable font, and semantic tokens.
@@ -41,6 +41,8 @@ A deep-audit-driven polish campaign — 8 waves of improvements:
 | 6 | Mobile-first rebuild, offline support, security | (folded into Wave 2) |
 | 7 | Empty states, loading indicators, guidance text | `000a771` |
 | 8 | Keyboard shortcuts (Cmd+1-6/K/N), tab transitions, skeleton loaders for all AI panels | `90d2e24`, `dc138b4` |
+| Text sweep | Strip excessive explanatory/coaching text, compact differential display | `76106ab` |
+| Family Med | Full Family Medicine / PHC department across all 12 registries | `3b6b31b` |
 
 ## Architecture overview
 
@@ -107,16 +109,13 @@ apps/
 1. **Real-world beta feedback** — Muhammad is using the app in his internship.
    His feedback becomes the prioritized backlog.
 
-2. **Family Medicine / PHC** — the last unimplemented department. Research
-   dossier + implementation following the established pattern.
-
-3. **Streaming responses** — the confidence engine and ward round currently
+2. **Streaming responses** — the confidence engine and ward round currently
    wait for the full response. Streaming would improve perceived latency.
 
-4. **E2E tests** — Playwright tests exist but the suite could be expanded to
+3. **E2E tests** — Playwright tests exist but the suite could be expanded to
    cover the full two-glance flow per department.
 
-5. **Cost optimization** — Haiku 4.5 on light calls (harness-gated), prompt
+4. **Cost optimization** — Haiku 4.5 on light calls (harness-gated), prompt
    caching expansion. Current: ~8-10c/loop.
 
 ## Standing constraints
