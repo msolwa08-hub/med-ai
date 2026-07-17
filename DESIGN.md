@@ -61,6 +61,27 @@ spring, rows reorder, flags animate).
 - "Next" = highest information-gain question.
 - Illness scripts, not point tallies. Automatic pre-mortem at high confidence.
 
+## Build as a closed loop (MANDATORY — this is why it was sloppy before)
+
+Never ship UI you have not looked at. Every change runs this loop:
+
+1. **Build** the change.
+2. **Render** it (Chromium/Playwright, phone width 390–430, and a desktop width).
+3. **INSPECT the actual screenshot with your own eyes** — open it via Read. Do not
+   assume. Check, concretely: type sizes consistent (no element that should be one
+   size rendering two); vertical rhythm / even spacing; nothing wrapping ugly,
+   overflowing, clipping, or overlapping; alignment of columns; touch targets ≥44px;
+   contrast in light AND dark; the thing actually looks like the reference bar.
+4. **Critique in writing** — list every specific defect you see (position, px, colour).
+5. **Fix** and **re-render**. Repeat until there is nothing left to fix.
+6. Only then send it to Muhammad and commit.
+
+A cycle that skips the look-and-critique step is a failed cycle. The reference
+screenshots (Dune / Verdant / cosmic) are the quality bar — measure against them.
+
+Also: each cycle, fix real end-to-end errors in the system, not just cosmetics —
+TypeScript/build errors, broken states, empty/loading/error states, dead controls.
+
 ## Non-negotiables
 - Light + dark, both first-class. 44px touch targets. `prefers-reduced-motion` honoured.
 - Words only in: diagnosis names, the findings entered, Docs, and the Why tab.

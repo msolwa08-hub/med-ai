@@ -1,0 +1,247 @@
+<title>MedAI — Differential v3</title>
+<style>
+  :root{
+    --ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;
+    --surface:#ffffff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;
+    --brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;
+    --good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;
+    --amber:#b45309;--amber-tint:#fbf1e3;
+    --pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;
+    --bar-track:#eaf0f0;
+    --shadow-sm:0 1px 2px rgba(14,26,28,.06);
+    --shadow:0 2px 6px rgba(14,26,28,.06),0 12px 28px -14px rgba(14,26,28,.18);
+    --page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;
+    --surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;
+    --brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;
+    --good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;
+    --amber:#e0a05a;--amber-tint:#2f2417;
+    --pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;
+    --bar-track:#1c2a2b;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+    --shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);
+    --page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);
+  }}
+  :root[data-theme="dark"]{--ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;--surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;--brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;--good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;--amber:#e0a05a;--amber-tint:#2f2417;--pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;--bar-track:#1c2a2b;--shadow-sm:0 1px 2px rgba(0,0,0,.35);--shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);--page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);}
+  :root[data-theme="light"]{--ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;--surface:#fff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;--brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;--good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;--amber:#b45309;--amber-tint:#fbf1e3;--pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;--bar-track:#eaf0f0;--page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
+  .wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:20px}
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+  header{padding:14px 16px 0}
+  .pt{display:flex;align-items:center;gap:9px;min-width:0}
+  .pt .chev{color:var(--ink-mute);font-size:19px;flex:none}
+  .pt .who{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .pt .who small{font-weight:500;color:var(--ink-mute)}
+  .vitals{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+  .vital{font-size:11px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:3px 7px;box-shadow:var(--shadow-sm)}
+  .vital b{color:var(--ink);font-weight:650}
+
+  /* score dashboard */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px 12px;box-shadow:var(--shadow)}
+  .card .k{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-mute)}
+  .card .vrow{display:flex;align-items:baseline;gap:6px;margin:3px 0 8px}
+  .card .v{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .card .d{font-size:11px;font-weight:700}
+  .card .d.up{color:var(--good)}.card .d.down{color:var(--bad)}
+  .track{height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
+  .track .fill{height:100%;border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  .fill.conf{background:linear-gradient(90deg,var(--brand),var(--brand-strong))}
+  .fill.comp{background:linear-gradient(90deg,#8fa3a6,#5f7377)}
+  .cap{display:flex;gap:7px;align-items:flex-start;margin-top:10px;font-size:11.5px;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:10px;padding:8px 10px;line-height:1.4}
+
+  .next{margin-top:12px;background:var(--surface);border:1.5px solid var(--brand);border-radius:13px;padding:10px 8px 10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+  .next .tag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#fff;background:var(--brand);padding:4px 8px;border-radius:6px;flex:none}
+  .next .qt{flex:1;font-size:13.5px;font-weight:650;min-width:0;line-height:1.25}
+  .next .qt em{display:block;font-style:normal;color:var(--ink-mute);font-weight:500;font-size:11px;margin-top:1px}
+
+  .tabs{display:flex;gap:3px;margin-top:14px}
+  .tab{flex:1;text-align:center;padding:8px 2px 9px;font-size:10px;font-weight:650;color:var(--ink-mute);border-radius:11px 11px 0 0;border:1px solid transparent;border-bottom:none}
+  .tab .n{display:block;font-size:15px;margin-bottom:3px;line-height:1}
+  .tab.on{color:var(--brand-strong);background:var(--surface);border-color:var(--line)}
+
+  main{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 16px 16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+  .dx{display:flex;order:0}
+  .dx .accent{width:4px;flex:none;background:var(--dxc)}
+  .dx .col{flex:1;min-width:0;border-bottom:1px solid var(--line-soft)}
+  .dx:last-child .col{border-bottom:none}
+  .dx-head{display:flex;align-items:center;gap:9px;padding:13px 13px 13px 12px;cursor:pointer;user-select:none}
+  .caret{color:var(--ink-mute);font-size:11px;width:9px;flex:none;transition:transform .2s}
+  .dx.open .caret{transform:rotate(90deg)}
+  .nm{flex:1;min-width:0;display:flex;align-items:center;gap:7px}
+  .name{font-size:14px;font-weight:650;letter-spacing:-.01em;color:var(--dxc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+  .icd{font-size:9.5px;font-weight:700;color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line);border-radius:5px;padding:1px 5px;flex:none;letter-spacing:.02em}
+  .dot{width:8px;height:8px;border-radius:99px;background:var(--bad);flex:none;box-shadow:0 0 0 3px var(--bad-tint)}
+  .mnmnote{font-size:10px;font-weight:800;letter-spacing:.03em;color:var(--bad);margin:0 0 9px}
+  .metric{display:flex;align-items:center;gap:7px;flex:none}
+  .delta{font-size:11px;font-weight:800;text-align:right;opacity:0;transition:opacity .3s;white-space:nowrap}
+  .delta.up{color:var(--good);opacity:1}.delta.down{color:var(--bad);opacity:1}
+  .mini{width:42px;height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
+  .mini .f{height:100%;background:var(--dxc);border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  .pct{font-size:16px;font-weight:800;width:38px;text-align:right;letter-spacing:-.02em}
+
+  .body{display:none;padding:0 13px 13px 12px}
+  .dx.open .body{display:block}
+  .script{font-size:11.5px;color:var(--ink-mute);line-height:1.45;margin:0 0 11px;padding:8px 10px;background:var(--surface-alt);border-radius:9px}
+  .script b{color:var(--dxc);font-weight:650}
+  .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
+  .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
+  .feat.on .fl{color:var(--ink);font-weight:550}
+  .tc{display:flex;gap:6px;flex:none}
+  .tc button{width:38px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;transition:all .14s}
+  .tc button:hover{border-color:var(--ink-mute)}
+  .tc button.y.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .tc button.n.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .ix{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .ix .h{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:7px}
+  .ixr{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);padding:4px 0}
+  .ixr .r{margin-left:auto;font-size:10px;font-weight:700;color:var(--brand-strong);background:var(--brand-tint);border-radius:6px;padding:2px 8px;flex:none}
+
+  footer{padding:13px 16px 0;text-align:center}
+  .legend{display:inline-flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-mute)}
+  .legend b{display:inline-flex;align-items:center;gap:4px}
+  .sw{width:15px;height:15px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+  .theme{margin-top:10px;font-size:11px;color:var(--brand-strong);background:var(--brand-tint);border:none;padding:6px 12px;border-radius:99px;cursor:pointer;font-weight:650}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="pt"><span class="chev">‹</span><div class="who">29 · G3P2 · 33<small>+4/40</small> · headache + epigastric pain</div></div>
+    <div class="vitals"><span class="vital">BP <b>168/112</b></span><span class="vital">HR <b>104</b></span><span class="vital">T <b>37.9</b></span><span class="vital">RR <b>18</b></span><span class="vital">SpO₂ <b>98</b></span></div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="k">Confidence</div>
+        <div class="vrow"><span class="v tnum" id="confV">—</span><span class="d up" id="confD"></span></div>
+        <div class="track"><div class="fill conf" id="confF"></div></div>
+      </div>
+      <div class="card">
+        <div class="k">Hx / Exam complete</div>
+        <div class="vrow"><span class="v tnum" id="compV">—</span><span class="d up" id="compD"></span></div>
+        <div class="track"><div class="fill comp" id="compF"></div></div>
+      </div>
+    </div>
+    <div class="cap" id="cap"></div>
+
+    <div class="next" id="next"></div>
+
+    <div class="tabs">
+      <div class="tab on"><span class="n">◧</span>Hx·Exam</div>
+      <div class="tab"><span class="n">⌾</span>Ix</div>
+      <div class="tab"><span class="n">✚</span>Mx</div>
+      <div class="tab"><span class="n">▤</span>Docs</div>
+      <div class="tab"><span class="n">✦</span>Why</div>
+    </div>
+  </header>
+
+  <main id="list"></main>
+
+  <footer>
+    <div class="legend"><b><span class="sw" style="background:var(--good)">✓</span>present</b><b><span class="sw" style="background:var(--bad)">✕</span>absent</b></div>
+    <div><button class="theme" id="theme">Light / dark</button></div>
+  </footer>
+</div>
+
+<script>
+const DX=[
+  {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.30,mnm:false,
+   script:'HTN + proteinuria + end-organ symptoms after 20 weeks'},
+  {id:'hellp',name:'HELLP syndrome',icd:'O14.2',c:'var(--hellp)',prior:.12,mnm:true,
+   script:'pre-eclampsia + haemolysis + low platelets + high LFTs'},
+  {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.10,mnm:true,
+   script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
+  {id:'aflp',name:'Acute fatty liver of pregnancy',icd:'O26.6',c:'var(--aflp)',prior:.05,mnm:true,
+   script:'3rd trimester + hypoglycaemia + coagulopathy + high LFTs'},
+];
+const FEAT=[
+  {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
+  {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pet:[2.4,.6],hellp:[3,.5],aflp:[2,.7]},preset:'present'},
+  {id:'vis',lbl:'Visual disturbance',stream:'hx',eff:{pet:[3,.5]}},
+  {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
+  {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
+  {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
+  {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
+  {id:'liquor',lbl:'Ruptured membranes / offensive liquor',stream:'exam',eff:{chorio:[5,.5]}},
+  {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',eff:{chorio:[3,.6]}},
+  {id:'plt',lbl:'Platelets < 100',stream:'ix',eff:{hellp:[8,.2]},key:'hellp'},
+  {id:'ast',lbl:'AST / ALT raised',stream:'ix',eff:{hellp:[4,.4],aflp:[3,.5]}},
+  {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',eff:{hellp:[3,.5]}},
+  {id:'glu',lbl:'Hypoglycaemia',stream:'ix',eff:{aflp:[6,.4]},key:'aflp'},
+  {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
+];
+const ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});
+const featsFor=id=>FEAT.filter(f=>f.eff[id]);
+const last={};
+function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
+function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
+function completeness(){const hx=FEAT.filter(f=>f.stream!=='ix');const w=f=>Math.abs(Math.log(f.eff[Object.keys(f.eff)[0]][0]));let t=0,g=0;for(const f of hx){const wt=w(f);t+=wt;if(ans[f.id])g+=wt;}return g/t;}
+function nextBest(p){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||ans[f.id])continue;const g=Object.keys(f.eff).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
+function tween(el,to,suf=''){const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/450);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
+
+function build(){
+  document.getElementById('list').innerHTML=DX.map(d=>`
+    <div class="dx${d.id==='pet'?' open':''}" data-id="${d.id}" style="--dxc:${d.c}">
+      <div class="accent"></div>
+      <div class="col">
+        <div class="dx-head">
+          <span class="caret">›</span>
+          <span class="nm">
+            <span class="name">${d.name}</span>
+            <span class="icd">${d.icd}</span>
+            ${d.mnm?'<span class="dot" title="Must not miss"></span>':''}
+          </span>
+          <span class="metric">
+            <span class="delta" data-delta></span>
+            <span class="mini"><span class="f" data-mini></span></span>
+            <span class="pct tnum" data-pct>0</span>
+          </span>
+        </div>
+        <div class="body">
+          ${d.mnm?'<div class="mnmnote">▲ MUST NOT MISS — actively exclude</div>':''}
+          <div class="script" data-script></div>
+          <div data-feats></div>
+          ${featsFor(d.id).some(f=>f.stream==='ix')?`<div class="ix"><div class="h">Discriminating tests · enter on Ix tab</div>${featsFor(d.id).filter(f=>f.stream==='ix').map(f=>`<div class="ixr" data-ix="${f.id}"><span>${f.lbl}</span><span class="r">→ Ix</span></div>`).join('')}</div>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.dx-head').forEach(h=>h.addEventListener('click',()=>h.closest('.dx').classList.toggle('open')));
+  const p0=probs();DX.forEach(d=>last[d.id]=p0[d.id]);
+  update(true);
+}
+function update(first){
+  const p=probs();const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
+  ranked.forEach((d,i)=>{
+    const el=document.querySelector(`.dx[data-id="${d.id}"]`);el.style.order=i;
+    const pc=Math.round(p[d.id]*100);
+    el.querySelector('[data-mini]').style.width=pc+'%';
+    tween(el.querySelector('[data-pct]'),pc);
+    const dl=el.querySelector('[data-delta]'),ch=Math.round((p[d.id]-last[d.id])*100);
+    if(!first&&Math.abs(ch)>=1){dl.className='delta '+(ch>0?'up':'down');dl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}
+    else if(first){dl.className='delta';dl.textContent='';}
+    const matched=featsFor(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
+    el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
+    const fc=el.querySelector('[data-feats]');
+    fc.innerHTML=featsFor(d.id).filter(f=>f.stream!=='ix').map(f=>`
+      <div class="feat${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl">${f.lbl}</span>
+        <span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
+    fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;DX.forEach(x=>last[x.id]=p[x.id]);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];update(false);}));
+  });
+  const c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);
+  const cPc=Math.round(conf*100),comp=Math.round(completeness()*100);
+  tween(document.getElementById('confV'),cPc,'%');document.getElementById('confF').style.width=cPc+'%';
+  tween(document.getElementById('compV'),comp,'%');document.getElementById('compF').style.width=comp+'%';
+  const capEl=document.getElementById('cap');
+  if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')+' not yet excluded. Bloods pending on Ix.</span>';}
+  else capEl.style.display='none';
+  const nb=nextBest(p),nx=document.getElementById('next');
+  if(nb){nx.style.display='flex';nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>the one answer that moves the picture most</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
+    nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const pp=probs();DX.forEach(x=>last[x.id]=pp[x.id]);ans[nb.id]=b.dataset.a;DX.forEach(x=>{if(FEAT.find(f=>f.id===nb.id).eff[x.id]){const e=document.querySelector(`.dx[data-id="${x.id}"]`);if(e)e.classList.add('open');}});update(false);}));}
+  else nx.style.display='none';
+}
+build();
+document.getElementById('theme').addEventListener('click',()=>{const r=document.documentElement,c=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.setAttribute('data-theme',c==='dark'?'light':'dark');});
+</script>
