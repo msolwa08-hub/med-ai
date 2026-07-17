@@ -1,7 +1,7 @@
 import {
   Stethoscope, Scissors, Venus, Baby, Activity, Siren, Brain, Bone, Syringe,
   Ban, TriangleAlert, HeartPulse, Wind, Thermometer, Droplet, Zap, CircleDot,
-  Ambulance, Beaker, FlaskConical, type LucideIcon,
+  Ambulance, Beaker, FlaskConical, Home, type LucideIcon,
 } from 'lucide-react';
 import type { DeptId } from '../config/departments';
 
@@ -22,6 +22,7 @@ export const DEPT_ICONS: Record<DeptId, LucideIcon> = {
   psych: Brain,
   ortho: Bone,
   anaes: Syringe,
+  family: Home,
 };
 
 /** The department's icon, with a safe clinical fallback for any unmapped id. */

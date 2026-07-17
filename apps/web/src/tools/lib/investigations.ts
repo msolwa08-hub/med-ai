@@ -120,7 +120,7 @@ export const PANELS: Panel[] = [
     id: 'cardiac',
     label: 'Cardiac markers',
     icon: '❤️',
-    depts: ['medicine', 'emergency', 'icu'],
+    depts: ['medicine', 'emergency', 'icu', 'family'],
     analytes: [
       { key: 'trop', label: 'hs-Trop', unit: 'ng/L', high: 14 },
       { key: 'ck', label: 'CK', unit: 'U/L', high: 190 },
@@ -131,7 +131,7 @@ export const PANELS: Panel[] = [
     id: 'tbhiv',
     label: 'HIV / TB workup',
     icon: '🎗️',
-    depts: ['medicine', 'emergency', 'icu'],
+    depts: ['medicine', 'emergency', 'icu', 'family'],
     analytes: [
       { key: 'cd4', label: 'CD4', unit: 'cells/µL', low: 200 },
       { key: 'vl', label: 'Viral load', unit: 'copies/mL', high: 50 },

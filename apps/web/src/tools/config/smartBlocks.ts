@@ -124,7 +124,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
     pattern: /HIV\s*(pos|positive|\+)|\bART\b|\bTLD\b|tenofovir|dolutegravir|\bRVD\b/i,
     // Medicine/emergency run the deeper hiv-art-status block (CD4, cotrimoxazole,
     // TB history) instead — this clinic-framed one stays for the other wards.
-    depts: ['og', 'paeds', 'surgery', 'ortho', 'psych', 'icu'],
+    depts: ['og', 'paeds', 'surgery', 'ortho', 'psych', 'icu', 'family'],
     why: 'Viral load and adherence decide everything downstream — an undetectable patient on TLD is a different patient from a defaulter with unknown VL.',
     fields: [
       { id: 'tld', label: 'On TLD?', kind: 'toggle', cue: { color: 'blue', label: 'Blue tablet' } },
@@ -311,7 +311,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
     id: 'dm-control',
     title: 'Diabetes — control & complications',
     pattern: /diabet|\bDM\b|\bT[12]DM\b|HbA1c|insulin|metformin|glicl?azide|sulf(ph)?onylurea/i,
-    depts: ['medicine', 'emergency'],
+    depts: ['medicine', 'emergency', 'family'],
     why: 'Type and regimen frame the emergency — insulin omission in T1DM is DKA, the elderly T2DM drifts into HHS, and sulfonylurea hypoglycaemia recurs (admit, don\'t discharge on one dextrose). HbA1c plus the complication screen turns "known diabetic" into an actual risk profile.',
     fields: [
       { id: 'type', label: 'Type', kind: 'select', options: ['Type 1', 'Type 2'] },
@@ -330,7 +330,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
     id: 'hiv-art-status',
     title: 'HIV / ART status',
     pattern: /\bHIV\b|\bART\b|\bCD4\b|viral load|\bVL\b|\bRVD\b/i,
-    depts: ['medicine', 'emergency'],
+    depts: ['medicine', 'emergency', 'family'],
     why: 'CD4 <200 is advanced HIV disease — reflex CrAg at ≤100, urine LAM in the sick inpatient, cotrimoxazole prophylaxis; the four AHD killers are TB, cryptococcal meningitis, severe bacterial infection and PJP. An interrupted-TLD patient with unknown VL is a different differential from the suppressed one.',
     fields: [
       { id: 'on-art', label: 'On ART?', kind: 'toggle' },
@@ -348,7 +348,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
     id: 'tb-workup',
     title: 'TB workup',
     pattern: /\bTB\b|tuberculos|\bPTB\b|GeneXpert|\bXpert\b|night sweats|cough[^.\n]{0,24}(week|\/52)/i,
-    depts: ['medicine', 'emergency'],
+    depts: ['medicine', 'emergency', 'family'],
     why: 'Xpert Ultra is the initial test and a rifampicin-resistant call changes the entire pathway; urine LAM catches the disseminated TB the sputum misses in the sick low-CD4 inpatient. Prior default or MDR contact predicts resistance before the lab does — and TB is notifiable.',
     fields: [
       { id: 'sx-cough', label: 'Cough ≥2 weeks?', kind: 'toggle' },
@@ -366,7 +366,7 @@ export const SMART_BLOCKS: SmartBlock[] = [
     id: 'heart-failure-profile',
     title: 'Heart failure profile',
     pattern: /heart failure|cardiac failure|\bCCF\b|\bCHF\b|orthopn|\bPND\b|pulmonary (o)?edema|\bLVF\b/i,
-    depts: ['medicine', 'emergency'],
+    depts: ['medicine', 'emergency', 'family'],
     why: 'A decompensation without a named precipitant (ischaemia, infection, non-adherence, arrhythmia, anaemia) simply recurs; daily weights are the only honest measure of diuresis. Beware "cardiac asthma" — LVF wheeze masquerading as bronchospasm, with the opposite treatment.',
     fields: [
       { id: 'nyha', label: 'NYHA class', kind: 'select', options: ['I', 'II', 'III', 'IV'] },
