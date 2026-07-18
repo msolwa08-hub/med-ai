@@ -134,6 +134,12 @@
   .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
   .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
   .feat.has-sub{align-items:flex-start}
+  .follows{margin:1px 0 5px 15px;padding-left:13px;border-left:2px solid var(--line-soft);display:flex;flex-direction:column}
+  .follows .feat{padding:4px 0}
+  .follows .feat .fl{font-size:12px}
+  .follows .feat .fll{color:var(--ink-mute)}
+  .follows .feat.on .fll{color:var(--ink-soft)}
+  .follows .feat .sdot{opacity:.5}
   .numin{display:flex;align-items:center;gap:2px;flex:none}
   .numin .field{padding:4px 8px}
   .numin .field input{width:40px}
@@ -525,7 +531,11 @@ const CASES={
   FEAT:[
    {id:'irrit',lbl:'Irritable / lethargic',stream:'hx',eff:{meningitis:[3,.4]},preset:'present'},
    {id:'feeds',lbl:'Reduced feeds',stream:'hx',eff:{meningitis:[1.5,.8],uti:[1.3,.9]},preset:'present'},
-   {id:'cough',lbl:'Cough',stream:'hx',eff:{pneumonia:[2.5,.6]},preset:'present'},
+   {id:'cough',lbl:'Cough',stream:'hx',eff:{pneumonia:[2.5,.6]},preset:'present',follow:[
+     {id:'sputum',lbl:'Productive — brings up sputum',stream:'hx',eff:{pneumonia:[2,.7]},follow:[
+       {id:'purulent',lbl:'Colour change (green / yellow)',stream:'hx',eff:{pneumonia:[2.2,.7]}},
+       {id:'haemoptysis',lbl:'Blood in it (haemoptysis)',stream:'hx',eff:{pneumonia:[1.3,.95]}}]},
+     {id:'wob',lbl:'Working hard to breathe',stream:'hx',eff:{pneumonia:[2,.7]}}]},
    {id:'coryza',lbl:'Coryza',stream:'hx',eff:{viral:[3,.4]}},
    {id:'fontanelle',lbl:'Bulging fontanelle / neck stiffness',stream:'exam',eff:{meningitis:[6,.4]}},
    {id:'rash',lbl:'Non-blanching rash',stream:'exam',eff:{meningitis:[8,.5]}},
@@ -672,13 +682,20 @@ const CASES={
 
 let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false;
 const featsFor=id=>FEAT.filter(f=>f.eff[id]);
+// A finding may carry follow-up children (revealed when it is present) that
+// characterise it — cough → productive → colour change / blood. They live
+// nested on the parent; these helpers flatten the tree for the engine.
+function allFeats(){const out=[];(function w(l){for(const f of l){out.push(f);if(f.follow&&f.follow.length)w(f.follow);}})(FEAT);return out;}
+const featsForAll=id=>allFeats().filter(f=>f.eff&&f.eff[id]);
+function findFeat(id){let r=null;(function w(l){for(const f of l){if(f.id===id){r=f;return;}if(f.follow)w(f.follow);}})(FEAT);return r;}
+function clearFollow(f){if(!f||!f.follow)return;for(const c of f.follow){delete ans[c.id];delete val[c.id];if(checks[c.id])delete checks[c.id];clearFollow(c);}}
 function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;}
 // Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
 function clChips(f){return '<div class="clchips" data-clf="'+f.id+'">'+f.checklist.map(function(s){var sel=checks[f.id]&&checks[f.id].has(s)?' sel':'';return '<button class="clchip'+sel+'" data-s="'+s+'">'+s+'</button>';}).join('')+'<button class="clchip none'+(ans[f.id]==='absent'?' sel':'')+'" data-none>none seen</button></div>';}
 function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(c){var fid=c.dataset.clf;c.querySelectorAll('.clchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());if(!checks[fid])checks[fid]=new Set();if(b.hasAttribute('data-none')){checks[fid].clear();ans[fid]='absent';}else{var s=b.dataset.s;checks[fid].has(s)?checks[fid].delete(s):checks[fid].add(s);if(checks[fid].size>0)ans[fid]='present';else delete ans[fid];}refresh(false);});});});}
 
 
-function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
+function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsForAll(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
 function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
 function completeness(){const hx=FEAT.filter(f=>f.stream==='hx'||f.stream==='exam');const w=f=>Math.abs(Math.log(f.eff[Object.keys(f.eff)[0]][0]));let t=0,g=0;for(const f of hx){const wt=w(f);t+=wt;if(ans[f.id])g+=wt;}return g/t;}
 function nextBest(p){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;const g=Object.keys(f.eff).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
@@ -746,14 +763,18 @@ function paintHx(p,first){
     const feats=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').sort((a,b)=>(a.stream==='hx'?0:1)-(b.stream==='hx'?0:1));
     const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
     const numBadge=f=>{const a=ans[f.id];if(!a)return{c:'',t:''};if(a==='absent')return{c:'ok',t:'NORMAL'};const x=parseFloat(val[f.id]),t=f.num;let txt='ABNORMAL';if(!isNaN(x)){if(t.hi!=null&&x>t.hi)txt='HIGH';else if(t.lo!=null&&x<t.lo)txt='LOW';}return{c:'hi',t:txt};};
-    fc.innerHTML=feats.map(f=>{
-      const sub=fsub(f);
-      if(f.checklist)return `<div class="feat feat-cl str-${f.stream}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${f.stream}"></span>${f.lbl}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
-      if(f.num){const nb=numBadge(f);return `<div class="feat str-${f.stream} has-sub num${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${f.stream}"></span>${f.lbl}</span>${sub}</span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[f.id]??''}"><span class="unit">${f.num.unit||''}</span></span><span class="badge${nb.c?' show '+nb.c:''}">${nb.t}</span></span></div>`;}
-      return `<div class="feat str-${f.stream}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${f.stream}"></span>${f.lbl}</span>${sub}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`;
-    }).join('');
+    // A finding renders its follow-up children indented beneath it, but only
+    // once it is ticked present — cough → productive → colour change / blood.
+    const kids=f=>(ans[f.id]==='present'&&f.follow&&f.follow.length)?`<div class="follows">${f.follow.map(c=>featRow(c,true)).join('')}</div>`:'';
+    function featRow(f,child){
+      const sub=fsub(f),st=f.stream||'hx';
+      if(!child&&f.checklist)return `<div class="feat feat-cl str-${st}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
+      if(!child&&f.num){const nb=numBadge(f);return `<div class="feat str-${st} has-sub num${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[f.id]??''}"><span class="unit">${f.num.unit||''}</span></span><span class="badge${nb.c?' show '+nb.c:''}">${nb.t}</span></span></div>`;}
+      return `<div class="feat str-${st}${child?' child':''}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>${kids(f)}`;
+    }
+    fc.innerHTML=feats.map(f=>featRow(f,false)).join('');
     fc.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,t=FEAT.find(x=>x.id===fid).num,raw=inp.value.trim();val[fid]=raw;snap(probs());const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[fid];else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[fid]=abn?'present':'absent';}refresh(false);}));
-    fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];refresh(false);}));
+    fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];if(ans[fid]!=='present')clearFollow(findFeat(fid));refresh(false);}));
     wireClChips(fc);
     el.querySelectorAll('[data-ix]').forEach(r=>{const st=ixState(FEAT.find(f=>f.id===r.dataset.ix));const rr=r.querySelector('[data-ixr]');rr.className='r '+st.cls;rr.textContent=st.txt;});
   });
@@ -838,8 +859,8 @@ function paintMx(p){
 }
 
 // ---- Documents (tab 4) — the note the clerk writes back (case-aware) ----
-function positives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>{const base=f.lbl.split(' (')[0];return (f.checklist&&checks[f.id]&&checks[f.id].size)?base+' ('+[...checks[f.id]].join(', ').toLowerCase()+')':base;});}
-function negatives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='absent').map(f=>f.lbl.split(' (')[0]);}
+function positives(){return allFeats().filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>{const base=f.lbl.split(' (')[0];return (f.checklist&&checks[f.id]&&checks[f.id].size)?base+' ('+[...checks[f.id]].join(', ').toLowerCase()+')':base;});}
+function negatives(){return allFeats().filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='absent').map(f=>f.lbl.split(' (')[0]);}
 function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val[t.id]||'',state:ans[t.id]==='present'?(t.binary?'positive':(t.dir==='below'?'low':'high')):(t.binary?'negative':'normal')}));}
 function leadInfo(){const p=probs(),c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);return{lead:c.lead,conf:Math.round(conf*100),capped:c.capped,live:c.live};}
 function shortName(d){return d.name.replace(' of pregnancy','');}
