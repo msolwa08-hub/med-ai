@@ -1,0 +1,440 @@
+<title>MedAI — Clerk v4</title>
+<style>
+  :root{
+    --ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;
+    --surface:#ffffff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;
+    --brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;
+    --good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;
+    --amber:#b45309;--amber-tint:#fbf1e3;
+    --pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;
+    --bar-track:#eaf0f0;
+    /* vital sign colours — grouped by organ system */
+    --hr:#e5484d;   --bp:#a51d2d;    /* cardiovascular: reds */
+    --rr:#0284c7;   --spo2:#0891b2;  /* respiratory: blues */
+    --temp:#d97706;                  /* thermal: amber */
+    --shadow-sm:0 1px 2px rgba(14,26,28,.06);
+    --shadow:0 2px 6px rgba(14,26,28,.06),0 12px 28px -14px rgba(14,26,28,.18);
+    --page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;
+    --surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;
+    --brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;
+    --good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;
+    --amber:#e0a05a;--amber-tint:#2f2417;
+    --pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;
+    --bar-track:#1c2a2b;
+    --hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+    --shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);
+    --page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);
+  }}
+  :root[data-theme="dark"]{--ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;--surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;--brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;--good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;--amber:#e0a05a;--amber-tint:#2f2417;--pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;--bar-track:#1c2a2b;--hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;--shadow-sm:0 1px 2px rgba(0,0,0,.35);--shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);--page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);}
+  :root[data-theme="light"]{--ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;--surface:#fff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;--brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;--good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;--amber:#b45309;--amber-tint:#fbf1e3;--pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;--bar-track:#eaf0f0;--hr:#e5484d;--bp:#a51d2d;--rr:#0284c7;--spo2:#0891b2;--temp:#d97706;--page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
+  .wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:20px}
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  input{font-family:inherit}
+
+  header{padding:14px 16px 0}
+  .pt{display:flex;align-items:center;gap:9px;min-width:0}
+  .pt .chev{color:var(--ink-mute);font-size:19px;flex:none}
+  .pt .who{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .pt .who small{font-weight:500;color:var(--ink-mute)}
+
+  /* vitals — colour-coded by organ system */
+  .vitals{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .vital{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 9px 4px 7px;box-shadow:var(--shadow-sm)}
+  .vital .dot{width:7px;height:7px;border-radius:99px;background:var(--vc);flex:none}
+  .vital .lbl{font-weight:600;color:var(--ink-mute);letter-spacing:.01em}
+  .vital b{color:var(--vc);font-weight:800;font-variant-numeric:tabular-nums}
+  .sysleg{display:flex;gap:12px;margin-top:8px;font-size:9.5px;color:var(--ink-mute);letter-spacing:.02em}
+  .sysleg span{display:inline-flex;align-items:center;gap:4px}
+  .sysleg i{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px 12px;box-shadow:var(--shadow)}
+  .card .k{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-mute)}
+  .card .vrow{display:flex;align-items:baseline;gap:6px;margin:3px 0 8px}
+  .card .v{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .card .d{font-size:11px;font-weight:700}
+  .card .d.up{color:var(--good)}.card .d.down{color:var(--bad)}
+  .track{height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
+  .track .fill{height:100%;border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  .fill.conf{background:linear-gradient(90deg,var(--brand),var(--brand-strong))}
+  .fill.comp{background:linear-gradient(90deg,#8fa3a6,#5f7377)}
+  .cap{display:flex;gap:7px;align-items:flex-start;margin-top:10px;font-size:11.5px;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:10px;padding:8px 10px;line-height:1.4}
+
+  .next{margin-top:12px;background:var(--surface);border:1.5px solid var(--brand);border-radius:13px;padding:10px 8px 10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+  .next .tag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#fff;background:var(--brand);padding:4px 8px;border-radius:6px;flex:none}
+  .next .qt{flex:1;font-size:13.5px;font-weight:650;min-width:0;line-height:1.25}
+  .next .qt em{display:block;font-style:normal;color:var(--ink-mute);font-weight:500;font-size:11px;margin-top:1px}
+
+  .tabs{display:flex;gap:3px;margin-top:14px}
+  .tab{flex:1;text-align:center;padding:8px 2px 9px;font-size:10px;font-weight:650;color:var(--ink-mute);border-radius:11px 11px 0 0;border:1px solid transparent;border-bottom:none;cursor:pointer;background:none}
+  .tab .n{display:block;font-size:15px;margin-bottom:3px;line-height:1}
+  .tab.on{color:var(--brand-strong);background:var(--surface);border-color:var(--line)}
+
+  main{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 16px 16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+
+  /* differential rows */
+  .dx{display:flex;order:0}
+  .dx .accent{width:4px;flex:none;background:var(--dxc)}
+  .dx .col{flex:1;min-width:0;border-bottom:1px solid var(--line-soft)}
+  .dx:last-child .col{border-bottom:none}
+  .dx-head{display:flex;align-items:center;gap:9px;padding:13px 13px 13px 12px;cursor:pointer;user-select:none}
+  .caret{color:var(--ink-mute);font-size:11px;width:9px;flex:none;transition:transform .2s}
+  .dx.open .caret{transform:rotate(90deg)}
+  .nm{flex:1;min-width:0;display:flex;align-items:center;gap:7px}
+  .name{font-size:14px;font-weight:650;letter-spacing:-.01em;color:var(--dxc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+  .icd{font-size:9.5px;font-weight:700;color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line);border-radius:5px;padding:1px 5px;flex:none;letter-spacing:.02em}
+  .dot-mnm{width:8px;height:8px;border-radius:99px;background:var(--bad);flex:none;box-shadow:0 0 0 3px var(--bad-tint)}
+  .mnmnote{font-size:10px;font-weight:800;letter-spacing:.03em;color:var(--bad);margin:0 0 9px}
+  .metric{display:flex;align-items:center;gap:7px;flex:none}
+  .delta{font-size:11px;font-weight:800;text-align:right;opacity:0;transition:opacity .3s;white-space:nowrap}
+  .delta.up{color:var(--good);opacity:1}.delta.down{color:var(--bad);opacity:1}
+  .mini{width:42px;height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
+  .mini .f{height:100%;background:var(--dxc);border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  .pct{font-size:16px;font-weight:800;width:38px;text-align:right;letter-spacing:-.02em}
+  .body{display:none;padding:0 13px 13px 12px}
+  .dx.open .body{display:block}
+  .script{font-size:11.5px;color:var(--ink-mute);line-height:1.45;margin:0 0 11px;padding:8px 10px;background:var(--surface-alt);border-radius:9px}
+  .script b{color:var(--dxc);font-weight:650}
+  .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
+  .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
+  .feat.on .fl{color:var(--ink);font-weight:550}
+  .tc{display:flex;gap:6px;flex:none}
+  .tc button{width:38px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;transition:all .14s}
+  .tc button:hover{border-color:var(--ink-mute)}
+  .tc button.y.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .tc button.n.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .ixref{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .ixref .h{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:7px}
+  .ixr{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);padding:4px 0}
+  .ixr .r{margin-left:auto;font-size:10px;font-weight:700;border-radius:6px;padding:2px 8px;flex:none}
+  .ixr .r.pend{color:var(--brand-strong);background:var(--brand-tint)}
+  .ixr .r.hi{color:#fff;background:var(--bad)}
+  .ixr .r.ok{color:var(--good);background:var(--good-tint)}
+
+  /* Ix INPUT panel */
+  .panel{padding:14px 14px 4px}
+  .phd{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--ink-soft);background:var(--surface-alt);border-radius:10px;padding:9px 11px;margin-bottom:14px;line-height:1.45}
+  .phd b{color:var(--brand-strong);font-weight:700}
+  .ixin{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .ixin:last-child{border-bottom:none}
+  .ixin .top{display:flex;align-items:center;gap:9px}
+  .ixin .lab{flex:1;min-width:0}
+  .ixin .lab .t{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ixin .lab .sub{font-size:10.5px;color:var(--ink-mute);margin-top:1px}
+  .ixin .lab .sub .dxc{color:var(--ink-soft);font-weight:600}
+  .field{display:flex;align-items:center;gap:5px;flex:none;background:var(--surface-alt);border:1.5px solid var(--line);border-radius:10px;padding:5px 9px;transition:border-color .15s}
+  .field:focus-within{border-color:var(--brand)}
+  .field input{width:52px;border:none;background:none;color:var(--ink);font-size:15px;font-weight:700;text-align:right;outline:none;font-variant-numeric:tabular-nums;padding:0}
+  .field .unit{font-size:10px;color:var(--ink-mute);white-space:nowrap;min-width:26px}
+  .badge{margin-left:9px;font-size:10px;font-weight:800;letter-spacing:.03em;border-radius:6px;padding:3px 8px;flex:none;opacity:0;transition:opacity .2s}
+  .badge.show{opacity:1}
+  .badge.hi{color:#fff;background:var(--bad)}
+  .badge.lo{color:#fff;background:var(--bad)}
+  .badge.ok{color:var(--good);background:var(--good-tint)}
+  .ixin .qk{display:flex;gap:6px;margin-top:8px;padding-left:1px}
+  .ixin .qk button{font-size:11px;font-weight:650;border-radius:8px;padding:5px 11px;border:1.5px solid var(--line);background:var(--surface-alt);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .ixin .qk button.y.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .ixin .qk button.n.sel{background:var(--good);border-color:var(--good);color:#fff}
+
+  /* Management panel */
+  .mx{padding:14px 14px 4px}
+  .mxsec{margin-bottom:16px}
+  .mxsec>.hd{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:9px}
+  .mxsec>.hd .bar{width:3px;height:13px;border-radius:2px;flex:none}
+  .rx{padding:10px 11px;background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:12px;margin-bottom:8px}
+  .rxtop{display:flex;align-items:center;gap:7px}
+  .rxtop .n{flex:1;min-width:0;font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rxbot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}
+  .rxbot .for{font-size:11px;color:var(--ink-mute)}
+  .dosechip{font-size:10.5px;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+  .pill-a{font-size:8.5px;font-weight:800;letter-spacing:.03em;border-radius:5px;padding:3px 6px;white-space:nowrap;flex:none}
+  .pill-a.act{color:#fff;background:var(--bad)}
+  .pill-a.ind{color:#fff;background:var(--brand)}
+  .pill-a.sign{color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent)}
+  .give{width:38px;height:32px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface);color:var(--line);font-size:15px;font-weight:800;cursor:pointer;flex:none;transition:all .15s}
+  .give.on{background:var(--good);border-color:var(--good);color:#fff;transform:scale(1.04)}
+  .rxnote{font-size:10.5px;font-weight:750;color:var(--bad)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;color:var(--ink-soft);background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:8px;padding:6px 10px}
+  .tns{background:linear-gradient(160deg,color-mix(in oklab,var(--hellp) 12%,transparent),transparent);border:1px solid color-mix(in oklab,var(--hellp) 32%,transparent);border-radius:14px;padding:11px 13px}
+  .tns .lv{padding:8px 0;border-bottom:1px dashed color-mix(in oklab,var(--hellp) 22%,transparent)}
+  .tns .lv:first-child{padding-top:2px}.tns .lv:last-child{border-bottom:none;padding-bottom:2px}
+  .tns .lvtop{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12.5px}
+  .tns .lvtop .g{font-weight:750;color:var(--ink)}
+  .tns .lvtop .ar{color:var(--hellp);font-weight:800}
+  .tns .lvtop .rs{color:var(--ink-soft)}
+  .tns .lvbot{display:flex;align-items:center;gap:8px;margin-top:4px}
+  .tns .lvbot .m{flex:1;min-width:0;font-size:11px;color:var(--ink-mute)}
+  .tns .resp{display:flex;gap:6px;flex:none}
+  .tns .resp button{font-size:10.5px;font-weight:650;border-radius:8px;padding:5px 10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .tns .resp button.up.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .tns .resp button.no.sel{background:var(--ink-mute);border-color:var(--ink-mute);color:#fff}
+  .cover{border-radius:12px;padding:10px 12px;font-size:11.5px;line-height:1.45;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent)}
+  .cover b{font-weight:750}
+  .cover.ok{color:var(--good);background:var(--good-tint);border-color:color-mix(in oklab,var(--good) 25%,transparent)}
+  .mxcite{display:flex;gap:7px;font-size:10.5px;color:var(--ink-mute);line-height:1.45;padding:8px 2px 4px}
+  .empty{padding:40px 26px 44px;text-align:center}
+  .empty .ic{font-size:30px;color:var(--brand);opacity:.8}
+  .empty .t{font-size:15px;font-weight:700;margin:12px 0 5px;letter-spacing:-.01em}
+  .empty .s{font-size:12.5px;color:var(--ink-mute);line-height:1.5;max-width:270px;margin:0 auto}
+  .empty .pill{margin-top:14px;display:inline-block;font-size:11px;font-weight:650;color:var(--brand-strong);background:var(--brand-tint);border-radius:99px;padding:6px 13px}
+
+  footer{padding:13px 16px 0;text-align:center}
+  .legend{display:inline-flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-mute)}
+  .legend b{display:inline-flex;align-items:center;gap:4px;font-weight:500}
+  .sw{width:15px;height:15px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+  .theme{margin-top:10px;font-size:11px;color:var(--brand-strong);background:var(--brand-tint);border:none;padding:6px 12px;border-radius:99px;cursor:pointer;font-weight:650}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="pt"><span class="chev">‹</span><div class="who">29 · G3P2 · 33<small>+4/40</small> · headache + epigastric pain</div></div>
+    <div class="vitals" id="vitals"></div>
+    <div class="sysleg"><span><i style="background:var(--hr)"></i>Cardiovascular</span><span><i style="background:var(--rr)"></i>Respiratory</span><span><i style="background:var(--temp)"></i>Thermal</span></div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="k">Confidence</div>
+        <div class="vrow"><span class="v tnum" id="confV">—</span><span class="d up" id="confD"></span></div>
+        <div class="track"><div class="fill conf" id="confF"></div></div>
+      </div>
+      <div class="card">
+        <div class="k">Clerking complete</div>
+        <div class="vrow"><span class="v tnum" id="compV">—</span><span class="d up" id="compD"></span></div>
+        <div class="track"><div class="fill comp" id="compF"></div></div>
+      </div>
+    </div>
+    <div class="cap" id="cap"></div>
+    <div class="next" id="next"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-tab="hx"><span class="n">◧</span>Hx·Exam</button>
+      <button class="tab" data-tab="ix"><span class="n">⌾</span>Ix</button>
+      <button class="tab" data-tab="mx"><span class="n">✚</span>Mx</button>
+      <button class="tab" data-tab="docs"><span class="n">▤</span>Docs</button>
+      <button class="tab" data-tab="why"><span class="n">✦</span>Why</button>
+    </div>
+  </header>
+
+  <main id="main"></main>
+
+  <footer>
+    <div class="legend" id="foot"></div>
+    <div><button class="theme" id="theme">Light / dark</button></div>
+  </footer>
+</div>
+
+<script>
+const VITALS=[
+  {k:'HR',v:'104',vc:'var(--hr)'},
+  {k:'BP',v:'168/112',vc:'var(--bp)'},
+  {k:'RR',v:'18',vc:'var(--rr)'},
+  {k:'SpO₂',v:'98',vc:'var(--spo2)'},
+  {k:'T',v:'37.9',vc:'var(--temp)'},
+];
+const DX=[
+  {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.30,mnm:false,script:'HTN + proteinuria + end-organ symptoms after 20 weeks'},
+  {id:'hellp',name:'HELLP syndrome',icd:'O14.2',c:'var(--hellp)',prior:.12,mnm:true,script:'pre-eclampsia + haemolysis + low platelets + high LFTs'},
+  {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.10,mnm:true,script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
+  {id:'aflp',name:'Acute fatty liver of pregnancy',icd:'O26.6',c:'var(--aflp)',prior:.05,mnm:true,script:'3rd trimester + hypoglycaemia + coagulopathy + high LFTs'},
+];
+const FEAT=[
+  {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
+  {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pet:[2.4,.6],hellp:[3,.5],aflp:[2,.7]},preset:'present'},
+  {id:'vis',lbl:'Visual disturbance',stream:'hx',eff:{pet:[3,.5]}},
+  {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
+  {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
+  {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
+  {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
+  {id:'liquor',lbl:'Ruptured membranes / offensive liquor',stream:'exam',eff:{chorio:[5,.5]}},
+  {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',eff:{chorio:[3,.6]}},
+  {id:'plt',lbl:'Platelets < 100',stream:'ix',eff:{hellp:[8,.2]},key:'hellp'},
+  {id:'ast',lbl:'AST / ALT raised',stream:'ix',eff:{hellp:[4,.4],aflp:[3,.5]}},
+  {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',eff:{hellp:[3,.5]}},
+  {id:'glu',lbl:'Hypoglycaemia',stream:'ix',eff:{aflp:[6,.4]},key:'aflp'},
+  {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
+  {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}},
+];
+const IX=[
+  {id:'plt',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP',ex:'78'},
+  {id:'ast',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP',ex:'96'},
+  {id:'ldh',lbl:'LDH',unit:'U/L',norm:'< 600',hi:600,dir:'above',dx:'HELLP',ex:''},
+  {id:'glu',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP',ex:''},
+  {id:'inr',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP',ex:''},
+];
+const ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});
+const val={};
+const featsFor=id=>FEAT.filter(f=>f.eff[id]);
+const last={};let tab='hx';
+
+function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
+function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
+function completeness(){const hx=FEAT.filter(f=>f.stream==='hx'||f.stream==='exam');const w=f=>Math.abs(Math.log(f.eff[Object.keys(f.eff)[0]][0]));let t=0,g=0;for(const f of hx){const wt=w(f);t+=wt;if(ans[f.id])g+=wt;}return g/t;}
+function nextBest(p){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;const g=Object.keys(f.eff).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
+function tween(el,to,suf=''){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/450);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
+function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
+function ixState(f){const a=ans[f.id];if(!a)return{cls:'pend',txt:'→ enter'};return a==='present'?{cls:'hi',txt:'abnormal'}:{cls:'ok',txt:'normal'};}
+
+function paintVitals(){document.getElementById('vitals').innerHTML=VITALS.map(v=>`<span class="vital" style="--vc:${v.vc}"><span class="dot"></span><span class="lbl">${v.k}</span><b>${v.v}</b></span>`).join('');}
+
+function paintHeader(p,first){
+  const c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);
+  const cPc=Math.round(conf*100),comp=Math.round(completeness()*100);
+  tween(document.getElementById('confV'),cPc,'%');document.getElementById('confF').style.width=cPc+'%';
+  tween(document.getElementById('compV'),comp,'%');document.getElementById('compF').style.width=comp+'%';
+  const capEl=document.getElementById('cap');
+  if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')+' not yet excluded. Enter bloods on the Ix tab to release.</span>';}
+  else capEl.style.display='none';
+  const nb=nextBest(p),nx=document.getElementById('next');
+  if(nb){nx.style.display='flex';nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>the one answer that moves the picture most</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
+    nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{snap(probs());ans[nb.id]=b.dataset.a;refresh(false);}));}
+  else nx.style.display='none';
+}
+
+function buildHx(){
+  document.getElementById('main').innerHTML=DX.map(d=>`
+    <div class="dx${d.id==='pet'?' open':''}" data-id="${d.id}" style="--dxc:${d.c}">
+      <div class="accent"></div>
+      <div class="col">
+        <div class="dx-head">
+          <span class="caret">›</span>
+          <span class="nm"><span class="name">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm" title="Must not miss"></span>':''}</span>
+          <span class="metric"><span class="delta" data-delta></span><span class="mini"><span class="f" data-mini></span></span><span class="pct tnum" data-pct>0</span></span>
+        </div>
+        <div class="body">
+          ${d.mnm?'<div class="mnmnote">▲ MUST NOT MISS — actively exclude</div>':''}
+          <div class="script" data-script></div>
+          <div data-feats></div>
+          ${featsFor(d.id).some(f=>f.stream==='ix')?`<div class="ixref"><div class="h">Discriminating bloods · enter on Ix tab</div>${featsFor(d.id).filter(f=>f.stream==='ix').map(f=>`<div class="ixr" data-ix="${f.id}"><span>${f.lbl}</span><span class="r" data-ixr></span></div>`).join('')}</div>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.dx-head').forEach(h=>h.addEventListener('click',()=>h.closest('.dx').classList.toggle('open')));
+}
+function paintHx(p,first){
+  const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
+  ranked.forEach((d,i)=>{
+    const el=document.querySelector(`.dx[data-id="${d.id}"]`);if(!el)return;el.style.order=i;
+    const pc=Math.round(p[d.id]*100);
+    el.querySelector('[data-mini]').style.width=pc+'%';tween(el.querySelector('[data-pct]'),pc);
+    const dl=el.querySelector('[data-delta]'),ch=Math.round((p[d.id]-last[d.id])*100);
+    if(!first&&Math.abs(ch)>=1){dl.className='delta '+(ch>0?'up':'down');dl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}else{dl.className='delta';dl.textContent='';}
+    const matched=featsFor(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
+    el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
+    const fc=el.querySelector('[data-feats]');
+    fc.innerHTML=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').map(f=>`<div class="feat${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl">${f.lbl}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
+    fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];refresh(false);}));
+    el.querySelectorAll('[data-ix]').forEach(r=>{const st=ixState(FEAT.find(f=>f.id===r.dataset.ix));const rr=r.querySelector('[data-ixr]');rr.className='r '+st.cls;rr.textContent=st.txt;});
+  });
+}
+
+function buildIx(){
+  document.getElementById('main').innerHTML=`<div class="panel">
+    <div class="phd"><span>◆</span><span>Enter results as you get them. Each value <b>updates the differential live</b> and <b>releases the confidence cap</b> once must-not-miss diagnoses are excluded.</span></div>
+    ${IX.map(t=>`<div class="ixin" data-t="${t.id}">
+      <div class="top">
+        <span class="lab"><div class="t">${t.lbl}</div><div class="sub">normal ${t.norm} · <span class="dxc">${t.dx}</span></div></span>
+        <span class="field"><input inputmode="decimal" placeholder="—" data-in value="${val[t.id]??''}"><span class="unit">${t.unit||''}</span></span>
+        <span class="badge" data-badge></span>
+      </div>
+      <div class="qk"><button class="y" data-a="present">Abnormal</button><button class="n" data-a="absent">Normal</button></div>
+    </div>`).join('')}
+  </div>`;
+  IX.forEach(t=>{
+    const row=document.querySelector(`.ixin[data-t="${t.id}"]`);
+    row.querySelector('[data-in]').addEventListener('input',e=>{
+      const raw=e.target.value.trim();val[t.id]=raw;
+      snap(probs());
+      if(raw===''||isNaN(parseFloat(raw))){delete ans[t.id];}
+      else{const x=parseFloat(raw);const abn=t.dir==='below'?x<t.lo:x>t.hi;ans[t.id]=abn?'present':'absent';}
+      refresh(false);
+    });
+    row.querySelectorAll('.qk button').forEach(b=>b.addEventListener('click',()=>{snap(probs());const a=b.dataset.a;ans[t.id]=ans[t.id]===a?undefined:a;if(!ans[t.id])delete ans[t.id];refresh(false);}));
+  });
+}
+function paintIx(p){
+  IX.forEach(t=>{
+    const row=document.querySelector(`.ixin[data-t="${t.id}"]`);if(!row)return;
+    const bd=row.querySelector('[data-badge]'),a=ans[t.id];
+    if(!a){bd.className='badge';bd.textContent='';}
+    else if(a==='present'){bd.className='badge show '+(t.dir==='below'?'lo':'hi');bd.textContent=t.dir==='below'?'LOW':'HIGH';}
+    else{bd.className='badge show ok';bd.textContent='NORMAL';}
+    row.querySelector('.qk .y').classList.toggle('sel',a==='present');
+    row.querySelector('.qk .n').classList.toggle('sel',a==='absent');
+  });
+}
+
+// ---- Management (tab 3) ----
+const MX={
+  immediate:[
+    {rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV load + maintenance',sign:true},
+    {rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol · nifedipine · hydralazine',sign:true,active:'BP 168/112 — now'},
+  ],
+  definitive:[
+    {rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},
+    {rx:'Betamethasone',for:'fetal lung maturity',dose:'IM × 2',sign:true,ind:'33+4 wk — give'},
+  ],
+  monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
+  levers:[
+    {id:'rx_dex',give:'IV dextrose',resp:'glucose corrects, rouses',means:'supports AFLP / hypoglycaemia',wired:true},
+    {give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},
+    {give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'},
+  ],
+};
+const given=new Set();
+function rxRow(m,i,sec){
+  const pills=(m.active?`<span class="pill-a act">ACTIVE</span>`:'')+(m.ind?`<span class="pill-a ind">INDICATED</span>`:'')+(m.sign?`<span class="pill-a sign">sign-off</span>`:'');
+  const note=m.active||m.ind;
+  return `<div class="rx" data-rx="${sec}-${i}">`
+    +`<div class="rxtop"><span class="n">${m.rx}</span>${pills}<button class="give" title="mark given">✓</button></div>`
+    +`<div class="rxbot"><span class="for">${m.for}</span><span class="dosechip">${m.dose}</span>${note?`<span class="rxnote">${note}</span>`:''}</div>`
+    +`</div>`;
+}
+function buildMx(){
+  const p=probs(),c=cap(p);
+  document.getElementById('main').innerHTML=`<div class="mx">
+    <div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--bad)"></span>Immediate</div>${MX.immediate.map((m,i)=>rxRow(m,i,'im')).join('')}</div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--brand)"></span>Definitive</div>${MX.definitive.map((m,i)=>rxRow(m,i,'df')).join('')}</div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--ink-mute)"></span>Monitor</div><div class="chips">${MX.monitor.map(x=>`<span class="chip">${x}</span>`).join('')}</div></div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hellp)"></span>Treat-and-see · response is evidence</div>
+      <div class="tns">${MX.levers.map(l=>`<div class="lv"><div class="lvtop"><span class="g">${l.give}</span><span class="ar">→</span><span class="rs">${l.resp}</span></div><div class="lvbot"><span class="m">${l.means}</span>${l.wired?`<span class="resp" data-lever="${l.id}"><button class="up" data-a="present">improved</button><button class="no" data-a="absent">no change</button></span>`:''}</div></div>`).join('')}</div>
+    </div>
+    <div class="mxsec" data-cover></div>
+    <div class="mxcite"><span>❦</span><span>Regimens per <b>SA Maternity Care Guidelines</b> — verify dose &amp; obtain sign-off before administering. No free-hand dosing.</span></div>
+  </div>`;
+  document.querySelectorAll('.give').forEach(b=>b.addEventListener('click',()=>{const k=b.closest('.rx').dataset.rx;given.has(k)?given.delete(k):given.add(k);b.classList.toggle('on',given.has(k));}));
+  document.querySelectorAll('[data-lever] button').forEach(b=>b.addEventListener('click',()=>{const id=b.closest('[data-lever]').dataset.lever,a=b.dataset.a;snap(probs());ans[id]=ans[id]===a?undefined:a;if(!ans[id])delete ans[id];refresh(false);}));
+}
+function paintMx(p){
+  const c=cap(p),cv=document.querySelector('[data-cover]');
+  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')} not excluded: check glucose &amp; coags, treat hypoglycaemia empirically.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${c.lead.name.replace(' of pregnancy','')}. Continue definitive plan.</div>`;}
+  document.querySelectorAll('[data-lever]').forEach(el=>{const a=ans[el.dataset.lever];el.querySelector('.up').classList.toggle('sel',a==='present');el.querySelector('.no').classList.toggle('sel',a==='absent');});
+}
+
+const EMPTY={
+  docs:{ic:'▤',t:'Documents populate from the clerk',s:'Discharge summaries and statutory forms (MHCA 72-hr, J88, consent) auto-fill from everything captured on this patient.',pill:'0 forms ready'},
+  why:{ic:'✦',t:'Every number is explainable',s:'The reasoning trace logs each finding you enter and exactly how much it moved each diagnosis — tap any probability to see its evidence.',pill:'6 findings logged'},
+};
+function buildEmpty(k){const e=EMPTY[k];document.getElementById('main').innerHTML=`<div class="empty"><div class="ic">${e.ic}</div><div class="t">${e.t}</div><div class="s">${e.s}</div><div class="pill">${e.pill}</div></div>`;}
+
+function refresh(first){const p=probs();paintHeader(p,first);if(tab==='hx')paintHx(p,first);else if(tab==='ix')paintIx(p);else if(tab==='mx')paintMx(p);}
+function render(){const m=document.getElementById('main');if(tab==='hx'){buildHx();}else if(tab==='ix'){buildIx();}else if(tab==='mx'){buildMx();}else{buildEmpty(tab);}refresh(true);}
+
+function init(){
+  paintVitals();
+  document.getElementById('foot').innerHTML='<b><span class="sw" style="background:var(--good)">✓</span>present</b><b><span class="sw" style="background:var(--bad)">✕</span>absent</b>';
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    tab=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));render();
+  }));
+  snap(probs());render();
+}
+init();
+document.getElementById('theme').addEventListener('click',()=>{const r=document.documentElement,c=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.setAttribute('data-theme',c==='dark'?'light':'dark');});
+</script>
