@@ -91,6 +91,10 @@
   .fill.conf{background:linear-gradient(90deg,var(--brand),var(--brand-strong))}
   .fill.comp{background:linear-gradient(90deg,#8fa3a6,#5f7377)}
   .cap{display:flex;gap:7px;align-items:flex-start;margin-top:10px;font-size:11.5px;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:10px;padding:8px 10px;line-height:1.4}
+  .genbanner{display:none;gap:8px;align-items:flex-start;margin-top:11px;font-size:11px;color:var(--brand-strong);background:linear-gradient(150deg,var(--brand-tint),transparent);border:1px solid color-mix(in oklab,var(--brand) 30%,transparent);border-radius:11px;padding:8px 11px;line-height:1.45}
+  .genbanner.show{display:flex}
+  .genbanner .gicon{flex:none;font-size:13px;line-height:1.2}
+  .genbanner b{font-weight:750}
 
   .next{margin-top:12px;background:var(--surface);border:1.5px solid var(--brand);border-radius:13px;padding:10px 8px 10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
   .next .tag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#fff;background:var(--brand);padding:4px 8px;border-radius:6px;flex:none}
@@ -302,6 +306,7 @@
   <header>
     <div class="casebar" id="casebar"></div>
     <div class="pt"><span class="chev">‹</span><div class="who" id="who"></div></div>
+    <div class="genbanner" id="genbanner"><span class="gicon">✦</span><span><b>AI-drafted from your description.</b> Verify every diagnosis, weight and dose before acting — this is a reasoning aid, not a decision.</span></div>
     <div class="vitals" id="vitals"></div>
     <div class="sysleg"><span><i style="background:var(--hr)"></i>Cardiovascular</span><span><i style="background:var(--rr)"></i>Respiratory</span><span><i style="background:var(--temp)"></i>Thermal</span></div>
 
@@ -721,7 +726,7 @@ function paintMx(p){
 }
 
 // ---- Documents (tab 4) — the note the clerk writes back (case-aware) ----
-function positives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>f.lbl.split(' (')[0]);}
+function positives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>{const base=f.lbl.split(' (')[0];return (f.checklist&&checks[f.id]&&checks[f.id].size)?base+' ('+[...checks[f.id]].join(', ').toLowerCase()+')':base;});}
 function negatives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='absent').map(f=>f.lbl.split(' (')[0]);}
 function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val[t.id]||'',state:ans[t.id]==='present'?(t.binary?'positive':(t.dir==='below'?'low':'high')):(t.binary?'negative':'normal')}));}
 function leadInfo(){const p=probs(),c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);return{lead:c.lead,conf:Math.round(conf*100),capped:c.capped,live:c.live};}
@@ -814,10 +819,11 @@ function paintCaseUI(){
   const entries=Object.entries(CASES).filter(([k])=>!k.startsWith('__'));
   document.getElementById('casebar').innerHTML='<span class="cl">Case</span>'
     +entries.map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}"><b>${c.specialty}</b> ${c.label}</button>`).join('')
-    +(caseId.startsWith('__')?`<button data-c="${caseId}" class="on"><b>${CASES[caseId].specialty}</b> ${CASES[caseId].label}</button>`:'')
+    +(caseId.startsWith('__')?`<button data-c="${caseId}" class="on gen"><b>✦ ${CASES[caseId].specialty}</b> ${CASES[caseId].label}</button>`:'')
     +'<button class="newcase" id="newcase">＋ New case</button>';
   document.getElementById('casebar').querySelectorAll('button[data-c]').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
   document.getElementById('newcase').addEventListener('click',showIntake);
+  document.getElementById('genbanner').classList.toggle('show',caseId.startsWith('__'));
   document.getElementById('who').innerHTML=PT.line;
   paintVitals();
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab==='hx'));
