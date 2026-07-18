@@ -2,7 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Stethoscope, Activity, FileText, ArrowRight } from 'lucide-react';
 
 interface Props {
-  onNavigate: (route: 'chat' | 'doctor' | 'tools') => void;
+  onNavigate: (route: 'chat' | 'doctor' | 'tools' | 'clerk') => void;
 }
 
 const PROMISES = [
@@ -48,6 +48,14 @@ export default function LandingPage({ onNavigate }: Props) {
             className="w-full group inline-flex items-center justify-center gap-2 bg-brand-700 hover:bg-brand-600 active:bg-brand-800 text-white text-base font-medium py-3.5 rounded-xl shadow-card transition-colors focus:outline-none focus-visible:shadow-focus"
           >
             Open Intern Tools
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          <button
+            onClick={() => onNavigate('clerk')}
+            className="mt-3 w-full group inline-flex items-center justify-center gap-2 border border-brand-600 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-base font-medium py-3.5 rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
+          >
+            Open Reasoning Clerk
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>

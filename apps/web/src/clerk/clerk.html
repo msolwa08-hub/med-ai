@@ -1,0 +1,727 @@
+<title>MedAI — Clerk v4</title>
+<style>
+  :root{
+    --ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;
+    --surface:#ffffff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;
+    --brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;
+    --good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;
+    --amber:#b45309;--amber-tint:#fbf1e3;
+    --pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;
+    --bar-track:#eaf0f0;
+    /* vital sign colours — grouped by organ system */
+    --hr:#e5484d;   --bp:#a51d2d;    /* cardiovascular: reds */
+    --rr:#0284c7;   --spo2:#0891b2;  /* respiratory: blues */
+    --temp:#d97706;                  /* thermal: amber */
+    --shadow-sm:0 1px 2px rgba(14,26,28,.06);
+    --shadow:0 2px 6px rgba(14,26,28,.06),0 12px 28px -14px rgba(14,26,28,.18);
+    --page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;
+    --surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;
+    --brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;
+    --good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;
+    --amber:#e0a05a;--amber-tint:#2f2417;
+    --pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;
+    --bar-track:#1c2a2b;
+    --hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+    --shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);
+    --page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);
+  }}
+  :root[data-theme="dark"]{--ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;--surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;--brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;--good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;--amber:#e0a05a;--amber-tint:#2f2417;--pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;--bar-track:#1c2a2b;--hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;--shadow-sm:0 1px 2px rgba(0,0,0,.35);--shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);--page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);}
+  :root[data-theme="light"]{--ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;--surface:#fff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;--brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;--good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;--amber:#b45309;--amber-tint:#fbf1e3;--pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;--bar-track:#eaf0f0;--hr:#e5484d;--bp:#a51d2d;--rr:#0284c7;--spo2:#0891b2;--temp:#d97706;--page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
+  .wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:20px}
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  input{font-family:inherit}
+
+  header{padding:14px 16px 0}
+  .casebar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+  .casebar .cl{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute);margin-right:1px}
+  .casebar button{font-size:10.5px;font-weight:650;padding:4px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .casebar button.on{background:var(--brand-tint);border-color:var(--brand);color:var(--brand-strong)}
+  .pt{display:flex;align-items:center;gap:9px;min-width:0}
+  .pt .chev{color:var(--ink-mute);font-size:19px;flex:none}
+  .pt .who{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .pt .who small{font-weight:500;color:var(--ink-mute)}
+
+  /* vitals — colour-coded by organ system */
+  .vitals{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .vital{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 9px 4px 7px;box-shadow:var(--shadow-sm)}
+  .vital .dot{width:7px;height:7px;border-radius:99px;background:var(--vc);flex:none}
+  .vital .lbl{font-weight:600;color:var(--ink-mute);letter-spacing:.01em}
+  .vital b{color:var(--vc);font-weight:800;font-variant-numeric:tabular-nums}
+  .sysleg{display:flex;gap:12px;margin-top:8px;font-size:9.5px;color:var(--ink-mute);letter-spacing:.02em}
+  .sysleg span{display:inline-flex;align-items:center;gap:4px}
+  .sysleg i{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px 12px;box-shadow:var(--shadow)}
+  .card .k{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-mute)}
+  .card .vrow{display:flex;align-items:baseline;gap:6px;margin:3px 0 8px}
+  .card .v{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .card .d{font-size:11px;font-weight:700}
+  .card .d.up{color:var(--good)}.card .d.down{color:var(--bad)}
+  .track{height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
+  .track .fill{height:100%;border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  .fill.conf{background:linear-gradient(90deg,var(--brand),var(--brand-strong))}
+  .fill.comp{background:linear-gradient(90deg,#8fa3a6,#5f7377)}
+  .cap{display:flex;gap:7px;align-items:flex-start;margin-top:10px;font-size:11.5px;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:10px;padding:8px 10px;line-height:1.4}
+
+  .next{margin-top:12px;background:var(--surface);border:1.5px solid var(--brand);border-radius:13px;padding:10px 8px 10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+  .next .tag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#fff;background:var(--brand);padding:4px 8px;border-radius:6px;flex:none}
+  .next .qt{flex:1;font-size:13.5px;font-weight:650;min-width:0;line-height:1.25}
+  .next .qt em{display:block;font-style:normal;color:var(--ink-mute);font-weight:500;font-size:11px;margin-top:1px}
+
+  .tabs{display:flex;gap:3px;margin-top:14px}
+  .tab{flex:1;text-align:center;padding:8px 2px 9px;font-size:10px;font-weight:650;color:var(--ink-mute);border-radius:11px 11px 0 0;border:1px solid transparent;border-bottom:none;cursor:pointer;background:none}
+  .tab .n{display:block;font-size:15px;margin-bottom:3px;line-height:1}
+  .tab.on{color:var(--brand-strong);background:var(--surface);border-color:var(--line)}
+
+  main{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 16px 16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+
+  /* differential rows */
+  .dx{display:flex;order:0}
+  .dx .accent{width:4px;flex:none;background:var(--dxc)}
+  .dx .col{flex:1;min-width:0;border-bottom:1px solid var(--line-soft)}
+  .dx:last-child .col{border-bottom:none}
+  .dx-head{display:flex;align-items:center;gap:9px;padding:13px 13px 13px 12px;cursor:pointer;user-select:none}
+  .caret{color:var(--ink-mute);font-size:11px;width:9px;flex:none;transition:transform .2s}
+  .dx.open .caret{transform:rotate(90deg)}
+  .nm{flex:1;min-width:0;display:flex;align-items:center;gap:7px}
+  .name{font-size:14px;font-weight:650;letter-spacing:-.01em;color:var(--dxc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+  .icd{font-size:9.5px;font-weight:700;color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line);border-radius:5px;padding:1px 5px;flex:none;letter-spacing:.02em}
+  .dot-mnm{width:8px;height:8px;border-radius:99px;background:var(--bad);flex:none;box-shadow:0 0 0 3px var(--bad-tint)}
+  .mnmnote{font-size:10px;font-weight:800;letter-spacing:.03em;color:var(--bad);margin:0 0 9px}
+  .metric{display:flex;align-items:center;gap:7px;flex:none}
+  .delta{font-size:11px;font-weight:800;text-align:right;opacity:0;transition:opacity .3s;white-space:nowrap}
+  .delta.up{color:var(--good);opacity:1}.delta.down{color:var(--bad);opacity:1}
+  .mini{width:42px;height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
+  .mini .f{height:100%;background:var(--dxc);border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  .pct{font-size:16px;font-weight:800;width:38px;text-align:right;letter-spacing:-.02em}
+  .body{display:none;padding:0 13px 13px 12px}
+  .dx.open .body{display:block}
+  .script{font-size:11.5px;color:var(--ink-mute);line-height:1.45;margin:0 0 11px;padding:8px 10px;background:var(--surface-alt);border-radius:9px}
+  .script b{color:var(--dxc);font-weight:650}
+  .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
+  .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
+  .feat.on .fl{color:var(--ink);font-weight:550}
+  .tc{display:flex;gap:6px;flex:none}
+  .tc button{width:38px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;transition:all .14s}
+  .tc button:hover{border-color:var(--ink-mute)}
+  .tc button.y.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .tc button.n.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .ixref{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .ixref .h{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:7px}
+  .ixr{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);padding:4px 0}
+  .ixr .r{margin-left:auto;font-size:10px;font-weight:700;border-radius:6px;padding:2px 8px;flex:none}
+  .ixr .r.pend{color:var(--brand-strong);background:var(--brand-tint)}
+  .ixr .r.hi{color:#fff;background:var(--bad)}
+  .ixr .r.ok{color:var(--good);background:var(--good-tint)}
+
+  /* Ix INPUT panel */
+  .panel{padding:14px 14px 4px}
+  .phd{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--ink-soft);background:var(--surface-alt);border-radius:10px;padding:9px 11px;margin-bottom:14px;line-height:1.45}
+  .phd b{color:var(--brand-strong);font-weight:700}
+  .ixin{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .ixin:last-child{border-bottom:none}
+  .ixin .top{display:flex;align-items:center;gap:9px}
+  .ixin .lab{flex:1;min-width:0}
+  .ixin .lab .t{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ixin .lab .sub{font-size:10.5px;color:var(--ink-mute);margin-top:1px}
+  .ixin .lab .sub .dxc{color:var(--ink-soft);font-weight:600}
+  .field{display:flex;align-items:center;gap:5px;flex:none;background:var(--surface-alt);border:1.5px solid var(--line);border-radius:10px;padding:5px 9px;transition:border-color .15s}
+  .field:focus-within{border-color:var(--brand)}
+  .field input{width:52px;border:none;background:none;color:var(--ink);font-size:15px;font-weight:700;text-align:right;outline:none;font-variant-numeric:tabular-nums;padding:0}
+  .field .unit{font-size:10px;color:var(--ink-mute);white-space:nowrap;min-width:26px}
+  .badge{margin-left:9px;font-size:10px;font-weight:800;letter-spacing:.03em;border-radius:6px;padding:3px 8px;flex:none;opacity:0;transition:opacity .2s}
+  .badge.show{opacity:1}
+  .badge.hi{color:#fff;background:var(--bad)}
+  .badge.lo{color:#fff;background:var(--bad)}
+  .badge.ok{color:var(--good);background:var(--good-tint)}
+  .ixin .qk{display:flex;gap:6px;margin-top:8px;padding-left:1px}
+  .ixin .qk button{font-size:11px;font-weight:650;border-radius:8px;padding:5px 11px;border:1.5px solid var(--line);background:var(--surface-alt);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .ixin .qk button.y.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .ixin .qk button.n.sel{background:var(--good);border-color:var(--good);color:#fff}
+
+  /* Management panel */
+  .mx{padding:14px 14px 4px}
+  .mxsec{margin-bottom:16px}
+  .mxsec>.hd{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:9px}
+  .mxsec>.hd .bar{width:3px;height:13px;border-radius:2px;flex:none}
+  .rx{padding:10px 11px;background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:12px;margin-bottom:8px}
+  .rxtop{display:flex;align-items:center;gap:7px}
+  .rxtop .n{flex:1;min-width:0;font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rxbot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}
+  .rxbot .for{font-size:11px;color:var(--ink-mute)}
+  .dosechip{font-size:10.5px;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+  .pill-a{font-size:8.5px;font-weight:800;letter-spacing:.03em;border-radius:5px;padding:3px 6px;white-space:nowrap;flex:none}
+  .pill-a.act{color:#fff;background:var(--bad)}
+  .pill-a.ind{color:#fff;background:var(--brand)}
+  .pill-a.sign{color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent)}
+  .give{width:38px;height:32px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface);color:var(--line);font-size:15px;font-weight:800;cursor:pointer;flex:none;transition:all .15s}
+  .give.on{background:var(--good);border-color:var(--good);color:#fff;transform:scale(1.04)}
+  .rxnote{font-size:10.5px;font-weight:750;color:var(--bad)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;color:var(--ink-soft);background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:8px;padding:6px 10px}
+  .tns{background:linear-gradient(160deg,color-mix(in oklab,var(--hellp) 12%,transparent),transparent);border:1px solid color-mix(in oklab,var(--hellp) 32%,transparent);border-radius:14px;padding:11px 13px}
+  .tns .lv{padding:8px 0;border-bottom:1px dashed color-mix(in oklab,var(--hellp) 22%,transparent)}
+  .tns .lv:first-child{padding-top:2px}.tns .lv:last-child{border-bottom:none;padding-bottom:2px}
+  .tns .lvtop{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12.5px}
+  .tns .lvtop .g{font-weight:750;color:var(--ink)}
+  .tns .lvtop .ar{color:var(--hellp);font-weight:800}
+  .tns .lvtop .rs{color:var(--ink-soft)}
+  .tns .lvbot{display:flex;align-items:center;gap:8px;margin-top:4px}
+  .tns .lvbot .m{flex:1;min-width:0;font-size:11px;color:var(--ink-mute)}
+  .tns .resp{display:flex;gap:6px;flex:none}
+  .tns .resp button{font-size:10.5px;font-weight:650;border-radius:8px;padding:5px 10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .tns .resp button.up.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .tns .resp button.no.sel{background:var(--ink-mute);border-color:var(--ink-mute);color:#fff}
+  .cover{border-radius:12px;padding:10px 12px;font-size:11.5px;line-height:1.45;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent)}
+  .cover b{font-weight:750}
+  .cover.ok{color:var(--good);background:var(--good-tint);border-color:color-mix(in oklab,var(--good) 25%,transparent)}
+  .mxcite{display:flex;gap:7px;font-size:10.5px;color:var(--ink-mute);line-height:1.45;padding:8px 2px 4px}
+  /* Documents panel */
+  .doc{padding:14px}
+  .docpick{display:flex;gap:6px;margin-bottom:13px}
+  .docpick button{flex:1;font-size:11.5px;font-weight:650;padding:9px 4px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .docpick button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .paper{background:var(--surface-alt);border:1px solid var(--line);border-radius:13px;padding:15px 15px 8px}
+  .doctitle{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:750;letter-spacing:-.01em;margin-bottom:11px;color:var(--ink)}
+  .doctitle span{font-size:10px;font-weight:500;color:var(--ink-mute);white-space:nowrap;flex:none}
+  .block{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line-soft)}
+  .block:first-child{border-top:none;padding-top:2px}
+  .block .ltr{width:24px;height:24px;border-radius:7px;background:var(--brand-tint);color:var(--brand-strong);font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+  .block b,.sec b{display:block;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:3px}
+  .block p,.sec p,.lt{font-size:12.5px;line-height:1.5;color:var(--ink);margin:0}
+  .block p b,.sec p b,.lt b{display:inline;font-size:inherit;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:700;margin:0}
+  .sec{padding:9px 0;border-top:1px solid var(--line-soft)}
+  .sec:first-child{border-top:none;padding-top:2px}
+  .lt{margin-bottom:10px}.lt:last-child{margin-bottom:2px}
+  .docact{display:flex;gap:8px;margin-top:12px}
+  .docact button{flex:1;font-size:12.5px;font-weight:650;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink-soft);cursor:pointer;transition:all .14s}
+  .docact button.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+  .docflag{font-size:10.5px;color:var(--amber);text-align:center;margin-top:10px}
+  /* Why / reasoning panel */
+  .why{padding:14px}
+  .whysum{font-size:13px;line-height:1.55;color:var(--ink);background:linear-gradient(160deg,var(--brand-tint),transparent);border:1px solid color-mix(in oklab,var(--brand) 26%,transparent);border-radius:13px;padding:13px 14px;margin-bottom:14px}
+  .whysum b{font-weight:750}
+  .wledger{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dxc);border-radius:12px;padding:11px 12px;margin-bottom:10px}
+  .wlhd{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+  .wlhd .n{font-size:13.5px;font-weight:700;color:var(--dxc);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+  .wlhd .pc{font-size:15px;font-weight:800;flex:none;letter-spacing:-.02em}
+  .capchip{font-size:9px;font-weight:800;letter-spacing:.02em;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:5px;padding:2px 6px;flex:none}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .col-f,.col-a{border-radius:9px;padding:7px 9px}
+  .col-f{background:var(--good-tint)}
+  .col-a{background:var(--bad-tint)}
+  .colh{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+  .col-f .colh{color:var(--good)}
+  .col-a .colh{color:var(--bad)}
+  .li{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px;line-height:1.3;padding:2.5px 0;color:var(--ink-soft)}
+  .li.dim{color:var(--ink-mute)}
+  .li .lr{font-weight:800;font-variant-numeric:tabular-nums;flex:none}
+  .col-f .li .lr{color:var(--good)}
+  .col-a .li .lr{color:var(--bad)}
+  .wscript{font-size:10.5px;color:var(--ink-mute);margin-top:8px;font-style:italic;line-height:1.4}
+  .whycard{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px;background:var(--surface-alt)}
+  .whycard.pm{background:var(--amber-tint);border-color:color-mix(in oklab,var(--amber) 22%,transparent)}
+  .whycard .h{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:5px;display:flex;gap:6px;align-items:center}
+  .whycard.pm .h{color:var(--amber)}
+  .whycard p{font-size:12.5px;line-height:1.5;margin:0;color:var(--ink)}
+  .whycard p b{font-weight:750}
+  .empty{padding:40px 26px 44px;text-align:center}
+  .empty .ic{font-size:30px;color:var(--brand);opacity:.8}
+  .empty .t{font-size:15px;font-weight:700;margin:12px 0 5px;letter-spacing:-.01em}
+  .empty .s{font-size:12.5px;color:var(--ink-mute);line-height:1.5;max-width:270px;margin:0 auto}
+  .empty .pill{margin-top:14px;display:inline-block;font-size:11px;font-weight:650;color:var(--brand-strong);background:var(--brand-tint);border-radius:99px;padding:6px 13px}
+
+  footer{padding:13px 16px 0;text-align:center}
+  .legend{display:inline-flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-mute)}
+  .legend b{display:inline-flex;align-items:center;gap:4px;font-weight:500}
+  .sw{width:15px;height:15px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+  .theme{margin-top:10px;font-size:11px;color:var(--brand-strong);background:var(--brand-tint);border:none;padding:6px 12px;border-radius:99px;cursor:pointer;font-weight:650}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="casebar" id="casebar"></div>
+    <div class="pt"><span class="chev">‹</span><div class="who" id="who"></div></div>
+    <div class="vitals" id="vitals"></div>
+    <div class="sysleg"><span><i style="background:var(--hr)"></i>Cardiovascular</span><span><i style="background:var(--rr)"></i>Respiratory</span><span><i style="background:var(--temp)"></i>Thermal</span></div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="k">Confidence</div>
+        <div class="vrow"><span class="v tnum" id="confV">—</span><span class="d up" id="confD"></span></div>
+        <div class="track"><div class="fill conf" id="confF"></div></div>
+      </div>
+      <div class="card">
+        <div class="k">Clerking complete</div>
+        <div class="vrow"><span class="v tnum" id="compV">—</span><span class="d up" id="compD"></span></div>
+        <div class="track"><div class="fill comp" id="compF"></div></div>
+      </div>
+    </div>
+    <div class="cap" id="cap"></div>
+    <div class="next" id="next"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-tab="hx"><span class="n">◧</span>Hx·Exam</button>
+      <button class="tab" data-tab="ix"><span class="n">⌾</span>Ix</button>
+      <button class="tab" data-tab="mx"><span class="n">✚</span>Mx</button>
+      <button class="tab" data-tab="docs"><span class="n">▤</span>Docs</button>
+      <button class="tab" data-tab="why"><span class="n">✦</span>Why</button>
+    </div>
+  </header>
+
+  <main id="main"></main>
+
+  <footer>
+    <div class="legend" id="foot"></div>
+    <div><button class="theme" id="theme">Light / dark</button></div>
+  </footer>
+</div>
+
+<script>
+// ===== CASE PACKS — the engine is specialty-agnostic; a specialty is just data =====
+const CASES={
+ pre:{
+  specialty:'O&G', label:'Pre-eclampsia',
+  referTo:'O&G Registrar on call',
+  planLine:'MgSO₄ · BP control · betamethasone · urgent bloods · senior O&amp;G review · plan delivery.',
+  recommendation:'MgSO₄ seizure prophylaxis; control BP &lt;150/100; betamethasone for fetal lung maturity; urgent FBC, U&amp;E, LFT, coagulation, glucose. <b>Urgent senior O&amp;G review — plan delivery after maternal stabilisation.</b>',
+  PT:{line:'29 · G3P2 · 33<small>+4/40</small> · headache + epigastric pain', summaryLine:'29-year-old G3P2 at 33<sup>+4</sup> weeks', complaint:'headache and epigastric pain', background:'Third pregnancy. P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress). No hypertension before this pregnancy. Gestation 33<sup>+4</sup> weeks by dates.', obsHx:'P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress)'},
+  VITALS:[{k:'HR',v:'104',vc:'var(--hr)'},{k:'BP',v:'168/112',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.9',vc:'var(--temp)'}],
+  DX:[
+   {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.30,mnm:false,script:'HTN + proteinuria + end-organ symptoms after 20 weeks'},
+   {id:'hellp',name:'HELLP syndrome',icd:'O14.2',c:'var(--hellp)',prior:.12,mnm:true,script:'pre-eclampsia + haemolysis + low platelets + high LFTs'},
+   {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.10,mnm:true,script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
+   {id:'aflp',name:'Acute fatty liver of pregnancy',icd:'O26.6',c:'var(--aflp)',prior:.05,mnm:true,script:'3rd trimester + hypoglycaemia + coagulopathy + high LFTs'}],
+  FEAT:[
+   {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
+   {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pet:[2.4,.6],hellp:[3,.5],aflp:[2,.7]},preset:'present'},
+   {id:'vis',lbl:'Visual disturbance',stream:'hx',eff:{pet:[3,.5]}},
+   {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
+   {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
+   {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
+   {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
+   {id:'liquor',lbl:'Ruptured membranes / offensive liquor',stream:'exam',eff:{chorio:[5,.5]}},
+   {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',eff:{chorio:[3,.6]}},
+   {id:'plt',lbl:'Platelets < 100',stream:'ix',eff:{hellp:[8,.2]},key:'hellp',short:'platelets'},
+   {id:'ast',lbl:'AST / ALT raised',stream:'ix',eff:{hellp:[4,.4],aflp:[3,.5]}},
+   {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',eff:{hellp:[3,.5]}},
+   {id:'glu',lbl:'Hypoglycaemia',stream:'ix',eff:{aflp:[6,.4]},key:'aflp',short:'glucose'},
+   {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
+   {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}}],
+  IX:[
+   {id:'plt',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP'},
+   {id:'ast',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP'},
+   {id:'ldh',lbl:'LDH',unit:'U/L',norm:'< 600',hi:600,dir:'above',dx:'HELLP'},
+   {id:'glu',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP'},
+   {id:'inr',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'}],
+  MX:{
+   immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV load + maintenance',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol · nifedipine · hydralazine',sign:true,active:'BP 168/112 — now'}],
+   definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'IM × 2',sign:true,ind:'33+4 wk — give'}],
+   monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
+   levers:[{id:'rx_dex',give:'IV dextrose',resp:'glucose corrects, rouses',means:'supports AFLP / hypoglycaemia',wired:true},{give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},{give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'}]},
+ },
+ cp:{
+  specialty:'IM / EM', label:'Chest pain',
+  referTo:'Medical Registrar / Cardiology',
+  planLine:'aspirin · serial troponin · 12-lead ECG · anticoagulation per pathway · cardiology review.',
+  recommendation:'Aspirin if ACS likely and dissection excluded; serial troponin and continuous ECG; treat along the confirmed pathway — PCI for STEMI, anticoagulation for PE/NSTEMI, urgent aortic control for dissection. <b>Urgent medical / cardiology review.</b>',
+  PT:{line:'58 · ♂ · central chest pain · 2 h', summaryLine:'58-year-old man', complaint:'central chest pain for 2 hours', background:'Hypertension and hyperlipidaemia. Ex-smoker, 20 pack-years. Father had a myocardial infarction at 55. No recent surgery or immobility.'},
+  VITALS:[{k:'HR',v:'108',vc:'var(--hr)'},{k:'BP',v:'148/92',vc:'var(--bp)'},{k:'RR',v:'22',vc:'var(--rr)'},{k:'SpO₂',v:'93',vc:'var(--spo2)'},{k:'T',v:'36.8',vc:'var(--temp)'}],
+  DX:[
+   {id:'acs',name:'Acute coronary syndrome',icd:'I24.9',c:'var(--chorio)',prior:.30,mnm:true,script:'ischaemic-type pain + risk factors + rising troponin / ECG change'},
+   {id:'pe',name:'Pulmonary embolism',icd:'I26.9',c:'var(--pet)',prior:.14,mnm:true,script:'pleuritic pain + dyspnoea + hypoxia + immobility / DVT risk'},
+   {id:'dissection',name:'Aortic dissection',icd:'I71.0',c:'var(--hellp)',prior:.05,mnm:true,script:'sudden tearing pain to the back + BP/pulse asymmetry + wide mediastinum'},
+   {id:'pericarditis',name:'Pericarditis',icd:'I30.9',c:'var(--aflp)',prior:.10,mnm:false,script:'sharp pleuritic pain, better sitting forward + friction rub + diffuse ST'}],
+  FEAT:[
+   {id:'crush',lbl:'Crushing pain radiating to arm/jaw',stream:'hx',eff:{acs:[3,.5]},preset:'present'},
+   {id:'exert',lbl:'Exertional onset',stream:'hx',eff:{acs:[2.5,.6]}},
+   {id:'risk',lbl:'Cardiac risk factors',stream:'hx',eff:{acs:[2,.7]},preset:'present'},
+   {id:'pleur',lbl:'Pleuritic (worse on inspiration)',stream:'hx',eff:{pe:[2.5,.6],pericarditis:[3,.5],acs:[.6,1.1]}},
+   {id:'tear',lbl:'Tearing pain radiating to back',stream:'hx',eff:{dissection:[8,.4]}},
+   {id:'immob',lbl:'Recent immobility / DVT risk',stream:'hx',eff:{pe:[3,.5]}},
+   {id:'ssf',lbl:'Relieved sitting forward',stream:'hx',eff:{pericarditis:[4,.5]}},
+   {id:'diaph',lbl:'Diaphoresis / distress',stream:'exam',eff:{acs:[2,.7]},preset:'present'},
+   {id:'asym',lbl:'Unequal arm BP / pulse deficit',stream:'exam',eff:{dissection:[6,.4]}},
+   {id:'jvp',lbl:'Raised JVP / RV strain',stream:'exam',eff:{pe:[3,.6]}},
+   {id:'rub',lbl:'Pericardial friction rub',stream:'exam',eff:{pericarditis:[8,.3]}},
+   {id:'hypox',lbl:'Tachycardia + hypoxia',stream:'exam',eff:{pe:[2.5,.6]},preset:'present'},
+   {id:'trop',lbl:'Troponin raised',stream:'ix',eff:{acs:[8,.2]},key:'acs',short:'troponin'},
+   {id:'ecgisch',lbl:'ECG ischaemia',stream:'ix',eff:{acs:[6,.3]}},
+   {id:'ddimer',lbl:'D-dimer raised',stream:'ix',eff:{pe:[2.5,.5]}},
+   {id:'ctpa',lbl:'CTPA positive',stream:'ix',eff:{pe:[15,.1]},key:'pe',short:'CTPA'},
+   {id:'ctaorta',lbl:'CT aorta — dissection flap',stream:'ix',eff:{dissection:[14,.08]},key:'dissection',short:'CT aorta'},
+   {id:'ecgperi',lbl:'ECG diffuse ST / PR depression',stream:'ix',eff:{pericarditis:[5,.4]}}],
+  IX:[
+   {id:'trop',lbl:'Troponin (hs)',unit:'ng/L',norm:'< 14',hi:14,dir:'above',dx:'ACS'},
+   {id:'ddimer',lbl:'D-dimer',unit:'µg/L',norm:'< 0.5',hi:0.5,dir:'above',dx:'PE'},
+   {id:'ecgisch',lbl:'ECG — ischaemia',binary:true,dx:'ACS'},
+   {id:'ctpa',lbl:'CTPA',binary:true,dx:'PE'},
+   {id:'ctaorta',lbl:'CT aorta',binary:true,dx:'Dissection'},
+   {id:'ecgperi',lbl:'ECG — pericarditis pattern',binary:true,dx:'Pericarditis'}],
+  MX:{
+   immediate:[{rx:'12-lead ECG',for:'within 10 min of arrival',dose:'now',active:'do first'},{rx:'Aspirin',for:'if ACS likely, dissection not suspected',dose:'300 mg PO',sign:true},{rx:'Analgesia + antiemetic',for:'pain and distress',dose:'morphine titrated',sign:true}],
+   definitive:[{rx:'Reperfusion (PCI / lysis)',for:'STEMI pathway',dose:'per cath-lab'},{rx:'Anticoagulation',for:'confirmed PE / NSTEMI — not if dissection',dose:'per protocol',sign:true},{rx:'Aortic control + CT surgery',for:'dissection',dose:'BP/HR control, urgent referral'}],
+   monitor:['Continuous ECG','Serial troponin','BP in both arms','SpO₂ + respiratory rate'],
+   levers:[{give:'GTN',resp:'pain settles',means:'consistent with ischaemia — not specific'},{give:'After full analgesia',resp:'pain persists',means:'concerning — reconsider dissection'}]},
+ },
+ surg:{
+  specialty:'Surgery', label:'RIF pain',
+  referTo:'Surgical Registrar on call',
+  planLine:'analgesia · nil by mouth · IV fluids · βhCG · WCC/CRP · imaging · surgical review.',
+  recommendation:'Analgesia and antiemetic; keep nil by mouth with IV fluids pending theatre; <b>exclude pregnancy with βhCG</b>; WCC/CRP and imaging as indicated. <b>Urgent surgical review — laparoscopy if torsion or ectopic suspected.</b>',
+  PT:{line:'24 · ♀ · right iliac fossa pain · 1 day', summaryLine:'24-year-old woman', complaint:'right iliac fossa pain for one day', background:'Previously well. Last menstrual period about 6 weeks ago, uncertain dates. No previous surgery.'},
+  VITALS:[{k:'HR',v:'98',vc:'var(--hr)'},{k:'BP',v:'118/74',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'99',vc:'var(--spo2)'},{k:'T',v:'37.8',vc:'var(--temp)'}],
+  DX:[
+   {id:'appy',name:'Acute appendicitis',icd:'K35.80',c:'var(--pet)',prior:.35,mnm:false,script:'central pain migrating to RIF + anorexia + RIF tenderness / guarding'},
+   {id:'ectopic',name:'Ectopic pregnancy',icd:'O00.9',c:'var(--chorio)',prior:.12,mnm:true,script:'reproductive age + missed period + positive βhCG + adnexal pain'},
+   {id:'torsion',name:'Ovarian torsion',icd:'N83.5',c:'var(--hellp)',prior:.08,mnm:true,script:'sudden severe unilateral pain + nausea + tender adnexal mass'},
+   {id:'adenitis',name:'Mesenteric adenitis',icd:'I88.0',c:'var(--aflp)',prior:.10,mnm:false,script:'recent viral illness + diffuse tenderness without guarding'}],
+  FEAT:[
+   {id:'migrate',lbl:'Pain migrated central → RIF',stream:'hx',eff:{appy:[3,.5]},preset:'present'},
+   {id:'anorexia',lbl:'Anorexia',stream:'hx',eff:{appy:[2,.6]}},
+   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{ectopic:[4,.4]}},
+   {id:'suddensev',lbl:'Sudden severe onset',stream:'hx',eff:{torsion:[3,.5]}},
+   {id:'viral',lbl:'Recent viral illness',stream:'hx',eff:{adenitis:[3,.5]}},
+   {id:'rifguard',lbl:'RIF tenderness + guarding',stream:'exam',eff:{appy:[4,.4]},preset:'present'},
+   {id:'rebound',lbl:'Rebound / percussion tenderness',stream:'exam',eff:{appy:[3,.5]}},
+   {id:'adnexal',lbl:'Adnexal tenderness / cervical excitation',stream:'exam',eff:{ectopic:[3,.5],torsion:[2,.7]}},
+   {id:'mass',lbl:'Palpable tender adnexal mass',stream:'exam',eff:{torsion:[5,.5]}},
+   {id:'bhcg',lbl:'βhCG positive',stream:'ix',eff:{ectopic:[8,.1]},key:'ectopic',short:'βhCG'},
+   {id:'usadnexa',lbl:'US — adnexal mass / absent flow',stream:'ix',eff:{torsion:[8,.2]},key:'torsion',short:'pelvic US'},
+   {id:'wcc',lbl:'WCC / CRP raised',stream:'ix',eff:{appy:[2.5,.5],adenitis:[1.3,.9]}},
+   {id:'usappy',lbl:'US / CT — appendicitis',stream:'ix',eff:{appy:[10,.2]}}],
+  IX:[
+   {id:'bhcg',lbl:'βhCG (urine/serum)',binary:true,dx:'Ectopic'},
+   {id:'usadnexa',lbl:'Pelvic ultrasound',binary:true,dx:'Torsion'},
+   {id:'wcc',lbl:'WCC',unit:'×10⁹/L',norm:'4–11',hi:11,dir:'above',dx:'Appendicitis'},
+   {id:'usappy',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'}],
+  MX:{
+   immediate:[{rx:'Urine βhCG',for:'exclude pregnancy first',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'per protocol',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'maintenance',active:'keep NBM'}],
+   definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Antibiotics',for:'per surgical protocol',dose:'per protocol',sign:true}],
+   monitor:['Serial abdominal exam','Obs + urine output','Repeat bloods','βhCG result'],
+   levers:[{give:'Analgesia',resp:'pain well controlled',means:'reassess — does not exclude a surgical abdomen'},{give:'Serial exam',resp:'localises / worsens',means:'evolving appendicitis'}]},
+ },
+ paeds:{
+  specialty:'Paeds', label:'Febrile infant',
+  referTo:'Paediatric Registrar on call',
+  planLine:'sepsis assessment · weight-based antibiotics if indicated · CRP · urine · CXR · LP if meningism · admit.',
+  recommendation:'Assess for sepsis (HR 168, RR 44); weight-based fluids and empirical antibiotics if meningitis or sepsis suspected — do not delay treatment for LP if unwell; septic screen with urine, CRP and chest X-ray. <b>Urgent paediatric review.</b>',
+  PT:{line:'8 mo · ♂ · fever + irritability · 1 day', summaryLine:'8-month-old boy', complaint:'fever and irritability for one day', background:'Fully immunised for age. Reduced feeds today. No rash noticed by parents.'},
+  VITALS:[{k:'HR',v:'168',vc:'var(--hr)'},{k:'BP',v:'92/54',vc:'var(--bp)'},{k:'RR',v:'44',vc:'var(--rr)'},{k:'SpO₂',v:'96',vc:'var(--spo2)'},{k:'T',v:'39.2',vc:'var(--temp)'}],
+  DX:[
+   {id:'pneumonia',name:'Pneumonia',icd:'J18.9',c:'var(--hellp)',prior:.15,mnm:false,script:'fever + tachypnoea + focal chest signs / hypoxia'},
+   {id:'meningitis',name:'Meningitis / sepsis',icd:'G00.9',c:'var(--chorio)',prior:.12,mnm:true,script:'unwell infant + bulging fontanelle / neck stiffness + non-blanching rash + high CRP'},
+   {id:'uti',name:'Urinary tract infection',icd:'N39.0',c:'var(--pet)',prior:.22,mnm:false,script:'fever without source + offensive urine + positive dip / culture'},
+   {id:'viral',name:'Viral illness',icd:'J06.9',c:'var(--aflp)',prior:.30,mnm:false,script:'coryza + well-appearing between fevers + self-limiting'}],
+  FEAT:[
+   {id:'irrit',lbl:'Irritable / lethargic',stream:'hx',eff:{meningitis:[3,.4]},preset:'present'},
+   {id:'feeds',lbl:'Reduced feeds',stream:'hx',eff:{meningitis:[1.5,.8],uti:[1.3,.9]},preset:'present'},
+   {id:'cough',lbl:'Cough',stream:'hx',eff:{pneumonia:[2.5,.6]},preset:'present'},
+   {id:'coryza',lbl:'Coryza',stream:'hx',eff:{viral:[3,.4]}},
+   {id:'fontanelle',lbl:'Bulging fontanelle / neck stiffness',stream:'exam',eff:{meningitis:[6,.4]}},
+   {id:'rash',lbl:'Non-blanching rash',stream:'exam',eff:{meningitis:[8,.5]}},
+   {id:'tachypnoea',lbl:'Tachypnoea / recession',stream:'exam',eff:{pneumonia:[3,.5]},preset:'present'},
+   {id:'focal',lbl:'Focal chest signs / hypoxia',stream:'exam',eff:{pneumonia:[4,.4]},preset:'present'},
+   {id:'crp',lbl:'CRP / procalcitonin raised',stream:'ix',eff:{meningitis:[3,.4],uti:[1.5,.8],pneumonia:[2,.7]}},
+   {id:'lp',lbl:'LP — CSF pleocytosis',stream:'ix',eff:{meningitis:[12,.1]},key:'meningitis',short:'LP'},
+   {id:'urine',lbl:'Urine dip / culture positive',stream:'ix',eff:{uti:[8,.2]}},
+   {id:'cxr',lbl:'CXR — consolidation',stream:'ix',eff:{pneumonia:[8,.2]}}],
+  IX:[
+   {id:'crp',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Meningitis / UTI'},
+   {id:'lp',lbl:'Lumbar puncture',binary:true,dx:'Meningitis'},
+   {id:'urine',lbl:'Urine dip / culture',binary:true,dx:'UTI'},
+   {id:'cxr',lbl:'Chest X-ray',binary:true,dx:'Pneumonia'}],
+  MX:{
+   immediate:[{rx:'Sepsis assessment + fluids',for:'if unwell',dose:'20 ml/kg bolus',sign:true,active:'HR 168, RR 44 — assess now'},{rx:'Empirical antibiotics',for:'if meningitis / sepsis suspected',dose:'ceftriaxone, weight-based',sign:true},{rx:'Antipyretic',for:'comfort',dose:'paracetamol, weight-based'}],
+   definitive:[{rx:'LP + CSF',for:'confirm / exclude meningitis',dose:'timing per stability'},{rx:'Source-directed therapy',for:'UTI / pneumonia',dose:'per protocol',sign:true}],
+   monitor:['Continuous obs + AVPU','Fluid balance / urine output','Repeat examination','Blood glucose'],
+   levers:[{give:'Antipyretic',resp:'bright & playful once afebrile',means:'reassuring — favours viral'},{give:'Fluid bolus',resp:'perfusion improves',means:'supports sepsis physiology'}]},
+ },
+ neuro:{
+  specialty:'Neuro', label:'Thunderclap HA',
+  referTo:'Medical / Neurology Registrar on call',
+  planLine:'analgesia · non-contrast CT head within 1 h · LP for xanthochromia if CT negative · BP control · neuro review.',
+  recommendation:'Analgesia and antiemetic; <b>urgent non-contrast CT head within the hour</b>; LP for xanthochromia if CT negative and SAH still suspected; cautious BP control. <b>Urgent medical / neurology review; neurosurgery if SAH confirmed.</b>',
+  PT:{line:'46 · ♀ · sudden severe headache · 3 h', summaryLine:'46-year-old woman', complaint:'sudden-onset severe headache for three hours', background:'Smoker. Family history of subarachnoid haemorrhage. No head injury.'},
+  VITALS:[{k:'HR',v:'88',vc:'var(--hr)'},{k:'BP',v:'176/98',vc:'var(--bp)'},{k:'RR',v:'16',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.1',vc:'var(--temp)'}],
+  DX:[
+   {id:'sah',name:'Subarachnoid haemorrhage',icd:'I60.9',c:'var(--chorio)',prior:.18,mnm:true,script:'thunderclap (peak < 1 min) + worst-ever + neck stiffness ± reduced GCS + blood on CT'},
+   {id:'meningitis',name:'Meningitis',icd:'G03.9',c:'var(--hellp)',prior:.10,mnm:true,script:'fever + neck stiffness + photophobia + CSF pleocytosis'},
+   {id:'cvst',name:'Cerebral venous sinus thrombosis',icd:'I67.6',c:'var(--aflp)',prior:.06,mnm:true,script:'subacute headache + prothrombotic risk + focal signs / seizure'},
+   {id:'migraine',name:'Migraine',icd:'G43.9',c:'var(--pet)',prior:.30,mnm:false,script:'gradual throbbing pain + prior similar attacks + aura + relief in a dark room'}],
+  FEAT:[
+   {id:'thunder',lbl:'Thunderclap (peak < 1 min)',stream:'hx',eff:{sah:[5,.3]},preset:'present'},
+   {id:'worst',lbl:'Worst-ever headache',stream:'hx',eff:{sah:[3,.5]},preset:'present'},
+   {id:'prior',lbl:'Prior similar headaches',stream:'hx',eff:{migraine:[4,.4]}},
+   {id:'feverh',lbl:'Fever',stream:'hx',eff:{meningitis:[3,.4]}},
+   {id:'prothromb',lbl:'OCP / prothrombotic risk',stream:'hx',eff:{cvst:[3,.5]}},
+   {id:'neck',lbl:'Neck stiffness',stream:'exam',eff:{sah:[3,.5],meningitis:[4,.4]},preset:'present'},
+   {id:'photo',lbl:'Photophobia',stream:'exam',eff:{meningitis:[2.5,.6],migraine:[1.5,.8]}},
+   {id:'focaln',lbl:'Focal neurology / seizure',stream:'exam',eff:{cvst:[4,.4],sah:[2,.7]}},
+   {id:'gcs',lbl:'Reduced GCS',stream:'exam',eff:{sah:[4,.4]}},
+   {id:'ct',lbl:'CT head — blood',stream:'ix',eff:{sah:[15,.2]},key:'sah',short:'CT head'},
+   {id:'lpxan',lbl:'LP — xanthochromia',stream:'ix',eff:{sah:[8,.3]}},
+   {id:'csf',lbl:'CSF pleocytosis',stream:'ix',eff:{meningitis:[10,.2]},key:'meningitis',short:'LP'},
+   {id:'ctv',lbl:'CT venogram — sinus thrombosis',stream:'ix',eff:{cvst:[14,.1]},key:'cvst',short:'CT venogram'}],
+  IX:[
+   {id:'ct',lbl:'CT head (non-contrast)',binary:true,dx:'SAH'},
+   {id:'lpxan',lbl:'LP — xanthochromia',binary:true,dx:'SAH'},
+   {id:'csf',lbl:'CSF — pleocytosis',binary:true,dx:'Meningitis'},
+   {id:'ctv',lbl:'CT venogram',binary:true,dx:'CVST'}],
+  MX:{
+   immediate:[{rx:'Non-contrast CT head',for:'within 1 h',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'symptom control',dose:'per protocol',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'per neuro',active:'BP 176/98'}],
+   definitive:[{rx:'Neurosurgical referral',for:'confirmed SAH',dose:'urgent — aneurysm securing'},{rx:'Antibiotics + aciclovir',for:'if meningitis / encephalitis',dose:'per protocol',sign:true},{rx:'Anticoagulation',for:'CVST — not if SAH',dose:'per neurology',sign:true}],
+   monitor:['GCS + pupils','BP','Hourly neuro obs','Repeat CT if deteriorates'],
+   levers:[{give:'Analgesia',resp:'headache fully resolves',means:'less reassuring — SAH pain can settle'},{give:'Dark quiet room',resp:'settles with prior pattern',means:'favours migraine'}]},
+ },
+};
+
+let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar';
+const featsFor=id=>FEAT.filter(f=>f.eff[id]);
+function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';}
+
+
+function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
+function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
+function completeness(){const hx=FEAT.filter(f=>f.stream==='hx'||f.stream==='exam');const w=f=>Math.abs(Math.log(f.eff[Object.keys(f.eff)[0]][0]));let t=0,g=0;for(const f of hx){const wt=w(f);t+=wt;if(ans[f.id])g+=wt;}return g/t;}
+function nextBest(p){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;const g=Object.keys(f.eff).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
+function tween(el,to,suf=''){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/450);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
+function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
+function ixState(f){const a=ans[f.id];if(!a)return{cls:'pend',txt:'→ enter'};return a==='present'?{cls:'hi',txt:'abnormal'}:{cls:'ok',txt:'normal'};}
+
+function paintVitals(){document.getElementById('vitals').innerHTML=VITALS.map(v=>`<span class="vital" style="--vc:${v.vc}"><span class="dot"></span><span class="lbl">${v.k}</span><b>${v.v}</b></span>`).join('');}
+
+function paintHeader(p,first){
+  const c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);
+  const cPc=Math.round(conf*100),comp=Math.round(completeness()*100);
+  tween(document.getElementById('confV'),cPc,'%');document.getElementById('confF').style.width=cPc+'%';
+  tween(document.getElementById('compV'),comp,'%');document.getElementById('compF').style.width=comp+'%';
+  const capEl=document.getElementById('cap');
+  if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')+' not yet excluded. Enter bloods on the Ix tab to release.</span>';}
+  else capEl.style.display='none';
+  const nb=nextBest(p),nx=document.getElementById('next');
+  if(nb){nx.style.display='flex';nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>the one answer that moves the picture most</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
+    nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{snap(probs());ans[nb.id]=b.dataset.a;refresh(false);}));}
+  else nx.style.display='none';
+}
+
+function buildHx(){
+  document.getElementById('main').innerHTML=DX.map(d=>`
+    <div class="dx${d.id===DX[0].id?' open':''}" data-id="${d.id}" style="--dxc:${d.c}">
+      <div class="accent"></div>
+      <div class="col">
+        <div class="dx-head">
+          <span class="caret">›</span>
+          <span class="nm"><span class="name">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm" title="Must not miss"></span>':''}</span>
+          <span class="metric"><span class="delta" data-delta></span><span class="mini"><span class="f" data-mini></span></span><span class="pct tnum" data-pct>0</span></span>
+        </div>
+        <div class="body">
+          ${d.mnm?'<div class="mnmnote">▲ MUST NOT MISS — actively exclude</div>':''}
+          <div class="script" data-script></div>
+          <div data-feats></div>
+          ${featsFor(d.id).some(f=>f.stream==='ix')?`<div class="ixref"><div class="h">Discriminating bloods · enter on Ix tab</div>${featsFor(d.id).filter(f=>f.stream==='ix').map(f=>`<div class="ixr" data-ix="${f.id}"><span>${f.lbl}</span><span class="r" data-ixr></span></div>`).join('')}</div>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.dx-head').forEach(h=>h.addEventListener('click',()=>h.closest('.dx').classList.toggle('open')));
+}
+function paintHx(p,first){
+  const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
+  ranked.forEach((d,i)=>{
+    const el=document.querySelector(`.dx[data-id="${d.id}"]`);if(!el)return;el.style.order=i;
+    const pc=Math.round(p[d.id]*100);
+    el.querySelector('[data-mini]').style.width=pc+'%';tween(el.querySelector('[data-pct]'),pc);
+    const dl=el.querySelector('[data-delta]'),ch=Math.round((p[d.id]-last[d.id])*100);
+    if(!first&&Math.abs(ch)>=1){dl.className='delta '+(ch>0?'up':'down');dl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}else{dl.className='delta';dl.textContent='';}
+    const matched=featsFor(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
+    el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
+    const fc=el.querySelector('[data-feats]');
+    fc.innerHTML=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').map(f=>`<div class="feat${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl">${f.lbl}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
+    fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];refresh(false);}));
+    el.querySelectorAll('[data-ix]').forEach(r=>{const st=ixState(FEAT.find(f=>f.id===r.dataset.ix));const rr=r.querySelector('[data-ixr]');rr.className='r '+st.cls;rr.textContent=st.txt;});
+  });
+}
+
+function buildIx(){
+  document.getElementById('main').innerHTML=`<div class="panel">
+    <div class="phd"><span>◆</span><span>Enter results as you get them. Each value <b>updates the differential live</b> and <b>releases the confidence cap</b> once must-not-miss diagnoses are excluded.</span></div>
+    ${IX.map(t=>`<div class="ixin" data-t="${t.id}">
+      <div class="top">
+        <span class="lab"><div class="t">${t.lbl}</div><div class="sub">${t.binary?'imaging / ECG':'normal '+t.norm} · <span class="dxc">${t.dx}</span></div></span>
+        ${t.binary?'':`<span class="field"><input inputmode="decimal" placeholder="—" data-in value="${val[t.id]??''}"><span class="unit">${t.unit||''}</span></span>`}
+        <span class="badge" data-badge></span>
+      </div>
+      <div class="qk"><button class="y" data-a="present">${t.binary?'Positive':'Abnormal'}</button><button class="n" data-a="absent">${t.binary?'Negative':'Normal'}</button></div>
+    </div>`).join('')}
+  </div>`;
+  IX.forEach(t=>{
+    const row=document.querySelector(`.ixin[data-t="${t.id}"]`);
+    const inp=row.querySelector('[data-in]');
+    if(inp)inp.addEventListener('input',e=>{
+      const raw=e.target.value.trim();val[t.id]=raw;
+      snap(probs());
+      if(raw===''||isNaN(parseFloat(raw))){delete ans[t.id];}
+      else{const x=parseFloat(raw);const abn=t.dir==='below'?x<t.lo:x>t.hi;ans[t.id]=abn?'present':'absent';}
+      refresh(false);
+    });
+    row.querySelectorAll('.qk button').forEach(b=>b.addEventListener('click',()=>{snap(probs());const a=b.dataset.a;ans[t.id]=ans[t.id]===a?undefined:a;if(!ans[t.id])delete ans[t.id];refresh(false);}));
+  });
+}
+function paintIx(p){
+  IX.forEach(t=>{
+    const row=document.querySelector(`.ixin[data-t="${t.id}"]`);if(!row)return;
+    const bd=row.querySelector('[data-badge]'),a=ans[t.id];
+    if(!a){bd.className='badge';bd.textContent='';}
+    else if(a==='present'){bd.className='badge show '+(t.binary||t.dir!=='below'?'hi':'lo');bd.textContent=t.binary?'POSITIVE':(t.dir==='below'?'LOW':'HIGH');}
+    else{bd.className='badge show ok';bd.textContent=t.binary?'NEGATIVE':'NORMAL';}
+    row.querySelector('.qk .y').classList.toggle('sel',a==='present');
+    row.querySelector('.qk .n').classList.toggle('sel',a==='absent');
+  });
+}
+
+// ---- Management (tab 3) ----
+function rxRow(m,i,sec){
+  const pills=(m.active?`<span class="pill-a act">ACTIVE</span>`:'')+(m.ind?`<span class="pill-a ind">INDICATED</span>`:'')+(m.sign?`<span class="pill-a sign">sign-off</span>`:'');
+  const note=m.active||m.ind;
+  return `<div class="rx" data-rx="${sec}-${i}">`
+    +`<div class="rxtop"><span class="n">${m.rx}</span>${pills}<button class="give" title="mark given">✓</button></div>`
+    +`<div class="rxbot"><span class="for">${m.for}</span><span class="dosechip">${m.dose}</span>${note?`<span class="rxnote">${note}</span>`:''}</div>`
+    +`</div>`;
+}
+function buildMx(){
+  const p=probs(),c=cap(p);
+  document.getElementById('main').innerHTML=`<div class="mx">
+    <div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--bad)"></span>Immediate</div>${MX.immediate.map((m,i)=>rxRow(m,i,'im')).join('')}</div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--brand)"></span>Definitive</div>${MX.definitive.map((m,i)=>rxRow(m,i,'df')).join('')}</div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--ink-mute)"></span>Monitor</div><div class="chips">${MX.monitor.map(x=>`<span class="chip">${x}</span>`).join('')}</div></div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hellp)"></span>Treat-and-see · response is evidence</div>
+      <div class="tns">${MX.levers.map(l=>`<div class="lv"><div class="lvtop"><span class="g">${l.give}</span><span class="ar">→</span><span class="rs">${l.resp}</span></div><div class="lvbot"><span class="m">${l.means}</span>${l.wired?`<span class="resp" data-lever="${l.id}"><button class="up" data-a="present">improved</button><button class="no" data-a="absent">no change</button></span>`:''}</div></div>`).join('')}</div>
+    </div>
+    <div class="mxsec" data-cover></div>
+    <div class="mxcite"><span>❦</span><span>Regimens per <b>SA Maternity Care Guidelines</b> — verify dose &amp; obtain sign-off before administering. No free-hand dosing.</span></div>
+  </div>`;
+  document.querySelectorAll('.give').forEach(b=>b.addEventListener('click',()=>{const k=b.closest('.rx').dataset.rx;given.has(k)?given.delete(k):given.add(k);b.classList.toggle('on',given.has(k));}));
+  document.querySelectorAll('[data-lever] button').forEach(b=>b.addEventListener('click',()=>{const id=b.closest('[data-lever]').dataset.lever,a=b.dataset.a;snap(probs());ans[id]=ans[id]===a?undefined:a;if(!ans[id])delete ans[id];refresh(false);}));
+}
+function paintMx(p){
+  const c=cap(p),cv=document.querySelector('[data-cover]');
+  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')} not excluded: check glucose &amp; coags, treat hypoglycaemia empirically.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${c.lead.name.replace(' of pregnancy','')}. Continue definitive plan.</div>`;}
+  document.querySelectorAll('[data-lever]').forEach(el=>{const a=ans[el.dataset.lever];el.querySelector('.up').classList.toggle('sel',a==='present');el.querySelector('.no').classList.toggle('sel',a==='absent');});
+}
+
+// ---- Documents (tab 4) — the note the clerk writes back (case-aware) ----
+function positives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>f.lbl.split(' (')[0]);}
+function negatives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='absent').map(f=>f.lbl.split(' (')[0]);}
+function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val[t.id]||'',state:ans[t.id]==='present'?(t.binary?'positive':(t.dir==='below'?'low':'high')):(t.binary?'negative':'normal')}));}
+function leadInfo(){const p=probs(),c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);return{lead:c.lead,conf:Math.round(conf*100),capped:c.capped,live:c.live};}
+function shortName(d){return d.name.replace(' of pregnancy','');}
+function obsLine(){return VITALS.map(v=>v.k+' '+v.v).join(', ');}
+function docSBAR(){
+  const C=CASES[caseId],li=leadInfo(),pos=positives(),labs=labsEntered();
+  const capline=li.capped?` Confidence capped at ${li.conf}% — ${li.live.map(shortName).join(' and ')} not yet excluded.`:'';
+  return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${PT.summaryLine}, presenting with ${PT.complaint}. Current obs: ${obsLine()}.</p></div></div>
+   <div class="block"><span class="ltr">B</span><div><b>Background</b><p>${PT.background}</p></div></div>
+   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence.${capline} Supporting findings: ${pos.join(', ')||'—'}.${labs.length?' Results — '+labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; ')+'.':' Investigations pending.'}</p></div></div>
+   <div class="block"><span class="ltr">R</span><div><b>Recommendation</b><p>${C.recommendation}</p></div></div>`;
+}
+function docClerk(){
+  const pos=positives(),neg=negatives(),labs=labsEntered(),li=leadInfo();
+  return `<div class="sec"><b>Presenting complaint</b><p>${PT.complaint}.</p></div>
+   ${PT.obsHx?`<div class="sec"><b>Obstetric history</b><p>${PT.obsHx}.</p></div>`:`<div class="sec"><b>Background</b><p>${PT.background}</p></div>`}
+   <div class="sec"><b>Observations</b><p>${VITALS.map(v=>v.k+' '+v.v).join(' · ')}</p></div>
+   <div class="sec"><b>Positive findings</b><p>${pos.join(', ')||'none recorded'}</p></div>
+   <div class="sec"><b>Pertinent negatives</b><p>${neg.join(', ')||'none recorded'}</p></div>
+   <div class="sec"><b>Investigations</b><p>${labs.length?labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; '):'awaited'}</p></div>
+   <div class="sec"><b>Impression</b><p>${li.lead.name} (${li.lead.icd}), ${li.conf}%${li.capped?'; must-not-miss not excluded: '+li.live.map(shortName).join(', '):''}.</p></div>
+   <div class="sec"><b>Plan</b><p>${CASES[caseId].planLine}</p></div>`;
+}
+function docRef(){
+  const C=CASES[caseId],li=leadInfo(),pos=positives();
+  return `<p class="lt">Dear ${C.referTo},</p>
+   <p class="lt">Please urgently review this ${PT.summaryLine} presenting with ${PT.complaint}. My working diagnosis is <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence${li.capped?', with '+li.live.map(shortName).join(' and ')+' not yet excluded pending investigations':''}.</p>
+   ${PT.obsHx?`<p class="lt">Obstetric history: ${PT.obsHx} — relevant to mode of delivery.</p>`:`<p class="lt">Background: ${PT.background}</p>`}
+   <p class="lt">Positive findings: ${pos.join(', ')||'—'}. Initial management: ${C.planLine}</p>
+   <p class="lt">I would be grateful for urgent review.</p>
+   <p class="lt">Kind regards,<br>Admitting clinician</p>`;
+}
+const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},ref:{label:'Referral',title:'Referral letter',f:docRef}};
+function buildDocs(){
+  const d=DOCS[docType];
+  document.getElementById('main').innerHTML=`<div class="doc">
+    <div class="docpick">${Object.entries(DOCS).map(([k,v])=>`<button data-d="${k}" class="${k===docType?'on':''}">${v.label}</button>`).join('')}</div>
+    <div class="paper"><div class="doctitle">${d.title}<span>on admission</span></div><div class="paperbody">${d.f()}</div></div>
+    <div class="docact"><button class="pri" data-copy>Copy</button><button data-exp>Export PDF</button></div>
+    <div class="docflag">◆ Auto-generated from the clerking — review and sign before use.</div>
+  </div>`;
+  document.querySelectorAll('.docpick button').forEach(b=>b.addEventListener('click',()=>{docType=b.dataset.d;buildDocs();}));
+  const cp=document.querySelector('[data-copy]');
+  cp.addEventListener('click',()=>{try{navigator.clipboard.writeText(document.querySelector('.paperbody').innerText);}catch(e){}cp.textContent='Copied ✓';setTimeout(()=>{cp.textContent='Copy';},1400);});
+}
+
+// ---- Why (tab 5) — the reasoning trace; the only place full sentences live ----
+const lrTxt=lr=>'×'+(+lr).toFixed(1);
+const disc=d=>{const k=FEAT.find(f=>f.key===d.id);return k?(k.short||k.lbl.split(' (')[0].toLowerCase()):'its discriminating test';};
+function forAgainst(d){
+  const items=[];
+  for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;const lr=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];items.push({lbl:f.lbl.split(' (')[0]+(a==='absent'?' (absent)':''),lr,pro:lr>=1});}
+  return {pro:items.filter(i=>i.pro).sort((x,y)=>y.lr-x.lr),con:items.filter(i=>!i.pro).sort((x,y)=>x.lr-y.lr)};
+}
+function whyNarrative(){
+  const p=probs(),c=cap(p),li=leadInfo(),fa=forAgainst(c.lead);
+  const drivers=fa.pro.slice(0,2).map(i=>i.lbl).join(' and ');
+  let s=`<b>${c.lead.name}</b> leads at <b>${li.conf}%</b>${li.capped?' — held there on purpose':''}. `;
+  if(drivers)s+=`The weight is mostly ${drivers}. `;
+  if(fa.con[0])s+=`Pulling against it: ${fa.con[0].lbl} (${lrTxt(fa.con[0].lr)}). `;
+  if(c.capped){const t=c.live.map(disc);s+=`Confidence is capped at ${Math.round(c.ceil*100)}% because ${c.live.map(shortName).join(' and ')} could still kill and ${c.live.length>1?'are':'is'} not excluded until ${t.join(' and ')} ${t.length>1?'are':'is'} back — MedAI will not fake certainty over an unexcluded must-not-miss.`;}
+  else s+=`Every must-not-miss rival is now excluded, so the number is trustworthy.`;
+  return s;
+}
+function whyNext(){const p=probs(),nb=nextBest(p);if(!nb)return 'History and exam are saturated — the picture now moves on investigations.';const aff=Object.keys(nb.eff).map(id=>shortName(DX.find(d=>d.id===id))).join(' vs ');return `<b>${nb.lbl}</b> is the highest-yield next question — it best separates ${aff}.`;}
+function whyPremortem(){const p=probs(),c=cap(p);const r=[...DX].filter(d=>d.mnm&&d.id!==c.lead.id).sort((a,b)=>p[b.id]-p[a.id])[0];if(!r)return 'No must-not-miss rival remains in play.';return `If this call is wrong, the dangerous miss is <b>${shortName(r)}</b> — exclude it with <b>${disc(r)}</b> before committing.`;}
+function ledger(d,p,capTo){
+  const fa=forAgainst(d),pc=Math.round(p[d.id]*100);
+  const col=(items,cls,head)=>`<div class="${cls}"><div class="colh">${head}</div>${items.length?items.map(i=>`<div class="li"><span>${i.lbl}</span><span class="lr">${lrTxt(i.lr)}</span></div>`).join(''):'<div class="li dim">—</div>'}</div>`;
+  return `<div class="wledger" style="--dxc:${d.c}"><div class="wlhd"><span class="n">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${d.c}">${pc}%</span></div>
+    <div class="cols">${col(fa.pro,'col-f','For')}${col(fa.con,'col-a','Against')}</div>
+    <div class="wscript">illness script — ${d.script}</div></div>`;
+}
+function buildWhy(){
+  const p=probs(),c=cap(p),li=leadInfo(),ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
+  document.getElementById('main').innerHTML=`<div class="why">
+    <div class="whysum">${whyNarrative()}</div>
+    ${ranked.map(d=>ledger(d,p,(d.id===c.lead.id&&c.capped)?li.conf:null)).join('')}
+    <div class="whycard"><div class="h"><span>➜</span>Highest-yield next</div><p>${whyNext()}</p></div>
+    <div class="whycard pm"><div class="h"><span>⚠</span>Pre-mortem — what would change my mind</div><p>${whyPremortem()}</p></div>
+  </div>`;
+}
+
+const EMPTY={};
+function refresh(first){const p=probs();paintHeader(p,first);if(tab==='hx')paintHx(p,first);else if(tab==='ix')paintIx(p);else if(tab==='mx')paintMx(p);}
+function render(){if(tab==='hx')buildHx();else if(tab==='ix')buildIx();else if(tab==='mx')buildMx();else if(tab==='docs')buildDocs();else if(tab==='why')buildWhy();refresh(true);}
+
+function paintCaseUI(){
+  document.getElementById('casebar').innerHTML='<span class="cl">Case</span>'+Object.entries(CASES).map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}"><b>${c.specialty}</b> ${c.label}</button>`).join('');
+  document.getElementById('casebar').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
+  document.getElementById('who').innerHTML=PT.line;
+  paintVitals();
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab==='hx'));
+  snap(probs());render();
+}
+function init(){
+  document.getElementById('foot').innerHTML='<b><span class="sw" style="background:var(--good)">✓</span>present</b><b><span class="sw" style="background:var(--bad)">✕</span>absent</b>';
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    tab=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));render();
+  }));
+  loadCase('pre');paintCaseUI();
+}
+init();
+document.getElementById('theme').addEventListener('click',()=>{const r=document.documentElement,c=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.setAttribute('data-theme',c==='dark'?'light':'dark');});
+</script>
