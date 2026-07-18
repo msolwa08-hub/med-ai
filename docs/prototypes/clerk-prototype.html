@@ -38,6 +38,10 @@
   input{font-family:inherit}
 
   header{padding:14px 16px 0}
+  .casebar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+  .casebar .cl{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute);margin-right:1px}
+  .casebar button{font-size:10.5px;font-weight:650;padding:4px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .casebar button.on{background:var(--brand-tint);border-color:var(--brand);color:var(--brand-strong)}
   .pt{display:flex;align-items:center;gap:9px;min-width:0}
   .pt .chev{color:var(--ink-mute);font-size:19px;flex:none}
   .pt .who{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -243,7 +247,8 @@
 
 <div class="wrap">
   <header>
-    <div class="pt"><span class="chev">‹</span><div class="who">29 · G3P2 · 33<small>+4/40</small> · headache + epigastric pain</div></div>
+    <div class="casebar" id="casebar"></div>
+    <div class="pt"><span class="chev">‹</span><div class="who" id="who"></div></div>
     <div class="vitals" id="vitals"></div>
     <div class="sysleg"><span><i style="background:var(--hr)"></i>Cardiovascular</span><span><i style="background:var(--rr)"></i>Respiratory</span><span><i style="background:var(--temp)"></i>Thermal</span></div>
 
@@ -280,47 +285,98 @@
 </div>
 
 <script>
-const VITALS=[
-  {k:'HR',v:'104',vc:'var(--hr)'},
-  {k:'BP',v:'168/112',vc:'var(--bp)'},
-  {k:'RR',v:'18',vc:'var(--rr)'},
-  {k:'SpO₂',v:'98',vc:'var(--spo2)'},
-  {k:'T',v:'37.9',vc:'var(--temp)'},
-];
-const DX=[
-  {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.30,mnm:false,script:'HTN + proteinuria + end-organ symptoms after 20 weeks'},
-  {id:'hellp',name:'HELLP syndrome',icd:'O14.2',c:'var(--hellp)',prior:.12,mnm:true,script:'pre-eclampsia + haemolysis + low platelets + high LFTs'},
-  {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.10,mnm:true,script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
-  {id:'aflp',name:'Acute fatty liver of pregnancy',icd:'O26.6',c:'var(--aflp)',prior:.05,mnm:true,script:'3rd trimester + hypoglycaemia + coagulopathy + high LFTs'},
-];
-const FEAT=[
-  {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
-  {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pet:[2.4,.6],hellp:[3,.5],aflp:[2,.7]},preset:'present'},
-  {id:'vis',lbl:'Visual disturbance',stream:'hx',eff:{pet:[3,.5]}},
-  {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
-  {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
-  {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
-  {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
-  {id:'liquor',lbl:'Ruptured membranes / offensive liquor',stream:'exam',eff:{chorio:[5,.5]}},
-  {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',eff:{chorio:[3,.6]}},
-  {id:'plt',lbl:'Platelets < 100',stream:'ix',eff:{hellp:[8,.2]},key:'hellp'},
-  {id:'ast',lbl:'AST / ALT raised',stream:'ix',eff:{hellp:[4,.4],aflp:[3,.5]}},
-  {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',eff:{hellp:[3,.5]}},
-  {id:'glu',lbl:'Hypoglycaemia',stream:'ix',eff:{aflp:[6,.4]},key:'aflp'},
-  {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
-  {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}},
-];
-const IX=[
-  {id:'plt',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP',ex:'78'},
-  {id:'ast',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP',ex:'96'},
-  {id:'ldh',lbl:'LDH',unit:'U/L',norm:'< 600',hi:600,dir:'above',dx:'HELLP',ex:''},
-  {id:'glu',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP',ex:''},
-  {id:'inr',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP',ex:''},
-];
-const ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});
-const val={};
+// ===== CASE PACKS — the engine is specialty-agnostic; a specialty is just data =====
+const CASES={
+ pre:{
+  specialty:'O&G', label:'Pre-eclampsia',
+  referTo:'O&G Registrar on call',
+  planLine:'MgSO₄ · BP control · betamethasone · urgent bloods · senior O&amp;G review · plan delivery.',
+  recommendation:'MgSO₄ seizure prophylaxis; control BP &lt;150/100; betamethasone for fetal lung maturity; urgent FBC, U&amp;E, LFT, coagulation, glucose. <b>Urgent senior O&amp;G review — plan delivery after maternal stabilisation.</b>',
+  PT:{line:'29 · G3P2 · 33<small>+4/40</small> · headache + epigastric pain', summaryLine:'29-year-old G3P2 at 33<sup>+4</sup> weeks', complaint:'headache and epigastric pain', background:'Third pregnancy. P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress). No hypertension before this pregnancy. Gestation 33<sup>+4</sup> weeks by dates.', obsHx:'P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress)'},
+  VITALS:[{k:'HR',v:'104',vc:'var(--hr)'},{k:'BP',v:'168/112',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.9',vc:'var(--temp)'}],
+  DX:[
+   {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.30,mnm:false,script:'HTN + proteinuria + end-organ symptoms after 20 weeks'},
+   {id:'hellp',name:'HELLP syndrome',icd:'O14.2',c:'var(--hellp)',prior:.12,mnm:true,script:'pre-eclampsia + haemolysis + low platelets + high LFTs'},
+   {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.10,mnm:true,script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
+   {id:'aflp',name:'Acute fatty liver of pregnancy',icd:'O26.6',c:'var(--aflp)',prior:.05,mnm:true,script:'3rd trimester + hypoglycaemia + coagulopathy + high LFTs'}],
+  FEAT:[
+   {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
+   {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pet:[2.4,.6],hellp:[3,.5],aflp:[2,.7]},preset:'present'},
+   {id:'vis',lbl:'Visual disturbance',stream:'hx',eff:{pet:[3,.5]}},
+   {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
+   {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
+   {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
+   {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
+   {id:'liquor',lbl:'Ruptured membranes / offensive liquor',stream:'exam',eff:{chorio:[5,.5]}},
+   {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',eff:{chorio:[3,.6]}},
+   {id:'plt',lbl:'Platelets < 100',stream:'ix',eff:{hellp:[8,.2]},key:'hellp',short:'platelets'},
+   {id:'ast',lbl:'AST / ALT raised',stream:'ix',eff:{hellp:[4,.4],aflp:[3,.5]}},
+   {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',eff:{hellp:[3,.5]}},
+   {id:'glu',lbl:'Hypoglycaemia',stream:'ix',eff:{aflp:[6,.4]},key:'aflp',short:'glucose'},
+   {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
+   {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}}],
+  IX:[
+   {id:'plt',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP'},
+   {id:'ast',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP'},
+   {id:'ldh',lbl:'LDH',unit:'U/L',norm:'< 600',hi:600,dir:'above',dx:'HELLP'},
+   {id:'glu',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP'},
+   {id:'inr',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'}],
+  MX:{
+   immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV load + maintenance',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol · nifedipine · hydralazine',sign:true,active:'BP 168/112 — now'}],
+   definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'IM × 2',sign:true,ind:'33+4 wk — give'}],
+   monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
+   levers:[{id:'rx_dex',give:'IV dextrose',resp:'glucose corrects, rouses',means:'supports AFLP / hypoglycaemia',wired:true},{give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},{give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'}]},
+ },
+ cp:{
+  specialty:'IM / EM', label:'Chest pain',
+  referTo:'Medical Registrar / Cardiology',
+  planLine:'aspirin · serial troponin · 12-lead ECG · anticoagulation per pathway · cardiology review.',
+  recommendation:'Aspirin if ACS likely and dissection excluded; serial troponin and continuous ECG; treat along the confirmed pathway — PCI for STEMI, anticoagulation for PE/NSTEMI, urgent aortic control for dissection. <b>Urgent medical / cardiology review.</b>',
+  PT:{line:'58 · ♂ · central chest pain · 2 h', summaryLine:'58-year-old man', complaint:'central chest pain for 2 hours', background:'Hypertension and hyperlipidaemia. Ex-smoker, 20 pack-years. Father had a myocardial infarction at 55. No recent surgery or immobility.'},
+  VITALS:[{k:'HR',v:'108',vc:'var(--hr)'},{k:'BP',v:'148/92',vc:'var(--bp)'},{k:'RR',v:'22',vc:'var(--rr)'},{k:'SpO₂',v:'93',vc:'var(--spo2)'},{k:'T',v:'36.8',vc:'var(--temp)'}],
+  DX:[
+   {id:'acs',name:'Acute coronary syndrome',icd:'I24.9',c:'var(--chorio)',prior:.30,mnm:true,script:'ischaemic-type pain + risk factors + rising troponin / ECG change'},
+   {id:'pe',name:'Pulmonary embolism',icd:'I26.9',c:'var(--pet)',prior:.14,mnm:true,script:'pleuritic pain + dyspnoea + hypoxia + immobility / DVT risk'},
+   {id:'dissection',name:'Aortic dissection',icd:'I71.0',c:'var(--hellp)',prior:.05,mnm:true,script:'sudden tearing pain to the back + BP/pulse asymmetry + wide mediastinum'},
+   {id:'pericarditis',name:'Pericarditis',icd:'I30.9',c:'var(--aflp)',prior:.10,mnm:false,script:'sharp pleuritic pain, better sitting forward + friction rub + diffuse ST'}],
+  FEAT:[
+   {id:'crush',lbl:'Crushing pain radiating to arm/jaw',stream:'hx',eff:{acs:[3,.5]},preset:'present'},
+   {id:'exert',lbl:'Exertional onset',stream:'hx',eff:{acs:[2.5,.6]}},
+   {id:'risk',lbl:'Cardiac risk factors',stream:'hx',eff:{acs:[2,.7]},preset:'present'},
+   {id:'pleur',lbl:'Pleuritic (worse on inspiration)',stream:'hx',eff:{pe:[2.5,.6],pericarditis:[3,.5],acs:[.6,1.1]}},
+   {id:'tear',lbl:'Tearing pain radiating to back',stream:'hx',eff:{dissection:[8,.4]}},
+   {id:'immob',lbl:'Recent immobility / DVT risk',stream:'hx',eff:{pe:[3,.5]}},
+   {id:'ssf',lbl:'Relieved sitting forward',stream:'hx',eff:{pericarditis:[4,.5]}},
+   {id:'diaph',lbl:'Diaphoresis / distress',stream:'exam',eff:{acs:[2,.7]},preset:'present'},
+   {id:'asym',lbl:'Unequal arm BP / pulse deficit',stream:'exam',eff:{dissection:[6,.4]}},
+   {id:'jvp',lbl:'Raised JVP / RV strain',stream:'exam',eff:{pe:[3,.6]}},
+   {id:'rub',lbl:'Pericardial friction rub',stream:'exam',eff:{pericarditis:[8,.3]}},
+   {id:'hypox',lbl:'Tachycardia + hypoxia',stream:'exam',eff:{pe:[2.5,.6]},preset:'present'},
+   {id:'trop',lbl:'Troponin raised',stream:'ix',eff:{acs:[8,.2]},key:'acs',short:'troponin'},
+   {id:'ecgisch',lbl:'ECG ischaemia',stream:'ix',eff:{acs:[6,.3]}},
+   {id:'ddimer',lbl:'D-dimer raised',stream:'ix',eff:{pe:[2.5,.5]}},
+   {id:'ctpa',lbl:'CTPA positive',stream:'ix',eff:{pe:[15,.1]},key:'pe',short:'CTPA'},
+   {id:'ctaorta',lbl:'CT aorta — dissection flap',stream:'ix',eff:{dissection:[14,.08]},key:'dissection',short:'CT aorta'},
+   {id:'ecgperi',lbl:'ECG diffuse ST / PR depression',stream:'ix',eff:{pericarditis:[5,.4]}}],
+  IX:[
+   {id:'trop',lbl:'Troponin (hs)',unit:'ng/L',norm:'< 14',hi:14,dir:'above',dx:'ACS'},
+   {id:'ddimer',lbl:'D-dimer',unit:'µg/L',norm:'< 0.5',hi:0.5,dir:'above',dx:'PE'},
+   {id:'ecgisch',lbl:'ECG — ischaemia',binary:true,dx:'ACS'},
+   {id:'ctpa',lbl:'CTPA',binary:true,dx:'PE'},
+   {id:'ctaorta',lbl:'CT aorta',binary:true,dx:'Dissection'},
+   {id:'ecgperi',lbl:'ECG — pericarditis pattern',binary:true,dx:'Pericarditis'}],
+  MX:{
+   immediate:[{rx:'12-lead ECG',for:'within 10 min of arrival',dose:'now',active:'do first'},{rx:'Aspirin',for:'if ACS likely, dissection not suspected',dose:'300 mg PO',sign:true},{rx:'Analgesia + antiemetic',for:'pain and distress',dose:'morphine titrated',sign:true}],
+   definitive:[{rx:'Reperfusion (PCI / lysis)',for:'STEMI pathway',dose:'per cath-lab'},{rx:'Anticoagulation',for:'confirmed PE / NSTEMI — not if dissection',dose:'per protocol',sign:true},{rx:'Aortic control + CT surgery',for:'dissection',dose:'BP/HR control, urgent referral'}],
+   monitor:['Continuous ECG','Serial troponin','BP in both arms','SpO₂ + respiratory rate'],
+   levers:[{give:'GTN',resp:'pain settles',means:'consistent with ischaemia — not specific'},{give:'After full analgesia',resp:'pain persists',means:'concerning — reconsider dissection'}]},
+ },
+};
+
+let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar';
 const featsFor=id=>FEAT.filter(f=>f.eff[id]);
-const last={};let tab='hx';
+function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';}
+
 
 function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
 function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
@@ -348,7 +404,7 @@ function paintHeader(p,first){
 
 function buildHx(){
   document.getElementById('main').innerHTML=DX.map(d=>`
-    <div class="dx${d.id==='pet'?' open':''}" data-id="${d.id}" style="--dxc:${d.c}">
+    <div class="dx${d.id===DX[0].id?' open':''}" data-id="${d.id}" style="--dxc:${d.c}">
       <div class="accent"></div>
       <div class="col">
         <div class="dx-head">
@@ -388,16 +444,17 @@ function buildIx(){
     <div class="phd"><span>◆</span><span>Enter results as you get them. Each value <b>updates the differential live</b> and <b>releases the confidence cap</b> once must-not-miss diagnoses are excluded.</span></div>
     ${IX.map(t=>`<div class="ixin" data-t="${t.id}">
       <div class="top">
-        <span class="lab"><div class="t">${t.lbl}</div><div class="sub">normal ${t.norm} · <span class="dxc">${t.dx}</span></div></span>
-        <span class="field"><input inputmode="decimal" placeholder="—" data-in value="${val[t.id]??''}"><span class="unit">${t.unit||''}</span></span>
+        <span class="lab"><div class="t">${t.lbl}</div><div class="sub">${t.binary?'imaging / ECG':'normal '+t.norm} · <span class="dxc">${t.dx}</span></div></span>
+        ${t.binary?'':`<span class="field"><input inputmode="decimal" placeholder="—" data-in value="${val[t.id]??''}"><span class="unit">${t.unit||''}</span></span>`}
         <span class="badge" data-badge></span>
       </div>
-      <div class="qk"><button class="y" data-a="present">Abnormal</button><button class="n" data-a="absent">Normal</button></div>
+      <div class="qk"><button class="y" data-a="present">${t.binary?'Positive':'Abnormal'}</button><button class="n" data-a="absent">${t.binary?'Negative':'Normal'}</button></div>
     </div>`).join('')}
   </div>`;
   IX.forEach(t=>{
     const row=document.querySelector(`.ixin[data-t="${t.id}"]`);
-    row.querySelector('[data-in]').addEventListener('input',e=>{
+    const inp=row.querySelector('[data-in]');
+    if(inp)inp.addEventListener('input',e=>{
       const raw=e.target.value.trim();val[t.id]=raw;
       snap(probs());
       if(raw===''||isNaN(parseFloat(raw))){delete ans[t.id];}
@@ -412,31 +469,14 @@ function paintIx(p){
     const row=document.querySelector(`.ixin[data-t="${t.id}"]`);if(!row)return;
     const bd=row.querySelector('[data-badge]'),a=ans[t.id];
     if(!a){bd.className='badge';bd.textContent='';}
-    else if(a==='present'){bd.className='badge show '+(t.dir==='below'?'lo':'hi');bd.textContent=t.dir==='below'?'LOW':'HIGH';}
-    else{bd.className='badge show ok';bd.textContent='NORMAL';}
+    else if(a==='present'){bd.className='badge show '+(t.binary||t.dir!=='below'?'hi':'lo');bd.textContent=t.binary?'POSITIVE':(t.dir==='below'?'LOW':'HIGH');}
+    else{bd.className='badge show ok';bd.textContent=t.binary?'NEGATIVE':'NORMAL';}
     row.querySelector('.qk .y').classList.toggle('sel',a==='present');
     row.querySelector('.qk .n').classList.toggle('sel',a==='absent');
   });
 }
 
 // ---- Management (tab 3) ----
-const MX={
-  immediate:[
-    {rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV load + maintenance',sign:true},
-    {rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol · nifedipine · hydralazine',sign:true,active:'BP 168/112 — now'},
-  ],
-  definitive:[
-    {rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},
-    {rx:'Betamethasone',for:'fetal lung maturity',dose:'IM × 2',sign:true,ind:'33+4 wk — give'},
-  ],
-  monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
-  levers:[
-    {id:'rx_dex',give:'IV dextrose',resp:'glucose corrects, rouses',means:'supports AFLP / hypoglycaemia',wired:true},
-    {give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},
-    {give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'},
-  ],
-};
-const given=new Set();
 function rxRow(m,i,sec){
   const pills=(m.active?`<span class="pill-a act">ACTIVE</span>`:'')+(m.ind?`<span class="pill-a ind">INDICATED</span>`:'')+(m.sign?`<span class="pill-a sign">sign-off</span>`:'');
   const note=m.active||m.ind;
@@ -467,42 +507,42 @@ function paintMx(p){
   document.querySelectorAll('[data-lever]').forEach(el=>{const a=ans[el.dataset.lever];el.querySelector('.up').classList.toggle('sel',a==='present');el.querySelector('.no').classList.toggle('sel',a==='absent');});
 }
 
-// ---- Documents (tab 4) — the note the clerk writes back ----
-const PT={complaint:'headache and epigastric pain',ageParity:'29-year-old G3P2',ga:'33<sup>+4</sup> weeks',obsHx:'P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress)'};
-let docType='sbar';
+// ---- Documents (tab 4) — the note the clerk writes back (case-aware) ----
 function positives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>f.lbl.split(' (')[0]);}
 function negatives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='absent').map(f=>f.lbl.split(' (')[0]);}
-function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val[t.id]||'',state:ans[t.id]==='present'?(t.dir==='below'?'low':'high'):'normal'}));}
+function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val[t.id]||'',state:ans[t.id]==='present'?(t.binary?'positive':(t.dir==='below'?'low':'high')):(t.binary?'negative':'normal')}));}
 function leadInfo(){const p=probs(),c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);return{lead:c.lead,conf:Math.round(conf*100),capped:c.capped,live:c.live};}
 function shortName(d){return d.name.replace(' of pregnancy','');}
+function obsLine(){return VITALS.map(v=>v.k+' '+v.v).join(', ');}
 function docSBAR(){
-  const li=leadInfo(),pos=positives(),labs=labsEntered();
+  const C=CASES[caseId],li=leadInfo(),pos=positives(),labs=labsEntered();
   const capline=li.capped?` Confidence capped at ${li.conf}% — ${li.live.map(shortName).join(' and ')} not yet excluded.`:'';
-  return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${PT.ageParity} at ${PT.ga}, admitted with ${PT.complaint}. Current BP <b>168/112</b>, HR 104, T 37.9&nbsp;°C, RR 18, SpO₂ 98%.</p></div></div>
-   <div class="block"><span class="ltr">B</span><div><b>Background</b><p>Third pregnancy. ${PT.obsHx}. No hypertension documented before this pregnancy. Gestation ${PT.ga} by dates.</p></div></div>
-   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence.${capline} Supporting findings: ${pos.join(', ')||'—'}.${labs.length?' Bloods — '+labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; ')+'.':' Bloods pending.'}</p></div></div>
-   <div class="block"><span class="ltr">R</span><div><b>Recommendation</b><p>MgSO₄ seizure prophylaxis; control BP &lt;150/100; betamethasone for fetal lung maturity; urgent FBC, U&amp;E, LFT, coagulation, glucose. <b>Urgent senior O&amp;G review — plan delivery after maternal stabilisation.</b></p></div></div>`;
+  return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${PT.summaryLine}, presenting with ${PT.complaint}. Current obs: ${obsLine()}.</p></div></div>
+   <div class="block"><span class="ltr">B</span><div><b>Background</b><p>${PT.background}</p></div></div>
+   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence.${capline} Supporting findings: ${pos.join(', ')||'—'}.${labs.length?' Results — '+labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; ')+'.':' Investigations pending.'}</p></div></div>
+   <div class="block"><span class="ltr">R</span><div><b>Recommendation</b><p>${C.recommendation}</p></div></div>`;
 }
 function docClerk(){
   const pos=positives(),neg=negatives(),labs=labsEntered(),li=leadInfo();
-  return `<div class="sec"><b>Presenting complaint</b><p>${PT.complaint}, ${PT.ga}.</p></div>
-   <div class="sec"><b>Obstetric history</b><p>${PT.obsHx}.</p></div>
+  return `<div class="sec"><b>Presenting complaint</b><p>${PT.complaint}.</p></div>
+   ${PT.obsHx?`<div class="sec"><b>Obstetric history</b><p>${PT.obsHx}.</p></div>`:`<div class="sec"><b>Background</b><p>${PT.background}</p></div>`}
    <div class="sec"><b>Observations</b><p>${VITALS.map(v=>v.k+' '+v.v).join(' · ')}</p></div>
    <div class="sec"><b>Positive findings</b><p>${pos.join(', ')||'none recorded'}</p></div>
    <div class="sec"><b>Pertinent negatives</b><p>${neg.join(', ')||'none recorded'}</p></div>
    <div class="sec"><b>Investigations</b><p>${labs.length?labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; '):'awaited'}</p></div>
    <div class="sec"><b>Impression</b><p>${li.lead.name} (${li.lead.icd}), ${li.conf}%${li.capped?'; must-not-miss not excluded: '+li.live.map(shortName).join(', '):''}.</p></div>
-   <div class="sec"><b>Plan</b><p>MgSO₄ · BP control · betamethasone · urgent bloods · senior O&amp;G review · plan delivery.</p></div>`;
+   <div class="sec"><b>Plan</b><p>${CASES[caseId].planLine}</p></div>`;
 }
 function docRef(){
-  const li=leadInfo(),pos=positives();
-  return `<p class="lt">Dear O&amp;G Registrar on call,</p>
-   <p class="lt">Please urgently review this ${PT.ageParity} at <b>${PT.ga}</b> presenting with ${PT.complaint} and <b>BP 168/112</b>. My working diagnosis is <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence${li.capped?', with '+li.live.map(shortName).join(' and ')+' not yet excluded pending bloods':''}.</p>
-   <p class="lt">Obstetric history: ${PT.obsHx} — relevant to mode of delivery. Positive findings: ${pos.join(', ')||'—'}. I have commenced MgSO₄ and blood-pressure control and sent FBC, U&amp;E, LFT, coagulation and glucose.</p>
-   <p class="lt">I would be grateful for urgent review with a view to delivery planning.</p>
-   <p class="lt">Kind regards,<br>Admitting intern</p>`;
+  const C=CASES[caseId],li=leadInfo(),pos=positives();
+  return `<p class="lt">Dear ${C.referTo},</p>
+   <p class="lt">Please urgently review this ${PT.summaryLine} presenting with ${PT.complaint}. My working diagnosis is <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence${li.capped?', with '+li.live.map(shortName).join(' and ')+' not yet excluded pending investigations':''}.</p>
+   ${PT.obsHx?`<p class="lt">Obstetric history: ${PT.obsHx} — relevant to mode of delivery.</p>`:`<p class="lt">Background: ${PT.background}</p>`}
+   <p class="lt">Positive findings: ${pos.join(', ')||'—'}. Initial management: ${C.planLine}</p>
+   <p class="lt">I would be grateful for urgent review.</p>
+   <p class="lt">Kind regards,<br>Admitting clinician</p>`;
 }
-const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent obstetric referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},ref:{label:'Referral',title:'Referral letter',f:docRef}};
+const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},ref:{label:'Referral',title:'Referral letter',f:docRef}};
 function buildDocs(){
   const d=DOCS[docType];
   document.getElementById('main').innerHTML=`<div class="doc">
@@ -518,7 +558,7 @@ function buildDocs(){
 
 // ---- Why (tab 5) — the reasoning trace; the only place full sentences live ----
 const lrTxt=lr=>'×'+(+lr).toFixed(1);
-const disc=d=>{const k=FEAT.find(f=>f.key===d.id);return k?k.lbl.split(' (')[0].toLowerCase():'its discriminating test';};
+const disc=d=>{const k=FEAT.find(f=>f.key===d.id);return k?(k.short||k.lbl.split(' (')[0].toLowerCase()):'its discriminating test';};
 function forAgainst(d){
   const items=[];
   for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;const lr=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];items.push({lbl:f.lbl.split(' (')[0]+(a==='absent'?' (absent)':''),lr,pro:lr>=1});}
@@ -557,13 +597,20 @@ const EMPTY={};
 function refresh(first){const p=probs();paintHeader(p,first);if(tab==='hx')paintHx(p,first);else if(tab==='ix')paintIx(p);else if(tab==='mx')paintMx(p);}
 function render(){if(tab==='hx')buildHx();else if(tab==='ix')buildIx();else if(tab==='mx')buildMx();else if(tab==='docs')buildDocs();else if(tab==='why')buildWhy();refresh(true);}
 
-function init(){
+function paintCaseUI(){
+  document.getElementById('casebar').innerHTML='<span class="cl">Demo case</span>'+Object.entries(CASES).map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}">${c.specialty} · ${c.label}</button>`).join('');
+  document.getElementById('casebar').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
+  document.getElementById('who').innerHTML=PT.line;
   paintVitals();
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab==='hx'));
+  snap(probs());render();
+}
+function init(){
   document.getElementById('foot').innerHTML='<b><span class="sw" style="background:var(--good)">✓</span>present</b><b><span class="sw" style="background:var(--bad)">✕</span>absent</b>';
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
     tab=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));render();
   }));
-  snap(probs());render();
+  loadCase('pre');paintCaseUI();
 }
 init();
 document.getElementById('theme').addEventListener('click',()=>{const r=document.documentElement,c=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.setAttribute('data-theme',c==='dark'?'light':'dark');});
