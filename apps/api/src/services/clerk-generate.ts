@@ -37,7 +37,7 @@ export interface ClerkPack {
 const SYSTEM = `You are the reasoning core of a bedside differential-diagnosis instrument used by doctors. Given a free-text patient presentation, output ONLY a single JSON object (no markdown, no prose) that is a "case pack". A deterministic likelihood-ratio engine consumes it — you provide the clinical data, not the arithmetic.
 
 Rules:
-- 3–5 differentials in DX, ordered most-likely first. Mark the immediately life-threatening ones mnm:true ("must not miss"). Give each a realistic pre-test probability (prior, 0–1), an ICD-10 code, a one-line illness "script", and a "patho": ONE plain-English sentence of pathophysiology that links the history and signs to the presenting symptoms (why this disease produces this exact picture).
+- 3–5 differentials in DX, ordered most-likely first. Mark the immediately life-threatening ones mnm:true ("must not miss"). Give each a realistic pre-test probability (prior, 0–1), an ICD-10 code, a one-line illness "script", and a "patho": ONE plain-English sentence of pathophysiology (≤ 25 words) linking the history and signs to the presenting symptoms.
 - ATOMIC findings: each symptom and each sign is its OWN finding — never bundle several into one. e.g. polyuria, polydipsia and polyphagia are THREE separate findings; never write "polyuria/polydipsia". Kussmaul breathing, ketotic breath and dehydration are each their own sign. Be thorough and holistic: include the complete classic cluster of symptoms and signs for each differential, both supporting features and discriminating negatives.
 - FEAT: the discriminating findings. stream is 'hx' (history), 'exam', or 'ix' (needs a test result). eff maps a dx id to [LR+ , LR-] — the likelihood ratio if the finding is PRESENT vs ABSENT (LR+ >1 supports, LR- <1 argues against). Only include dx ids that exist in DX. Mark findings already clearly stated in the presentation as preset:'present' (or 'absent'). For each mnm diagnosis, give its single decisive test a key:'<dxId>' and a short:'name'.
 - REDUCE COGNITIVE LOAD: for any COMPOSITE / umbrella clinical sign (e.g. "stigmata of chronic liver disease", "meningism", "signs of sepsis", "peritonism", "signs of respiratory distress"), do NOT leave it as one vague finding. Keep a short lbl but add a "checklist" array of the concrete component signs to look for (e.g. ["Jaundice","Spider naevi","Palmar erythema","Ascites","Asterixis"]) so the clinician ticks signs instead of recalling the concept. 3–6 items each.
@@ -50,16 +50,60 @@ Rules:
 Use EXACTLY these top-level keys and casing (uppercase DX, FEAT, IX, MX, VITALS, PT). Example of the required shape:
 {"specialty":"IM/EM","label":"Chest pain","referTo":"Medical Registrar","planLine":"aspirin · troponin · ECG","recommendation":"Aspirin if ACS likely…","PT":{"line":"58 · ♂ · chest pain · 2 h","summaryLine":"58-year-old man","complaint":"central chest pain for 2 hours","background":"HTN, smoker"},"VITALS":[{"k":"HR","v":"108"},{"k":"BP","v":"148/92"}],"DX":[{"id":"acs","name":"Acute coronary syndrome","icd":"I24.9","prior":0.3,"mnm":true,"script":"ischaemic pain + risk + troponin/ECG"}],"FEAT":[{"id":"crush","lbl":"Crushing chest pain","stream":"hx","eff":{"acs":[3,0.5]},"preset":"present"},{"id":"cld","lbl":"Chronic liver disease","stream":"exam","eff":{"acs":[1,1]},"checklist":["Jaundice","Ascites"]},{"id":"trop","lbl":"Troponin raised","stream":"ix","eff":{"acs":[8,0.2]},"key":"acs","short":"troponin"}],"IX":[{"id":"trop","lbl":"Troponin","cat":"lab","dx":"ACS","unit":"ng/L","norm":"<14","hi":14,"dir":"above"}],"MX":{"immediate":[{"rx":"Aspirin","for":"ACS","dose":"300 mg","sign":true}],"definitive":[],"monitor":["Continuous ECG"],"levers":[]}}`;
 
+// Salvage a truncated JSON object: drop the incomplete trailing element and
+// close any still-open braces/brackets, so a board cut off at the token limit
+// still loads instead of failing outright.
+function repairJson(raw: string): string {
+  let inStr = false;
+  let esc = false;
+  let cut = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === '}' || c === ']') cut = i + 1; // a value just completed
+    else if (c === ',') cut = i; // between values — safe to cut before the comma
+  }
+  let t = raw.slice(0, cut).replace(/[\s,]+$/, '');
+  const open: string[] = [];
+  let s2 = false;
+  let e2 = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (s2) {
+      if (e2) e2 = false;
+      else if (c === '\\') e2 = true;
+      else if (c === '"') s2 = false;
+      continue;
+    }
+    if (c === '"') s2 = true;
+    else if (c === '{') open.push('}');
+    else if (c === '[') open.push(']');
+    else if (c === '}' || c === ']') open.pop();
+  }
+  while (open.length) t += open.pop();
+  return t;
+}
+
 function extractJson(text: string): unknown {
   let t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
   const start = t.indexOf('{');
+  if (start === -1) throw new Error('The model did not return a usable board');
   const end = t.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) throw new Error('The model did not return a usable board');
-  t = t.slice(start, end + 1);
+  t = end > start ? t.slice(start, end + 1) : t.slice(start);
   try {
     return JSON.parse(t);
   } catch {
-    throw new Error('The model returned an incomplete board — please try again');
+    try {
+      return JSON.parse(repairJson(t));
+    } catch {
+      throw new Error('The model returned an incomplete board — please try again');
+    }
   }
 }
 
@@ -128,7 +172,7 @@ export async function generateClerkCase(text: string): Promise<ClerkPack> {
   // lower latency (beats the platform gateway timeout) and no preamble to strip.
   const res = await createMessage({
     model: MODELS.fast,
-    max_tokens: 2400,
+    max_tokens: 4096,
     system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
     messages: [
       { role: 'user', content: text },
