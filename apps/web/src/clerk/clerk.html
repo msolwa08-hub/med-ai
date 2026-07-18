@@ -133,6 +133,12 @@
   .script b{color:var(--dxc);font-weight:650}
   .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
   .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
+  .feat.has-sub{align-items:flex-start}
+  .feat.has-sub .tc{margin-top:2px}
+  .fll{display:block}
+  .fsub{display:block;font-size:10.5px;color:var(--ink-mute);line-height:1.4;margin-top:3px}
+  .fsub b{color:var(--ink-soft);font-weight:700}
+  .fsub .askk{font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--hx-c);background:color-mix(in oklab,var(--hx-c) 12%,transparent);border-radius:4px;padding:1px 5px;margin-right:2px}
   .feat.on .fl{color:var(--ink);font-weight:550}
   .feat-cl{display:block;padding:9px 0}
   .sdot{width:8px;height:8px;border-radius:99px;display:inline-block;margin-right:8px;vertical-align:middle;flex:none}
@@ -580,6 +586,42 @@ const CASES={
    monitor:['Obs + urine output','Serial haemoglobin','Repeat PR for melaena'],
    levers:[{give:'Fluids / blood',resp:'obs improve then re-drop',means:'ongoing bleeding — expedite scope'}]},
  },
+ aub:{
+  specialty:'O&G / Gynae', label:'Abnormal uterine bleeding',
+  referTo:'Gynaecology Registrar on call',
+  planLine:'exclude pregnancy (βhCG) · FBC/ferritin · TVUS · endometrial biopsy if at risk · treat cause.',
+  recommendation:'Exclude pregnancy with βhCG; FBC and ferritin for anaemia; transvaginal ultrasound for structural cause; <b>endometrial sampling if ≥45 yr, or younger with risk factors or failed treatment</b> to exclude hyperplasia/cancer. Treat the cause and correct anaemia.',
+  PT:{line:'44 · ♀ · heavy periods · 6 months', summaryLine:'44-year-old woman, para 2', complaint:'heavy, prolonged menstrual bleeding for six months', background:'BMI 32. No hormonal contraception. Not on anticoagulants. Cycles becoming irregular.'},
+  VITALS:[{k:'HR',v:'96',vc:'var(--hr)'},{k:'BP',v:'114/72',vc:'var(--bp)'},{k:'RR',v:'16',vc:'var(--rr)'},{k:'SpO₂',v:'99',vc:'var(--spo2)'},{k:'T',v:'36.6',vc:'var(--temp)'}],
+  DX:[
+   {id:'fibroid',name:'Uterine fibroids',icd:'D25.9',c:'var(--pet)',prior:.30,mnm:false,script:'heavy + prolonged bleeding + bulky / irregular uterus',patho:'Leiomyomata enlarge and distort the endometrial cavity and impair contractility, so periods become heavy and prolonged and the uterus feels bulky.'},
+   {id:'anov',name:'Ovulatory dysfunction (AUB-O)',icd:'N92.6',c:'var(--hellp)',prior:.25,mnm:false,script:'irregular cycle length + perimenopausal / PCOS + variable flow',patho:'Without ovulation there is no progesterone to stabilise the endometrium, so it proliferates unopposed and sheds erratically — irregular, sometimes heavy bleeding.'},
+   {id:'canc',name:'Endometrial hyperplasia / carcinoma',icd:'C54.1',c:'var(--chorio)',prior:.10,mnm:true,script:'age ≥45 or risk factors + intermenstrual / postmenopausal bleeding + thick endometrium',patho:'Prolonged unopposed oestrogen (obesity, anovulation) drives endometrial overgrowth that outstrips its blood supply and bleeds — classically intermenstrual or postmenopausal.'},
+   {id:'preg',name:'Pregnancy-related bleeding',icd:'O20.9',c:'var(--aflp)',prior:.10,mnm:true,script:'reproductive age + missed / late period + positive βhCG',patho:'A failing early pregnancy (miscarriage or ectopic) bleeds from the decidua — a missed period then bleeding; βhCG confirms it and an ectopic can be catastrophic.'}],
+  FEAT:[
+   {id:'heavy',lbl:'Heavy menstrual bleeding',stream:'hx',eff:{fibroid:[2.5,.6],anov:[1.5,.8]},preset:'present',criterion:'≥ 80 mL per cycle',ask:'soaking a pad or tampon every ≤ 2 h, flooding, clots > 2.5 cm, or double protection?'},
+   {id:'prolonged',lbl:'Prolonged bleeding',stream:'hx',eff:{fibroid:[2,.7],anov:[1.8,.8]},preset:'present',criterion:'> 8 days per cycle',ask:'how many days do you bleed for each period?'},
+   {id:'irregular',lbl:'Irregular cycle length',stream:'hx',eff:{anov:[4,.4]},criterion:'cycle < 24 or > 38 days',ask:'how many days from the start of one period to the next — and is it predictable?'},
+   {id:'imb',lbl:'Intermenstrual bleeding',stream:'hx',eff:{canc:[3,.5],fibroid:[1.5,.8]},criterion:'bleeding between periods',ask:'any bleeding or spotting between your periods, or after sex?'},
+   {id:'risk',lbl:'Endometrial-cancer risk',stream:'hx',eff:{canc:[3,.5]},criterion:'age ≥ 45, BMI ≥ 30, nulliparity, unopposed oestrogen, diabetes',ask:'age, weight, any children, and diabetes?'},
+   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{preg:[4,.4]},criterion:'possible pregnancy',ask:'when was your last normal period, and could you be pregnant?'},
+   {id:'bulky',lbl:'Bulky / irregular uterus',stream:'exam',eff:{fibroid:[4,.4]},criterion:'palpable ≥ 12-week size or irregular contour',ask:'bimanual: is the uterus enlarged or irregular?'},
+   {id:'pallor',lbl:'Pallor / signs of anaemia',stream:'exam',eff:{fibroid:[1.3,.9],anov:[1.3,.9]}},
+   {id:'bhcg',lbl:'βhCG positive',stream:'ix',eff:{preg:[10,.05]},key:'preg',short:'βhCG'},
+   {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{fibroid:[1.4,.9],anov:[1.4,.9]}},
+   {id:'tvus',lbl:'TVUS — fibroid / thick endometrium',stream:'ix',eff:{fibroid:[6,.3],canc:[3,.5]}},
+   {id:'biopsy',lbl:'Endometrial biopsy — hyperplasia / cancer',stream:'ix',eff:{canc:[12,.15]},key:'canc',short:'endometrial biopsy'}],
+  IX:[
+   {id:'bhcg',lbl:'Urine βhCG',cat:'bedside',binary:true,dx:'Pregnancy'},
+   {id:'hb',lbl:'Haemoglobin',cat:'lab',unit:'g/L',norm:'120–160',lo:120,dir:'below',dx:'Bleed severity'},
+   {id:'tvus',lbl:'Transvaginal ultrasound',cat:'imaging',binary:true,dx:'Fibroid / endometrium'},
+   {id:'biopsy',lbl:'Endometrial biopsy',cat:'lab',binary:true,dx:'Hyperplasia / cancer'}],
+  MX:{
+   immediate:[{rx:'Urine βhCG',for:'exclude pregnancy first',dose:'now',active:'do first in any reproductive-age woman'},{rx:'Tranexamic acid',for:'reduce menstrual blood loss',dose:'per protocol during menses',sign:true},{rx:'Iron replacement',for:'correct anaemia',dose:'per Hb / ferritin',sign:true}],
+   definitive:[{rx:'Hormonal control (LNG-IUS / COCP / progestogen)',for:'medical first-line',dose:'per protocol',sign:true},{rx:'Endometrial sampling ± hysteroscopy',for:'if ≥45 yr or risk factors',dose:'exclude hyperplasia / cancer'},{rx:'Surgical (myomectomy / ablation / hysterectomy)',for:'structural or failed medical',dose:'per gynae'}],
+   monitor:['Menstrual calendar / pictorial blood-loss chart','Repeat Hb / ferritin','Biopsy result'],
+   levers:[{give:'Tranexamic acid + hormonal therapy',resp:'bleeding settles over 1–2 cycles',means:'consistent with dysfunctional / structural AUB — reassess if it does not'}]},
+ },
 };
 
 let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null;
@@ -619,7 +661,7 @@ function paintHeader(p,first){
     wireClChips(nx);
   } else if(nb){
     nx.style.display='flex';nx.className='next';
-    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>the one answer that moves the picture most</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'the one answer that moves the picture most'}</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
     nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{snap(probs());ans[nb.id]=b.dataset.a;refresh(false);}));
   } else nx.style.display='none';
 }
@@ -656,9 +698,10 @@ function paintHx(p,first){
     el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
     const fc=el.querySelector('[data-feats]');
     const feats=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').sort((a,b)=>(a.stream==='hx'?0:1)-(b.stream==='hx'?0:1));
+    const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
     fc.innerHTML=feats.map(f=>f.checklist
-      ?`<div class="feat feat-cl str-${f.stream}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${f.stream}"></span>${f.lbl}<em>tick the signs you see</em></div>${clChips(f)}</div>`
-      :`<div class="feat str-${f.stream}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="sdot ${f.stream}"></span>${f.lbl}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
+      ?`<div class="feat feat-cl str-${f.stream}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${f.stream}"></span>${f.lbl}<em>tick the signs you see</em></div>${fsub(f)}${clChips(f)}</div>`
+      :`<div class="feat str-${f.stream}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${f.stream}"></span>${f.lbl}</span>${fsub(f)}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
     fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];refresh(false);}));
     wireClChips(fc);
     el.querySelectorAll('[data-ix]').forEach(r=>{const st=ixState(FEAT.find(f=>f.id===r.dataset.ix));const rr=r.querySelector('[data-ixr]');rr.className='r '+st.cls;rr.textContent=st.txt;});
