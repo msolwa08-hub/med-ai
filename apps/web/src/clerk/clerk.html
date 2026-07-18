@@ -134,6 +134,10 @@
   .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
   .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
   .feat.has-sub{align-items:flex-start}
+  .numin{display:flex;align-items:center;gap:2px;flex:none}
+  .numin .field{padding:4px 8px}
+  .numin .field input{width:40px}
+  .numin .badge{margin-left:6px}
   .feat.has-sub .tc{margin-top:2px}
   .fll{display:block}
   .fsub{display:block;font-size:10.5px;color:var(--ink-mute);line-height:1.4;margin-top:3px}
@@ -600,8 +604,8 @@ const CASES={
    {id:'preg',name:'Pregnancy-related bleeding',icd:'O20.9',c:'var(--aflp)',prior:.10,mnm:true,script:'reproductive age + missed / late period + positive βhCG',patho:'A failing early pregnancy (miscarriage or ectopic) bleeds from the decidua — a missed period then bleeding; βhCG confirms it and an ectopic can be catastrophic.'}],
   FEAT:[
    {id:'heavy',lbl:'Heavy menstrual bleeding',stream:'hx',eff:{fibroid:[2.5,.6],anov:[1.5,.8]},preset:'present',criterion:'≥ 80 mL per cycle',ask:'soaking a pad or tampon every ≤ 2 h, flooding, clots > 2.5 cm, or double protection?'},
-   {id:'prolonged',lbl:'Prolonged bleeding',stream:'hx',eff:{fibroid:[2,.7],anov:[1.8,.8]},preset:'present',criterion:'> 8 days per cycle',ask:'how many days do you bleed for each period?'},
-   {id:'irregular',lbl:'Irregular cycle length',stream:'hx',eff:{anov:[4,.4]},criterion:'cycle < 24 or > 38 days',ask:'how many days from the start of one period to the next — and is it predictable?'},
+   {id:'prolonged',lbl:'Bleeding duration',stream:'hx',eff:{fibroid:[2,.7],anov:[1.8,.8]},preset:'present',num:{unit:'days',hi:8},criterion:'> 8 days per cycle',ask:'how many days do you bleed for each period?'},
+   {id:'irregular',lbl:'Cycle length',stream:'hx',eff:{anov:[4,.4]},num:{unit:'days',lo:24,hi:38},criterion:'normal 24–38 days',ask:'days from the start of one period to the start of the next?'},
    {id:'imb',lbl:'Intermenstrual bleeding',stream:'hx',eff:{canc:[3,.5],fibroid:[1.5,.8]},criterion:'bleeding between periods',ask:'any bleeding or spotting between your periods, or after sex?'},
    {id:'risk',lbl:'Endometrial-cancer risk',stream:'hx',eff:{canc:[3,.5]},criterion:'age ≥ 45, BMI ≥ 30, nulliparity, unopposed oestrogen, diabetes',ask:'age, weight, any children, and diabetes?'},
    {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{preg:[4,.4]},criterion:'possible pregnancy',ask:'when was your last normal period, and could you be pregnant?'},
@@ -699,9 +703,14 @@ function paintHx(p,first){
     const fc=el.querySelector('[data-feats]');
     const feats=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').sort((a,b)=>(a.stream==='hx'?0:1)-(b.stream==='hx'?0:1));
     const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
-    fc.innerHTML=feats.map(f=>f.checklist
-      ?`<div class="feat feat-cl str-${f.stream}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${f.stream}"></span>${f.lbl}<em>tick the signs you see</em></div>${fsub(f)}${clChips(f)}</div>`
-      :`<div class="feat str-${f.stream}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${f.stream}"></span>${f.lbl}</span>${fsub(f)}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
+    const numBadge=f=>{const a=ans[f.id];if(!a)return{c:'',t:''};if(a==='absent')return{c:'ok',t:'NORMAL'};const x=parseFloat(val[f.id]),t=f.num;let txt='ABNORMAL';if(!isNaN(x)){if(t.hi!=null&&x>t.hi)txt='HIGH';else if(t.lo!=null&&x<t.lo)txt='LOW';}return{c:'hi',t:txt};};
+    fc.innerHTML=feats.map(f=>{
+      const sub=fsub(f);
+      if(f.checklist)return `<div class="feat feat-cl str-${f.stream}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${f.stream}"></span>${f.lbl}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
+      if(f.num){const nb=numBadge(f);return `<div class="feat str-${f.stream} has-sub num${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${f.stream}"></span>${f.lbl}</span>${sub}</span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[f.id]??''}"><span class="unit">${f.num.unit||''}</span></span><span class="badge${nb.c?' show '+nb.c:''}">${nb.t}</span></span></div>`;}
+      return `<div class="feat str-${f.stream}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${f.stream}"></span>${f.lbl}</span>${sub}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`;
+    }).join('');
+    fc.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,t=FEAT.find(x=>x.id===fid).num,raw=inp.value.trim();val[fid]=raw;snap(probs());const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[fid];else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[fid]=abn?'present':'absent';}refresh(false);}));
     fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];refresh(false);}));
     wireClChips(fc);
     el.querySelectorAll('[data-ix]').forEach(r=>{const st=ixState(FEAT.find(f=>f.id===r.dataset.ix));const rr=r.querySelector('[data-ixr]');rr.className='r '+st.cls;rr.textContent=st.txt;});
