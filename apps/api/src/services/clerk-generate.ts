@@ -37,6 +37,7 @@ export interface ClerkPack {
     investigate: Array<{ lbl: string; when?: string; ix?: string }>;
     immediate: Array<Record<string, unknown>>;
     definitive: Array<Record<string, unknown>>;
+    longterm: Array<Record<string, unknown>>;
     monitor: string[];
     levers: Array<Record<string, unknown>>;
     holistic: Array<{ label: string; chips?: string[]; note?: string }>;
@@ -67,11 +68,11 @@ Use EXACTLY these keys and casing. Example shape:
 const PLAN_SYSTEM = `You produce ONLY the management plan and pathophysiology for an ALREADY-ESTABLISHED differential. You are given the patient presentation and the list of differentials (with ids). Output ONLY a single JSON object (no markdown): {"MX":{...},"patho":{...}}.
 
 - patho: an object mapping EACH given dx id to ONE plain-English sentence (≤ 25 words) of pathophysiology linking the history and signs to the presenting symptoms.
-- MX: terse management. investigate[] vs treatment is a HARD split: diagnostic tests (CT, ECG, bloods, βhCG, diagnostic LP, X-ray, ultrasound) are NOT treatments — put the time-critical ones in investigate[] as {lbl, when, ix:'<matching IX id if known>'}. immediate[] and definitive[] are TREATMENTS/interventions only — drugs, fluids, and procedures that TREAT (a therapeutic endoscopy that bands/clips, surgery, delivery stay here). Items are {rx, for, dose, sign?:true, active?:'why now', ind?:'why indicated'}. definitive[] MUST LEAD with the mainstay/definitive treatment of the SINGLE most likely diagnosis (the first dx) — the actual drug or procedure that treats it — then rival-directed "only if X confirmed" steps. monitor[] is strings. levers[] are treat-and-see {give, resp, means}. holistic[] is the NON-DRUG layer for the leading diagnosis — rows of {label, chips:[short items]} (or {label, note}) covering trigger avoidance (name concrete triggers), lifestyle, prevention, self-management, and patient education / safety-netting; [] only for purely acute one-off surgical problems.
+- MX: terse management. investigate[] vs treatment is a HARD split: diagnostic tests (CT, ECG, bloods, βhCG, diagnostic LP, X-ray, ultrasound) are NOT treatments — put the time-critical ones in investigate[] as {lbl, when, ix:'<matching IX id if known>'}. immediate[], definitive[] and longterm[] are TREATMENTS/interventions only — drugs, fluids, and procedures that TREAT (a therapeutic endoscopy that bands/clips, surgery, delivery stay here). They are organised by TIME HORIZON: immediate[] = right now (resuscitation, symptom control, urgent drugs); definitive[] = short-term, this admission — the mainstay treatment of the diagnosis; longterm[] = ongoing / after discharge (secondary prevention, prophylaxis, maintenance meds, follow-up, surveillance, immunisations). Items are {rx, for, dose, sign?:true, active?:'why now', ind?:'why indicated'}. definitive[] MUST LEAD with the mainstay/definitive treatment of the SINGLE most likely diagnosis (the first dx) — the actual drug or procedure that treats it — then rival-directed "only if X confirmed" steps. Put prophylaxis / prevention (e.g. migraine prophylaxis, post-ACS secondary prevention) in longterm[], not definitive[]. monitor[] is strings. levers[] are treat-and-see {give, resp, means}. holistic[] is the COUNSELLING & HEALTH-PROMOTION layer (non-drug) for the leading diagnosis — rows of {label, chips:[short items]} (or {label, note}) covering trigger avoidance (name concrete triggers), lifestyle, self-management, and patient education / safety-netting; [] only for purely acute one-off surgical problems.
 - DOSING — BE SPECIFIC: for well-established first-line drugs give the standard adult dose, route and frequency as in the STG / BNF (e.g. "ceftriaxone 2 g IV 12-hly", "sumatriptan 50–100 mg PO", "aspirin 300 mg PO stat"). Use weight-based mg/kg for paediatric/weight-dependent drugs. Only write "per protocol"/"titrate" when the dose genuinely depends on local titration. ALWAYS set sign:true on every drug; never state a dose you are not confident is the accepted standard — omit the drug rather than guess.
 - Output MINIFIED JSON. Return valid JSON only.
 
-Example: {"patho":{"acs":"Plaque rupture occludes a coronary artery; ischaemia causes the crushing pain and troponin rise."},"MX":{"investigate":[{"lbl":"12-lead ECG","when":"within 10 min","ix":"ecg"}],"immediate":[{"rx":"Aspirin","for":"ACS","dose":"300 mg PO chewed, stat","sign":true}],"definitive":[{"rx":"Anticoagulation","for":"lead: confirmed NSTEMI","dose":"enoxaparin 1 mg/kg SC 12-hly (renal-adjust)","sign":true}],"monitor":["Continuous ECG"],"levers":[],"holistic":[{"label":"Secondary prevention","chips":["Smoking cessation","Statin","BP control","Cardiac rehab"]}]}}`;
+Example: {"patho":{"acs":"Plaque rupture occludes a coronary artery; ischaemia causes the crushing pain and troponin rise."},"MX":{"investigate":[{"lbl":"12-lead ECG","when":"within 10 min","ix":"ecg"}],"immediate":[{"rx":"Aspirin","for":"ACS","dose":"300 mg PO chewed, stat","sign":true}],"definitive":[{"rx":"Anticoagulation","for":"lead: confirmed NSTEMI","dose":"enoxaparin 1 mg/kg SC 12-hly (renal-adjust)","sign":true}],"longterm":[{"rx":"Secondary prevention","for":"post-ACS","dose":"dual antiplatelet 12 mth + high-intensity statin + ACE-inhibitor + beta-blocker","sign":true}],"monitor":["Continuous ECG"],"levers":[],"holistic":[{"label":"Lifestyle & counselling","chips":["Smoking cessation","Cardiac rehab","Mediterranean diet","Exercise"]}]}}`;
 
 // Salvage a truncated JSON object: drop the incomplete trailing element and
 // close any still-open braces/brackets, so a board cut off at the token limit
@@ -143,13 +144,14 @@ function asArr(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
 }
 function emptyMx(): ClerkPack['MX'] {
-  return { investigate: [], immediate: [], definitive: [], monitor: [], levers: [], holistic: [] };
+  return { investigate: [], immediate: [], definitive: [], longterm: [], monitor: [], levers: [], holistic: [] };
 }
 function normalizeMx(mxRaw: Record<string, unknown>): ClerkPack['MX'] {
   return {
     investigate: asArr(pick(mxRaw, ['investigate', 'investigations'])) as ClerkPack['MX']['investigate'],
     immediate: asArr(pick(mxRaw, ['immediate'])) as Array<Record<string, unknown>>,
     definitive: asArr(pick(mxRaw, ['definitive'])) as Array<Record<string, unknown>>,
+    longterm: asArr(pick(mxRaw, ['longterm', 'long_term', 'longTerm', 'ongoing'])) as Array<Record<string, unknown>>,
     monitor: asArr(pick(mxRaw, ['monitor'])) as string[],
     levers: asArr(pick(mxRaw, ['levers'])) as Array<Record<string, unknown>>,
     holistic: asArr(pick(mxRaw, ['holistic', 'lifestyle', 'nonpharm', 'nondrug'])) as ClerkPack['MX']['holistic'],

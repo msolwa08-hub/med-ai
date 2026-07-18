@@ -75,6 +75,11 @@
   .vital .dot{width:7px;height:7px;border-radius:99px;background:var(--vc);flex:none}
   .vital .lbl{font-weight:600;color:var(--ink-mute);letter-spacing:.01em}
   .vital b{color:var(--vc);font-weight:800;font-variant-numeric:tabular-nums}
+  .vital.abn-hi{border-color:color-mix(in oklab,var(--bad) 45%,var(--line));background:color-mix(in oklab,var(--bad) 6%,var(--surface))}
+  .vital.abn-hi b{color:var(--bad)}
+  .vital.abn-lo{border-color:color-mix(in oklab,var(--rr) 45%,var(--line));background:color-mix(in oklab,var(--rr) 6%,var(--surface))}
+  .vital.abn-lo b{color:var(--rr)}
+  .vital .varw{font-size:9px;vertical-align:1px}
   .sysleg{display:flex;gap:12px;margin-top:8px;font-size:9.5px;color:var(--ink-mute);letter-spacing:.02em}
   .sysleg span{display:inline-flex;align-items:center;gap:4px}
   .sysleg i{width:8px;height:8px;border-radius:2px;display:inline-block}
@@ -192,7 +197,9 @@
   .next-cl .nxdone{flex:none;font-size:11px;font-weight:700;color:var(--brand-strong);background:var(--brand-tint);border:none;border-radius:8px;padding:6px 11px;cursor:pointer}
   .next-cl .clchips{margin-top:10px}
   .tc{display:flex;gap:6px;flex:none}
-  .tc button{width:38px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;transition:all .14s}
+  .tc button{width:38px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;transition:transform .09s cubic-bezier(.34,1.56,.64,1),background .14s,border-color .14s,color .14s}
+  /* tap micro-feedback: a quick press/settle on any tick-style control */
+  .tc button:active,.qk button:active,.recdchip:active,.invrow:active,.clchip:active,.give:active,.resp button:active{transform:scale(.9)}
   .tc button:hover{border-color:var(--ink-mute)}
   .tc button.y.sel{background:var(--good);border-color:var(--good);color:#fff}
   .tc button.n.sel{background:var(--bad);border-color:var(--bad);color:#fff}
@@ -215,6 +222,9 @@
   .ixhd .ixdot.bedside{background:var(--rr)} .ixhd .ixdot.lab{background:var(--hellp)} .ixhd .ixdot.imaging{background:var(--aflp)}
   .ixhd .ixn{margin-left:auto;font-size:10px;font-weight:700;color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line);border-radius:99px;padding:1px 8px}
   .ixin{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  @keyframes shiftin{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+  .ixshift{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;animation:shiftin .2s ease}
+  .ixshift .mv{font-size:11px;font-weight:750;color:var(--c)}
   .ixin:last-child{border-bottom:none}
   .ixsec .ixin:last-child{border-bottom:none}
   .ixin .top{display:flex;align-items:center;gap:9px}
@@ -448,6 +458,7 @@ const CASES={
    investigate:[{lbl:'Urgent bloods — FBC · U&amp;E · LFT · coagulation · glucose',when:'now — HELLP / AFLP',ix:'plt'}],
    immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV over 20 min → 1 g/h IV infusion',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol 20 mg IV (double q10min, max 300 mg) · or nifedipine 10 mg PO · or hydralazine 5 mg IV',sign:true,active:'BP 168/112 — now'}],
    definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'12 mg IM, 2 doses 24 h apart',sign:true,ind:'33+4 wk — give'}],
+   longterm:[{rx:'Postnatal BP review',for:'PET resolves over weeks',dose:'BP checks + wean antihypertensives'},{rx:'Future-pregnancy prophylaxis',for:'high recurrence risk',dose:'aspirin 150 mg nocte from 12 wk + calcium',sign:true},{rx:'Cardiovascular risk follow-up',for:'lifelong ↑ CVD / HTN risk',dose:'BP, weight, metabolic screen'}],
    monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
    levers:[{id:'rx_dex',give:'IV dextrose',resp:'glucose corrects, rouses',means:'supports AFLP / hypoglycaemia',wired:true},{give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},{give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'}]},
  },
@@ -493,6 +504,7 @@ const CASES={
    investigate:[{lbl:'12-lead ECG',when:'within 10 min of arrival',ix:'ecgisch'},{lbl:'Bloods — troponin · D-dimer',when:'now (serial troponin)',ix:'trop'}],
    immediate:[{rx:'Aspirin',for:'if ACS likely, dissection not suspected',dose:'300 mg PO chewed, stat',sign:true},{rx:'Analgesia + antiemetic',for:'pain and distress',dose:'morphine 2.5–5 mg IV titrated + metoclopramide 10 mg IV',sign:true}],
    definitive:[{rx:'Reperfusion (PCI / lysis)',for:'STEMI pathway',dose:'primary PCI < 120 min · or tenecteplase (weight-based) if PCI unavailable'},{rx:'Anticoagulation',for:'confirmed PE / NSTEMI — not if dissection',dose:'enoxaparin 1 mg/kg SC 12-hly (renal-adjust) · or fondaparinux 2.5 mg SC OD',sign:true},{rx:'Aortic control + CT surgery',for:'dissection',dose:'keep SBP 100–120 / HR < 60 (IV labetalol); urgent cardiothoracic referral'}],
+   longterm:[{rx:'Secondary prevention',for:'post-ACS',dose:'dual antiplatelet 12 mth + high-intensity statin + ACE-inhibitor + beta-blocker',sign:true},{rx:'Cardiac rehabilitation + risk-factor control',for:'reduce recurrence',dose:'structured programme; BP, lipids, glucose, smoking'}],
    monitor:['Continuous ECG','Serial troponin','BP in both arms','SpO₂ + respiratory rate'],
    holistic:[
     {label:'Secondary prevention',chips:['Smoking cessation','High-intensity statin','BP control','Diabetes control','Antiplatelet']},
@@ -535,6 +547,7 @@ const CASES={
    investigate:[{lbl:'Urine βhCG',when:'first — any reproductive-age woman',ix:'bhcg'},{lbl:'WCC · CRP + US / CT abdomen',when:'now',ix:'wcc'}],
    immediate:[{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'morphine 0.1 mg/kg IV titrated + ondansetron 4 mg IV',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'balanced crystalloid: maintenance + replace deficit',active:'keep NBM'}],
    definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Antibiotics',for:'appendicitis / intra-abdominal cover',dose:'co-amoxiclav 1.2 g IV 8-hly · or cefuroxime 1.5 g IV + metronidazole 500 mg IV',sign:true}],
+   longterm:[{rx:'Post-operative recovery',for:'uncomplicated appendicectomy',dose:'wound care, early mobilisation, histology review'},{rx:'Fertility counselling',for:'if ovary lost to torsion',dose:'reassure — single ovary preserves fertility'}],
    monitor:['Serial abdominal exam','Obs + urine output','Repeat bloods','βhCG result'],
    levers:[{give:'Analgesia',resp:'pain well controlled',means:'reassess — does not exclude a surgical abdomen'},{give:'Serial exam',resp:'localises / worsens',means:'evolving appendicitis'}]},
  },
@@ -576,6 +589,7 @@ const CASES={
    investigate:[{lbl:'Septic screen — CRP · urine dip/culture · CXR',when:'now',ix:'crp'},{lbl:'Lumbar puncture + CSF',when:'once stable — do NOT delay antibiotics',ix:'lp'}],
    immediate:[{rx:'Sepsis assessment + fluids',for:'if unwell',dose:'balanced crystalloid 20 ml/kg bolus, reassess',sign:true,active:'HR 168, RR 44 — assess now'},{rx:'Empirical antibiotics',for:'if meningitis / sepsis suspected',dose:'ceftriaxone 80 mg/kg IV OD (neonate < 1 mth: ampicillin + cefotaxime)',sign:true},{rx:'Antipyretic',for:'comfort',dose:'paracetamol 15 mg/kg PO/PR 6-hly'}],
    definitive:[{rx:'Source-directed therapy',for:'UTI / pneumonia',dose:'narrow per culture & sensitivities',sign:true}],
+   longterm:[{rx:'Complete course + review',for:'confirmed source',dose:'finish antibiotics; reassess feeding, hydration & growth'},{rx:'Immunisations + renal follow-up',for:'prevent recurrence',dose:'catch-up per schedule; imaging after first UTI as indicated'}],
    monitor:['Continuous obs + AVPU','Fluid balance / urine output','Repeat examination','Blood glucose'],
    levers:[{give:'Antipyretic',resp:'bright & playful once afebrile',means:'reassuring — favours viral'},{give:'Fluid bolus',resp:'perfusion improves',means:'supports sepsis physiology'}]},
  },
@@ -613,7 +627,8 @@ const CASES={
   MX:{
    investigate:[{lbl:'Non-contrast CT head',when:'within 1 h',ix:'ct'},{lbl:'LP for xanthochromia',when:'if CT negative & SAH still suspected',ix:'lpxan'}],
    immediate:[{rx:'Analgesia + antiemetic',for:'symptom control',dose:'paracetamol 1 g IV + metoclopramide 10 mg IV (avoid opioids in migraine)',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'keep SBP < 160 — labetalol 10–20 mg IV',sign:true,active:'BP 176/98'}],
-   definitive:[{rx:'Migraine abortive',for:'lead: acute migraine',dose:'sumatriptan 50–100 mg PO (or 6 mg SC) + NSAID (ibuprofen 400 mg / naproxen 500 mg) + metoclopramide 10 mg',sign:true},{rx:'Migraine prevention',for:'if ≥4 attacks/month or disabling',dose:'propranolol 80 mg/day · or amitriptyline 10–25 mg nocte · or topiramate 25 mg, titrate',sign:true},{rx:'Neurosurgical referral',for:'only if SAH confirmed',dose:'urgent — aneurysm coiling / clipping + nimodipine 60 mg PO 4-hly'},{rx:'Antibiotics + aciclovir',for:'only if meningitis / encephalitis',dose:'ceftriaxone 2 g IV 12-hly + aciclovir 10 mg/kg IV 8-hly',sign:true},{rx:'Anticoagulation',for:'only if CVST (not SAH)',dose:'enoxaparin 1 mg/kg SC 12-hly (even if haemorrhagic infarct)',sign:true}],
+   definitive:[{rx:'Migraine abortive',for:'lead: acute migraine',dose:'sumatriptan 50–100 mg PO (or 6 mg SC) + NSAID (ibuprofen 400 mg / naproxen 500 mg) + metoclopramide 10 mg',sign:true},{rx:'Neurosurgical referral',for:'only if SAH confirmed',dose:'urgent — aneurysm coiling / clipping + nimodipine 60 mg PO 4-hly'},{rx:'Antibiotics + aciclovir',for:'only if meningitis / encephalitis',dose:'ceftriaxone 2 g IV 12-hly + aciclovir 10 mg/kg IV 8-hly',sign:true},{rx:'Anticoagulation',for:'only if CVST (not SAH)',dose:'enoxaparin 1 mg/kg SC 12-hly (even if haemorrhagic infarct)',sign:true}],
+   longterm:[{rx:'Migraine prophylaxis',for:'≥ 4 attacks/month or disabling',dose:'propranolol 80 mg/day · or amitriptyline 10–25 mg nocte · or topiramate 25 mg, titrate',sign:true},{rx:'Headache diary + neurology review',for:'map triggers, assess control',dose:'refer if refractory to prophylaxis'}],
    holistic:[
     {label:'Identify & avoid triggers',chips:['Chocolate','Aged cheese','Red wine','Caffeine excess / withdrawal','Skipped meals','Dehydration','Poor / irregular sleep','Stress','Bright light / screens','Menstrual cycle']},
     {label:'Lifestyle',chips:['Regular meals','Regular sleep','Hydration','Aerobic exercise','Limit acute analgesia (avoid medication-overuse headache)']},
@@ -651,6 +666,7 @@ const CASES={
    investigate:[{lbl:'Bloods — FBC · U&amp;E · LFT · coagulation',when:'now',ix:'hb'},{lbl:'OGD (upper endoscopy)',when:'diagnostic + therapeutic — within 24 h',ix:'endo'}],
    immediate:[{rx:'Two large-bore IV lines + fluids',for:'resuscitation',dose:'balanced crystalloid; transfuse to target Hb ≥ 70 g/L',sign:true,active:'HR 116, BP 98/62 — now'},{rx:'Group &amp; save + crossmatch',for:'likely transfusion',dose:'2–4 units; correct coagulopathy / platelets',sign:true},{rx:'Terlipressin + antibiotics',for:'if varices suspected',dose:'terlipressin 2 mg IV 4-hly + ceftriaxone 1 g IV OD',sign:true}],
    definitive:[{rx:'Urgent upper GI endoscopy',for:'diagnose &amp; treat the source',dose:'within 24 h (sooner if unstable); band varices / clip ulcer'},{rx:'PPI infusion',for:'confirmed high-risk ulcer bleed',dose:'esomeprazole 80 mg IV bolus → 8 mg/h for 72 h',sign:true}],
+   longterm:[{rx:'Prevent rebleed',for:'ulcer / varices',dose:'H. pylori eradication + confirm cure · oral PPI · stop NSAIDs · variceal band programme + β-blocker if cirrhotic',sign:true},{rx:'Correct anaemia + repeat scope',for:'ongoing recovery',dose:'iron replacement; surveillance OGD as indicated'}],
    monitor:['Obs + urine output','Serial haemoglobin','Repeat PR for melaena'],
    holistic:[
     {label:'Remove precipitants',chips:['Stop NSAIDs','Stop / reduce alcohol','Smoking cessation','Review anticoagulants / antiplatelets']},
@@ -692,6 +708,7 @@ const CASES={
    investigate:[{lbl:'Urine βhCG',when:'first — any reproductive-age woman',ix:'bhcg'},{lbl:'FBC / ferritin · TVUS · endometrial biopsy if indicated',when:'now',ix:'hb'}],
    immediate:[{rx:'Tranexamic acid',for:'reduce menstrual blood loss',dose:'1 g PO 6–8-hly during menses (up to 4 days)',sign:true},{rx:'Iron replacement',for:'correct anaemia',dose:'elemental iron 100–200 mg/day PO (IV if intolerant / severe)',sign:true}],
    definitive:[{rx:'Hormonal control',for:'medical first-line',dose:'LNG-IUS (Mirena) 1st-line · or COCP · or norethisterone 5 mg TDS days 5–26',sign:true},{rx:'Endometrial sampling ± hysteroscopy',for:'if ≥45 yr or risk factors',dose:'Pipelle biopsy — exclude hyperplasia / cancer'},{rx:'Surgical (myomectomy / ablation / hysterectomy)',for:'structural or failed medical',dose:'per gynae — definitive if family complete'}],
+   longterm:[{rx:'Maintain bleeding control',for:'sustain response',dose:'LNG-IUS in situ · or continue medical therapy; review at 3–6 months'},{rx:'Correct anaemia + surveillance',for:'if hyperplasia risk',dose:'iron replacement; repeat sampling / TVUS as indicated',sign:true}],
    monitor:['Menstrual calendar / pictorial blood-loss chart','Repeat Hb / ferritin','Biopsy result'],
    holistic:[
     {label:'Correct & prevent anaemia',chips:['Iron-rich diet','Iron replacement','Recheck FBC / ferritin']},
@@ -711,7 +728,13 @@ function allFeats(){const out=[];(function w(l){for(const f of l){out.push(f);if
 const featsForAll=id=>allFeats().filter(f=>f.eff&&f.eff[id]);
 function findFeat(id){let r=null;(function w(l){for(const f of l){if(f.id===id){r=f;return;}if(f.follow)w(f.follow);}})(FEAT);return r;}
 function clearFollow(f){if(!f||!f.follow)return;for(const c of f.follow){delete ans[c.id];delete val[c.id];if(checks[c.id])delete checks[c.id];clearFollow(c);}}
-function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;}
+// Colour each differential by its organ system (derived from the ICD-10 chapter),
+// the same principle the vitals use. Same-system rivals get progressively darker
+// shades of the system hue so the cards stay distinguishable.
+const SYS_MAP=[[/^I/,'cardiac',2,66],[/^J/,'resp',206,58],[/^G/,'neuro',268,46],[/^F/,'psych',248,40],[/^D[5-8]/,'haem',344,58],[/^[CD]/,'onc',222,22],[/^K/,'GI',33,64],[/^N/,'renal',176,50],[/^E/,'endo',30,72],[/^[AB]/,'infective',146,46],[/^O/,'obstetric',324,54],[/^M/,'MSK',20,32]];
+function sysOf(icd){const s=(icd||'').trim().toUpperCase();for(const r of SYS_MAP)if(r[0].test(s))return r;return[null,'general',192,26];}
+function assignSystemColors(dx){const cnt={};dx.forEach(d=>{const r=sysOf(d.icd),k=r[1],i=cnt[k]||0;cnt[k]=i+1;const L=Math.max(40,60-i*11);d.c=`hsl(${r[2]} ${r[3]}% ${L}%)`;d.sys=k;});}
+function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;}
 // Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
 function clChips(f){return '<div class="clchips" data-clf="'+f.id+'">'+f.checklist.map(function(s){var sel=checks[f.id]&&checks[f.id].has(s)?' sel':'';return '<button class="clchip'+sel+'" data-s="'+s+'">'+s+'</button>';}).join('')+'<button class="clchip none'+(ans[f.id]==='absent'?' sel':'')+'" data-none>none seen</button></div>';}
 function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(c){var fid=c.dataset.clf;c.querySelectorAll('.clchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());if(!checks[fid])checks[fid]=new Set();if(b.hasAttribute('data-none')){checks[fid].clear();ans[fid]='absent';}else{var s=b.dataset.s;checks[fid].has(s)?checks[fid].delete(s):checks[fid].add(s);if(checks[fid].size>0)ans[fid]='present';else delete ans[fid];}refresh(false);});});});}
@@ -725,7 +748,15 @@ function tween(el,to,suf=''){if(!el)return;const from=parseFloat(el.textContent)
 function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
 function ixState(f){const a=ans[f.id];if(!a)return{cls:'pend',txt:'→ enter'};return a==='present'?{cls:'hi',txt:'abnormal'}:{cls:'ok',txt:'normal'};}
 
-function paintVitals(){document.getElementById('vitals').innerHTML=VITALS.map(v=>`<span class="vital" style="--vc:${v.vc}"><span class="dot"></span><span class="lbl">${v.k}</span><b>${v.v}</b></span>`).join('');}
+// Flag a vital high/low. Ranges are adult defaults; a pack may override per vital
+// with lo/hi. (Age-aware paediatric ranges are a later refinement.)
+const VITAL_RANGE={HR:[60,100],RR:[12,20],'SpO₂':[94,101],SpO2:[94,101],Sats:[94,101],T:[36.0,37.9],Temp:[36.0,37.9]};
+function vitalFlag(v){
+  if(v.k==='BP'){const m=/(\d+)\D+(\d+)/.exec(v.v||'');if(!m)return'';const s=+m[1],d=+m[2];if(s>=140||d>=90)return'hi';if(s<90)return'lo';return'';}
+  const r=(v.lo!=null||v.hi!=null)?[v.lo??-1e9,v.hi??1e9]:VITAL_RANGE[v.k];if(!r)return'';
+  const x=parseFloat(v.v);if(isNaN(x))return'';if(x>r[1])return'hi';if(x<r[0])return'lo';return'';
+}
+function paintVitals(){document.getElementById('vitals').innerHTML=VITALS.map(v=>{const fl=vitalFlag(v);const arw=fl==='hi'?' <span class="varw">↑</span>':fl==='lo'?' <span class="varw">↓</span>':'';return `<span class="vital${fl?' abn-'+fl:''}" style="--vc:${v.vc}"><span class="dot"></span><span class="lbl">${v.k}</span><b>${v.v}${arw}</b></span>`;}).join('');}
 
 function paintHeader(p,first){
   const c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);
@@ -772,6 +803,13 @@ function buildHx(){
 }
 function paintHx(p,first){
   const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
+  // FLIP: record each card's position (relative to the list heading, so a queue
+  // height change above doesn't count), reorder, then animate the slide so a
+  // diagnosis overtaking another visibly moves rather than jumping.
+  const cards=[...document.querySelectorAll('.dx')];
+  const anchor=document.querySelector('.dxlead');
+  const relTop=c=>c.getBoundingClientRect().top-(anchor?anchor.getBoundingClientRect().top:0);
+  const firstRel=first?null:new Map(cards.map(c=>[c,relTop(c)]));
   ranked.forEach((d,i)=>{
     const el=document.querySelector(`.dx[data-id="${d.id}"]`);if(!el)return;el.style.order=i;
     const pc=Math.round(p[d.id]*100);
@@ -781,6 +819,7 @@ function paintHx(p,first){
     const matched=featsForAll(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
     el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
   });
+  if(firstRel)requestAnimationFrame(()=>{cards.forEach(c=>{const dy=firstRel.get(c)-relTop(c);if(Math.abs(dy)>1){c.style.transition='none';c.style.transform=`translateY(${dy}px)`;requestAnimationFrame(()=>{c.style.transition='transform .42s cubic-bezier(.22,1,.36,1)';c.style.transform='';});}});});
   // ---- the global rolling clerking queue (≤5 per stream, highest-yield first) ----
   const QLIMIT=5;
   const yieldOf=f=>Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0),0);
@@ -840,10 +879,23 @@ function buildIx(){
       snap(probs());
       if(raw===''||isNaN(parseFloat(raw))){delete ans[t.id];}
       else{const x=parseFloat(raw);const abn=t.dir==='below'?x<t.lo:x>t.hi;ans[t.id]=abn?'present':'absent';}
-      refresh(false);
+      refresh(false);showShift(t.id);
     });
-    row.querySelectorAll('.qk button').forEach(b=>b.addEventListener('click',()=>{snap(probs());const a=b.dataset.a;ans[t.id]=ans[t.id]===a?undefined:a;if(!ans[t.id])delete ans[t.id];refresh(false);}));
+    row.querySelectorAll('.qk button').forEach(b=>b.addEventListener('click',()=>{snap(probs());const a=b.dataset.a;ans[t.id]=ans[t.id]===a?undefined:a;if(!ans[t.id])delete ans[t.id];refresh(false);showShift(t.id);}));
   });
+}
+// When a result lands, name the diagnoses it just moved and by how much — so the
+// feedback loop (result → differential) is visible right where you entered it.
+function showShift(tid){
+  const row=document.querySelector(`.ixin[data-t="${tid}"]`);if(!row)return;
+  const p=probs();
+  const movers=DX.map(d=>({d,ch:Math.round((p[d.id]-(last[d.id]??p[d.id]))*100)})).filter(m=>Math.abs(m.ch)>=1).sort((a,b)=>Math.abs(b.ch)-Math.abs(a.ch)).slice(0,3);
+  const old=row.querySelector('.ixshift');if(old)old.remove();
+  if(!movers.length)return;
+  const el=document.createElement('div');el.className='ixshift';
+  el.innerHTML=movers.map(m=>`<span class="mv ${m.ch>0?'up':'down'}" style="--c:${m.d.c}">${m.ch>0?'▲':'▼'} ${shortName(m.d)} ${m.ch>0?'+':''}${m.ch}</span>`).join('');
+  row.appendChild(el);
+  setTimeout(()=>{if(el.parentNode)el.remove();},2600);
 }
 function paintIx(p){
   IX.forEach(t=>{
@@ -876,8 +928,9 @@ function buildMx(){
     <div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div>
     ${MX.investigate&&MX.investigate.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--rr)"></span>Investigate first — enter results on the Ix tab</div><div class="invg">${MX.investigate.map(v=>`<button class="invrow" data-goix="${v.ix||''}"><span class="invl">${v.lbl}</span><span class="invr">${v.when?`<span class="invwhen">${v.when}</span>`:''}<span class="invarrow">Ix →</span></span></button>`).join('')}</div></div>`:''}
     <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--bad)"></span>Immediate</div>${MX.immediate.map((m,i)=>rxRow(m,i,'im')).join('')}</div>
-    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--brand)"></span>Definitive — treat ${shortName(c.lead)}</div>${MX.definitive.map((m,i)=>rxRow(m,i,'df')).join('')}</div>
-    ${MX.holistic&&MX.holistic.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--good)"></span>Holistic · prevention &amp; triggers</div><div class="holi">${MX.holistic.map(h=>`<div class="hrow"><span class="hlbl">${h.label}</span>${(h.chips&&h.chips.length)?`<span class="hchips">${h.chips.map(x=>`<span class="chip">${x}</span>`).join('')}</span>`:''}${h.note?`<span class="hnote">${h.note}</span>`:''}</div>`).join('')}</div></div>`:''}
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--brand)"></span>Short-term · treat ${shortName(c.lead)}</div>${MX.definitive.map((m,i)=>rxRow(m,i,'df')).join('')}</div>
+    ${MX.longterm&&MX.longterm.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hx-c)"></span>Long-term</div>${MX.longterm.map((m,i)=>rxRow(m,i,'lt')).join('')}</div>`:''}
+    ${MX.holistic&&MX.holistic.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--good)"></span>Counselling &amp; health promotion</div><div class="holi">${MX.holistic.map(h=>`<div class="hrow"><span class="hlbl">${h.label}</span>${(h.chips&&h.chips.length)?`<span class="hchips">${h.chips.map(x=>`<span class="chip">${x}</span>`).join('')}</span>`:''}${h.note?`<span class="hnote">${h.note}</span>`:''}</div>`).join('')}</div></div>`:''}
     <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--ink-mute)"></span>Monitor</div><div class="chips">${MX.monitor.map(x=>`<span class="chip">${x}</span>`).join('')}</div></div>
     <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hellp)"></span>Treat-and-see · response is evidence</div>
       <div class="tns">${MX.levers.map(l=>`<div class="lv"><div class="lvtop"><span class="g">${l.give}</span><span class="ar">→</span><span class="rs">${l.resp}</span></div><div class="lvbot"><span class="m">${l.means}</span>${l.wired?`<span class="resp" data-lever="${l.id}"><button class="up" data-a="present">improved</button><button class="no" data-a="absent">no change</button></span>`:''}</div></div>`).join('')}</div>
@@ -1009,8 +1062,8 @@ const DX_ACCENTS=['var(--pet)','var(--hellp)','var(--chorio)','var(--aflp)','var
 function loadGeneratedCase(pack){
   pack.DX.forEach((d,i)=>{ if(!d.c) d.c=DX_ACCENTS[i%DX_ACCENTS.length]; });
   pack.VITALS.forEach(v=>{ if(!v.vc) v.vc=VC_BY_KEY[v.k]||'var(--ink-mute)'; });
-  pack.MX=pack.MX||{investigate:[],immediate:[],definitive:[],monitor:[],levers:[],holistic:[]};
-  ['investigate','immediate','definitive','monitor','levers','holistic'].forEach(k=>{pack.MX[k]=pack.MX[k]||[];});
+  pack.MX=pack.MX||{investigate:[],immediate:[],definitive:[],longterm:[],monitor:[],levers:[],holistic:[]};
+  ['investigate','immediate','definitive','longterm','monitor','levers','holistic'].forEach(k=>{pack.MX[k]=pack.MX[k]||[];});
   pack.IX=pack.IX||[]; pack.FEAT=pack.FEAT||[];
   CASES.__gen=pack;
   loadCase('__gen');
