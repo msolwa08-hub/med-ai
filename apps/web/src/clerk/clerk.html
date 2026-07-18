@@ -7,7 +7,7 @@
     --good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;
     --amber:#b45309;--amber-tint:#fbf1e3;
     --pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;
-    --bar-track:#eaf0f0;
+    --bar-track:#eaf0f0;--hx-c:#2563eb;--exam-c:#7c3aed;
     /* vital sign colours — grouped by organ system */
     --hr:#e5484d;   --bp:#a51d2d;    /* cardiovascular: reds */
     --rr:#0284c7;   --spo2:#0891b2;  /* respiratory: blues */
@@ -23,14 +23,14 @@
     --good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;
     --amber:#e0a05a;--amber-tint:#2f2417;
     --pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;
-    --bar-track:#1c2a2b;
+    --bar-track:#1c2a2b;--hx-c:#60a5fa;--exam-c:#a78bfa;
     --hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;
     --shadow-sm:0 1px 2px rgba(0,0,0,.35);
     --shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);
     --page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);
   }}
-  :root[data-theme="dark"]{--ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;--surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;--brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;--good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;--amber:#e0a05a;--amber-tint:#2f2417;--pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;--bar-track:#1c2a2b;--hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;--shadow-sm:0 1px 2px rgba(0,0,0,.35);--shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);--page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);}
-  :root[data-theme="light"]{--ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;--surface:#fff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;--brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;--good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;--amber:#b45309;--amber-tint:#fbf1e3;--pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;--bar-track:#eaf0f0;--hr:#e5484d;--bp:#a51d2d;--rr:#0284c7;--spo2:#0891b2;--temp:#d97706;--page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);}
+  :root[data-theme="dark"]{--hx-c:#60a5fa;--exam-c:#a78bfa;--ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;--surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;--brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;--good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;--amber:#e0a05a;--amber-tint:#2f2417;--pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;--bar-track:#1c2a2b;--hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;--shadow-sm:0 1px 2px rgba(0,0,0,.35);--shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);--page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);}
+  :root[data-theme="light"]{--hx-c:#2563eb;--exam-c:#7c3aed;--ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;--surface:#fff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;--brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;--good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;--amber:#b45309;--amber-tint:#fbf1e3;--pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;--bar-track:#eaf0f0;--hr:#e5484d;--bp:#a51d2d;--rr:#0284c7;--spo2:#0891b2;--temp:#d97706;--page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);}
   *{box-sizing:border-box}
   body{margin:0;background:var(--page);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
   .wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:20px}
@@ -135,6 +135,14 @@
   .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
   .feat.on .fl{color:var(--ink);font-weight:550}
   .feat-cl{display:block;padding:9px 0}
+  .sdot{width:8px;height:8px;border-radius:99px;display:inline-block;margin-right:8px;vertical-align:middle;flex:none}
+  .sdot.hx{background:var(--hx-c)} .sdot.exam{background:var(--exam-c)}
+  .feat.str-hx{box-shadow:inset 3px 0 0 -1px var(--hx-c)} .feat.str-exam{box-shadow:inset 3px 0 0 -1px var(--exam-c)}
+  .feat.str-hx,.feat.str-exam{padding-left:9px;border-radius:0 8px 8px 0}
+  .streamleg{display:flex;gap:14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);padding:11px 13px 3px}
+  .streamleg span{display:inline-flex;align-items:center;gap:5px}
+  .streamleg i{width:8px;height:8px;border-radius:99px}
+  .streamleg i.hx{background:var(--hx-c)} .streamleg i.exam{background:var(--exam-c)}
   .feat-cl .fl{font-size:12.5px;font-weight:650;color:var(--ink)}
   .feat-cl .fl em{font-style:normal;font-weight:500;font-size:10.5px;color:var(--ink-mute);margin-left:6px}
   .clchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -271,6 +279,8 @@
   .col-f .li .lr{color:var(--good)}
   .col-a .li .lr{color:var(--bad)}
   .wscript{font-size:10.5px;color:var(--ink-mute);margin-top:8px;font-style:italic;line-height:1.4}
+  .wpatho{font-size:11.5px;color:var(--ink);line-height:1.5;margin-top:8px;padding:8px 10px;background:color-mix(in oklab,var(--hx-c) 8%,transparent);border-left:3px solid var(--hx-c);border-radius:0 8px 8px 0}
+  .wpatho b{color:var(--hx-c);font-weight:750}
   .whycard{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px;background:var(--surface-alt)}
   .whycard.pm{background:var(--amber-tint);border-color:color-mix(in oklab,var(--amber) 22%,transparent)}
   .whycard .h{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:5px;display:flex;gap:6px;align-items:center}
@@ -547,10 +557,10 @@ const CASES={
   PT:{line:'62 · ♂ · haematemesis · 3 h', summaryLine:'62-year-old man', complaint:'vomiting fresh blood for three hours', background:'Alcohol excess; regular NSAIDs for back pain. No prior variceal bleed documented.'},
   VITALS:[{k:'HR',v:'116',vc:'var(--hr)'},{k:'BP',v:'98/62',vc:'var(--bp)'},{k:'RR',v:'20',vc:'var(--rr)'},{k:'SpO₂',v:'97',vc:'var(--spo2)'},{k:'T',v:'36.7',vc:'var(--temp)'}],
   DX:[
-   {id:'pud',name:'Peptic ulcer bleed',icd:'K27.4',c:'var(--pet)',prior:.38,mnm:true,script:'epigastric pain + NSAID / H. pylori + melaena / haematemesis'},
-   {id:'varices',name:'Oesophageal varices',icd:'I85.0',c:'var(--chorio)',prior:.20,mnm:true,script:'chronic liver disease + large-volume haematemesis'},
-   {id:'mallory',name:'Mallory–Weiss tear',icd:'K22.6',c:'var(--hellp)',prior:.15,mnm:false,script:'retching / vomiting then small streaks of blood'},
-   {id:'malig',name:'Upper GI malignancy',icd:'C16.9',c:'var(--aflp)',prior:.07,mnm:false,script:'weight loss + anorexia + chronic anaemia in an older patient'}],
+   {id:'pud',name:'Peptic ulcer bleed',icd:'K27.4',c:'var(--pet)',prior:.38,mnm:true,script:'epigastric pain + NSAID / H. pylori + melaena / haematemesis',patho:'NSAIDs strip the gastric mucosal defence, an ulcer erodes into a vessel → brisk bleeding presents as haematemesis; digested blood in the gut becomes melaena and the volume loss drives the tachycardia and hypotension.'},
+   {id:'varices',name:'Oesophageal varices',icd:'I85.0',c:'var(--chorio)',prior:.20,mnm:true,script:'chronic liver disease + large-volume haematemesis',patho:'Cirrhosis raises portal pressure, so blood back-pressures into thin-walled oesophageal collaterals; these rupture and bleed large-volume — hence the stigmata of chronic liver disease alongside the haematemesis.'},
+   {id:'mallory',name:'Mallory–Weiss tear',icd:'K22.6',c:'var(--hellp)',prior:.15,mnm:false,script:'retching / vomiting then small streaks of blood',patho:'Forceful retching spikes intragastric pressure and tears the mucosa at the gastro-oesophageal junction — so the vomiting precedes, and the bleed is usually small streaks.'},
+   {id:'malig',name:'Upper GI malignancy',icd:'C16.9',c:'var(--aflp)',prior:.07,mnm:false,script:'weight loss + anorexia + chronic anaemia in an older patient',patho:'A friable tumour surface bleeds slowly and chronically → the anaemia, weight loss and anorexia build over weeks rather than the acute picture.'}],
   FEAT:[
    {id:'nsaid',lbl:'NSAID use',stream:'hx',eff:{pud:[3,.6]},preset:'present'},
    {id:'etoh',lbl:'Alcohol excess',stream:'hx',eff:{varices:[3,.5]},preset:'present'},
@@ -615,7 +625,7 @@ function paintHeader(p,first){
 }
 
 function buildHx(){
-  document.getElementById('main').innerHTML=DX.map(d=>`
+  document.getElementById('main').innerHTML='<div class="streamleg" style="order:-1"><span><i class="hx"></i>History</span><span><i class="exam"></i>Examination</span></div>'+DX.map(d=>`
     <div class="dx${d.id===DX[0].id?' open':''}" data-id="${d.id}" style="--dxc:${d.c}">
       <div class="accent"></div>
       <div class="col">
@@ -645,9 +655,10 @@ function paintHx(p,first){
     const matched=featsFor(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
     el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
     const fc=el.querySelector('[data-feats]');
-    fc.innerHTML=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').map(f=>f.checklist
-      ?`<div class="feat feat-cl${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl">${f.lbl}<em>tick the signs you see</em></div>${clChips(f)}</div>`
-      :`<div class="feat${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl">${f.lbl}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
+    const feats=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').sort((a,b)=>(a.stream==='hx'?0:1)-(b.stream==='hx'?0:1));
+    fc.innerHTML=feats.map(f=>f.checklist
+      ?`<div class="feat feat-cl str-${f.stream}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${f.stream}"></span>${f.lbl}<em>tick the signs you see</em></div>${clChips(f)}</div>`
+      :`<div class="feat str-${f.stream}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="sdot ${f.stream}"></span>${f.lbl}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
     fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];refresh(false);}));
     wireClChips(fc);
     el.querySelectorAll('[data-ix]').forEach(r=>{const st=ixState(FEAT.find(f=>f.id===r.dataset.ix));const rr=r.querySelector('[data-ixr]');rr.className='r '+st.cls;rr.textContent=st.txt;});
@@ -799,7 +810,7 @@ function ledger(d,p,capTo){
   const col=(items,cls,head)=>`<div class="${cls}"><div class="colh">${head}</div>${items.length?items.map(i=>`<div class="li"><span>${i.lbl}</span><span class="lr">${lrTxt(i.lr)}</span></div>`).join(''):'<div class="li dim">—</div>'}</div>`;
   return `<div class="wledger" style="--dxc:${d.c}"><div class="wlhd"><span class="n">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${d.c}">${pc}%</span></div>
     <div class="cols">${col(fa.pro,'col-f','For')}${col(fa.con,'col-a','Against')}</div>
-    <div class="wscript">illness script — ${d.script}</div></div>`;
+    <div class="wscript">illness script — ${d.script}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> — ${d.patho}</div>`:''}</div>`;
 }
 function buildWhy(){
   const p=probs(),c=cap(p),li=leadInfo(),ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);

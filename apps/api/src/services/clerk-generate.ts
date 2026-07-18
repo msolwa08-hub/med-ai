@@ -16,7 +16,7 @@ export interface ClerkPack {
   recommendation: string;
   PT: { line: string; summaryLine: string; complaint: string; background: string };
   VITALS: Array<{ k: string; v: string }>;
-  DX: Array<{ id: string; name: string; icd: string; prior: number; mnm: boolean; script: string }>;
+  DX: Array<{ id: string; name: string; icd: string; prior: number; mnm: boolean; script: string; patho?: string }>;
   FEAT: Array<{
     id: string; lbl: string; stream: 'hx' | 'exam' | 'ix' | 'rx';
     eff: Record<string, [number, number]>;
@@ -37,7 +37,8 @@ export interface ClerkPack {
 const SYSTEM = `You are the reasoning core of a bedside differential-diagnosis instrument used by doctors. Given a free-text patient presentation, output ONLY a single JSON object (no markdown, no prose) that is a "case pack". A deterministic likelihood-ratio engine consumes it — you provide the clinical data, not the arithmetic.
 
 Rules:
-- 3–5 differentials in DX, ordered most-likely first. Mark the immediately life-threatening ones mnm:true ("must not miss"). Give each a realistic pre-test probability (prior, 0–1) and an ICD-10 code and a one-line illness "script".
+- 3–5 differentials in DX, ordered most-likely first. Mark the immediately life-threatening ones mnm:true ("must not miss"). Give each a realistic pre-test probability (prior, 0–1), an ICD-10 code, a one-line illness "script", and a "patho": ONE plain-English sentence of pathophysiology that links the history and signs to the presenting symptoms (why this disease produces this exact picture).
+- ATOMIC findings: each symptom and each sign is its OWN finding — never bundle several into one. e.g. polyuria, polydipsia and polyphagia are THREE separate findings; never write "polyuria/polydipsia". Kussmaul breathing, ketotic breath and dehydration are each their own sign. Be thorough and holistic: include the complete classic cluster of symptoms and signs for each differential, both supporting features and discriminating negatives.
 - FEAT: the discriminating findings. stream is 'hx' (history), 'exam', or 'ix' (needs a test result). eff maps a dx id to [LR+ , LR-] — the likelihood ratio if the finding is PRESENT vs ABSENT (LR+ >1 supports, LR- <1 argues against). Only include dx ids that exist in DX. Mark findings already clearly stated in the presentation as preset:'present' (or 'absent'). For each mnm diagnosis, give its single decisive test a key:'<dxId>' and a short:'name'.
 - REDUCE COGNITIVE LOAD: for any COMPOSITE / umbrella clinical sign (e.g. "stigmata of chronic liver disease", "meningism", "signs of sepsis", "peritonism", "signs of respiratory distress"), do NOT leave it as one vague finding. Keep a short lbl but add a "checklist" array of the concrete component signs to look for (e.g. ["Jaundice","Spider naevi","Palmar erythema","Ascites","Asterixis"]) so the clinician ticks signs instead of recalling the concept. 3–6 items each.
 - IX: every stream:'ix' finding, as an enterable investigation. cat is 'bedside' (POC glucose, ECG, urine dip, VBG, βhCG), 'lab' (bloods), or 'imaging' (US/CT/CXR/MRI). For quantitative tests give unit, norm, dir ('above'|'below') and the threshold as hi or lo. For qualitative/imaging tests set binary:true. dx is a short label of what it discriminates.
@@ -90,6 +91,7 @@ function normalize(raw: unknown): ClerkPack {
       prior: typeof pick(d, ['prior']) === 'number' ? (pick(d, ['prior']) as number) : 0.15,
       mnm: Boolean(pick(d, ['mnm', 'mustnotmiss'])),
       script: (pick(d, ['script']) as string) || '',
+      patho: (pick(d, ['patho', 'pathophysiology', 'mechanism']) as string) || '',
     };
   });
   const mxRaw = (pick(o, ['mx', 'management']) as Record<string, unknown>) || {};
