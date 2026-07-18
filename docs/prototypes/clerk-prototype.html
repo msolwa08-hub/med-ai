@@ -206,7 +206,7 @@
   .mxsec>.hd .bar{width:3px;height:13px;border-radius:2px;flex:none}
   .rx{padding:10px 11px;background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:12px;margin-bottom:8px}
   .rxtop{display:flex;align-items:center;gap:7px}
-  .rxtop .n{flex:1;min-width:0;font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rxtop .n{flex:1;min-width:0;font-size:14px;font-weight:650;letter-spacing:-.01em;line-height:1.25}
   .rxbot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}
   .rxbot .for{font-size:11px;color:var(--ink-mute)}
   .dosechip{font-size:10.5px;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
@@ -725,14 +725,14 @@ function buildMx(){
       <div class="tns">${MX.levers.map(l=>`<div class="lv"><div class="lvtop"><span class="g">${l.give}</span><span class="ar">→</span><span class="rs">${l.resp}</span></div><div class="lvbot"><span class="m">${l.means}</span>${l.wired?`<span class="resp" data-lever="${l.id}"><button class="up" data-a="present">improved</button><button class="no" data-a="absent">no change</button></span>`:''}</div></div>`).join('')}</div>
     </div>
     <div class="mxsec" data-cover></div>
-    <div class="mxcite"><span>❦</span><span>Regimens per <b>SA Maternity Care Guidelines</b> — verify dose &amp; obtain sign-off before administering. No free-hand dosing.</span></div>
+    <div class="mxcite"><span>❦</span><span>Doses follow <b>local protocol / Standard Treatment Guidelines</b> — verify against your formulary and obtain clinician sign-off before administering. No free-hand dosing.</span></div>
   </div>`;
   document.querySelectorAll('.give').forEach(b=>b.addEventListener('click',()=>{const k=b.closest('.rx').dataset.rx;given.has(k)?given.delete(k):given.add(k);b.classList.toggle('on',given.has(k));}));
   document.querySelectorAll('[data-lever] button').forEach(b=>b.addEventListener('click',()=>{const id=b.closest('[data-lever]').dataset.lever,a=b.dataset.a;snap(probs());ans[id]=ans[id]===a?undefined:a;if(!ans[id])delete ans[id];refresh(false);}));
 }
 function paintMx(p){
   const c=cap(p),cv=document.querySelector('[data-cover]');
-  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')} not excluded: check glucose &amp; coags, treat hypoglycaemia empirically.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${c.lead.name.replace(' of pregnancy','')}. Continue definitive plan.</div>`;}
+  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${c.live.map(shortName).join(' + ')} not excluded: treat the lead empirically and prioritise ${c.live.map(disc).join(' & ')} to rule ${c.live.length>1?'them':'it'} out.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${shortName(c.lead)} and continue the definitive plan.</div>`;}
   document.querySelectorAll('[data-lever]').forEach(el=>{const a=ans[el.dataset.lever];el.querySelector('.up').classList.toggle('sel',a==='present');el.querySelector('.no').classList.toggle('sel',a==='absent');});
 }
 
