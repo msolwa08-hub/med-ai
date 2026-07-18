@@ -16,10 +16,28 @@ const srcDoc =
 export default function ClerkApp({ onBack }: { onBack: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Wake the free-tier API (sleeps when idle) as soon as the clerk mounts, so the
+  // container is warm before the user submits a presentation.
+  useEffect(() => {
+    fetch('/health').catch(() => {});
+  }, []);
+
   useEffect(() => {
     async function onMessage(e: MessageEvent) {
-      const data = e.data as { type?: string; id?: string; text?: string } | null;
-      if (!data || data.type !== 'medai-generate' || !data.id) return;
+      const data = e.data as {
+        type?: string;
+        id?: string;
+        text?: string;
+        phase?: string;
+        dx?: Array<{ id: string; name: string }>;
+      } | null;
+      if (!data) return;
+      // A warm ping from the clerk: just poke the health endpoint.
+      if (data.type === 'medai-warm') {
+        fetch('/health').catch(() => {});
+        return;
+      }
+      if (data.type !== 'medai-generate' || !data.id) return;
       const win = iframeRef.current?.contentWindow;
       if (!win) return;
       try {
@@ -27,7 +45,7 @@ export default function ClerkApp({ onBack }: { onBack: () => void }) {
         const res = await fetch('/tools/clerk-generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-tools-key': key },
-          body: JSON.stringify({ text: data.text ?? '' }),
+          body: JSON.stringify({ text: data.text ?? '', phase: data.phase, dx: data.dx }),
         });
         if (!res.ok) {
           if (res.status === 401) {

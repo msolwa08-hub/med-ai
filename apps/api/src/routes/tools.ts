@@ -14,7 +14,7 @@ import { extractTextFromFile } from '../lib/extract-text.js';
 import { analyzeClinicalImage, type ImageAnalysisRequest, type ImageModality } from '../services/image-analysis.js';
 import { generateWardRoundDelta, type WardRoundDeltaRequest } from '../services/ward-round.js';
 import { draftLegalForm, type LegalFormRequest } from '../services/clinical-forms.js';
-import { generateClerkCase } from '../services/clerk-generate.js';
+import { generateClerkCore, generateClerkPlan } from '../services/clerk-generate.js';
 import { screeningForProblems } from '../services/clinical-screening.js';
 import { checkConsistency } from '../services/consistency.js';
 import { usageStats, resetUsageStats } from '../lib/models.js';
@@ -56,12 +56,16 @@ export async function toolsRoutes(app: FastifyInstance) {
   // engine does the maths (posterior, must-not-miss cap, info-gain).
   app.post('/tools/clerk-generate', async (req, reply) => {
     if (!authTools(req)) return unauth(reply);
-    const body = req.body as { text?: string };
+    const body = req.body as { text?: string; phase?: string; dx?: Array<{ id: string; name: string }> };
     if (!body || typeof body.text !== 'string' || !body.text.trim()) {
       return reply.status(400).send({ error: 'A non-empty text presentation is required' });
     }
     try {
-      const pack = await generateClerkCase(body.text.trim());
+      if (body.phase === 'plan') {
+        const dx = Array.isArray(body.dx) ? body.dx.filter((d) => d && d.id && d.name) : [];
+        return reply.send(await generateClerkPlan(body.text.trim(), dx));
+      }
+      const pack = await generateClerkCore(body.text.trim());
       return reply.send(pack);
     } catch (err) {
       app.log.error(err);

@@ -229,6 +229,9 @@
   .rxnote{font-size:10.5px;font-weight:750;color:var(--bad)}
   .chips{display:flex;flex-wrap:wrap;gap:6px}
   .chip{font-size:11px;color:var(--ink-soft);background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:8px;padding:6px 10px}
+  .planwait{border:1px dashed var(--line);border-radius:14px;padding:16px 15px;background:var(--surface-alt)}
+  .planwait .pwrow{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink)}
+  .planwait .pwsub{margin-top:7px;font-size:11.5px;color:var(--ink-soft);line-height:1.5}
   .invg{display:flex;flex-direction:column;gap:7px}
   .invrow{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--rr);border-radius:11px;padding:10px 12px;cursor:pointer;font:inherit;transition:all .14s}
   .invrow:hover{border-color:var(--rr);background:var(--surface-alt)}
@@ -667,7 +670,7 @@ const CASES={
  },
 };
 
-let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null;
+let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false;
 const featsFor=id=>FEAT.filter(f=>f.eff[id]);
 function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;}
 // Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
@@ -807,6 +810,10 @@ function rxRow(m,i,sec){
 }
 function buildMx(){
   const p=probs(),c=cap(p);
+  if(genPlanPending&&caseId==='__gen'){
+    document.getElementById('main').innerHTML=`<div class="mx"><div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div><div class="planwait"><div class="pwrow"><span class="ispin"></span><b>Writing the dosed management plan…</b></div><div class="pwsub">The board is ready — the plan and pathophysiology are generated in the background so the differential shows first.</div></div></div>`;
+    return;
+  }
   document.getElementById('main').innerHTML=`<div class="mx">
     <div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div>
     ${MX.investigate&&MX.investigate.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--rr)"></span>Investigate first — enter results on the Ix tab</div><div class="invg">${MX.investigate.map(v=>`<button class="invrow" data-goix="${v.ix||''}"><span class="invl">${v.lbl}</span><span class="invr">${v.when?`<span class="invwhen">${v.when}</span>`:''}<span class="invarrow">Ix →</span></span></button>`).join('')}</div></div>`:''}
@@ -910,6 +917,7 @@ function buildWhy(){
   const p=probs(),c=cap(p),li=leadInfo(),ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
   document.getElementById('main').innerHTML=`<div class="why">
     <div class="whysum">${whyNarrative()}</div>
+    ${(genPlanPending&&caseId==='__gen')?`<div class="planwait"><div class="pwrow"><span class="ispin"></span><b>Writing the pathophysiology…</b></div><div class="pwsub">Each diagnosis's mechanism is being generated in the background.</div></div>`:''}
     ${ranked.map(d=>ledger(d,p,(d.id===c.lead.id&&c.capped)?li.conf:null)).join('')}
     <div class="whycard"><div class="h"><span>➜</span>Highest-yield next</div><p>${whyNext()}</p></div>
     <div class="whycard pm"><div class="h"><span>⚠</span>Pre-mortem — what would change my mind</div><p>${whyPremortem()}</p></div>
@@ -950,27 +958,41 @@ function loadGeneratedCase(pack){
   paintCaseUI();
 }
 function istatus(cls,html){const el=document.getElementById('istatus');el.className='istatus '+(cls||'');el.innerHTML=html||'';}
-async function apiGenerate(text){
-  // Host app can inject window.MEDAI_GENERATE(text) → Promise<pack> (calls the
-  // key-gated /tools/clerk-generate endpoint). Otherwise try a same-origin call.
-  if(typeof window.MEDAI_GENERATE==='function') return await window.MEDAI_GENERATE(text);
+async function apiGenerate(text,phase,dx){
+  // Host app can inject window.MEDAI_GENERATE(text,phase,dx) → Promise<pack>
+  // (calls the key-gated /tools/clerk-generate endpoint). Else same-origin.
+  if(typeof window.MEDAI_GENERATE==='function') return await window.MEDAI_GENERATE(text,phase,dx);
   const key=(window.localStorage&&localStorage.getItem('medai_tools_key'))||'';
-  const r=await fetch('/tools/clerk-generate',{method:'POST',headers:{'content-type':'application/json','x-tools-key':key},body:JSON.stringify({text})});
+  const r=await fetch('/tools/clerk-generate',{method:'POST',headers:{'content-type':'application/json','x-tools-key':key},body:JSON.stringify({text,phase,dx})});
   if(!r.ok) throw new Error('The reasoning service is unavailable here — try a worked example below.');
   return await r.json();
+}
+// Merge the background PLAN (dosed management + pathophysiology) into the
+// already-rendered generated board, then repaint if the user is looking at Mx/Why.
+function mergePlan(plan){
+  const gen=CASES.__gen; if(!gen||!plan) return;
+  if(plan.MX){gen.MX=plan.MX;['investigate','immediate','definitive','monitor','levers','holistic'].forEach(k=>{gen.MX[k]=gen.MX[k]||[];});}
+  if(plan.patho){gen.DX.forEach(d=>{ if(plan.patho[d.id]) d.patho=plan.patho[d.id]; });}
+  genPlanPending=false;
+  if(caseId==='__gen'){ MX=gen.MX; if(tab==='mx'||tab==='why') render(); }
 }
 async function generateCase(text){
   if(!text||!text.trim()){istatus('err','Type a short description first.');return;}
   const btn=document.getElementById('igen');btn.disabled=true;
-  istatus('load','<span class="ispin"></span>Reading the case, weighing the differential… (first run can take a moment)');
+  istatus('load','<span class="ispin"></span>Weighing the differential…');
   try{
-    const pack=await apiGenerate(text.trim());
+    // PHASE 1 — the board itself: fast, small. Show it the moment it lands.
+    const pack=await apiGenerate(text.trim(),'core');
     if(!pack||!Array.isArray(pack.DX)||!pack.DX.length) throw new Error('The board came back empty — try rephrasing.');
+    genPlanPending=true;
     loadGeneratedCase(pack); istatus('','');
-  }catch(e){ istatus('err', (e&&e.message)||'Could not build the board.'); }
+    // PHASE 2 — dosed plan + pathophysiology: in the background, merged when ready.
+    const dx=pack.DX.map(d=>({id:d.id,name:d.name}));
+    apiGenerate(text.trim(),'plan',dx).then(mergePlan).catch(()=>{ genPlanPending=false; if(caseId==='__gen'&&(tab==='mx'||tab==='why')) render(); });
+  }catch(e){ genPlanPending=false; istatus('err', (e&&e.message)||'Could not build the board.'); }
   finally{ btn.disabled=false; }
 }
-function showIntake(){document.getElementById('intake').classList.remove('hide');}
+function showIntake(){document.getElementById('intake').classList.remove('hide');if(window.parent&&window.parent!==window)window.parent.postMessage({type:'medai-warm'},'*');}
 function hideIntake(){document.getElementById('intake').classList.add('hide');}
 
 function init(){
@@ -984,13 +1006,16 @@ function init(){
   document.getElementById('ichips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);hideIntake();paintCaseUI();}));
   // When embedded in the app, route generation through the host (which holds the tools key).
   if(window.parent&&window.parent!==window){
-    window.MEDAI_GENERATE=function(text){return new Promise(function(resolve,reject){
+    window.MEDAI_GENERATE=function(text,phase,dx){return new Promise(function(resolve,reject){
       var id='g'+String(performance.now())+String(Math.round(Math.random()*1e6));
       function on(e){if(!e.data||e.data.type!=='medai-generated'||e.data.id!==id)return;window.removeEventListener('message',on);if(e.data.error)reject(new Error(e.data.error));else resolve(e.data.pack);}
       window.addEventListener('message',on);
-      window.parent.postMessage({type:'medai-generate',id:id,text:text},'*');
+      window.parent.postMessage({type:'medai-generate',id:id,text:text,phase:phase,dx:dx},'*');
       setTimeout(function(){window.removeEventListener('message',on);reject(new Error('The reasoning service timed out — the server may be waking up; try again.'));},75000);
     });};
+    // Wake the (free-tier, sleeps-when-idle) server the moment the clerk opens,
+    // so it is warm by the time a presentation is submitted.
+    window.parent.postMessage({type:'medai-warm'},'*');
   }
   loadCase('pre');paintCaseUI(); // preload behind the overlay so there is no flash
 }
