@@ -371,6 +371,116 @@ const CASES={
    monitor:['Continuous ECG','Serial troponin','BP in both arms','SpO₂ + respiratory rate'],
    levers:[{give:'GTN',resp:'pain settles',means:'consistent with ischaemia — not specific'},{give:'After full analgesia',resp:'pain persists',means:'concerning — reconsider dissection'}]},
  },
+ surg:{
+  specialty:'Surgery', label:'RIF pain',
+  referTo:'Surgical Registrar on call',
+  planLine:'analgesia · nil by mouth · IV fluids · βhCG · WCC/CRP · imaging · surgical review.',
+  recommendation:'Analgesia and antiemetic; keep nil by mouth with IV fluids pending theatre; <b>exclude pregnancy with βhCG</b>; WCC/CRP and imaging as indicated. <b>Urgent surgical review — laparoscopy if torsion or ectopic suspected.</b>',
+  PT:{line:'24 · ♀ · right iliac fossa pain · 1 day', summaryLine:'24-year-old woman', complaint:'right iliac fossa pain for one day', background:'Previously well. Last menstrual period about 6 weeks ago, uncertain dates. No previous surgery.'},
+  VITALS:[{k:'HR',v:'98',vc:'var(--hr)'},{k:'BP',v:'118/74',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'99',vc:'var(--spo2)'},{k:'T',v:'37.8',vc:'var(--temp)'}],
+  DX:[
+   {id:'appy',name:'Acute appendicitis',icd:'K35.80',c:'var(--pet)',prior:.35,mnm:false,script:'central pain migrating to RIF + anorexia + RIF tenderness / guarding'},
+   {id:'ectopic',name:'Ectopic pregnancy',icd:'O00.9',c:'var(--chorio)',prior:.12,mnm:true,script:'reproductive age + missed period + positive βhCG + adnexal pain'},
+   {id:'torsion',name:'Ovarian torsion',icd:'N83.5',c:'var(--hellp)',prior:.08,mnm:true,script:'sudden severe unilateral pain + nausea + tender adnexal mass'},
+   {id:'adenitis',name:'Mesenteric adenitis',icd:'I88.0',c:'var(--aflp)',prior:.10,mnm:false,script:'recent viral illness + diffuse tenderness without guarding'}],
+  FEAT:[
+   {id:'migrate',lbl:'Pain migrated central → RIF',stream:'hx',eff:{appy:[3,.5]},preset:'present'},
+   {id:'anorexia',lbl:'Anorexia',stream:'hx',eff:{appy:[2,.6]}},
+   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{ectopic:[4,.4]}},
+   {id:'suddensev',lbl:'Sudden severe onset',stream:'hx',eff:{torsion:[3,.5]}},
+   {id:'viral',lbl:'Recent viral illness',stream:'hx',eff:{adenitis:[3,.5]}},
+   {id:'rifguard',lbl:'RIF tenderness + guarding',stream:'exam',eff:{appy:[4,.4]},preset:'present'},
+   {id:'rebound',lbl:'Rebound / percussion tenderness',stream:'exam',eff:{appy:[3,.5]}},
+   {id:'adnexal',lbl:'Adnexal tenderness / cervical excitation',stream:'exam',eff:{ectopic:[3,.5],torsion:[2,.7]}},
+   {id:'mass',lbl:'Palpable tender adnexal mass',stream:'exam',eff:{torsion:[5,.5]}},
+   {id:'bhcg',lbl:'βhCG positive',stream:'ix',eff:{ectopic:[8,.1]},key:'ectopic',short:'βhCG'},
+   {id:'usadnexa',lbl:'US — adnexal mass / absent flow',stream:'ix',eff:{torsion:[8,.2]},key:'torsion',short:'pelvic US'},
+   {id:'wcc',lbl:'WCC / CRP raised',stream:'ix',eff:{appy:[2.5,.5],adenitis:[1.3,.9]}},
+   {id:'usappy',lbl:'US / CT — appendicitis',stream:'ix',eff:{appy:[10,.2]}}],
+  IX:[
+   {id:'bhcg',lbl:'βhCG (urine/serum)',binary:true,dx:'Ectopic'},
+   {id:'usadnexa',lbl:'Pelvic ultrasound',binary:true,dx:'Torsion'},
+   {id:'wcc',lbl:'WCC',unit:'×10⁹/L',norm:'4–11',hi:11,dir:'above',dx:'Appendicitis'},
+   {id:'usappy',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'}],
+  MX:{
+   immediate:[{rx:'Urine βhCG',for:'exclude pregnancy first',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'per protocol',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'maintenance',active:'keep NBM'}],
+   definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Antibiotics',for:'per surgical protocol',dose:'per protocol',sign:true}],
+   monitor:['Serial abdominal exam','Obs + urine output','Repeat bloods','βhCG result'],
+   levers:[{give:'Analgesia',resp:'pain well controlled',means:'reassess — does not exclude a surgical abdomen'},{give:'Serial exam',resp:'localises / worsens',means:'evolving appendicitis'}]},
+ },
+ paeds:{
+  specialty:'Paeds', label:'Febrile infant',
+  referTo:'Paediatric Registrar on call',
+  planLine:'sepsis assessment · weight-based antibiotics if indicated · CRP · urine · CXR · LP if meningism · admit.',
+  recommendation:'Assess for sepsis (HR 168, RR 44); weight-based fluids and empirical antibiotics if meningitis or sepsis suspected — do not delay treatment for LP if unwell; septic screen with urine, CRP and chest X-ray. <b>Urgent paediatric review.</b>',
+  PT:{line:'8 mo · ♂ · fever + irritability · 1 day', summaryLine:'8-month-old boy', complaint:'fever and irritability for one day', background:'Fully immunised for age. Reduced feeds today. No rash noticed by parents.'},
+  VITALS:[{k:'HR',v:'168',vc:'var(--hr)'},{k:'BP',v:'92/54',vc:'var(--bp)'},{k:'RR',v:'44',vc:'var(--rr)'},{k:'SpO₂',v:'96',vc:'var(--spo2)'},{k:'T',v:'39.2',vc:'var(--temp)'}],
+  DX:[
+   {id:'pneumonia',name:'Pneumonia',icd:'J18.9',c:'var(--hellp)',prior:.15,mnm:false,script:'fever + tachypnoea + focal chest signs / hypoxia'},
+   {id:'meningitis',name:'Meningitis / sepsis',icd:'G00.9',c:'var(--chorio)',prior:.12,mnm:true,script:'unwell infant + bulging fontanelle / neck stiffness + non-blanching rash + high CRP'},
+   {id:'uti',name:'Urinary tract infection',icd:'N39.0',c:'var(--pet)',prior:.22,mnm:false,script:'fever without source + offensive urine + positive dip / culture'},
+   {id:'viral',name:'Viral illness',icd:'J06.9',c:'var(--aflp)',prior:.30,mnm:false,script:'coryza + well-appearing between fevers + self-limiting'}],
+  FEAT:[
+   {id:'irrit',lbl:'Irritable / lethargic',stream:'hx',eff:{meningitis:[3,.4]},preset:'present'},
+   {id:'feeds',lbl:'Reduced feeds',stream:'hx',eff:{meningitis:[1.5,.8],uti:[1.3,.9]},preset:'present'},
+   {id:'cough',lbl:'Cough',stream:'hx',eff:{pneumonia:[2.5,.6]},preset:'present'},
+   {id:'coryza',lbl:'Coryza',stream:'hx',eff:{viral:[3,.4]}},
+   {id:'fontanelle',lbl:'Bulging fontanelle / neck stiffness',stream:'exam',eff:{meningitis:[6,.4]}},
+   {id:'rash',lbl:'Non-blanching rash',stream:'exam',eff:{meningitis:[8,.5]}},
+   {id:'tachypnoea',lbl:'Tachypnoea / recession',stream:'exam',eff:{pneumonia:[3,.5]},preset:'present'},
+   {id:'focal',lbl:'Focal chest signs / hypoxia',stream:'exam',eff:{pneumonia:[4,.4]},preset:'present'},
+   {id:'crp',lbl:'CRP / procalcitonin raised',stream:'ix',eff:{meningitis:[3,.4],uti:[1.5,.8],pneumonia:[2,.7]}},
+   {id:'lp',lbl:'LP — CSF pleocytosis',stream:'ix',eff:{meningitis:[12,.1]},key:'meningitis',short:'LP'},
+   {id:'urine',lbl:'Urine dip / culture positive',stream:'ix',eff:{uti:[8,.2]}},
+   {id:'cxr',lbl:'CXR — consolidation',stream:'ix',eff:{pneumonia:[8,.2]}}],
+  IX:[
+   {id:'crp',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Meningitis / UTI'},
+   {id:'lp',lbl:'Lumbar puncture',binary:true,dx:'Meningitis'},
+   {id:'urine',lbl:'Urine dip / culture',binary:true,dx:'UTI'},
+   {id:'cxr',lbl:'Chest X-ray',binary:true,dx:'Pneumonia'}],
+  MX:{
+   immediate:[{rx:'Sepsis assessment + fluids',for:'if unwell',dose:'20 ml/kg bolus',sign:true,active:'HR 168, RR 44 — assess now'},{rx:'Empirical antibiotics',for:'if meningitis / sepsis suspected',dose:'ceftriaxone, weight-based',sign:true},{rx:'Antipyretic',for:'comfort',dose:'paracetamol, weight-based'}],
+   definitive:[{rx:'LP + CSF',for:'confirm / exclude meningitis',dose:'timing per stability'},{rx:'Source-directed therapy',for:'UTI / pneumonia',dose:'per protocol',sign:true}],
+   monitor:['Continuous obs + AVPU','Fluid balance / urine output','Repeat examination','Blood glucose'],
+   levers:[{give:'Antipyretic',resp:'bright & playful once afebrile',means:'reassuring — favours viral'},{give:'Fluid bolus',resp:'perfusion improves',means:'supports sepsis physiology'}]},
+ },
+ neuro:{
+  specialty:'Neuro', label:'Thunderclap HA',
+  referTo:'Medical / Neurology Registrar on call',
+  planLine:'analgesia · non-contrast CT head within 1 h · LP for xanthochromia if CT negative · BP control · neuro review.',
+  recommendation:'Analgesia and antiemetic; <b>urgent non-contrast CT head within the hour</b>; LP for xanthochromia if CT negative and SAH still suspected; cautious BP control. <b>Urgent medical / neurology review; neurosurgery if SAH confirmed.</b>',
+  PT:{line:'46 · ♀ · sudden severe headache · 3 h', summaryLine:'46-year-old woman', complaint:'sudden-onset severe headache for three hours', background:'Smoker. Family history of subarachnoid haemorrhage. No head injury.'},
+  VITALS:[{k:'HR',v:'88',vc:'var(--hr)'},{k:'BP',v:'176/98',vc:'var(--bp)'},{k:'RR',v:'16',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.1',vc:'var(--temp)'}],
+  DX:[
+   {id:'sah',name:'Subarachnoid haemorrhage',icd:'I60.9',c:'var(--chorio)',prior:.18,mnm:true,script:'thunderclap (peak < 1 min) + worst-ever + neck stiffness ± reduced GCS + blood on CT'},
+   {id:'meningitis',name:'Meningitis',icd:'G03.9',c:'var(--hellp)',prior:.10,mnm:true,script:'fever + neck stiffness + photophobia + CSF pleocytosis'},
+   {id:'cvst',name:'Cerebral venous sinus thrombosis',icd:'I67.6',c:'var(--aflp)',prior:.06,mnm:true,script:'subacute headache + prothrombotic risk + focal signs / seizure'},
+   {id:'migraine',name:'Migraine',icd:'G43.9',c:'var(--pet)',prior:.30,mnm:false,script:'gradual throbbing pain + prior similar attacks + aura + relief in a dark room'}],
+  FEAT:[
+   {id:'thunder',lbl:'Thunderclap (peak < 1 min)',stream:'hx',eff:{sah:[5,.3]},preset:'present'},
+   {id:'worst',lbl:'Worst-ever headache',stream:'hx',eff:{sah:[3,.5]},preset:'present'},
+   {id:'prior',lbl:'Prior similar headaches',stream:'hx',eff:{migraine:[4,.4]}},
+   {id:'feverh',lbl:'Fever',stream:'hx',eff:{meningitis:[3,.4]}},
+   {id:'prothromb',lbl:'OCP / prothrombotic risk',stream:'hx',eff:{cvst:[3,.5]}},
+   {id:'neck',lbl:'Neck stiffness',stream:'exam',eff:{sah:[3,.5],meningitis:[4,.4]},preset:'present'},
+   {id:'photo',lbl:'Photophobia',stream:'exam',eff:{meningitis:[2.5,.6],migraine:[1.5,.8]}},
+   {id:'focaln',lbl:'Focal neurology / seizure',stream:'exam',eff:{cvst:[4,.4],sah:[2,.7]}},
+   {id:'gcs',lbl:'Reduced GCS',stream:'exam',eff:{sah:[4,.4]}},
+   {id:'ct',lbl:'CT head — blood',stream:'ix',eff:{sah:[15,.2]},key:'sah',short:'CT head'},
+   {id:'lpxan',lbl:'LP — xanthochromia',stream:'ix',eff:{sah:[8,.3]}},
+   {id:'csf',lbl:'CSF pleocytosis',stream:'ix',eff:{meningitis:[10,.2]},key:'meningitis',short:'LP'},
+   {id:'ctv',lbl:'CT venogram — sinus thrombosis',stream:'ix',eff:{cvst:[14,.1]},key:'cvst',short:'CT venogram'}],
+  IX:[
+   {id:'ct',lbl:'CT head (non-contrast)',binary:true,dx:'SAH'},
+   {id:'lpxan',lbl:'LP — xanthochromia',binary:true,dx:'SAH'},
+   {id:'csf',lbl:'CSF — pleocytosis',binary:true,dx:'Meningitis'},
+   {id:'ctv',lbl:'CT venogram',binary:true,dx:'CVST'}],
+  MX:{
+   immediate:[{rx:'Non-contrast CT head',for:'within 1 h',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'symptom control',dose:'per protocol',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'per neuro',active:'BP 176/98'}],
+   definitive:[{rx:'Neurosurgical referral',for:'confirmed SAH',dose:'urgent — aneurysm securing'},{rx:'Antibiotics + aciclovir',for:'if meningitis / encephalitis',dose:'per protocol',sign:true},{rx:'Anticoagulation',for:'CVST — not if SAH',dose:'per neurology',sign:true}],
+   monitor:['GCS + pupils','BP','Hourly neuro obs','Repeat CT if deteriorates'],
+   levers:[{give:'Analgesia',resp:'headache fully resolves',means:'less reassuring — SAH pain can settle'},{give:'Dark quiet room',resp:'settles with prior pattern',means:'favours migraine'}]},
+ },
 };
 
 let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar';
@@ -598,7 +708,7 @@ function refresh(first){const p=probs();paintHeader(p,first);if(tab==='hx')paint
 function render(){if(tab==='hx')buildHx();else if(tab==='ix')buildIx();else if(tab==='mx')buildMx();else if(tab==='docs')buildDocs();else if(tab==='why')buildWhy();refresh(true);}
 
 function paintCaseUI(){
-  document.getElementById('casebar').innerHTML='<span class="cl">Demo case</span>'+Object.entries(CASES).map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}">${c.specialty} · ${c.label}</button>`).join('');
+  document.getElementById('casebar').innerHTML='<span class="cl">Case</span>'+Object.entries(CASES).map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}"><b>${c.specialty}</b> ${c.label}</button>`).join('');
   document.getElementById('casebar').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
   document.getElementById('who').innerHTML=PT.line;
   paintVitals();
