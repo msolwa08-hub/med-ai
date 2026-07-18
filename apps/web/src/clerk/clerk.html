@@ -791,7 +791,7 @@ async function apiGenerate(text){
 async function generateCase(text){
   if(!text||!text.trim()){istatus('err','Type a short description first.');return;}
   const btn=document.getElementById('igen');btn.disabled=true;
-  istatus('load','<span class="ispin"></span>Reading the case, weighing the differential…');
+  istatus('load','<span class="ispin"></span>Reading the case, weighing the differential… (first run can take a moment)');
   try{
     const pack=await apiGenerate(text.trim());
     if(!pack||!Array.isArray(pack.DX)||!pack.DX.length) throw new Error('The board came back empty — try rephrasing.');
@@ -818,7 +818,7 @@ function init(){
       function on(e){if(!e.data||e.data.type!=='medai-generated'||e.data.id!==id)return;window.removeEventListener('message',on);if(e.data.error)reject(new Error(e.data.error));else resolve(e.data.pack);}
       window.addEventListener('message',on);
       window.parent.postMessage({type:'medai-generate',id:id,text:text},'*');
-      setTimeout(function(){window.removeEventListener('message',on);reject(new Error('The reasoning service timed out.'));},35000);
+      setTimeout(function(){window.removeEventListener('message',on);reject(new Error('The reasoning service timed out — the server may be waking up; try again.'));},75000);
     });};
   }
   loadCase('pre');paintCaseUI(); // preload behind the overlay so there is no flash

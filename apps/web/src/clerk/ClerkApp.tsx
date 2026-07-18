@@ -30,10 +30,19 @@ export default function ClerkApp({ onBack }: { onBack: () => void }) {
           body: JSON.stringify({ text: data.text ?? '' }),
         });
         if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error('Add your tools key first (open Intern Tools once), then try again.');
+          }
+          let detail = '';
+          try {
+            const b = (await res.json()) as { error?: string };
+            if (b && typeof b.error === 'string') detail = b.error;
+          } catch {
+            /* body was not JSON */
+          }
           throw new Error(
-            res.status === 401
-              ? 'Add your tools key first (Intern Tools), then try again.'
-              : 'The reasoning service is unavailable right now — try a worked example.',
+            (detail || 'The reasoning service is unavailable right now — try a worked example') +
+              ` (HTTP ${res.status})`,
           );
         }
         const pack = await res.json();

@@ -1,4 +1,5 @@
 import { MODELS, createMessage } from '../lib/models.js';
+import { betaConfig } from '../lib/beta-config.js';
 
 /**
  * Turn a free-text presentation into a "case pack" the bedside reasoning clerk
@@ -41,13 +42,20 @@ Rules:
 - IX: every stream:'ix' finding, as an enterable investigation. cat is 'bedside' (POC glucose, ECG, urine dip, VBG, βhCG), 'lab' (bloods), or 'imaging' (US/CT/CXR/MRI). For quantitative tests give unit, norm, dir ('above'|'below') and the threshold as hi or lo. For qualitative/imaging tests set binary:true. dx is a short label of what it discriminates.
 - MX: terse management. immediate[] and definitive[] items are {rx, for, dose, sign?:true, active?:'why now', ind?:'why indicated'}. monitor[] is strings. levers[] are treat-and-see items {give, resp, means}. NEVER invent precise drug doses — write "per protocol" / "weight-based" and set sign:true. Cite nothing you are unsure of.
 - PT.line is a terse header (e.g. "58 · ♂ · central chest pain · 2 h"). VITALS use keys HR, BP, RR, SpO₂, T with plausible values for the presentation.
-- Ids are short lowercase tokens, unique within their array. Return valid JSON only.`;
+- Ids are short lowercase tokens, unique within their array.
+- Keep it COMPACT and fast: at most 4 differentials and about 8–12 findings total. Output MINIFIED JSON (no whitespace, no newlines). Return valid JSON only.`;
 
 function extractJson(text: string): unknown {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) throw new Error('No JSON object in model output');
-  return JSON.parse(text.slice(start, end + 1));
+  let t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  const start = t.indexOf('{');
+  const end = t.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) throw new Error('The model did not return a usable board');
+  t = t.slice(start, end + 1);
+  try {
+    return JSON.parse(t);
+  } catch {
+    throw new Error('The model returned an incomplete board — please try again');
+  }
 }
 
 function validate(pack: unknown): ClerkPack {
@@ -68,13 +76,21 @@ function validate(pack: unknown): ClerkPack {
 }
 
 export async function generateClerkCase(text: string): Promise<ClerkPack> {
+  if (!betaConfig.ANTHROPIC_API_KEY) {
+    throw new Error('The reasoning model is not configured on the server');
+  }
+  // Fast tier + a JSON prefill ('{') so the model emits the object directly:
+  // lower latency (beats the platform gateway timeout) and no preamble to strip.
   const res = await createMessage({
-    model: MODELS.reasoning,
-    max_tokens: 3000,
-    system: SYSTEM,
-    messages: [{ role: 'user', content: text }],
+    model: MODELS.fast,
+    max_tokens: 2400,
+    system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+    messages: [
+      { role: 'user', content: text },
+      { role: 'assistant', content: '{' },
+    ],
   });
   const first = res.content.find((c) => c.type === 'text');
-  const raw = first && first.type === 'text' ? first.text : '';
+  const raw = '{' + (first && first.type === 'text' ? first.text : '');
   return validate(extractJson(raw));
 }

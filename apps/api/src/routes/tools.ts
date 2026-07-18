@@ -65,7 +65,9 @@ export async function toolsRoutes(app: FastifyInstance) {
       return reply.send(pack);
     } catch (err) {
       app.log.error(err);
-      return reply.status(500).send({ error: 'Could not build the board' });
+      const msg = err instanceof Error ? err.message : 'Could not build the board';
+      const notConfigured = /not configured/i.test(msg);
+      return reply.status(notConfigured ? 503 : 502).send({ error: msg });
     }
   });
 
