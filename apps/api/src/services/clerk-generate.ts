@@ -44,7 +44,10 @@ Rules:
 - MX: terse management. immediate[] and definitive[] items are {rx, for, dose, sign?:true, active?:'why now', ind?:'why indicated'}. monitor[] is strings. levers[] are treat-and-see items {give, resp, means}. NEVER invent precise drug doses — write "per protocol" / "weight-based" and set sign:true. Cite nothing you are unsure of.
 - PT.line is a terse header (e.g. "58 · ♂ · central chest pain · 2 h"). VITALS use keys HR, BP, RR, SpO₂, T with plausible values for the presentation.
 - Ids are short lowercase tokens, unique within their array.
-- Keep it COMPACT and fast: at most 4 differentials and about 8–12 findings total. Output MINIFIED JSON (no whitespace, no newlines). Return valid JSON only.`;
+- Keep it COMPACT and fast: at most 4 differentials and about 8–12 findings total. Output MINIFIED JSON (no whitespace, no newlines). Return valid JSON only.
+
+Use EXACTLY these top-level keys and casing (uppercase DX, FEAT, IX, MX, VITALS, PT). Example of the required shape:
+{"specialty":"IM/EM","label":"Chest pain","referTo":"Medical Registrar","planLine":"aspirin · troponin · ECG","recommendation":"Aspirin if ACS likely…","PT":{"line":"58 · ♂ · chest pain · 2 h","summaryLine":"58-year-old man","complaint":"central chest pain for 2 hours","background":"HTN, smoker"},"VITALS":[{"k":"HR","v":"108"},{"k":"BP","v":"148/92"}],"DX":[{"id":"acs","name":"Acute coronary syndrome","icd":"I24.9","prior":0.3,"mnm":true,"script":"ischaemic pain + risk + troponin/ECG"}],"FEAT":[{"id":"crush","lbl":"Crushing chest pain","stream":"hx","eff":{"acs":[3,0.5]},"preset":"present"},{"id":"cld","lbl":"Chronic liver disease","stream":"exam","eff":{"acs":[1,1]},"checklist":["Jaundice","Ascites"]},{"id":"trop","lbl":"Troponin raised","stream":"ix","eff":{"acs":[8,0.2]},"key":"acs","short":"troponin"}],"IX":[{"id":"trop","lbl":"Troponin","cat":"lab","dx":"ACS","unit":"ng/L","norm":"<14","hi":14,"dir":"above"}],"MX":{"immediate":[{"rx":"Aspirin","for":"ACS","dose":"300 mg","sign":true}],"definitive":[],"monitor":["Continuous ECG"],"levers":[]}}`;
 
 function extractJson(text: string): unknown {
   let t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
@@ -59,20 +62,59 @@ function extractJson(text: string): unknown {
   }
 }
 
+// Fast models don't always honour exact key casing/names — normalise whatever
+// shape comes back (case-insensitive keys, common synonyms, a single-key wrapper)
+// into the pack the engine expects, so a good board isn't rejected on a casing nit.
+function pick(o: Record<string, unknown>, names: string[]): unknown {
+  for (const n of names) {
+    for (const k of Object.keys(o)) if (k.toLowerCase() === n) return o[k];
+  }
+  return undefined;
+}
+function asArr(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : [];
+}
+function normalize(raw: unknown): ClerkPack {
+  let o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  // Unwrap a single-key wrapper like {"casePack": {...}} / {"result": {...}}.
+  if (!pick(o, ['dx', 'differentials', 'diagnoses'])) {
+    const vals = Object.values(o);
+    if (vals.length === 1 && vals[0] && typeof vals[0] === 'object') o = vals[0] as Record<string, unknown>;
+  }
+  const dx = asArr(pick(o, ['dx', 'differentials', 'diagnoses'])).map((d0, i) => {
+    const d = (d0 && typeof d0 === 'object' ? d0 : {}) as Record<string, unknown>;
+    return {
+      id: (pick(d, ['id']) as string) || 'dx' + i,
+      name: (pick(d, ['name', 'dx', 'diagnosis', 'label']) as string) || 'Diagnosis ' + (i + 1),
+      icd: (pick(d, ['icd']) as string) || '',
+      prior: typeof pick(d, ['prior']) === 'number' ? (pick(d, ['prior']) as number) : 0.15,
+      mnm: Boolean(pick(d, ['mnm', 'mustnotmiss'])),
+      script: (pick(d, ['script']) as string) || '',
+    };
+  });
+  const mxRaw = (pick(o, ['mx', 'management']) as Record<string, unknown>) || {};
+  return {
+    specialty: (pick(o, ['specialty']) as string) || 'General',
+    label: (pick(o, ['label', 'title']) as string) || 'Presentation',
+    referTo: (pick(o, ['referto', 'refer']) as string) || 'the on-call team',
+    planLine: (pick(o, ['planline', 'plan']) as string) || '',
+    recommendation: (pick(o, ['recommendation', 'recommend']) as string) || '',
+    PT: (pick(o, ['pt', 'patient']) as ClerkPack['PT']) || { line: '', summaryLine: '', complaint: '', background: '' },
+    VITALS: asArr(pick(o, ['vitals'])) as ClerkPack['VITALS'],
+    DX: dx as ClerkPack['DX'],
+    FEAT: asArr(pick(o, ['feat', 'features', 'findings'])) as ClerkPack['FEAT'],
+    IX: asArr(pick(o, ['ix', 'investigations'])) as ClerkPack['IX'],
+    MX: {
+      immediate: asArr(pick(mxRaw, ['immediate'])) as Array<Record<string, unknown>>,
+      definitive: asArr(pick(mxRaw, ['definitive'])) as Array<Record<string, unknown>>,
+      monitor: asArr(pick(mxRaw, ['monitor'])) as string[],
+      levers: asArr(pick(mxRaw, ['levers'])) as Array<Record<string, unknown>>,
+    },
+  };
+}
 function validate(pack: unknown): ClerkPack {
-  const p = pack as ClerkPack;
-  if (!p || typeof p !== 'object') throw new Error('Not an object');
-  if (!Array.isArray(p.DX) || p.DX.length === 0) throw new Error('DX missing');
-  if (!Array.isArray(p.FEAT)) throw new Error('FEAT missing');
-  if (!Array.isArray(p.IX)) p.IX = [];
-  if (!Array.isArray(p.VITALS)) p.VITALS = [];
-  if (!p.PT || typeof p.PT !== 'object') throw new Error('PT missing');
-  if (!p.MX || typeof p.MX !== 'object') {
-    p.MX = { immediate: [], definitive: [], monitor: [], levers: [] };
-  }
-  for (const k of ['immediate', 'definitive', 'monitor', 'levers'] as const) {
-    if (!Array.isArray(p.MX[k])) (p.MX as Record<string, unknown>)[k] = [];
-  }
+  const p = normalize(pack);
+  if (p.DX.length === 0) throw new Error('The board came back without any diagnoses — try rephrasing');
   return p;
 }
 
@@ -92,6 +134,9 @@ export async function generateClerkCase(text: string): Promise<ClerkPack> {
     ],
   });
   const first = res.content.find((c) => c.type === 'text');
-  const raw = '{' + (first && first.type === 'text' ? first.text : '');
+  const out = (first && first.type === 'text' ? first.text : '').trim();
+  // The assistant turn was prefilled with '{', so the reply usually continues the
+  // object — only prepend when it didn't already emit the opening brace.
+  const raw = out.startsWith('{') ? out : '{' + out;
   return validate(extractJson(raw));
 }
