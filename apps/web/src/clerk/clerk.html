@@ -134,6 +134,20 @@
   .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
   .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
   .feat.has-sub{align-items:flex-start}
+  .clerk{padding:15px 13px 8px;border-top:1px solid var(--line);background:var(--surface)}
+  .clerkhd{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border-radius:10px;padding:9px 11px;margin-bottom:14px;line-height:1.4}
+  .qstream{margin-top:4px}
+  .qstream+.qstream{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line-soft)}
+  .qhd{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:5px}
+  .qhd .qct{margin-left:auto;font-size:10px;font-weight:700;color:var(--ink-mute);letter-spacing:0;text-transform:none}
+  .qmore{font-size:10.5px;color:var(--ink-mute);padding:5px 0 2px;font-style:italic}
+  .qdone{font-size:11.5px;color:var(--good);font-weight:600;padding:4px 0}
+  .recd{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dotted var(--line-soft)}
+  .recd .recdh{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-right:2px}
+  .recdchip{font-size:10.5px;font-weight:600;border-radius:7px;padding:4px 8px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);transition:all .12s}
+  .recdchip:hover{border-color:var(--ink-mute)}
+  .recdchip.present{background:var(--good-tint);border-color:color-mix(in oklab,var(--good) 30%,transparent);color:var(--good)}
+  .recdchip.absent{background:var(--surface-alt);color:var(--ink-mute)}
   .follows{margin:1px 0 5px 15px;padding-left:13px;border-left:2px solid var(--line-soft);display:flex;flex-direction:column}
   .follows .feat{padding:4px 0}
   .follows .feat .fl{font-size:12px}
@@ -730,24 +744,22 @@ function paintHeader(p,first){
 }
 
 function buildHx(){
+  // The differential is the "picture" (ranked cards, top); the clerking QUEUE
+  // below is where you work — a rolling ≤5 history + ≤5 exam questions drawn
+  // from the whole board, highest-yield first. Answer one and it drops into the
+  // Recorded strip while the next slides up.
   document.getElementById('main').innerHTML='<div class="streamleg" style="order:-1"><span><i class="hx"></i>History</span><span><i class="exam"></i>Examination</span></div>'+DX.map(d=>`
-    <div class="dx${d.id===DX[0].id?' open':''}" data-id="${d.id}" style="--dxc:${d.c}">
+    <div class="dx open" data-id="${d.id}" style="--dxc:${d.c}">
       <div class="accent"></div>
       <div class="col">
-        <div class="dx-head">
-          <span class="caret">›</span>
+        <div class="dx-head" style="cursor:default">
           <span class="nm"><span class="name">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm" title="Must not miss"></span>':''}</span>
           <span class="metric"><span class="delta" data-delta></span><span class="mini"><span class="f" data-mini></span></span><span class="pct tnum" data-pct>0</span></span>
         </div>
-        <div class="body">
-          ${d.mnm?'<div class="mnmnote">▲ MUST NOT MISS — actively exclude</div>':''}
-          <div class="script" data-script></div>
-          <div data-feats></div>
-          ${featsFor(d.id).some(f=>f.stream==='ix')?`<div class="ixref"><div class="h">Discriminating bloods · enter on Ix tab</div>${featsFor(d.id).filter(f=>f.stream==='ix').map(f=>`<div class="ixr" data-ix="${f.id}"><span>${f.lbl}</span><span class="r" data-ixr></span></div>`).join('')}</div>`:''}
-        </div>
+        <div class="body"><div class="script" data-script></div></div>
       </div>
-    </div>`).join('');
-  document.querySelectorAll('.dx-head').forEach(h=>h.addEventListener('click',()=>h.closest('.dx').classList.toggle('open')));
+    </div>`).join('')
+  +'<div class="clerk" style="order:900"><div class="clerkhd"><span>◆</span><span>Clerk the patient — highest-yield questions, one at a time</span></div><div id="queue"></div><div id="ixref"></div></div>';
 }
 function paintHx(p,first){
   const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
@@ -757,29 +769,46 @@ function paintHx(p,first){
     el.querySelector('[data-mini]').style.width=pc+'%';tween(el.querySelector('[data-pct]'),pc);
     const dl=el.querySelector('[data-delta]'),ch=Math.round((p[d.id]-last[d.id])*100);
     if(!first&&Math.abs(ch)>=1){dl.className='delta '+(ch>0?'up':'down');dl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}else{dl.className='delta';dl.textContent='';}
-    const matched=featsFor(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
+    const matched=featsForAll(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
     el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
-    const fc=el.querySelector('[data-feats]');
-    const feats=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').sort((a,b)=>(a.stream==='hx'?0:1)-(b.stream==='hx'?0:1));
-    const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
-    const numBadge=f=>{const a=ans[f.id];if(!a)return{c:'',t:''};if(a==='absent')return{c:'ok',t:'NORMAL'};const x=parseFloat(val[f.id]),t=f.num;let txt='ABNORMAL';if(!isNaN(x)){if(t.hi!=null&&x>t.hi)txt='HIGH';else if(t.lo!=null&&x<t.lo)txt='LOW';}return{c:'hi',t:txt};};
-    // A finding renders its follow-up children indented beneath it, but only
-    // once it is ticked present — cough → productive → colour change / blood.
-    const kids=f=>(ans[f.id]==='present'&&f.follow&&f.follow.length)?`<div class="follows">${f.follow.map(c=>featRow(c,true)).join('')}</div>`:'';
-    function featRow(f,child){
-      const sub=fsub(f),st=f.stream||'hx';
-      if(!child&&f.checklist)return `<div class="feat feat-cl str-${st}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
-      if(!child&&f.num){const nb=numBadge(f);return `<div class="feat str-${st} has-sub num${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[f.id]??''}"><span class="unit">${f.num.unit||''}</span></span><span class="badge${nb.c?' show '+nb.c:''}">${nb.t}</span></span></div>`;}
-      return `<div class="feat str-${st}${child?' child':''}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>${kids(f)}`;
-    }
-    fc.innerHTML=feats.map(f=>featRow(f,false)).join('');
-    fc.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,t=FEAT.find(x=>x.id===fid).num,raw=inp.value.trim();val[fid]=raw;snap(probs());const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[fid];else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[fid]=abn?'present':'absent';}refresh(false);}));
-    fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];if(ans[fid]!=='present')clearFollow(findFeat(fid));refresh(false);}));
-    wireClChips(fc);
-    el.querySelectorAll('[data-ix]').forEach(r=>{const st=ixState(FEAT.find(f=>f.id===r.dataset.ix));const rr=r.querySelector('[data-ixr]');rr.className='r '+st.cls;rr.textContent=st.txt;});
   });
+  // ---- the global rolling clerking queue (≤5 per stream, highest-yield first) ----
+  const QLIMIT=5;
+  const yieldOf=f=>Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0),0);
+  function hasOpenDesc(f){if(!f.follow)return false;for(const c of f.follow){if(!ans[c.id])return true;if(ans[c.id]==='present'&&hasOpenDesc(c))return true;}return false;}
+  const needsWork=f=>!ans[f.id]||(ans[f.id]==='present'&&hasOpenDesc(f));
+  const rank=f=>(ans[f.id]==='present'&&hasOpenDesc(f))?0:1; // finish an open cascade before starting fresh
+  const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
+  const numBadge=f=>{const a=ans[f.id];if(!a)return{c:'',t:''};if(a==='absent')return{c:'ok',t:'NORMAL'};const x=parseFloat(val[f.id]),t=f.num;let txt='ABNORMAL';if(!isNaN(x)){if(t.hi!=null&&x>t.hi)txt='HIGH';else if(t.lo!=null&&x<t.lo)txt='LOW';}return{c:'hi',t:txt};};
+  const kids=f=>(ans[f.id]==='present'&&f.follow&&f.follow.length)?`<div class="follows">${f.follow.map(c=>featRow(c,true)).join('')}</div>`:'';
+  function featRow(f,child){
+    const sub=fsub(f),st=f.stream||'hx';
+    if(!child&&f.checklist)return `<div class="feat feat-cl str-${st}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
+    if(!child&&f.num){const nb=numBadge(f);return `<div class="feat str-${st} has-sub num${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[f.id]??''}"><span class="unit">${f.num.unit||''}</span></span><span class="badge${nb.c?' show '+nb.c:''}">${nb.t}</span></span></div>`;}
+    return `<div class="feat str-${st}${child?' child':''}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>${kids(f)}`;
+  }
+  const recdChip=f=>`<button class="recdchip ${ans[f.id]}" data-reopen="${f.id}">${f.lbl.split(' (')[0]} ${ans[f.id]==='present'?'✓':'✕'}</button>`;
+  const streamBlock=(S,label)=>{
+    const list=FEAT.filter(f=>f.stream===S);
+    if(!list.length)return '';
+    const open=list.filter(needsWork).sort((a,b)=>rank(a)-rank(b)||yieldOf(b)-yieldOf(a));
+    const shown=open.slice(0,QLIMIT), more=open.length-shown.length;
+    const done=list.filter(f=>!needsWork(f));
+    const rows=shown.length?shown.map(f=>featRow(f,false)).join(''):`<div class="qdone">✓ All ${label.toLowerCase()} covered</div>`;
+    const moreTag=more>0?`<div class="qmore">+${more} more ${label.toLowerCase()} question${more>1?'s':''} queued</div>`:'';
+    const recd=done.length?`<div class="recd"><span class="recdh">Recorded</span>${done.map(recdChip).join('')}</div>`:'';
+    return `<div class="qstream"><div class="qhd"><span class="sdot ${S}"></span>${label}<span class="qct">${done.length}/${list.length}</span></div>${rows}${moreTag}${recd}</div>`;
+  };
+  const qwrap=document.getElementById('queue');if(!qwrap)return;
+  qwrap.innerHTML=streamBlock('hx','History')+streamBlock('exam','Examination');
+  qwrap.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,t=findFeat(fid).num,raw=inp.value.trim();val[fid]=raw;snap(probs());const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[fid];else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[fid]=abn?'present':'absent';}refresh(false);}));
+  qwrap.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];if(ans[fid]!=='present')clearFollow(findFeat(fid));refresh(false);}));
+  qwrap.querySelectorAll('[data-reopen]').forEach(b=>b.addEventListener('click',()=>{const fid=b.dataset.reopen;snap(p);delete ans[fid];delete val[fid];if(checks[fid])delete checks[fid];clearFollow(findFeat(fid));refresh(false);}));
+  wireClChips(qwrap);
+  const ixf=FEAT.filter(f=>f.stream==='ix');
+  const ixEl=document.getElementById('ixref');
+  if(ixEl)ixEl.innerHTML=ixf.length?`<div class="ixref"><div class="h">Discriminating tests · enter on the Ix tab</div>${ixf.map(f=>{const st=ixState(f);return `<div class="ixr"><span>${f.lbl}</span><span class="r ${st.cls}">${st.txt}</span></div>`;}).join('')}</div>`:'';
 }
-
 function buildIx(){
   const CATS=[['bedside','Bedside · point-of-care'],['lab','Laboratory'],['imaging','Imaging']];
   const item=t=>`<div class="ixin" data-t="${t.id}">
