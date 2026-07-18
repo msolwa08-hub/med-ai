@@ -34,6 +34,28 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--page);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
   .wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:20px}
+  /* Intake / chat front door */
+  .intake{position:fixed;inset:0;z-index:50;background:var(--page);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+  .intake.hide{display:none}
+  .intake-card{width:100%;max-width:430px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:24px 20px 20px;text-align:center}
+  .ilogo{width:46px;height:46px;border-radius:14px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;background:linear-gradient(150deg,var(--brand),var(--brand-strong));box-shadow:var(--shadow-sm)}
+  .ititle{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .isub{font-size:12.5px;color:var(--ink-mute);line-height:1.5;margin:6px auto 16px;max-width:340px}
+  .itext{width:100%;box-sizing:border-box;font-size:14px;line-height:1.5;color:var(--ink);background:var(--surface-alt);border:1.5px solid var(--line);border-radius:13px;padding:12px 13px;resize:vertical;min-height:96px;outline:none;transition:border-color .15s}
+  .itext:focus{border-color:var(--brand)}
+  .ibtn{margin-top:12px;width:100%;font-size:15px;font-weight:700;color:#fff;background:var(--brand);border:none;border-radius:13px;padding:13px;cursor:pointer;transition:background .15s}
+  .ibtn:hover{background:var(--brand-strong)}
+  .ibtn:disabled{opacity:.6;cursor:default}
+  .istatus{font-size:12px;margin-top:11px;min-height:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .istatus.load{color:var(--brand-strong)}.istatus.err{color:var(--bad)}
+  .ispin{width:14px;height:14px;border:2px solid var(--brand);border-top-color:transparent;border-radius:99px;animation:spin .7s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .iex{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-mute);margin:18px 0 9px}
+  .ichips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+  .ichips button{font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border:1px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;transition:all .14s}
+  .ichips button:hover{border-color:var(--brand);color:var(--brand-strong)}
+  .newcase{font-size:10.5px;font-weight:650;color:var(--ink-mute);background:none;border:1px dashed var(--line);border-radius:99px;padding:4px 11px;cursor:pointer}
+  .newcase:hover{border-color:var(--brand);color:var(--brand-strong)}
   .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
   input{font-family:inherit}
 
@@ -125,8 +147,14 @@
   .panel{padding:14px 14px 4px}
   .phd{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--ink-soft);background:var(--surface-alt);border-radius:10px;padding:9px 11px;margin-bottom:14px;line-height:1.45}
   .phd b{color:var(--brand-strong);font-weight:700}
+  .ixsec{margin-bottom:14px}
+  .ixhd{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:2px}
+  .ixhd .ixdot{width:8px;height:8px;border-radius:3px;flex:none}
+  .ixhd .ixdot.bedside{background:var(--rr)} .ixhd .ixdot.lab{background:var(--hellp)} .ixhd .ixdot.imaging{background:var(--aflp)}
+  .ixhd .ixn{margin-left:auto;font-size:10px;font-weight:700;color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line);border-radius:99px;padding:1px 8px}
   .ixin{padding:11px 0;border-bottom:1px solid var(--line-soft)}
   .ixin:last-child{border-bottom:none}
+  .ixsec .ixin:last-child{border-bottom:none}
   .ixin .top{display:flex;align-items:center;gap:9px}
   .ixin .lab{flex:1;min-width:0}
   .ixin .lab .t{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -245,6 +273,18 @@
   .theme{margin-top:10px;font-size:11px;color:var(--brand-strong);background:var(--brand-tint);border:none;padding:6px 12px;border-radius:99px;cursor:pointer;font-weight:650}
 </style>
 
+<div class="intake" id="intake">
+  <div class="intake-card">
+    <div class="ilogo">✦</div>
+    <div class="ititle">MedAI clerk</div>
+    <div class="isub">Describe the patient in your own words. The AI builds a live differential — confidence, must-not-miss, the next best question — that you push toward certainty.</div>
+    <textarea id="itext" class="itext" rows="4" placeholder="e.g. 58-year-old man, crushing central chest pain for 2 hours radiating to the left arm, sweaty, known hypertension, ex-smoker…"></textarea>
+    <button id="igen" class="ibtn">Build the board →</button>
+    <div id="istatus" class="istatus"></div>
+    <div class="iex">or open a worked example</div>
+    <div id="ichips" class="ichips"></div>
+  </div>
+</div>
 <div class="wrap">
   <header>
     <div class="casebar" id="casebar"></div>
@@ -316,11 +356,11 @@ const CASES={
    {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
    {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}}],
   IX:[
-   {id:'plt',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP'},
-   {id:'ast',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP'},
-   {id:'ldh',lbl:'LDH',unit:'U/L',norm:'< 600',hi:600,dir:'above',dx:'HELLP'},
-   {id:'glu',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP'},
-   {id:'inr',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'}],
+   {id:'plt',cat:'lab',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP'},
+   {id:'ast',cat:'lab',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP'},
+   {id:'ldh',cat:'lab',lbl:'LDH',unit:'U/L',norm:'< 600',hi:600,dir:'above',dx:'HELLP'},
+   {id:'glu',cat:'bedside',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP'},
+   {id:'inr',cat:'lab',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'}],
   MX:{
    immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV load + maintenance',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol · nifedipine · hydralazine',sign:true,active:'BP 168/112 — now'}],
    definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'IM × 2',sign:true,ind:'33+4 wk — give'}],
@@ -359,12 +399,12 @@ const CASES={
    {id:'ctaorta',lbl:'CT aorta — dissection flap',stream:'ix',eff:{dissection:[14,.08]},key:'dissection',short:'CT aorta'},
    {id:'ecgperi',lbl:'ECG diffuse ST / PR depression',stream:'ix',eff:{pericarditis:[5,.4]}}],
   IX:[
-   {id:'trop',lbl:'Troponin (hs)',unit:'ng/L',norm:'< 14',hi:14,dir:'above',dx:'ACS'},
-   {id:'ddimer',lbl:'D-dimer',unit:'µg/L',norm:'< 0.5',hi:0.5,dir:'above',dx:'PE'},
-   {id:'ecgisch',lbl:'ECG — ischaemia',binary:true,dx:'ACS'},
-   {id:'ctpa',lbl:'CTPA',binary:true,dx:'PE'},
-   {id:'ctaorta',lbl:'CT aorta',binary:true,dx:'Dissection'},
-   {id:'ecgperi',lbl:'ECG — pericarditis pattern',binary:true,dx:'Pericarditis'}],
+   {id:'trop',cat:'lab',lbl:'Troponin (hs)',unit:'ng/L',norm:'< 14',hi:14,dir:'above',dx:'ACS'},
+   {id:'ddimer',cat:'lab',lbl:'D-dimer',unit:'µg/L',norm:'< 0.5',hi:0.5,dir:'above',dx:'PE'},
+   {id:'ecgisch',cat:'bedside',lbl:'ECG — ischaemia',binary:true,dx:'ACS'},
+   {id:'ctpa',cat:'imaging',lbl:'CTPA',binary:true,dx:'PE'},
+   {id:'ctaorta',cat:'imaging',lbl:'CT aorta',binary:true,dx:'Dissection'},
+   {id:'ecgperi',cat:'bedside',lbl:'ECG — pericarditis pattern',binary:true,dx:'Pericarditis'}],
   MX:{
    immediate:[{rx:'12-lead ECG',for:'within 10 min of arrival',dose:'now',active:'do first'},{rx:'Aspirin',for:'if ACS likely, dissection not suspected',dose:'300 mg PO',sign:true},{rx:'Analgesia + antiemetic',for:'pain and distress',dose:'morphine titrated',sign:true}],
    definitive:[{rx:'Reperfusion (PCI / lysis)',for:'STEMI pathway',dose:'per cath-lab'},{rx:'Anticoagulation',for:'confirmed PE / NSTEMI — not if dissection',dose:'per protocol',sign:true},{rx:'Aortic control + CT surgery',for:'dissection',dose:'BP/HR control, urgent referral'}],
@@ -398,10 +438,10 @@ const CASES={
    {id:'wcc',lbl:'WCC / CRP raised',stream:'ix',eff:{appy:[2.5,.5],adenitis:[1.3,.9]}},
    {id:'usappy',lbl:'US / CT — appendicitis',stream:'ix',eff:{appy:[10,.2]}}],
   IX:[
-   {id:'bhcg',lbl:'βhCG (urine/serum)',binary:true,dx:'Ectopic'},
-   {id:'usadnexa',lbl:'Pelvic ultrasound',binary:true,dx:'Torsion'},
-   {id:'wcc',lbl:'WCC',unit:'×10⁹/L',norm:'4–11',hi:11,dir:'above',dx:'Appendicitis'},
-   {id:'usappy',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'}],
+   {id:'bhcg',cat:'bedside',lbl:'βhCG (urine/serum)',binary:true,dx:'Ectopic'},
+   {id:'usadnexa',cat:'imaging',lbl:'Pelvic ultrasound',binary:true,dx:'Torsion'},
+   {id:'wcc',cat:'lab',lbl:'WCC',unit:'×10⁹/L',norm:'4–11',hi:11,dir:'above',dx:'Appendicitis'},
+   {id:'usappy',cat:'imaging',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'}],
   MX:{
    immediate:[{rx:'Urine βhCG',for:'exclude pregnancy first',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'per protocol',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'maintenance',active:'keep NBM'}],
    definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Antibiotics',for:'per surgical protocol',dose:'per protocol',sign:true}],
@@ -434,10 +474,10 @@ const CASES={
    {id:'urine',lbl:'Urine dip / culture positive',stream:'ix',eff:{uti:[8,.2]}},
    {id:'cxr',lbl:'CXR — consolidation',stream:'ix',eff:{pneumonia:[8,.2]}}],
   IX:[
-   {id:'crp',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Meningitis / UTI'},
-   {id:'lp',lbl:'Lumbar puncture',binary:true,dx:'Meningitis'},
-   {id:'urine',lbl:'Urine dip / culture',binary:true,dx:'UTI'},
-   {id:'cxr',lbl:'Chest X-ray',binary:true,dx:'Pneumonia'}],
+   {id:'crp',cat:'lab',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Meningitis / UTI'},
+   {id:'lp',cat:'lab',lbl:'Lumbar puncture',binary:true,dx:'Meningitis'},
+   {id:'urine',cat:'bedside',lbl:'Urine dip / culture',binary:true,dx:'UTI'},
+   {id:'cxr',cat:'imaging',lbl:'Chest X-ray',binary:true,dx:'Pneumonia'}],
   MX:{
    immediate:[{rx:'Sepsis assessment + fluids',for:'if unwell',dose:'20 ml/kg bolus',sign:true,active:'HR 168, RR 44 — assess now'},{rx:'Empirical antibiotics',for:'if meningitis / sepsis suspected',dose:'ceftriaxone, weight-based',sign:true},{rx:'Antipyretic',for:'comfort',dose:'paracetamol, weight-based'}],
    definitive:[{rx:'LP + CSF',for:'confirm / exclude meningitis',dose:'timing per stability'},{rx:'Source-directed therapy',for:'UTI / pneumonia',dose:'per protocol',sign:true}],
@@ -471,10 +511,10 @@ const CASES={
    {id:'csf',lbl:'CSF pleocytosis',stream:'ix',eff:{meningitis:[10,.2]},key:'meningitis',short:'LP'},
    {id:'ctv',lbl:'CT venogram — sinus thrombosis',stream:'ix',eff:{cvst:[14,.1]},key:'cvst',short:'CT venogram'}],
   IX:[
-   {id:'ct',lbl:'CT head (non-contrast)',binary:true,dx:'SAH'},
-   {id:'lpxan',lbl:'LP — xanthochromia',binary:true,dx:'SAH'},
-   {id:'csf',lbl:'CSF — pleocytosis',binary:true,dx:'Meningitis'},
-   {id:'ctv',lbl:'CT venogram',binary:true,dx:'CVST'}],
+   {id:'ct',cat:'imaging',lbl:'CT head (non-contrast)',binary:true,dx:'SAH'},
+   {id:'lpxan',cat:'lab',lbl:'LP — xanthochromia',binary:true,dx:'SAH'},
+   {id:'csf',cat:'lab',lbl:'CSF — pleocytosis',binary:true,dx:'Meningitis'},
+   {id:'ctv',cat:'imaging',lbl:'CT venogram',binary:true,dx:'CVST'}],
   MX:{
    immediate:[{rx:'Non-contrast CT head',for:'within 1 h',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'symptom control',dose:'per protocol',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'per neuro',active:'BP 176/98'}],
    definitive:[{rx:'Neurosurgical referral',for:'confirmed SAH',dose:'urgent — aneurysm securing'},{rx:'Antibiotics + aciclovir',for:'if meningitis / encephalitis',dose:'per protocol',sign:true},{rx:'Anticoagulation',for:'CVST — not if SAH',dose:'per neurology',sign:true}],
@@ -550,16 +590,19 @@ function paintHx(p,first){
 }
 
 function buildIx(){
-  document.getElementById('main').innerHTML=`<div class="panel">
-    <div class="phd"><span>◆</span><span>Enter results as you get them. Each value <b>updates the differential live</b> and <b>releases the confidence cap</b> once must-not-miss diagnoses are excluded.</span></div>
-    ${IX.map(t=>`<div class="ixin" data-t="${t.id}">
+  const CATS=[['bedside','Bedside · point-of-care'],['lab','Laboratory'],['imaging','Imaging']];
+  const item=t=>`<div class="ixin" data-t="${t.id}">
       <div class="top">
-        <span class="lab"><div class="t">${t.lbl}</div><div class="sub">${t.binary?'imaging / ECG':'normal '+t.norm} · <span class="dxc">${t.dx}</span></div></span>
+        <span class="lab"><div class="t">${t.lbl}</div><div class="sub">${t.binary?'':'normal '+t.norm+' · '}<span class="dxc">discriminates ${t.dx}</span></div></span>
         ${t.binary?'':`<span class="field"><input inputmode="decimal" placeholder="—" data-in value="${val[t.id]??''}"><span class="unit">${t.unit||''}</span></span>`}
         <span class="badge" data-badge></span>
       </div>
       <div class="qk"><button class="y" data-a="present">${t.binary?'Positive':'Abnormal'}</button><button class="n" data-a="absent">${t.binary?'Negative':'Normal'}</button></div>
-    </div>`).join('')}
+    </div>`;
+  const sections=CATS.map(([c,label])=>{const items=IX.filter(t=>(t.cat||'lab')===c);return items.length?`<div class="ixsec"><div class="ixhd"><span class="ixdot ${c}"></span>${label}<span class="ixn">${items.length}</span></div>${items.map(item).join('')}</div>`:'';}).join('');
+  document.getElementById('main').innerHTML=`<div class="panel">
+    <div class="phd"><span>◆</span><span>Enter results as you get them. Each value <b>updates the differential live</b> and <b>releases the confidence cap</b> once must-not-miss diagnoses are excluded.</span></div>
+    ${sections}
   </div>`;
   IX.forEach(t=>{
     const row=document.querySelector(`.ixin[data-t="${t.id}"]`);
@@ -708,19 +751,77 @@ function refresh(first){const p=probs();paintHeader(p,first);if(tab==='hx')paint
 function render(){if(tab==='hx')buildHx();else if(tab==='ix')buildIx();else if(tab==='mx')buildMx();else if(tab==='docs')buildDocs();else if(tab==='why')buildWhy();refresh(true);}
 
 function paintCaseUI(){
-  document.getElementById('casebar').innerHTML='<span class="cl">Case</span>'+Object.entries(CASES).map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}"><b>${c.specialty}</b> ${c.label}</button>`).join('');
-  document.getElementById('casebar').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
+  const entries=Object.entries(CASES).filter(([k])=>!k.startsWith('__'));
+  document.getElementById('casebar').innerHTML='<span class="cl">Case</span>'
+    +entries.map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}"><b>${c.specialty}</b> ${c.label}</button>`).join('')
+    +(caseId.startsWith('__')?`<button data-c="${caseId}" class="on"><b>${CASES[caseId].specialty}</b> ${CASES[caseId].label}</button>`:'')
+    +'<button class="newcase" id="newcase">＋ New case</button>';
+  document.getElementById('casebar').querySelectorAll('button[data-c]').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
+  document.getElementById('newcase').addEventListener('click',showIntake);
   document.getElementById('who').innerHTML=PT.line;
   paintVitals();
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab==='hx'));
   snap(probs());render();
 }
+
+// ---- Chat intake → AI-generated case (works for any presentation) ----
+const VC_BY_KEY={HR:'var(--hr)',BP:'var(--bp)',RR:'var(--rr)','SpO₂':'var(--spo2)',SpO2:'var(--spo2)','SpOâ‚‚':'var(--spo2)',T:'var(--temp)',Temp:'var(--temp)',Sats:'var(--spo2)'};
+const DX_ACCENTS=['var(--pet)','var(--hellp)','var(--chorio)','var(--aflp)','var(--rr)'];
+function loadGeneratedCase(pack){
+  pack.DX.forEach((d,i)=>{ if(!d.c) d.c=DX_ACCENTS[i%DX_ACCENTS.length]; });
+  pack.VITALS.forEach(v=>{ if(!v.vc) v.vc=VC_BY_KEY[v.k]||'var(--ink-mute)'; });
+  pack.MX=pack.MX||{immediate:[],definitive:[],monitor:[],levers:[]};
+  ['immediate','definitive','monitor','levers'].forEach(k=>{pack.MX[k]=pack.MX[k]||[];});
+  pack.IX=pack.IX||[]; pack.FEAT=pack.FEAT||[];
+  CASES.__gen=pack;
+  loadCase('__gen');
+  hideIntake();
+  paintCaseUI();
+}
+function istatus(cls,html){const el=document.getElementById('istatus');el.className='istatus '+(cls||'');el.innerHTML=html||'';}
+async function apiGenerate(text){
+  // Host app can inject window.MEDAI_GENERATE(text) → Promise<pack> (calls the
+  // key-gated /tools/clerk-generate endpoint). Otherwise try a same-origin call.
+  if(typeof window.MEDAI_GENERATE==='function') return await window.MEDAI_GENERATE(text);
+  const key=(window.localStorage&&localStorage.getItem('medai_tools_key'))||'';
+  const r=await fetch('/tools/clerk-generate',{method:'POST',headers:{'content-type':'application/json','x-tools-key':key},body:JSON.stringify({text})});
+  if(!r.ok) throw new Error('The reasoning service is unavailable here — try a worked example below.');
+  return await r.json();
+}
+async function generateCase(text){
+  if(!text||!text.trim()){istatus('err','Type a short description first.');return;}
+  const btn=document.getElementById('igen');btn.disabled=true;
+  istatus('load','<span class="ispin"></span>Reading the case, weighing the differential…');
+  try{
+    const pack=await apiGenerate(text.trim());
+    if(!pack||!Array.isArray(pack.DX)||!pack.DX.length) throw new Error('The board came back empty — try rephrasing.');
+    loadGeneratedCase(pack); istatus('','');
+  }catch(e){ istatus('err', (e&&e.message)||'Could not build the board.'); }
+  finally{ btn.disabled=false; }
+}
+function showIntake(){document.getElementById('intake').classList.remove('hide');}
+function hideIntake(){document.getElementById('intake').classList.add('hide');}
+
 function init(){
   document.getElementById('foot').innerHTML='<b><span class="sw" style="background:var(--good)">✓</span>present</b><b><span class="sw" style="background:var(--bad)">✕</span>absent</b>';
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
     tab=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));render();
   }));
-  loadCase('pre');paintCaseUI();
+  // intake wiring
+  document.getElementById('igen').addEventListener('click',()=>generateCase(document.getElementById('itext').value));
+  document.getElementById('ichips').innerHTML=Object.entries(CASES).filter(([k])=>!k.startsWith('__')).map(([k,c])=>`<button data-c="${k}">${c.specialty} · ${c.label}</button>`).join('');
+  document.getElementById('ichips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);hideIntake();paintCaseUI();}));
+  // When embedded in the app, route generation through the host (which holds the tools key).
+  if(window.parent&&window.parent!==window){
+    window.MEDAI_GENERATE=function(text){return new Promise(function(resolve,reject){
+      var id='g'+String(performance.now())+String(Math.round(Math.random()*1e6));
+      function on(e){if(!e.data||e.data.type!=='medai-generated'||e.data.id!==id)return;window.removeEventListener('message',on);if(e.data.error)reject(new Error(e.data.error));else resolve(e.data.pack);}
+      window.addEventListener('message',on);
+      window.parent.postMessage({type:'medai-generate',id:id,text:text},'*');
+      setTimeout(function(){window.removeEventListener('message',on);reject(new Error('The reasoning service timed out.'));},35000);
+    });};
+  }
+  loadCase('pre');paintCaseUI(); // preload behind the overlay so there is no flash
 }
 init();
 document.getElementById('theme').addEventListener('click',()=>{const r=document.documentElement,c=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.setAttribute('data-theme',c==='dark'?'light':'dark');});
