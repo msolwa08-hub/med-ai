@@ -134,8 +134,9 @@
   .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
   .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
   .feat.has-sub{align-items:flex-start}
-  .clerk{padding:15px 13px 8px;border-top:1px solid var(--line);background:var(--surface)}
+  .clerk{padding:14px 13px 16px;border-bottom:6px solid var(--surface-alt);background:var(--surface)}
   .clerkhd{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border-radius:10px;padding:9px 11px;margin-bottom:14px;line-height:1.4}
+  .dxlead{padding:12px 13px 9px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-mute)}
   .qstream{margin-top:4px}
   .qstream+.qstream{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line-soft)}
   .qhd{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:5px}
@@ -744,11 +745,13 @@ function paintHeader(p,first){
 }
 
 function buildHx(){
-  // The differential is the "picture" (ranked cards, top); the clerking QUEUE
-  // below is where you work — a rolling ≤5 history + ≤5 exam questions drawn
-  // from the whole board, highest-yield first. Answer one and it drops into the
-  // Recorded strip while the next slides up.
-  document.getElementById('main').innerHTML='<div class="streamleg" style="order:-1"><span><i class="hx"></i>History</span><span><i class="exam"></i>Examination</span></div>'+DX.map(d=>`
+  // The clerking QUEUE sits on top — a rolling ≤5 history + ≤5 exam questions,
+  // highest-yield first; answer one and it drops into the Recorded strip while
+  // the next slides up. The ranked differential is the "picture" beneath it.
+  // (Discriminating tests live on the Ix tab only — not here.)
+  document.getElementById('main').innerHTML='<div class="clerk" style="order:-10"><div class="clerkhd"><span>◆</span><span>Clerk the patient — highest-yield questions, one at a time</span></div><div id="queue"></div></div>'
+  +'<div class="dxlead" style="order:-5">Working differential</div>'
+  +DX.map(d=>`
     <div class="dx open" data-id="${d.id}" style="--dxc:${d.c}">
       <div class="accent"></div>
       <div class="col">
@@ -758,8 +761,7 @@ function buildHx(){
         </div>
         <div class="body"><div class="script" data-script></div></div>
       </div>
-    </div>`).join('')
-  +'<div class="clerk" style="order:900"><div class="clerkhd"><span>◆</span><span>Clerk the patient — highest-yield questions, one at a time</span></div><div id="queue"></div><div id="ixref"></div></div>';
+    </div>`).join('');
 }
 function paintHx(p,first){
   const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
@@ -805,9 +807,6 @@ function paintHx(p,first){
   qwrap.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];if(ans[fid]!=='present')clearFollow(findFeat(fid));refresh(false);}));
   qwrap.querySelectorAll('[data-reopen]').forEach(b=>b.addEventListener('click',()=>{const fid=b.dataset.reopen;snap(p);delete ans[fid];delete val[fid];if(checks[fid])delete checks[fid];clearFollow(findFeat(fid));refresh(false);}));
   wireClChips(qwrap);
-  const ixf=FEAT.filter(f=>f.stream==='ix');
-  const ixEl=document.getElementById('ixref');
-  if(ixEl)ixEl.innerHTML=ixf.length?`<div class="ixref"><div class="h">Discriminating tests · enter on the Ix tab</div>${ixf.map(f=>{const st=ixState(f);return `<div class="ixr"><span>${f.lbl}</span><span class="r ${st.cls}">${st.txt}</span></div>`;}).join('')}</div>`:'';
 }
 function buildIx(){
   const CATS=[['bedside','Bedside · point-of-care'],['lab','Laboratory'],['imaging','Imaging']];
