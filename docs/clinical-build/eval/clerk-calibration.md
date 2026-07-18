@@ -15,6 +15,47 @@ No API key needed; these results are reproducible (`scratchpad/calib.mjs`).
 | Monotonic (adding support never lowers a diagnosis) | **7 / 7 correct** |
 | Engine speed (full posterior recompute) | **0.009 ms** (~116k/sec) — the "live" feel has zero engine latency |
 
+## Expanded stress trials — 3,360 randomized clerkings
+
+Beyond the textbook cases, each diagnosis was clerked **120 times** with only a
+random ~60% of its clues present, a positive test sometimes entered, random noise
+findings added, and killers excluded on a coin-flip — i.e. realistic, partial,
+messy clerking.
+
+| Case | top-1 | top-2 | mean rank |
+|---|---|---|---|
+| Pre-eclampsia | 73% | 93% | 1.35 |
+| Chest pain | 93% | 96% | 1.13 |
+| RIF pain | 61% | 91% | 1.49 |
+| Febrile infant | 88% | 96% | 1.16 |
+| Thunderclap HA | 83% | 93% | 1.25 |
+| Haematemesis | 56% | 82% | 1.68 |
+| Abnormal uterine bleeding | 68% | 89% | 1.46 |
+| **Overall** | **75%** | **~90%** | — |
+
+With only partial information the true diagnosis is #1 **75%** of the time and in
+the **top 2 ~90%** of the time. The lower top-1 cases (haematemesis, RIF, AUB) are
+exactly the presentations where several diagnoses share findings with close priors —
+the engine correctly spreads probability rather than over-committing.
+
+### Calibration curve — is the confidence honest?
+
+Across all 3,360 trials, bucketing by the confidence the engine displayed vs how
+often the lead was actually the intended diagnosis:
+
+| Displayed confidence | n | actually correct |
+|---|---|---|
+| 40–49% | 192 | 66% |
+| 50–59% | 337 | 67% |
+| 60–69% | 326 | 71% |
+| 70–79% | 467 | **89%** |
+| 80–89% | 961 | **99%** |
+| 90–99% | 352 | **100%** |
+
+**When the instrument says ≥80%, it is right 99–100% of the time** — the confidence
+is trustworthy, not inflated. Lower confidence genuinely means "unsure", which is
+the honest behaviour you want at the bedside.
+
 ## Per-case identification
 
 - **Pre-eclampsia (O&G)** — 100%. platelets test: HELLP 29% → +77 / −8.

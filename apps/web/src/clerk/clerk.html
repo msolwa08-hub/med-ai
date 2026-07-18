@@ -316,6 +316,8 @@
   .block p,.sec p,.lt{font-size:12.5px;line-height:1.5;color:var(--ink);margin:0}
   .block p b,.sec p b,.lt b{display:inline;font-size:inherit;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:700;margin:0}
   .sec{padding:9px 0;border-top:1px solid var(--line-soft)}
+  .todayta{width:100%;box-sizing:border-box;margin-top:4px;min-height:56px;resize:vertical;font:inherit;font-size:12.5px;color:var(--ink);background:var(--surface-alt);border:1.5px solid var(--line);border-radius:9px;padding:8px 10px;outline:none}
+  .todayta:focus{border-color:var(--brand)}
   .sec:first-child{border-top:none;padding-top:2px}
   .lt{margin-bottom:10px}.lt:last-child{margin-bottom:2px}
   .docact{display:flex;gap:8px;margin-top:12px}
@@ -722,7 +724,7 @@ const CASES={
  },
 };
 
-let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false;
+let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false, todayNote='';
 const featsFor=id=>FEAT.filter(f=>f.eff[id]);
 // A finding may carry follow-up children (revealed when it is present) that
 // characterise it — cough → productive → colour change / blood. They live
@@ -737,7 +739,7 @@ function clearFollow(f){if(!f||!f.follow)return;for(const c of f.follow){delete 
 const SYS_MAP=[[/^I/,'cardiac',2,66],[/^J/,'resp',206,58],[/^G/,'neuro',268,46],[/^F/,'psych',248,40],[/^D[5-8]/,'haem',344,58],[/^[CD]/,'onc',222,22],[/^K/,'GI',33,64],[/^N/,'renal',176,50],[/^E/,'endo',30,72],[/^[AB]/,'infective',146,46],[/^O/,'obstetric',324,54],[/^M/,'MSK',20,32]];
 function sysOf(icd){const s=(icd||'').trim().toUpperCase();for(const r of SYS_MAP)if(r[0].test(s))return r;return[null,'general',192,26];}
 function assignSystemColors(dx){const cnt={};dx.forEach(d=>{const r=sysOf(d.icd),k=r[1],i=cnt[k]||0;cnt[k]=i+1;const L=Math.max(40,60-i*11);d.c=`hsl(${r[2]} ${r[3]}% ${L}%)`;d.sys=k;});}
-function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;}
+function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;todayNote='';}
 // Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
 function clChips(f){return '<div class="clchips" data-clf="'+f.id+'">'+f.checklist.map(function(s){var sel=checks[f.id]&&checks[f.id].has(s)?' sel':'';return '<button class="clchip'+sel+'" data-s="'+s+'">'+s+'</button>';}).join('')+'<button class="clchip none'+(ans[f.id]==='absent'?' sel':'')+'" data-none>none seen</button></div>';}
 function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(c){var fid=c.dataset.clf;c.querySelectorAll('.clchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());if(!checks[fid])checks[fid]=new Set();if(b.hasAttribute('data-none')){checks[fid].clear();ans[fid]='absent';}else{var s=b.dataset.s;checks[fid].has(s)?checks[fid].delete(s):checks[fid].add(s);if(checks[fid].size>0)ans[fid]='present';else delete ans[fid];}refresh(false);});});});}
@@ -1032,16 +1034,41 @@ function docRef(){
    <p class="lt">I would be grateful for urgent review.</p>
    <p class="lt">Kind regards,<br>Admitting clinician</p>`;
 }
-const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},ref:{label:'Referral',title:'Referral letter',f:docRef}};
+// Ward round — the "known patient" daily review: what's new today, how they're
+// responding, where the picture sits now, and what to improve.
+function roundPlan(li,pend){
+  const bits=[];
+  if(li.capped)bits.push('do NOT de-escalate — prioritise '+li.live.map(disc).join(' & ')+' to exclude the must-not-miss');
+  else bits.push('killers excluded — narrow therapy to '+shortName(li.lead)+' and step down monitoring');
+  if(pend.length)bits.push('chase pending: '+pend.join(', '));
+  bits.push('continue '+CASES[caseId].planLine.replace(/\.$/,''));
+  return bits.join('. ')+'.';
+}
+function docRound(){
+  const li=leadInfo(),pos=positives(),labs=labsEntered(),pend=pendingTests();
+  const resp=MX.levers.filter(l=>l.wired&&l.id&&ans[l.id]).map(l=>`${l.give} → ${ans[l.id]==='present'?l.resp+' (improving)':'no change — reconsider'}`);
+  const p=probs(),dl=Math.round((p[li.lead.id]-(last[li.lead.id]??p[li.lead.id]))*100);
+  const trend=dl>0?`▲ up ${dl}% since last review`:dl<0?`▼ down ${Math.abs(dl)}%`:'stable';
+  return `<div class="sec"><b>Ward round — today</b><p>${PT.summaryLine}, admitted with ${PT.complaint}.</p></div>
+   <div class="sec"><b>New complaints / events today</b><textarea id="todayin" class="todayta" placeholder="e.g. new pleuritic pain overnight · febrile to 38.9 · passing less urine · feeds improving…">${todayNote.replace(/</g,'&lt;')}</textarea></div>
+   <div class="sec"><b>Observations</b><p>${VITALS.map(v=>v.k+' '+v.v).join(' · ')}</p></div>
+   <div class="sec"><b>Response to treatment</b><p>${resp.length?resp.join('; '):'no treat-and-see markers recorded on the Mx tab yet'}</p></div>
+   <div class="sec"><b>On review</b><p>${pos.join(', ')||'no positives recorded'}</p></div>
+   <div class="sec"><b>Results</b><p>${labs.length?labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; '):''}${pend.length?(labs.length?'; ':'')+'pending: '+pend.join(', '):(labs.length?'':'awaited')}</p></div>
+   <div class="sec"><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% (${trend}) — ${li.capped?'must-not-miss not yet excluded: '+li.live.map(shortName).join(', '):'killers excluded'}.</p></div>
+   <div class="sec"><b>Plan / what to improve</b><p>${roundPlan(li,pend)}</p></div>`;
+}
+const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},round:{label:'Ward round',title:'Ward round — daily review',f:docRound},ref:{label:'Referral',title:'Referral letter',f:docRef}};
 function buildDocs(){
   const d=DOCS[docType];
   document.getElementById('main').innerHTML=`<div class="doc">
     <div class="docpick">${Object.entries(DOCS).map(([k,v])=>`<button data-d="${k}" class="${k===docType?'on':''}">${v.label}</button>`).join('')}</div>
-    <div class="paper"><div class="doctitle">${d.title}<span>on admission</span></div><div class="paperbody">${d.f()}</div></div>
+    <div class="paper"><div class="doctitle">${d.title}<span>${docType==='round'?'today':'on admission'}</span></div><div class="paperbody">${d.f()}</div></div>
     <div class="docact"><button class="pri" data-copy>Copy</button><button data-exp>Export PDF</button></div>
     <div class="docflag">◆ Auto-generated from the clerking — review and sign before use.</div>
   </div>`;
   document.querySelectorAll('.docpick button').forEach(b=>b.addEventListener('click',()=>{docType=b.dataset.d;buildDocs();}));
+  const ta=document.getElementById('todayin');if(ta)ta.addEventListener('input',e=>{todayNote=e.target.value;});
   const cp=document.querySelector('[data-copy]');
   cp.addEventListener('click',()=>{try{navigator.clipboard.writeText(document.querySelector('.paperbody').innerText);}catch(e){}cp.textContent='Copied ✓';setTimeout(()=>{cp.textContent='Copy';},1400);});
 }
