@@ -407,8 +407,8 @@ const CASES={
    {id:'glu',cat:'bedside',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP'},
    {id:'inr',cat:'lab',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'}],
   MX:{
-   immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV load + maintenance',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol · nifedipine · hydralazine',sign:true,active:'BP 168/112 — now'}],
-   definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'IM × 2',sign:true,ind:'33+4 wk — give'}],
+   immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV over 20 min → 1 g/h IV infusion',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol 20 mg IV (double q10min, max 300 mg) · or nifedipine 10 mg PO · or hydralazine 5 mg IV',sign:true,active:'BP 168/112 — now'}],
+   definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'12 mg IM, 2 doses 24 h apart',sign:true,ind:'33+4 wk — give'}],
    monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
    levers:[{id:'rx_dex',give:'IV dextrose',resp:'glucose corrects, rouses',means:'supports AFLP / hypoglycaemia',wired:true},{give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},{give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'}]},
  },
@@ -451,8 +451,8 @@ const CASES={
    {id:'ctaorta',cat:'imaging',lbl:'CT aorta',binary:true,dx:'Dissection'},
    {id:'ecgperi',cat:'bedside',lbl:'ECG — pericarditis pattern',binary:true,dx:'Pericarditis'}],
   MX:{
-   immediate:[{rx:'12-lead ECG',for:'within 10 min of arrival',dose:'now',active:'do first'},{rx:'Aspirin',for:'if ACS likely, dissection not suspected',dose:'300 mg PO',sign:true},{rx:'Analgesia + antiemetic',for:'pain and distress',dose:'morphine titrated',sign:true}],
-   definitive:[{rx:'Reperfusion (PCI / lysis)',for:'STEMI pathway',dose:'per cath-lab'},{rx:'Anticoagulation',for:'confirmed PE / NSTEMI — not if dissection',dose:'per protocol',sign:true},{rx:'Aortic control + CT surgery',for:'dissection',dose:'BP/HR control, urgent referral'}],
+   immediate:[{rx:'12-lead ECG',for:'within 10 min of arrival',dose:'now',active:'do first'},{rx:'Aspirin',for:'if ACS likely, dissection not suspected',dose:'300 mg PO chewed, stat',sign:true},{rx:'Analgesia + antiemetic',for:'pain and distress',dose:'morphine 2.5–5 mg IV titrated + metoclopramide 10 mg IV',sign:true}],
+   definitive:[{rx:'Reperfusion (PCI / lysis)',for:'STEMI pathway',dose:'primary PCI < 120 min · or tenecteplase (weight-based) if PCI unavailable'},{rx:'Anticoagulation',for:'confirmed PE / NSTEMI — not if dissection',dose:'enoxaparin 1 mg/kg SC 12-hly (renal-adjust) · or fondaparinux 2.5 mg SC OD',sign:true},{rx:'Aortic control + CT surgery',for:'dissection',dose:'keep SBP 100–120 / HR < 60 (IV labetalol); urgent cardiothoracic referral'}],
    monitor:['Continuous ECG','Serial troponin','BP in both arms','SpO₂ + respiratory rate'],
    holistic:[
     {label:'Secondary prevention',chips:['Smoking cessation','High-intensity statin','BP control','Diabetes control','Antiplatelet']},
@@ -492,8 +492,8 @@ const CASES={
    {id:'wcc',cat:'lab',lbl:'WCC',unit:'×10⁹/L',norm:'4–11',hi:11,dir:'above',dx:'Appendicitis'},
    {id:'usappy',cat:'imaging',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'}],
   MX:{
-   immediate:[{rx:'Urine βhCG',for:'exclude pregnancy first',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'per protocol',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'maintenance',active:'keep NBM'}],
-   definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Antibiotics',for:'per surgical protocol',dose:'per protocol',sign:true}],
+   immediate:[{rx:'Urine βhCG',for:'exclude pregnancy first',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'morphine 0.1 mg/kg IV titrated + ondansetron 4 mg IV',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'balanced crystalloid: maintenance + replace deficit',active:'keep NBM'}],
+   definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Antibiotics',for:'appendicitis / intra-abdominal cover',dose:'co-amoxiclav 1.2 g IV 8-hly · or cefuroxime 1.5 g IV + metronidazole 500 mg IV',sign:true}],
    monitor:['Serial abdominal exam','Obs + urine output','Repeat bloods','βhCG result'],
    levers:[{give:'Analgesia',resp:'pain well controlled',means:'reassess — does not exclude a surgical abdomen'},{give:'Serial exam',resp:'localises / worsens',means:'evolving appendicitis'}]},
  },
@@ -528,8 +528,8 @@ const CASES={
    {id:'urine',cat:'bedside',lbl:'Urine dip / culture',binary:true,dx:'UTI'},
    {id:'cxr',cat:'imaging',lbl:'Chest X-ray',binary:true,dx:'Pneumonia'}],
   MX:{
-   immediate:[{rx:'Sepsis assessment + fluids',for:'if unwell',dose:'20 ml/kg bolus',sign:true,active:'HR 168, RR 44 — assess now'},{rx:'Empirical antibiotics',for:'if meningitis / sepsis suspected',dose:'ceftriaxone, weight-based',sign:true},{rx:'Antipyretic',for:'comfort',dose:'paracetamol, weight-based'}],
-   definitive:[{rx:'LP + CSF',for:'confirm / exclude meningitis',dose:'timing per stability'},{rx:'Source-directed therapy',for:'UTI / pneumonia',dose:'per protocol',sign:true}],
+   immediate:[{rx:'Sepsis assessment + fluids',for:'if unwell',dose:'balanced crystalloid 20 ml/kg bolus, reassess',sign:true,active:'HR 168, RR 44 — assess now'},{rx:'Empirical antibiotics',for:'if meningitis / sepsis suspected',dose:'ceftriaxone 80 mg/kg IV OD (neonate < 1 mth: ampicillin + cefotaxime)',sign:true},{rx:'Antipyretic',for:'comfort',dose:'paracetamol 15 mg/kg PO/PR 6-hly'}],
+   definitive:[{rx:'LP + CSF',for:'confirm / exclude meningitis',dose:'timing per stability'},{rx:'Source-directed therapy',for:'UTI / pneumonia',dose:'narrow per culture & sensitivities',sign:true}],
    monitor:['Continuous obs + AVPU','Fluid balance / urine output','Repeat examination','Blood glucose'],
    levers:[{give:'Antipyretic',resp:'bright & playful once afebrile',means:'reassuring — favours viral'},{give:'Fluid bolus',resp:'perfusion improves',means:'supports sepsis physiology'}]},
  },
@@ -565,8 +565,8 @@ const CASES={
    {id:'csf',cat:'lab',lbl:'CSF — pleocytosis',binary:true,dx:'Meningitis'},
    {id:'ctv',cat:'imaging',lbl:'CT venogram',binary:true,dx:'CVST'}],
   MX:{
-   immediate:[{rx:'Non-contrast CT head',for:'within 1 h',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'symptom control',dose:'per protocol',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'per neuro',active:'BP 176/98'}],
-   definitive:[{rx:'Migraine abortive',for:'lead: acute migraine',dose:'triptan + NSAID + antiemetic — per protocol',sign:true},{rx:'Migraine prevention',for:'if ≥4 attacks/month or disabling',dose:'propranolol / amitriptyline / topiramate — per protocol',sign:true},{rx:'Neurosurgical referral',for:'only if SAH confirmed',dose:'urgent — aneurysm securing'},{rx:'Antibiotics + aciclovir',for:'only if meningitis / encephalitis',dose:'per protocol',sign:true},{rx:'Anticoagulation',for:'only if CVST (not SAH)',dose:'per neurology',sign:true}],
+   immediate:[{rx:'Non-contrast CT head',for:'within 1 h',dose:'now',active:'do first'},{rx:'Analgesia + antiemetic',for:'symptom control',dose:'paracetamol 1 g IV + metoclopramide 10 mg IV (avoid opioids in migraine)',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'keep SBP < 160 — labetalol 10–20 mg IV',sign:true,active:'BP 176/98'}],
+   definitive:[{rx:'Migraine abortive',for:'lead: acute migraine',dose:'sumatriptan 50–100 mg PO (or 6 mg SC) + NSAID (ibuprofen 400 mg / naproxen 500 mg) + metoclopramide 10 mg',sign:true},{rx:'Migraine prevention',for:'if ≥4 attacks/month or disabling',dose:'propranolol 80 mg/day · or amitriptyline 10–25 mg nocte · or topiramate 25 mg, titrate',sign:true},{rx:'Neurosurgical referral',for:'only if SAH confirmed',dose:'urgent — aneurysm coiling / clipping + nimodipine 60 mg PO 4-hly'},{rx:'Antibiotics + aciclovir',for:'only if meningitis / encephalitis',dose:'ceftriaxone 2 g IV 12-hly + aciclovir 10 mg/kg IV 8-hly',sign:true},{rx:'Anticoagulation',for:'only if CVST (not SAH)',dose:'enoxaparin 1 mg/kg SC 12-hly (even if haemorrhagic infarct)',sign:true}],
    holistic:[
     {label:'Identify & avoid triggers',chips:['Chocolate','Aged cheese','Red wine','Caffeine excess / withdrawal','Skipped meals','Dehydration','Poor / irregular sleep','Stress','Bright light / screens','Menstrual cycle']},
     {label:'Lifestyle',chips:['Regular meals','Regular sleep','Hydration','Aerobic exercise','Limit acute analgesia (avoid medication-overuse headache)']},
@@ -601,8 +601,8 @@ const CASES={
    {id:'hb',lbl:'Haemoglobin',cat:'lab',unit:'g/L',norm:'130–170',lo:100,dir:'below',dx:'Bleed severity'},
    {id:'endo',lbl:'OGD (upper endoscopy)',cat:'imaging',binary:true,dx:'Source'}],
   MX:{
-   immediate:[{rx:'Two large-bore IV lines + fluids',for:'resuscitation',dose:'per protocol',sign:true,active:'HR 116, BP 98/62 — now'},{rx:'Group &amp; save + crossmatch',for:'likely transfusion',dose:'2–4 units',sign:true},{rx:'Terlipressin + antibiotics',for:'if varices suspected',dose:'per protocol',sign:true}],
-   definitive:[{rx:'Urgent upper GI endoscopy',for:'diagnose &amp; treat the source',dose:'within 24 h (sooner if unstable)'},{rx:'PPI infusion',for:'confirmed ulcer bleed',dose:'per protocol',sign:true}],
+   immediate:[{rx:'Two large-bore IV lines + fluids',for:'resuscitation',dose:'balanced crystalloid; transfuse to target Hb ≥ 70 g/L',sign:true,active:'HR 116, BP 98/62 — now'},{rx:'Group &amp; save + crossmatch',for:'likely transfusion',dose:'2–4 units; correct coagulopathy / platelets',sign:true},{rx:'Terlipressin + antibiotics',for:'if varices suspected',dose:'terlipressin 2 mg IV 4-hly + ceftriaxone 1 g IV OD',sign:true}],
+   definitive:[{rx:'Urgent upper GI endoscopy',for:'diagnose &amp; treat the source',dose:'within 24 h (sooner if unstable); band varices / clip ulcer'},{rx:'PPI infusion',for:'confirmed high-risk ulcer bleed',dose:'esomeprazole 80 mg IV bolus → 8 mg/h for 72 h',sign:true}],
    monitor:['Obs + urine output','Serial haemoglobin','Repeat PR for melaena'],
    holistic:[
     {label:'Remove precipitants',chips:['Stop NSAIDs','Stop / reduce alcohol','Smoking cessation','Review anticoagulants / antiplatelets']},
@@ -641,8 +641,8 @@ const CASES={
    {id:'tvus',lbl:'Transvaginal ultrasound',cat:'imaging',binary:true,dx:'Fibroid / endometrium'},
    {id:'biopsy',lbl:'Endometrial biopsy',cat:'lab',binary:true,dx:'Hyperplasia / cancer'}],
   MX:{
-   immediate:[{rx:'Urine βhCG',for:'exclude pregnancy first',dose:'now',active:'do first in any reproductive-age woman'},{rx:'Tranexamic acid',for:'reduce menstrual blood loss',dose:'per protocol during menses',sign:true},{rx:'Iron replacement',for:'correct anaemia',dose:'per Hb / ferritin',sign:true}],
-   definitive:[{rx:'Hormonal control (LNG-IUS / COCP / progestogen)',for:'medical first-line',dose:'per protocol',sign:true},{rx:'Endometrial sampling ± hysteroscopy',for:'if ≥45 yr or risk factors',dose:'exclude hyperplasia / cancer'},{rx:'Surgical (myomectomy / ablation / hysterectomy)',for:'structural or failed medical',dose:'per gynae'}],
+   immediate:[{rx:'Urine βhCG',for:'exclude pregnancy first',dose:'now',active:'do first in any reproductive-age woman'},{rx:'Tranexamic acid',for:'reduce menstrual blood loss',dose:'1 g PO 6–8-hly during menses (up to 4 days)',sign:true},{rx:'Iron replacement',for:'correct anaemia',dose:'elemental iron 100–200 mg/day PO (IV if intolerant / severe)',sign:true}],
+   definitive:[{rx:'Hormonal control',for:'medical first-line',dose:'LNG-IUS (Mirena) 1st-line · or COCP · or norethisterone 5 mg TDS days 5–26',sign:true},{rx:'Endometrial sampling ± hysteroscopy',for:'if ≥45 yr or risk factors',dose:'Pipelle biopsy — exclude hyperplasia / cancer'},{rx:'Surgical (myomectomy / ablation / hysterectomy)',for:'structural or failed medical',dose:'per gynae — definitive if family complete'}],
    monitor:['Menstrual calendar / pictorial blood-loss chart','Repeat Hb / ferritin','Biopsy result'],
    holistic:[
     {label:'Correct & prevent anaemia',chips:['Iron-rich diet','Iron replacement','Recheck FBC / ferritin']},
