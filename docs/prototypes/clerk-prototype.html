@@ -179,6 +179,27 @@
   .cover b{font-weight:750}
   .cover.ok{color:var(--good);background:var(--good-tint);border-color:color-mix(in oklab,var(--good) 25%,transparent)}
   .mxcite{display:flex;gap:7px;font-size:10.5px;color:var(--ink-mute);line-height:1.45;padding:8px 2px 4px}
+  /* Documents panel */
+  .doc{padding:14px}
+  .docpick{display:flex;gap:6px;margin-bottom:13px}
+  .docpick button{flex:1;font-size:11.5px;font-weight:650;padding:9px 4px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .docpick button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .paper{background:var(--surface-alt);border:1px solid var(--line);border-radius:13px;padding:15px 15px 8px}
+  .doctitle{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:750;letter-spacing:-.01em;margin-bottom:11px;color:var(--ink)}
+  .doctitle span{font-size:10px;font-weight:500;color:var(--ink-mute);white-space:nowrap;flex:none}
+  .block{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line-soft)}
+  .block:first-child{border-top:none;padding-top:2px}
+  .block .ltr{width:24px;height:24px;border-radius:7px;background:var(--brand-tint);color:var(--brand-strong);font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+  .block b,.sec b{display:block;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:3px}
+  .block p,.sec p,.lt{font-size:12.5px;line-height:1.5;color:var(--ink);margin:0}
+  .block p b,.sec p b,.lt b{display:inline;font-size:inherit;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:700;margin:0}
+  .sec{padding:9px 0;border-top:1px solid var(--line-soft)}
+  .sec:first-child{border-top:none;padding-top:2px}
+  .lt{margin-bottom:10px}.lt:last-child{margin-bottom:2px}
+  .docact{display:flex;gap:8px;margin-top:12px}
+  .docact button{flex:1;font-size:12.5px;font-weight:650;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink-soft);cursor:pointer;transition:all .14s}
+  .docact button.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+  .docflag{font-size:10.5px;color:var(--amber);text-align:center;margin-top:10px}
   .empty{padding:40px 26px 44px;text-align:center}
   .empty .ic{font-size:30px;color:var(--brand);opacity:.8}
   .empty .t{font-size:15px;font-weight:700;margin:12px 0 5px;letter-spacing:-.01em}
@@ -418,14 +439,61 @@ function paintMx(p){
   document.querySelectorAll('[data-lever]').forEach(el=>{const a=ans[el.dataset.lever];el.querySelector('.up').classList.toggle('sel',a==='present');el.querySelector('.no').classList.toggle('sel',a==='absent');});
 }
 
+// ---- Documents (tab 4) — the note the clerk writes back ----
+const PT={complaint:'headache and epigastric pain',ageParity:'29-year-old G3P2',ga:'33<sup>+4</sup> weeks'};
+let docType='sbar';
+function positives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>f.lbl.split(' (')[0]);}
+function negatives(){return FEAT.filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='absent').map(f=>f.lbl.split(' (')[0]);}
+function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val[t.id]||'',state:ans[t.id]==='present'?(t.dir==='below'?'low':'high'):'normal'}));}
+function leadInfo(){const p=probs(),c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);return{lead:c.lead,conf:Math.round(conf*100),capped:c.capped,live:c.live};}
+function shortName(d){return d.name.replace(' of pregnancy','');}
+function docSBAR(){
+  const li=leadInfo(),pos=positives(),labs=labsEntered();
+  const capline=li.capped?` Confidence capped at ${li.conf}% — ${li.live.map(shortName).join(' and ')} not yet excluded.`:'';
+  return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${PT.ageParity} at ${PT.ga}, admitted with ${PT.complaint}. Current BP <b>168/112</b>, HR 104, T 37.9&nbsp;°C, RR 18, SpO₂ 98%.</p></div></div>
+   <div class="block"><span class="ltr">B</span><div><b>Background</b><p>Third pregnancy, two prior deliveries. No hypertension documented before this pregnancy. Gestation ${PT.ga} by dates.</p></div></div>
+   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence.${capline} Supporting findings: ${pos.join(', ')||'—'}.${labs.length?' Bloods — '+labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; ')+'.':' Bloods pending.'}</p></div></div>
+   <div class="block"><span class="ltr">R</span><div><b>Recommendation</b><p>MgSO₄ seizure prophylaxis; control BP &lt;150/100; betamethasone for fetal lung maturity; urgent FBC, U&amp;E, LFT, coagulation, glucose. <b>Urgent senior O&amp;G review — plan delivery after maternal stabilisation.</b></p></div></div>`;
+}
+function docClerk(){
+  const pos=positives(),neg=negatives(),labs=labsEntered(),li=leadInfo();
+  return `<div class="sec"><b>Presenting complaint</b><p>${PT.complaint}, ${PT.ga}.</p></div>
+   <div class="sec"><b>Observations</b><p>${VITALS.map(v=>v.k+' '+v.v).join(' · ')}</p></div>
+   <div class="sec"><b>Positive findings</b><p>${pos.join(', ')||'none recorded'}</p></div>
+   <div class="sec"><b>Pertinent negatives</b><p>${neg.join(', ')||'none recorded'}</p></div>
+   <div class="sec"><b>Investigations</b><p>${labs.length?labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; '):'awaited'}</p></div>
+   <div class="sec"><b>Impression</b><p>${li.lead.name} (${li.lead.icd}), ${li.conf}%${li.capped?'; must-not-miss not excluded: '+li.live.map(shortName).join(', '):''}.</p></div>
+   <div class="sec"><b>Plan</b><p>MgSO₄ · BP control · betamethasone · urgent bloods · senior O&amp;G review · plan delivery.</p></div>`;
+}
+function docRef(){
+  const li=leadInfo(),pos=positives();
+  return `<p class="lt">Dear O&amp;G Registrar on call,</p>
+   <p class="lt">Please urgently review this ${PT.ageParity} at <b>${PT.ga}</b> presenting with ${PT.complaint} and <b>BP 168/112</b>. My working diagnosis is <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence${li.capped?', with '+li.live.map(shortName).join(' and ')+' not yet excluded pending bloods':''}.</p>
+   <p class="lt">Positive findings: ${pos.join(', ')||'—'}. I have commenced MgSO₄ and blood-pressure control and sent FBC, U&amp;E, LFT, coagulation and glucose.</p>
+   <p class="lt">I would be grateful for urgent review with a view to delivery planning.</p>
+   <p class="lt">Kind regards,<br>Admitting intern</p>`;
+}
+const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent obstetric referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},ref:{label:'Referral',title:'Referral letter',f:docRef}};
+function buildDocs(){
+  const d=DOCS[docType];
+  document.getElementById('main').innerHTML=`<div class="doc">
+    <div class="docpick">${Object.entries(DOCS).map(([k,v])=>`<button data-d="${k}" class="${k===docType?'on':''}">${v.label}</button>`).join('')}</div>
+    <div class="paper"><div class="doctitle">${d.title}<span>on admission</span></div><div class="paperbody">${d.f()}</div></div>
+    <div class="docact"><button class="pri" data-copy>Copy</button><button data-exp>Export PDF</button></div>
+    <div class="docflag">◆ Auto-generated from the clerking — review and sign before use.</div>
+  </div>`;
+  document.querySelectorAll('.docpick button').forEach(b=>b.addEventListener('click',()=>{docType=b.dataset.d;buildDocs();}));
+  const cp=document.querySelector('[data-copy]');
+  cp.addEventListener('click',()=>{try{navigator.clipboard.writeText(document.querySelector('.paperbody').innerText);}catch(e){}cp.textContent='Copied ✓';setTimeout(()=>{cp.textContent='Copy';},1400);});
+}
+
 const EMPTY={
-  docs:{ic:'▤',t:'Documents populate from the clerk',s:'Discharge summaries and statutory forms (MHCA 72-hr, J88, consent) auto-fill from everything captured on this patient.',pill:'0 forms ready'},
   why:{ic:'✦',t:'Every number is explainable',s:'The reasoning trace logs each finding you enter and exactly how much it moved each diagnosis — tap any probability to see its evidence.',pill:'6 findings logged'},
 };
 function buildEmpty(k){const e=EMPTY[k];document.getElementById('main').innerHTML=`<div class="empty"><div class="ic">${e.ic}</div><div class="t">${e.t}</div><div class="s">${e.s}</div><div class="pill">${e.pill}</div></div>`;}
 
 function refresh(first){const p=probs();paintHeader(p,first);if(tab==='hx')paintHx(p,first);else if(tab==='ix')paintIx(p);else if(tab==='mx')paintMx(p);}
-function render(){const m=document.getElementById('main');if(tab==='hx'){buildHx();}else if(tab==='ix'){buildIx();}else if(tab==='mx'){buildMx();}else{buildEmpty(tab);}refresh(true);}
+function render(){const m=document.getElementById('main');if(tab==='hx'){buildHx();}else if(tab==='ix'){buildIx();}else if(tab==='mx'){buildMx();}else if(tab==='docs'){buildDocs();}else{buildEmpty(tab);}refresh(true);}
 
 function init(){
   paintVitals();
