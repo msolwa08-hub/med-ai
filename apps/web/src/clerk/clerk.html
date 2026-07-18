@@ -130,6 +130,19 @@
   .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
   .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
   .feat.on .fl{color:var(--ink);font-weight:550}
+  .feat-cl{display:block;padding:9px 0}
+  .feat-cl .fl{font-size:12.5px;font-weight:650;color:var(--ink)}
+  .feat-cl .fl em{font-style:normal;font-weight:500;font-size:10.5px;color:var(--ink-mute);margin-left:6px}
+  .clchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .clchip{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;transition:all .13s}
+  .clchip:hover{border-color:var(--ink-mute)}
+  .clchip.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .clchip.none{color:var(--ink-mute)}
+  .clchip.none.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .next.next-cl{flex-direction:column;align-items:stretch;gap:0;padding:11px 12px}
+  .next-cl .nxtop{display:flex;align-items:center;gap:10px}
+  .next-cl .nxdone{flex:none;font-size:11px;font-weight:700;color:var(--brand-strong);background:var(--brand-tint);border:none;border-radius:8px;padding:6px 11px;cursor:pointer}
+  .next-cl .clchips{margin-top:10px}
   .tc{display:flex;gap:6px;flex:none}
   .tc button{width:38px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;transition:all .14s}
   .tc button:hover{border-color:var(--ink-mute)}
@@ -521,11 +534,45 @@ const CASES={
    monitor:['GCS + pupils','BP','Hourly neuro obs','Repeat CT if deteriorates'],
    levers:[{give:'Analgesia',resp:'headache fully resolves',means:'less reassuring — SAH pain can settle'},{give:'Dark quiet room',resp:'settles with prior pattern',means:'favours migraine'}]},
  },
+ gib:{
+  specialty:'IM / Surgery', label:'Haematemesis',
+  referTo:'Medical / Surgical Registrar on call',
+  planLine:'resuscitate · 2 large IV lines · G&S + crossmatch · risk score · urgent endoscopy.',
+  recommendation:'Resuscitate with two large-bore IV lines and fluids/blood as needed; group &amp; save and crossmatch; risk-stratify (Glasgow-Blatchford); <b>urgent upper GI endoscopy</b>. If varices suspected: terlipressin and antibiotics per protocol. Senior review.',
+  PT:{line:'62 · ♂ · haematemesis · 3 h', summaryLine:'62-year-old man', complaint:'vomiting fresh blood for three hours', background:'Alcohol excess; regular NSAIDs for back pain. No prior variceal bleed documented.'},
+  VITALS:[{k:'HR',v:'116',vc:'var(--hr)'},{k:'BP',v:'98/62',vc:'var(--bp)'},{k:'RR',v:'20',vc:'var(--rr)'},{k:'SpO₂',v:'97',vc:'var(--spo2)'},{k:'T',v:'36.7',vc:'var(--temp)'}],
+  DX:[
+   {id:'pud',name:'Peptic ulcer bleed',icd:'K27.4',c:'var(--pet)',prior:.38,mnm:true,script:'epigastric pain + NSAID / H. pylori + melaena / haematemesis'},
+   {id:'varices',name:'Oesophageal varices',icd:'I85.0',c:'var(--chorio)',prior:.20,mnm:true,script:'chronic liver disease + large-volume haematemesis'},
+   {id:'mallory',name:'Mallory–Weiss tear',icd:'K22.6',c:'var(--hellp)',prior:.15,mnm:false,script:'retching / vomiting then small streaks of blood'},
+   {id:'malig',name:'Upper GI malignancy',icd:'C16.9',c:'var(--aflp)',prior:.07,mnm:false,script:'weight loss + anorexia + chronic anaemia in an older patient'}],
+  FEAT:[
+   {id:'nsaid',lbl:'NSAID use',stream:'hx',eff:{pud:[3,.6]},preset:'present'},
+   {id:'etoh',lbl:'Alcohol excess',stream:'hx',eff:{varices:[3,.5]},preset:'present'},
+   {id:'retch',lbl:'Retching before the bleed',stream:'hx',eff:{mallory:[4,.5]}},
+   {id:'wtloss',lbl:'Weight loss / anorexia',stream:'hx',eff:{malig:[3,.5]}},
+   {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pud:[2,.7]}},
+   {id:'cld',lbl:'Chronic liver disease',stream:'exam',eff:{varices:[7,.3]},checklist:['Jaundice','Spider naevi','Palmar erythema','Ascites','Gynaecomastia','Asterixis']},
+   {id:'melaena',lbl:'Melaena on PR',stream:'exam',eff:{pud:[2,.6],varices:[2,.6]}},
+   {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{pud:[1.5,.8],varices:[1.5,.8]},key:'pud',short:'endoscopy'},
+   {id:'endo',lbl:'OGD — bleeding source seen',stream:'ix',eff:{varices:[8,.15]},key:'varices',short:'endoscopy'}],
+  IX:[
+   {id:'hb',lbl:'Haemoglobin',cat:'lab',unit:'g/L',norm:'130–170',lo:100,dir:'below',dx:'Bleed severity'},
+   {id:'endo',lbl:'OGD (upper endoscopy)',cat:'imaging',binary:true,dx:'Source'}],
+  MX:{
+   immediate:[{rx:'Two large-bore IV lines + fluids',for:'resuscitation',dose:'per protocol',sign:true,active:'HR 116, BP 98/62 — now'},{rx:'Group &amp; save + crossmatch',for:'likely transfusion',dose:'2–4 units',sign:true},{rx:'Terlipressin + antibiotics',for:'if varices suspected',dose:'per protocol',sign:true}],
+   definitive:[{rx:'Urgent upper GI endoscopy',for:'diagnose &amp; treat the source',dose:'within 24 h (sooner if unstable)'},{rx:'PPI infusion',for:'confirmed ulcer bleed',dose:'per protocol',sign:true}],
+   monitor:['Obs + urine output','Serial haemoglobin','Repeat PR for melaena'],
+   levers:[{give:'Fluids / blood',resp:'obs improve then re-drop',means:'ongoing bleeding — expedite scope'}]},
+ },
 };
 
-let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar';
+let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null;
 const featsFor=id=>FEAT.filter(f=>f.eff[id]);
-function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';}
+function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;}
+// Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
+function clChips(f){return '<div class="clchips" data-clf="'+f.id+'">'+f.checklist.map(function(s){var sel=checks[f.id]&&checks[f.id].has(s)?' sel':'';return '<button class="clchip'+sel+'" data-s="'+s+'">'+s+'</button>';}).join('')+'<button class="clchip none'+(ans[f.id]==='absent'?' sel':'')+'" data-none>none seen</button></div>';}
+function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(c){var fid=c.dataset.clf;c.querySelectorAll('.clchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());if(!checks[fid])checks[fid]=new Set();if(b.hasAttribute('data-none')){checks[fid].clear();ans[fid]='absent';}else{var s=b.dataset.s;checks[fid].has(s)?checks[fid].delete(s):checks[fid].add(s);if(checks[fid].size>0)ans[fid]='present';else delete ans[fid];}refresh(false);});});});}
 
 
 function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
@@ -546,10 +593,20 @@ function paintHeader(p,first){
   const capEl=document.getElementById('cap');
   if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')+' not yet excluded. Enter bloods on the Ix tab to release.</span>';}
   else capEl.style.display='none';
-  const nb=nextBest(p),nx=document.getElementById('next');
-  if(nb){nx.style.display='flex';nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>the one answer that moves the picture most</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
-    nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{snap(probs());ans[nb.id]=b.dataset.a;refresh(false);}));}
-  else nx.style.display='none';
+  let nb=null;
+  if(pinNext){nb=FEAT.find(f=>f.id===pinNext);if(!nb)pinNext=null;}
+  if(!nb){nb=nextBest(p);if(nb&&nb.checklist)pinNext=nb.id;}
+  const nx=document.getElementById('next');
+  if(nb&&nb.checklist){
+    nx.style.display='flex';nx.className='next next-cl';
+    nx.innerHTML=`<div class="nxtop"><span class="tag">Next</span><span class="qt">${nb.lbl}<em>tick what you see — no need to recall the term</em></span><button class="nxdone" data-done>done →</button></div>${clChips(nb)}`;
+    nx.querySelector('[data-done]').addEventListener('click',()=>{pinNext=null;refresh(false);});
+    wireClChips(nx);
+  } else if(nb){
+    nx.style.display='flex';nx.className='next';
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>the one answer that moves the picture most</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
+    nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{snap(probs());ans[nb.id]=b.dataset.a;refresh(false);}));
+  } else nx.style.display='none';
 }
 
 function buildHx(){
@@ -583,8 +640,11 @@ function paintHx(p,first){
     const matched=featsFor(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
     el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
     const fc=el.querySelector('[data-feats]');
-    fc.innerHTML=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').map(f=>`<div class="feat${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl">${f.lbl}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
+    fc.innerHTML=featsFor(d.id).filter(f=>f.stream==='hx'||f.stream==='exam').map(f=>f.checklist
+      ?`<div class="feat feat-cl${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl">${f.lbl}<em>tick the signs you see</em></div>${clChips(f)}</div>`
+      :`<div class="feat${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl">${f.lbl}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>`).join('');
     fc.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];refresh(false);}));
+    wireClChips(fc);
     el.querySelectorAll('[data-ix]').forEach(r=>{const st=ixState(FEAT.find(f=>f.id===r.dataset.ix));const rr=r.querySelector('[data-ixr]');rr.className='r '+st.cls;rr.textContent=st.txt;});
   });
 }
