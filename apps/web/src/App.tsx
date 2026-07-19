@@ -6,8 +6,9 @@ const ChatView = lazy(() => import('./components/ChatView'));
 const DoctorApp = lazy(() => import('./doctor/DoctorAppLazy'));
 const ToolsApp = lazy(() => import('./tools/ToolsAppLazy'));
 const ClerkApp = lazy(() => import('./clerk/ClerkApp'));
+const WardApp = lazy(() => import('./ward/WardApp'));
 
-type Route = 'landing' | 'chat' | 'doctor' | 'tools' | 'clerk';
+type Route = 'landing' | 'chat' | 'doctor' | 'tools' | 'clerk' | 'ward';
 
 function getRoute(): Route {
   const params = new URLSearchParams(window.location.search);
@@ -17,6 +18,7 @@ function getRoute(): Route {
   if (path === '/doctor') return 'doctor';
   if (path === '/tools') return 'tools';
   if (path === '/clerk') return 'clerk';
+  if (path === '/ward') return 'ward';
   // Auto-route to tools if the user has already set up their key
   if (path === '/' && localStorage.getItem('medai_tools_key')) return 'tools';
   return 'landing';
@@ -56,6 +58,7 @@ export default function App() {
     if (route === 'doctor') return <Suspense fallback={<RouteFallback />}><DoctorApp onBack={() => navigate('landing')} /></Suspense>;
     if (route === 'tools') return <Suspense fallback={<RouteFallback />}><ToolsApp onBack={() => navigate('landing')} /></Suspense>;
     if (route === 'clerk') return <Suspense fallback={<RouteFallback />}><ClerkApp onBack={() => navigate('landing')} /></Suspense>;
+    if (route === 'ward') return <Suspense fallback={<RouteFallback />}><WardApp onBack={() => navigate('landing')} /></Suspense>;
     return <LandingPage onNavigate={navigate} />;
   })();
 
