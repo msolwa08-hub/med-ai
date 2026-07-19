@@ -80,6 +80,11 @@
   .vital.abn-lo{border-color:color-mix(in oklab,var(--rr) 45%,var(--line));background:color-mix(in oklab,var(--rr) 6%,var(--surface))}
   .vital.abn-lo b{color:var(--rr)}
   .vital .varw{font-size:9px;vertical-align:1px}
+  .vital .vin{width:3.4ch;field-sizing:content;min-width:1.4ch;max-width:7ch;border:none;background:none;color:var(--vc);font:inherit;font-weight:800;font-variant-numeric:tabular-nums;outline:none;padding:0;text-align:left}
+  .vital .vin::placeholder{color:var(--ink-mute);font-weight:700}
+  .vital.abn-hi .vin{color:var(--bad)} .vital.abn-lo .vin{color:var(--rr)}
+  .vital.vunset{border-style:dashed;opacity:.85}
+  .vital.vunset .vin{color:var(--ink-mute)}
   .sysleg{display:flex;gap:12px;margin-top:8px;font-size:9.5px;color:var(--ink-mute);letter-spacing:.02em}
   .sysleg span{display:inline-flex;align-items:center;gap:4px}
   .sysleg i{width:8px;height:8px;border-radius:2px;display:inline-block}
@@ -799,12 +804,17 @@ function vitalFlag(v,ctx){
 }
 function paintVitals(){
   const band=demoBand(),ctx={band,r:AGE_RANGES[band]||AGE_RANGES.adult};
-  document.getElementById('vitals').innerHTML=VITALS.map(v=>{
-    const fl=vitalFlag(v,ctx),rg=v.k==='BP'?ctx.r.sys:vitalRange(v,ctx);
+  const el=document.getElementById('vitals');
+  el.innerHTML=VITALS.map((v,i)=>{
+    const has=(v.v!=null&&String(v.v).trim()!=='');
+    const fl=has?vitalFlag(v,ctx):'',rg=v.k==='BP'?ctx.r.sys:vitalRange(v,ctx);
     const title=rg?`${v.k} normal ${rg[0]}–${rg[1]}${v.k==='BP'?' systolic':''} · ${band}`:'';
-    const arw=fl==='hi'?' <span class="varw">↑</span>':fl==='lo'?' <span class="varw">↓</span>':'';
-    return `<span class="vital${fl?' abn-'+fl:''}" style="--vc:${v.vc}"${title?` title="${title}"`:''}><span class="dot"></span><span class="lbl">${v.k}</span><b>${v.v}${arw}</b></span>`;
+    const arw=fl==='hi'?'<span class="varw">↑</span>':fl==='lo'?'<span class="varw">↓</span>':'';
+    // Vitals are MEASURED, never assumed — each value is an inline field the
+    // clinician records; blank shows a muted "—" until entered.
+    return `<span class="vital${fl?' abn-'+fl:''}${has?'':' vunset'}" style="--vc:${v.vc}"${title?` title="${title}"`:''}><span class="dot"></span><span class="lbl">${v.k}</span><input class="vin" data-vi="${i}" value="${String(v.v??'').replace(/"/g,'&quot;')}" placeholder="—" aria-label="${v.k}">${arw}</span>`;
   }).join('');
+  el.querySelectorAll('.vin').forEach(inp=>inp.addEventListener('change',()=>{VITALS[+inp.dataset.vi].v=inp.value.trim();paintVitals();}));
 }
 
 function paintHeader(p,first){
@@ -1135,6 +1145,11 @@ const VC_BY_KEY={HR:'var(--hr)',BP:'var(--bp)',RR:'var(--rr)','SpO₂':'var(--sp
 const DX_ACCENTS=['var(--pet)','var(--hellp)','var(--chorio)','var(--aflp)','var(--rr)'];
 function loadGeneratedCase(pack){
   pack.DX.forEach((d,i)=>{ if(!d.c) d.c=DX_ACCENTS[i%DX_ACCENTS.length]; });
+  // Always show the five standard vital slots as blank, enterable fields — the
+  // model must not invent vitals, so any it didn't get from the text stay empty
+  // for the clinician to measure and record.
+  pack.VITALS=Array.isArray(pack.VITALS)?pack.VITALS:[];
+  ['HR','BP','RR','SpO₂','T'].forEach(k=>{ if(!pack.VITALS.some(v=>v.k===k||v.k===k.replace('₂','2'))) pack.VITALS.push({k,v:''}); });
   pack.VITALS.forEach(v=>{ if(!v.vc) v.vc=VC_BY_KEY[v.k]||'var(--ink-mute)'; });
   pack.MX=pack.MX||{investigate:[],immediate:[],definitive:[],longterm:[],monitor:[],levers:[],holistic:[]};
   ['investigate','immediate','definitive','longterm','monitor','levers','holistic'].forEach(k=>{pack.MX[k]=pack.MX[k]||[];});
