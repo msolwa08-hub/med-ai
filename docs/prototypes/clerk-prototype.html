@@ -463,12 +463,18 @@ const CASES={
      {id:'bookingga',lbl:'Gestation at booking (first) antenatal visit',stream:'hx',num:{unit:'weeks'}},
      {id:'ancvisits',lbl:'Total antenatal visits so far',stream:'hx',num:{unit:'visits'}},
      {id:'ancsig',lbl:'Any significant findings at antenatal visits',stream:'hx',kind:'text'},
-     {id:'multiple',lbl:'Multiple pregnancy suspected / confirmed',stream:'hx',follow:[
-       {id:'multiplewhy',lbl:'How suspected / confirmed',stream:'hx',kind:'choice',options:['Ultrasound','Uterus large-for-dates','Hyperemesis gravidarum','Family history of twins','Fertility treatment (e.g. IVF)']}]}]},
+     {id:'bloodgroup',lbl:'Blood group (ABO)',stream:'hx',kind:'choice',options:['A','B','AB','O','Not done']},
+     {id:'rhesus',lbl:'Rhesus factor',stream:'hx',kind:'choice',options:['Positive','Negative','Not done']},
+     {id:'rpr',lbl:'RPR (syphilis screen)',stream:'hx',kind:'choice',options:['Non-reactive','Reactive','Not done']},
+     {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
+     {id:'hepb',lbl:'Hepatitis B surface antigen',stream:'hx',kind:'choice',options:['Negative','Positive','Not done']}]},
    {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
    {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
    {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
    {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
+   // Grounded in the real trigger, not a bare "multiple pregnancy?" tick: SFH
+   // measured against gestational age is what actually raises the suspicion.
+   {id:'sfh',lbl:'Symphysis-fundal height',stream:'exam',num:{unit:'cm'},criterion:'compare to gestation in weeks — normally ≈ equal ± 2 cm',ask:'if larger than expected for dates: consider multiple pregnancy, polyhydramnios, macrosomia, wrong dates, or fibroids'},
    {id:'liquor',lbl:'Ruptured membranes / offensive liquor',stream:'exam',eff:{chorio:[5,.5]}},
    {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',eff:{chorio:[3,.6]}},
    {id:'plt',lbl:'Platelets < 100',stream:'ix',eff:{hellp:[8,.2]},key:'hellp',short:'platelets'},
