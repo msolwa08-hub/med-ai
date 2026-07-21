@@ -205,6 +205,14 @@
   .next-cl .nxtop{display:flex;align-items:center;gap:10px}
   .next-cl .nxdone{flex:none;font-size:11px;font-weight:700;color:var(--brand-strong);background:var(--brand-tint);border:none;border-radius:8px;padding:6px 11px;cursor:pointer}
   .next-cl .clchips{margin-top:10px}
+  .cchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .cchip{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;transition:all .13s}
+  .cchip:hover{border-color:var(--ink-mute)}
+  .cchip.sel{background:var(--brand);border-color:var(--brand);color:#fff}
+  .cchip.other{color:var(--ink-mute);border-style:dashed}
+  .cchip.other.sel{background:var(--ink-mute);border-color:var(--ink-mute);color:#fff;border-style:solid}
+  .cotherin{display:block;width:100%;box-sizing:border-box;margin-top:8px;background:var(--surface-alt);border:1.5px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;font-size:12.5px;color:var(--ink);outline:none}
+  .cotherin:focus{border-color:var(--brand)}
   .tc{display:flex;gap:6px;flex:none}
   .tc button{width:38px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;transition:transform .09s cubic-bezier(.34,1.56,.64,1),background .14s,border-color .14s,color .14s}
   /* tap micro-feedback: a quick press/settle on any tick-style control */
@@ -447,6 +455,16 @@ const CASES={
    {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
    {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pet:[2.4,.6],hellp:[3,.5],aflp:[2,.7]},preset:'present'},
    {id:'vis',lbl:'Visual disturbance',stream:'hx',eff:{pet:[3,.5]}},
+   // Antenatal history — informational (no eff): this doesn't move the PET/HELLP
+   // odds, but a complete obstetric presentation needs it regardless. This is
+   // what Completeness measures and Confidence deliberately does not.
+   {id:'antenatal',lbl:'Antenatal care attended',stream:'hx',follow:[
+     {id:'confirmmethod',lbl:'How pregnancy was confirmed',stream:'hx',kind:'choice',options:['Urine pregnancy test','Missed period + clinical exam','Early dating ultrasound','Booking bloods / βhCG']},
+     {id:'bookingga',lbl:'Gestation at booking (first) antenatal visit',stream:'hx',num:{unit:'weeks'}},
+     {id:'ancvisits',lbl:'Total antenatal visits so far',stream:'hx',num:{unit:'visits'}},
+     {id:'ancsig',lbl:'Any significant findings at antenatal visits',stream:'hx',kind:'text'},
+     {id:'multiple',lbl:'Multiple pregnancy suspected / confirmed',stream:'hx',follow:[
+       {id:'multiplewhy',lbl:'How suspected / confirmed',stream:'hx',kind:'choice',options:['Ultrasound','Uterus large-for-dates','Hyperemesis gravidarum','Family history of twins','Fertility treatment (e.g. IVF)']}]}]},
    {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
    {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
    {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
@@ -710,7 +728,7 @@ const CASES={
    {id:'parity',lbl:'Parity (previous deliveries)',stream:'hx',num:{unit:'deliveries'},follow:[
      {id:'delmode',lbl:'Mode of delivery(s)',stream:'hx',kind:'text'}]},
    {id:'priorgynsurg',lbl:'Prior gynaecological surgery',stream:'hx',criterion:'e.g. myomectomy, hysteroscopy, hysterectomy',ask:'have you ever had any womb / gynaecological surgery?',follow:[
-     {id:'gynsurgwhat',lbl:'Procedure',stream:'hx',kind:'text'},
+     {id:'gynsurgwhat',lbl:'Procedure',stream:'hx',kind:'choice',options:['Hysterectomy','Myomectomy','Endometrial ablation','Hysteroscopy ± polypectomy','Caesarean section','Tubal ligation','Dilatation & curettage']},
      {id:'gynsurgwhy',lbl:'Indication',stream:'hx',kind:'text'},
      {id:'gynsurgwhen',lbl:'Time since procedure',stream:'hx',num:{unit:'years'}}]},
    {id:'bulky',lbl:'Bulky / irregular uterus',stream:'exam',eff:{fibroid:[4,.4]},criterion:'palpable ≥ 12-week size or irregular contour',ask:'bimanual: is the uterus enlarged or irregular?'},
@@ -739,7 +757,7 @@ const CASES={
  },
 };
 
-let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false, todayNote='';
+let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false, todayNote='', otherOpen=new Set();
 const featsFor=id=>FEAT.filter(f=>f.eff&&f.eff[id]);
 // A finding may carry follow-up children (revealed when it is present) that
 // characterise it — cough → productive → colour change / blood. They live
@@ -754,19 +772,53 @@ function clearFollow(f){if(!f||!f.follow)return;for(const c of f.follow){delete 
 const SYS_MAP=[[/^I/,'cardiac',2,66],[/^J/,'resp',206,58],[/^G/,'neuro',268,46],[/^F/,'psych',248,40],[/^D[5-8]/,'haem',344,58],[/^[CD]/,'onc',222,22],[/^K/,'GI',33,64],[/^N/,'renal',176,50],[/^E/,'endo',30,72],[/^[AB]/,'infective',146,46],[/^O/,'obstetric',324,54],[/^M/,'MSK',20,32]];
 function sysOf(icd){const s=(icd||'').trim().toUpperCase();for(const r of SYS_MAP)if(r[0].test(s))return r;return[null,'general',192,26];}
 function assignSystemColors(dx){const cnt={};dx.forEach(d=>{const r=sysOf(d.icd),k=r[1],i=cnt[k]||0;cnt[k]=i+1;const L=Math.max(40,60-i*11);d.c=`hsl(${r[2]} ${r[3]}% ${L}%)`;d.sys=k;});}
-function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;todayNote='';}
+function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;todayNote='';otherOpen=new Set();}
 // Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
+const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
+// A num finding with no lo/hi is INFORMATIONAL (e.g. "years since surgery") — it
+// has nothing to be abnormal against, so it must never be marked ABNORMAL; it's
+// simply RECORDED once a value is entered.
+const numBadge=f=>{const a=ans[f.id];if(!a)return{c:'',t:''};const t=f.num;if(t.lo==null&&t.hi==null)return{c:'ok',t:'RECORDED'};if(a==='absent')return{c:'ok',t:'NORMAL'};const x=parseFloat(val[f.id]);let txt='ABNORMAL';if(!isNaN(x)){if(t.hi!=null&&x>t.hi)txt='HIGH';else if(t.lo!=null&&x<t.lo)txt='LOW';}return{c:'hi',t:txt};};
 function clChips(f){return '<div class="clchips" data-clf="'+f.id+'">'+f.checklist.map(function(s){var sel=checks[f.id]&&checks[f.id].has(s)?' sel':'';return '<button class="clchip'+sel+'" data-s="'+s+'">'+s+'</button>';}).join('')+'<button class="clchip none'+(ans[f.id]==='absent'?' sel':'')+'" data-none>none seen</button></div>';}
 function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(c){var fid=c.dataset.clf;c.querySelectorAll('.clchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());if(!checks[fid])checks[fid]=new Set();if(b.hasAttribute('data-none')){checks[fid].clear();ans[fid]='absent';}else{var s=b.dataset.s;checks[fid].has(s)?checks[fid].delete(s):checks[fid].add(s);if(checks[fid].size>0)ans[fid]='present';else delete ans[fid];}refresh(false);});});});}
+// Single-select tap chips for a small enumerable answer set (a handful of common
+// procedures, delivery modes, contraception types…) — tapping beats typing.
+// "Other" reveals a one-off text field only when none of the common options fit;
+// otherOpen tracks that reveal explicitly so the field appears the instant
+// "Other" is tapped, before any text exists (val alone can't signal that).
+function chChips(f){
+  const opts=f.options||[],cur=val[f.id]||'',showOther=otherOpen.has(f.id)||(cur!==''&&!opts.includes(cur));
+  return '<div class="cchips" data-chf="'+f.id+'">'+opts.map(function(o){return '<button class="cchip'+(cur===o?' sel':'')+'" data-v="'+o.replace(/"/g,'&quot;')+'">'+o+'</button>';}).join('')
+    +'<button class="cchip other'+(showOther?' sel':'')+'" data-other>Other</button></div>'
+    +(showOther?'<input type="text" class="cotherin" data-cotxt="'+f.id+'" value="'+cur.replace(/"/g,'&quot;')+'" placeholder="type the answer…">':'');
+}
+function wireChChips(root){
+  root.querySelectorAll('[data-chf]').forEach(function(c){var fid=c.dataset.chf;c.querySelectorAll('.cchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());
+    if(b.hasAttribute('data-other')){otherOpen.add(fid);refresh(false);return;}
+    otherOpen.delete(fid);val[fid]=b.dataset.v;ans[fid]='present';refresh(false);
+  });});});
+  root.querySelectorAll('[data-cotxt]').forEach(function(inp){inp.addEventListener('change',function(){const fid=inp.dataset.cotxt,raw=inp.value.trim();snap(probs());val[fid]=raw;if(raw)ans[fid]='present';else delete ans[fid];refresh(false);});});
+}
 
 
 function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsForAll(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
 function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
-// Findings without a dx-discriminating eff (free-text / informational-only, e.g.
-// "indication for hysterectomy") don't drive the posterior, but they still count
-// towards clerking completeness — guard against missing/empty eff (real crash
-// risk once such findings exist) and give them a modest baseline weight.
-function completeness(){const hx=FEAT.filter(f=>f.stream==='hx'||f.stream==='exam');const w=f=>{const ks=f.eff?Object.keys(f.eff):[];return ks.length?Math.abs(Math.log(f.eff[ks[0]][0])):1;};let t=0,g=0;for(const f of hx){const wt=w(f);t+=wt;if(ans[f.id])g+=wt;}return t?g/t:0;}
+// Completeness and Confidence answer different questions and must stay
+// decoupled: Confidence is diagnosis-focused (a few high-yield findings can
+// justify 80% in the lead even from a thin clerking). Completeness is "how much
+// of the full history & exam have I actually gathered" — an unweighted count,
+// blind to any single finding's diagnostic importance, so a case isn't "100%
+// complete" just because the handful of high-LR questions got answered.
+// Relevance-gated: a follow-up only enters the count once its parent is
+// present (revealed), and drops back out if the parent is answered absent —
+// asking "how many antenatal visits?" isn't a gap for a patient with no
+// antenatal care, but it IS a gap once she says she attended.
+function relevantFeats(){
+  const out=[];
+  (function walk(list){for(const f of list){out.push(f);if(ans[f.id]==='present'&&f.follow&&f.follow.length)walk(f.follow);}})(FEAT);
+  return out;
+}
+function completeness(){const hx=relevantFeats().filter(f=>f.stream==='hx'||f.stream==='exam');if(!hx.length)return 0;return hx.filter(f=>ans[f.id]).length/hx.length;}
 function nextBest(p){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;const g=Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
 function tween(el,to,suf=''){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/450);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
 function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
@@ -848,6 +900,21 @@ function paintHeader(p,first){
     nx.innerHTML=`<div class="nxtop"><span class="tag">Next</span><span class="qt">${nb.lbl}<em>tick what you see — no need to recall the term</em></span><button class="nxdone" data-done>done →</button></div>${clChips(nb)}`;
     nx.querySelector('[data-done]').addEventListener('click',()=>{pinNext=null;refresh(false);});
     wireClChips(nx);
+  } else if(nb&&nb.kind==='choice'){
+    // Same type-dispatch discipline as the queue: the pinned "Next" question
+    // must render by what the finding IS, not default to a yes/no it doesn't fit.
+    nx.style.display='flex';nx.className='next';
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'tap the closest match'}</em></span>`+chChips(nb);
+    wireChChips(nx);
+  } else if(nb&&nb.kind==='text'){
+    nx.style.display='flex';nx.className='next';
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'type the answer'}</em></span><span class="txtin"><input type="text" placeholder="type answer…" data-txt value="${(val[nb.id]||'').replace(/"/g,'&quot;')}"></span>`;
+    nx.querySelectorAll('[data-txt]').forEach(inp=>inp.addEventListener('change',()=>{const raw=inp.value.trim();snap(probs());val[nb.id]=raw;if(raw)ans[nb.id]='present';else delete ans[nb.id];refresh(false);}));
+  } else if(nb&&nb.num){
+    const nbb=numBadge(nb);
+    nx.style.display='flex';nx.className='next';
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'enter the value'}</em></span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[nb.id]??''}"><span class="unit">${nb.num.unit||''}</span></span><span class="badge${nbb.c?' show '+nbb.c:''}">${nbb.t}</span></span>`;
+    nx.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const t=nb.num,raw=inp.value.trim();snap(probs());val[nb.id]=raw;const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[nb.id];else if(t.lo==null&&t.hi==null)ans[nb.id]='present';else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[nb.id]=abn?'present':'absent';}refresh(false);}));
   } else if(nb){
     nx.style.display='flex';nx.className='next';
     nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'the one answer that moves the picture most'}</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
@@ -899,11 +966,9 @@ function paintHx(p,first){
   function hasOpenDesc(f){if(!f.follow)return false;for(const c of f.follow){if(!ans[c.id])return true;if(ans[c.id]==='present'&&hasOpenDesc(c))return true;}return false;}
   const needsWork=f=>!ans[f.id]||(ans[f.id]==='present'&&hasOpenDesc(f));
   const rank=f=>(ans[f.id]==='present'&&hasOpenDesc(f))?0:1; // finish an open cascade before starting fresh
-  const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
   // A num finding with no lo/hi is INFORMATIONAL (e.g. "years since surgery") —
   // it has nothing to be abnormal against, so it must never be marked ABNORMAL;
   // it's simply RECORDED once a value is entered.
-  const numBadge=f=>{const a=ans[f.id];if(!a)return{c:'',t:''};const t=f.num;if(t.lo==null&&t.hi==null)return{c:'ok',t:'RECORDED'};if(a==='absent')return{c:'ok',t:'NORMAL'};const x=parseFloat(val[f.id]);let txt='ABNORMAL';if(!isNaN(x)){if(t.hi!=null&&x>t.hi)txt='HIGH';else if(t.lo!=null&&x<t.lo)txt='LOW';}return{c:'hi',t:txt};};
   const kids=f=>(ans[f.id]==='present'&&f.follow&&f.follow.length)?`<div class="follows">${f.follow.map(c=>featRow(c,true)).join('')}</div>`:'';
   function featRow(f,child){
     const sub=fsub(f),st=f.stream||'hx';
@@ -915,6 +980,9 @@ function paintHx(p,first){
     // to a yes/no tick regardless of its real type — e.g. "how long ago was
     // the hysterectomy?" rendered as present/absent. That was the bug.)
     if(f.checklist)return `<div class="feat feat-cl str-${st}${child?' child':''}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
+    // A small enumerable answer set (common procedures, delivery mode, contraception
+    // type…) gets tap chips — minimises typing to the genuine "none of these fit" case.
+    if(f.kind==='choice')return `<div class="feat feat-cl str-${st}${child?' child':''}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}</div>${sub}${chChips(f)}</div>${kids(f)}`;
     // Free-text answers (an indication, a procedure name, "what medication") get
     // a text field, never a yes/no tick — a y/n control doesn't fit an open answer.
     if(f.kind==='text')return `<div class="feat str-${st}${child?' child':''} has-sub text${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="txtin"><input type="text" placeholder="type answer…" data-txt value="${(val[f.id]||'').replace(/"/g,'&quot;')}"></span></div>${kids(f)}`;
@@ -923,7 +991,7 @@ function paintHx(p,first){
   }
   const recdChip=f=>{
     const base=f.lbl.split(' (')[0];
-    if(f.kind==='text'&&val[f.id])return `<button class="recdchip present" data-reopen="${f.id}">${base}: "${val[f.id]}"</button>`;
+    if((f.kind==='text'||f.kind==='choice')&&val[f.id])return `<button class="recdchip present" data-reopen="${f.id}">${base}: "${val[f.id]}"</button>`;
     if(f.num&&f.num.lo==null&&f.num.hi==null&&val[f.id])return `<button class="recdchip present" data-reopen="${f.id}">${base}: ${val[f.id]}${f.num.unit?' '+f.num.unit:''}</button>`;
     return `<button class="recdchip ${ans[f.id]}" data-reopen="${f.id}">${base} ${ans[f.id]==='present'?'✓':'✕'}</button>`;
   };
@@ -943,8 +1011,9 @@ function paintHx(p,first){
   qwrap.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,t=findFeat(fid).num,raw=inp.value.trim();val[fid]=raw;snap(probs());const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[fid];else if(t.lo==null&&t.hi==null)ans[fid]='present';else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[fid]=abn?'present':'absent';}refresh(false);}));
   qwrap.querySelectorAll('[data-txt]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,raw=inp.value.trim();snap(probs());val[fid]=raw;if(raw)ans[fid]='present';else delete ans[fid];refresh(false);}));
   qwrap.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];if(ans[fid]!=='present')clearFollow(findFeat(fid));refresh(false);}));
-  qwrap.querySelectorAll('[data-reopen]').forEach(b=>b.addEventListener('click',()=>{const fid=b.dataset.reopen;snap(p);delete ans[fid];delete val[fid];if(checks[fid])delete checks[fid];clearFollow(findFeat(fid));refresh(false);}));
+  qwrap.querySelectorAll('[data-reopen]').forEach(b=>b.addEventListener('click',()=>{const fid=b.dataset.reopen;snap(p);delete ans[fid];delete val[fid];if(checks[fid])delete checks[fid];otherOpen.delete(fid);clearFollow(findFeat(fid));refresh(false);}));
   wireClChips(qwrap);
+  wireChChips(qwrap);
 }
 function buildIx(){
   const p=probs();
@@ -1044,7 +1113,7 @@ function paintMx(p){
 function positives(){return allFeats().filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>{
   const base=f.lbl.split(' (')[0];
   if(f.checklist&&checks[f.id]&&checks[f.id].size)return base+' ('+[...checks[f.id]].join(', ').toLowerCase()+')';
-  if(f.kind==='text'&&val[f.id])return base+': '+val[f.id];
+  if((f.kind==='text'||f.kind==='choice')&&val[f.id])return base+': '+val[f.id];
   if(f.num&&val[f.id])return base+' '+val[f.id]+(f.num.unit?' '+f.num.unit:'');
   return base;
 });}
