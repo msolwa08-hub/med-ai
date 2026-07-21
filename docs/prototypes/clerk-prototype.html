@@ -158,6 +158,8 @@
   .qhd .qct{margin-left:auto;font-size:10px;font-weight:700;color:var(--ink-mute);letter-spacing:0;text-transform:none}
   .qmore{font-size:10.5px;color:var(--ink-mute);padding:5px 0 2px;font-style:italic}
   .qdone{font-size:11.5px;color:var(--good);font-weight:600;padding:4px 0}
+  .phasecut{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--ink-mute);letter-spacing:.02em;padding:9px 0 6px;border-top:1px dashed var(--line-soft);margin-top:2px}
+  .phasecut span{color:var(--brand);flex:none}
   .recd{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dotted var(--line-soft)}
   .recd .recdh{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-right:2px}
   .recdchip{font-size:10.5px;font-weight:600;border-radius:7px;padding:4px 8px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);transition:all .12s}
@@ -468,6 +470,16 @@ const CASES={
      {id:'rpr',lbl:'RPR (syphilis screen)',stream:'hx',kind:'choice',options:['Non-reactive','Reactive','Not done']},
      {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
      {id:'hepb',lbl:'Hepatitis B surface antigen',stream:'hx',kind:'choice',options:['Negative','Positive','Not done']}]},
+   // Generic background completeness — not tied to obstetrics, every full
+   // clerking needs these regardless of presenting complaint.
+   {id:'lmp',lbl:'Last menstrual period',stream:'hx',kind:'text'},
+   {id:'menarche',lbl:'Age at menarche',stream:'hx',num:{unit:'years'}},
+   {id:'pmhx',lbl:'Past medical history',stream:'hx',kind:'text'},
+   {id:'pshx',lbl:'Past surgical history',stream:'hx',follow:[
+     {id:'pshxwhat',lbl:'Procedure',stream:'hx',kind:'choice',options:['Caesarean section','Appendicectomy','Cholecystectomy','Hernia repair','Tubal ligation','Other gynaecological surgery']},
+     {id:'pshxwhen',lbl:'Time since procedure',stream:'hx',num:{unit:'years'}}]},
+   {id:'drughx',lbl:'Current medications',stream:'hx',kind:'text'},
+   {id:'allergy',lbl:'Known drug allergies',stream:'hx',kind:'choice',options:['No known allergies','Penicillin','Sulfa drugs','NSAIDs']},
    {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
    {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
    {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
@@ -969,6 +981,7 @@ function paintHx(p,first){
   // ---- the global rolling clerking queue (≤5 per stream, highest-yield first) ----
   const QLIMIT=5;
   const yieldOf=f=>Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0),0);
+  const isDiscrim=f=>!!(f.eff&&Object.keys(f.eff).length); // does it actually move a differential, or is it background/completeness
   function hasOpenDesc(f){if(!f.follow)return false;for(const c of f.follow){if(!ans[c.id])return true;if(ans[c.id]==='present'&&hasOpenDesc(c))return true;}return false;}
   const needsWork=f=>!ans[f.id]||(ans[f.id]==='present'&&hasOpenDesc(f));
   const rank=f=>(ans[f.id]==='present'&&hasOpenDesc(f))?0:1; // finish an open cascade before starting fresh
@@ -1007,7 +1020,15 @@ function paintHx(p,first){
     const open=list.filter(needsWork).sort((a,b)=>rank(a)-rank(b)||yieldOf(b)-yieldOf(a));
     const shown=open.slice(0,QLIMIT), more=open.length-shown.length;
     const done=list.filter(f=>!needsWork(f));
-    const rows=shown.length?shown.map(f=>featRow(f,false)).join(''):`<div class="qdone">✓ All ${label.toLowerCase()} covered</div>`;
+    // Once every diagnosis-discriminating question is answered, what's left is
+    // pure completeness (background history, not diagnostic) — call that out
+    // explicitly rather than let it look like more of the same differential-
+    // driving questions. "Satisfied on the diagnostic stuff → now the rest."
+    const discPending=open.filter(isDiscrim).length;
+    const completenessPhase=discPending===0&&open.length>0&&list.some(isDiscrim);
+    const phaseTag=completenessPhase?`<div class="phasecut"><span>◆</span>Diagnostic ${label.toLowerCase()} answered — for completeness (background, not diagnosis-moving)</div>`:'';
+    const doneMsg=S==='hx'?'✓ History complete — move to Examination':`✓ All ${label.toLowerCase()} covered`;
+    const rows=shown.length?phaseTag+shown.map(f=>featRow(f,false)).join(''):`<div class="qdone">${doneMsg}</div>`;
     const moreTag=more>0?`<div class="qmore">+${more} more ${label.toLowerCase()} question${more>1?'s':''} queued</div>`:'';
     const recd=done.length?`<div class="recd"><span class="recdh">Recorded</span>${done.map(recdChip).join('')}</div>`:'';
     return `<div class="qstream qs-${S}"><div class="qhd"><span class="sdot ${S}"></span>${label}<span class="qct">${done.length}/${list.length}</span></div>${rows}${moreTag}${recd}</div>`;
