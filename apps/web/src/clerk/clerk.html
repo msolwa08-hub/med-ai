@@ -101,6 +101,30 @@
   .fill.conf{background:linear-gradient(90deg,var(--brand),var(--brand-strong))}
   .fill.comp{background:linear-gradient(90deg,#8fa3a6,#5f7377)}
   .cap{display:flex;gap:7px;align-items:flex-start;margin-top:10px;font-size:11.5px;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:10px;padding:8px 10px;line-height:1.4}
+  /* The computed-score card — same visual language as .cap (a bordered tinted
+     callout) so it reads as part of the same "trust signal" family, but its
+     own colour tracks the score's risk band (good/amber/bad) rather than
+     always being amber, and it's collapsible to its total by default so it
+     doesn't compete with the differential for attention (2026-07-22 audit:
+     don't dump everything, but don't hide what matters). */
+  .scorebar{display:none;margin-top:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface-alt);overflow:hidden}
+  .scorebar.show{display:block}
+  .scorebar .shd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;cursor:pointer}
+  .scorebar .sname{font-size:11.5px;font-weight:700;color:var(--ink-soft)}
+  .scorebar .stot{display:flex;align-items:center;gap:8px}
+  .scorebar .spts{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+  .scorebar .sband{font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:99px}
+  .scorebar .sband.good{color:var(--good);background:var(--good-tint)}
+  .scorebar .sband.amber{color:var(--amber);background:var(--amber-tint)}
+  .scorebar .sband.bad{color:var(--bad);background:var(--bad-tint)}
+  .scorebar .spartial{font-size:10px;color:var(--ink-mute);font-style:italic}
+  .scorebar .said{font-size:10.5px;color:var(--ink-mute);line-height:1.4;padding:0 10px 9px}
+  .scorebar .score+.score{border-top:1px solid var(--line)}
+  .scorebar .sitems{display:none;border-top:1px solid var(--line);padding:7px 10px}
+  .scorebar .score.open .sitems{display:block}
+  .scorebar .srow{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;color:var(--ink-soft)}
+  .scorebar .srow .rp{font-weight:700;font-variant-numeric:tabular-nums}
+  .scorebar .srow.unanswered{opacity:.5;font-style:italic}
   .diffstrip{display:none;flex-wrap:wrap;gap:6px;margin-top:10px}
   .diffstrip.show{display:flex}
   .diffchip{font-size:10.5px;font-weight:750;padding:4px 10px;border-radius:99px;background:var(--surface);border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px;color:var(--ink-soft)}
@@ -442,6 +466,7 @@
       </div>
     </div>
     <div class="cap" id="cap"></div>
+    <div class="scorebar" id="scorebar"></div>
     <div class="diffstrip" id="diffstrip"></div>
     <div class="next" id="next"></div>
 
@@ -571,6 +596,10 @@ const CASES={
    {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
    {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
    {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
+   // Score-only input, no `eff` — HEART's own "History" component is a clinician
+   // gestalt rating (this is how real HEART Pathway tools capture it, not derived
+   // from the individual findings already scored above, which would double-count).
+   {id:'heartHx',lbl:'History — how suspicious does the story sound overall?',stream:'hx',kind:'choice',options:['Slightly suspicious','Moderately suspicious','Highly suspicious'],ask:'the HEART score’s own history component — a gestalt read, not a new finding'},
    {id:'diaph',lbl:'Diaphoresis / distress',stream:'exam',eff:{acs:[2,.7]},preset:'present'},
    {id:'asym',lbl:'Unequal arm BP / pulse deficit',stream:'exam',eff:{dissection:[6,.4]}},
    {id:'jvp',lbl:'Raised JVP / RV strain',stream:'exam',eff:{pe:[3,.6]}},
@@ -600,6 +629,26 @@ const CASES={
     {label:'Lifestyle',chips:['Cardiac rehabilitation','Mediterranean diet','Regular aerobic exercise','Weight management','Reduce alcohol']},
     {label:'Educate & safety-net',note:'Explain red-flag return: recurrent or worsening chest pain, breathlessness or syncope; adherence to secondary-prevention meds.'}],
    levers:[{give:'GTN',resp:'pain settles',means:'consistent with ischaemia — not specific'},{give:'After full analgesia',resp:'pain persists',means:'concerning — reconsider dissection'}]},
+  // HEART score (Six AJ et al., 2008; Backus AE et al., 2010) — the field's
+  // real bedside chest-pain risk score (HEART Pathway). ECG and Troponin here
+  // read the pack's existing binary findings (present→highest tier) rather
+  // than the full 3-tier original, a stated simplification, not silent.
+  SCORES:[{id:'heart',name:'HEART score',
+   items:[
+    {label:'History',featId:'heartHx',map:(a,v)=>({'Slightly suspicious':0,'Moderately suspicious':1,'Highly suspicious':2}[v]??0)},
+    {label:'ECG',featId:'ecgisch',pts:2},
+    {label:'Age (58 — 45–64 band)',fixed:1},
+    {label:'Risk factors',agg:(ans,val)=>{
+      const present=['htn','dm','lipids','famhx'].filter(id=>ans[id]==='present').length+(val['smoking']==='Current smoker'?1:0);
+      const known=['htn','dm','lipids','famhx'].some(id=>ans[id]!==undefined)||ans['smoking']!==undefined;
+      if(!known) return{pts:0,unanswered:true};
+      return{pts:present>=3?2:present>=1?1:0,unanswered:false};
+    }},
+    {label:'Troponin',featId:'trop',pts:2}],
+   bands:[
+    {min:0,label:'Low (0–3)',cls:'good',action:'~1.7% 30-day MACE — HEART Pathway supports early discharge if troponin stays normal.'},
+    {min:4,label:'Moderate (4–6)',cls:'amber',action:'~12–16.6% 30-day MACE — admit for observation and serial troponin.'},
+    {min:7,label:'High (7–10)',cls:'bad',action:'~50–65% 30-day MACE — early invasive strategy, do not defer.'}]}],
  },
  surg:{
   specialty:'Surgery', label:'RIF pain',
@@ -623,6 +672,14 @@ const CASES={
    // tubal damage (PID / tubal surgery) materially raise pre-test probability.
    {id:'priorectopic',lbl:'Previous ectopic pregnancy',stream:'hx',eff:{ectopic:[4,.85]},ask:'have you ever had a pregnancy in the tube before?'},
    {id:'pidhx',lbl:'Previous pelvic infection or tubal surgery',stream:'hx',eff:{ectopic:[3,.9]},ask:'have you ever had a pelvic infection (PID), or an operation on your tubes?'},
+   // Rupture/instability recognition (2026-07-22 audit, critical-clinical fix):
+   // the pack could confirm a pregnancy but had no way to catch a RUPTURED one
+   // — the actual emergency. Vaginal bleeding is part of the classic triad;
+   // shoulder-tip pain and syncope are the specific bedside signs of
+   // haemoperitoneum from a bleeding ectopic (RCOG Green-top 21).
+   {id:'pvbleed',lbl:'Vaginal bleeding',stream:'hx',eff:{ectopic:[2.5,.7]},ask:'have you had any vaginal bleeding with this pain?'},
+   {id:'shouldertip',lbl:'Shoulder-tip pain',stream:'hx',eff:{ectopic:[6,.8]},ask:'have you had any pain at the tip of your shoulder?'},
+   {id:'syncope',lbl:'Dizziness, fainting or collapse',stream:'hx',eff:{ectopic:[5,.8],torsion:[1.5,.9]},ask:'have you felt faint, dizzy, or actually collapsed with this pain?'},
    {id:'parity',lbl:'Previous pregnancies (parity)',stream:'hx',num:{unit:'pregnancies'}},
    {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
    {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker']},
@@ -640,10 +697,14 @@ const CASES={
    // value (vs the discriminatory zone) is what shapes the ectopic workup.
    {id:'bhcg',lbl:'βhCG positive (urine, bedside)',stream:'ix',eff:{ectopic:[6,.1]},key:'ectopic',short:'urine βhCG'},
    {id:'bhcgquant',lbl:'Quantitative serum βhCG',stream:'ix',eff:{ectopic:[3,.6]}},
-   {id:'usadnexa',lbl:'US — adnexal mass / absent flow',stream:'ix',eff:{torsion:[8,.2]},key:'torsion',short:'pelvic US'},
+   // Wording fixed 2026-07-22: ~60% of surgically confirmed torsion still
+   // shows NORMAL Doppler flow (JOGC 2018) — the old label implied absent
+   // flow was needed to raise torsion, which teaches a false-negative trap.
+   {id:'usadnexa',lbl:'US — adnexal mass seen (flow may be normal even in torsion)',stream:'ix',eff:{torsion:[8,.2]},key:'torsion',short:'pelvic US'},
    {id:'wcc',lbl:'WCC raised',stream:'ix',eff:{appy:[2.5,.5],adenitis:[1.3,.9]}},
    {id:'crp',lbl:'CRP raised',stream:'ix',eff:{appy:[2,.6],adenitis:[1.2,.9]}},
    {id:'usappy',lbl:'US / CT — appendicitis',stream:'ix',eff:{appy:[10,.2]}},
+   {id:'gxm',lbl:'Group & crossmatch + Rh group sent',stream:'ix',ask:'needed before theatre, and to know if anti-D is required'},
    {id:'allergy',lbl:'Known drug allergies',stream:'hx',kind:'choice',options:['No known allergies','Penicillin','Sulfa drugs','NSAIDs'],ask:'are you allergic to any medicines — penicillin, "-mycin" antibiotics, or painkillers like ibuprofen/Voltaren?'}],
   IX:[
    {id:'bhcg',cat:'bedside',lbl:'βhCG (urine, bedside)',binary:true,dx:'Pregnancy — rule out first, at the bedside'},
@@ -651,11 +712,12 @@ const CASES={
    {id:'usadnexa',cat:'imaging',lbl:'Pelvic ultrasound',binary:true,dx:'Torsion'},
    {id:'wcc',cat:'lab',lbl:'WCC',unit:'×10⁹/L',norm:'4–11',hi:11,dir:'above',dx:'Appendicitis'},
    {id:'crp',cat:'lab',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Appendicitis'},
-   {id:'usappy',cat:'imaging',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'}],
+   {id:'usappy',cat:'imaging',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'},
+   {id:'gxm',cat:'lab',lbl:'Group & crossmatch + Rh group',binary:true,dx:'Pre-theatre + anti-D need'}],
   MX:{
-   investigate:[{lbl:'Urine βhCG',when:'first — any reproductive-age woman',ix:'bhcg'},{lbl:'WCC · CRP + US / CT abdomen',when:'now',ix:'wcc'},{lbl:'Quantitative serum βhCG',when:'send once urine screen positive',ix:'bhcgquant'}],
-   immediate:[{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'morphine 0.1 mg/kg IV titrated + ondansetron 4 mg IV',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'balanced crystalloid: maintenance + replace deficit',active:'keep NBM'}],
-   definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Antibiotics',for:'appendicitis / intra-abdominal cover',dose:'co-amoxiclav 1.2 g IV 8-hly · or cefuroxime 1.5 g IV + metronidazole 500 mg IV',sign:true,warnIf:{allergyId:'allergy',match:['Penicillin'],msg:'Documented penicillin allergy — use cefuroxime + metronidazole, not co-amoxiclav.'}}],
+   investigate:[{lbl:'Urine βhCG',when:'first — any reproductive-age woman',ix:'bhcg'},{lbl:'WCC · CRP + US / CT abdomen',when:'now',ix:'wcc'},{lbl:'Quantitative serum βhCG',when:'send once urine screen positive',ix:'bhcgquant'},{lbl:'Group & crossmatch + Rh group',when:'now — before theatre, and to know if anti-D is needed',ix:'gxm'}],
+   immediate:[{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'morphine 0.1 mg/kg IV titrated + ondansetron 4 mg IV',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'balanced crystalloid: maintenance + replace deficit',active:'keep NBM'},{rx:'Resuscitate now — do not wait for the routine sequence',for:'vaginal bleeding, shoulder-tip pain, syncope or collapse with a positive pregnancy test',dose:'IV access ×2, fluid bolus, crossmatched blood, call the registrar now — this is a possible ruptured ectopic',sign:true}],
+   definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Anti-D immunoglobulin',for:'Rh-negative patient having surgical management of an ectopic',dose:'250 IU IM',sign:true},{rx:'Antibiotics',for:'appendicitis / intra-abdominal cover',dose:'co-amoxiclav 1.2 g IV 8-hly · or cefuroxime 1.5 g IV + metronidazole 500 mg IV',sign:true,warnIf:{allergyId:'allergy',match:['Penicillin'],msg:'Documented penicillin allergy — use cefuroxime + metronidazole, not co-amoxiclav.'}}],
    longterm:[{rx:'Post-operative recovery',for:'uncomplicated appendicectomy',dose:'wound care, early mobilisation, histology review'},{rx:'Fertility counselling',for:'if ovary lost to torsion',dose:'reassure — single ovary preserves fertility'}],
    monitor:['Serial abdominal exam','Obs + urine output','Repeat bloods','βhCG result'],
    levers:[{give:'Analgesia',resp:'pain well controlled',means:'reassess — does not exclude a surgical abdomen'},{give:'Serial exam',resp:'localises / worsens',means:'evolving appendicitis'}]},
@@ -690,6 +752,12 @@ const CASES={
    {id:'tbcontact',lbl:'Known household TB contact',stream:'hx',kind:'choice',options:['No known contact','Contact — on treatment','Contact — status unknown'],ask:'does anyone at home have TB, or cough for a long time?'},
    {id:'prevadmit',lbl:'Previous hospital admissions',stream:'hx',kind:'text',ask:'has the baby ever been in hospital before?'},
    {id:'smokeexp',lbl:'Household smoke exposure',stream:'hx',eff:{pneumonia:[1.3,.9]},ask:'does anyone at home smoke around the baby?'},
+   // WHO IMCI general danger signs (2026-07-22 audit, critical-clinical gap) —
+   // the most sensitive first-pass screen for a sick under-5, asked for every
+   // febrile child regardless of which source the fever turns out to have.
+   {id:'notdrink',lbl:'Not able to drink or breastfeed at all',stream:'hx',ask:'is the baby able to drink or breastfeed at all right now?'},
+   {id:'vomitall',lbl:'Vomiting everything',stream:'hx',ask:'does the baby vomit everything given, including breastmilk/water?'},
+   {id:'convuls',lbl:'Convulsions (this illness)',stream:'hx',eff:{meningitis:[4,.7]},ask:'has the baby had any fits or convulsions during this illness?'},
    {id:'fontanelle',lbl:'Bulging fontanelle / neck stiffness',stream:'exam',eff:{meningitis:[6,.4]}},
    {id:'rash',lbl:'Non-blanching rash',stream:'exam',eff:{meningitis:[8,.5]}},
    {id:'perf',lbl:'Prolonged capillary refill / mottled',stream:'exam',eff:{meningitis:[3,.6]},preset:'present'},
@@ -713,6 +781,28 @@ const CASES={
    longterm:[{rx:'Complete course + review',for:'confirmed source',dose:'finish antibiotics; reassess feeding, hydration & growth'},{rx:'Immunisations + renal follow-up',for:'prevent recurrence',dose:'catch-up per schedule; imaging after first UTI as indicated'}],
    monitor:['Continuous obs + AVPU','Fluid balance / urine output','Repeat examination','Blood glucose'],
    levers:[{give:'Antipyretic',resp:'bright & playful once afebrile',means:'reassuring — favours viral'},{give:'Fluid bolus',resp:'perfusion improves',means:'supports sepsis physiology'}]},
+  // NICE NG143 traffic light (2026-07-22 audit, critical-clinical fix): this
+  // pack's `recommendation` text was a fixed "urgent paediatric review" no
+  // matter what got answered — a clearly reassuring case and a clearly septic
+  // one gave identical advice. Any ONE red-tier finding outweighs any number
+  // of ambers (100 pts vs 1 pt) so the band always reflects the worst true
+  // finding, matching how the real NICE rule works — it isn't a simple sum.
+  SCORES:[{id:'nice',name:'NICE traffic light',
+   items:[
+    {label:'Not drinking / feeding at all',featId:'notdrink',pts:100},
+    {label:'Vomiting everything',featId:'vomitall',pts:100},
+    {label:'Convulsions',featId:'convuls',pts:100},
+    {label:'Bulging fontanelle / neck stiffness',featId:'fontanelle',pts:100},
+    {label:'Non-blanching rash',featId:'rash',pts:100},
+    {label:'Prolonged CRT / mottled',featId:'perf',pts:100},
+    {label:'Central cyanosis',featId:'cyan',pts:100},
+    {label:'Irritable / lethargic',featId:'irrit',pts:1},
+    {label:'Reduced feeds',featId:'feeds',pts:1},
+    {label:'Dehydration / sunken fontanelle',featId:'dehyd',pts:1}],
+   bands:[
+    {min:0,label:'Green',cls:'good',action:'Low-risk features only — safe to manage with clear safety-netting advice if otherwise well, per NICE NG143.'},
+    {min:1,label:'Amber',cls:'amber',action:'At least one amber feature — needs face-to-face assessment and a specific safety net, per NICE NG143.'},
+    {min:100,label:'Red',cls:'bad',action:'A red (high-risk) feature is present — urgent face-to-face review now, likely admission, per NICE NG143.'}]}],
  },
  neuro:{
   specialty:'Neuro', label:'Thunderclap HA',
@@ -939,7 +1029,7 @@ const CASES={
  },
 };
 
-let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false, todayNote='', otherOpen=new Set(), presetIds=new Set();
+let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false, todayNote='', otherOpen=new Set(), presetIds=new Set(), scoreOpen=new Set();
 // Which findings came pre-answered from the vignette vs. what the intern actually
 // elicited — a teaching tool should let the learner tell those apart.
 function collectPresetIds(){const out=new Set();(function w(l){for(const f of l){if(f.preset)out.add(f.id);if(f.follow)w(f.follow);}})(FEAT);return out;}
@@ -957,7 +1047,7 @@ function clearFollow(f){if(!f||!f.follow)return;for(const c of f.follow){delete 
 const SYS_MAP=[[/^I/,'cardiac',2,66],[/^J/,'resp',206,58],[/^G/,'neuro',268,46],[/^F/,'psych',248,40],[/^D[5-8]/,'haem',344,58],[/^[CD]/,'onc',222,22],[/^K/,'GI',33,64],[/^N/,'renal',176,50],[/^E/,'endo',30,72],[/^[AB]/,'infective',146,46],[/^O/,'obstetric',324,54],[/^M/,'MSK',20,32]];
 function sysOf(icd){const s=(icd||'').trim().toUpperCase();for(const r of SYS_MAP)if(r[0].test(s))return r;return[null,'general',192,26];}
 function assignSystemColors(dx){const cnt={};dx.forEach(d=>{const r=sysOf(d.icd),k=r[1],i=cnt[k]||0;cnt[k]=i+1;const L=Math.max(40,60-i*11);d.c=`hsl(${r[2]} ${r[3]}% ${L}%)`;d.sys=k;});}
-function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;todayNote='';otherOpen=new Set();presetIds=collectPresetIds();}
+function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;todayNote='';otherOpen=new Set();presetIds=collectPresetIds();scoreOpen=new Set();}
 // Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
 const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
 // A num finding with no lo/hi is INFORMATIONAL (e.g. "years since surgery") — it
@@ -988,6 +1078,40 @@ function wireChChips(root){
 
 function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsForAll(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
 function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
+
+// ── Real named clinical scores, actually computed ─────────────────────────
+// The audit (2026-07-22) found every pack NAMED a validated score (HEART,
+// Glasgow-Blatchford, NICE traffic light...) in its recommendation text but
+// never computed it — the field's real tools (MDCalc, HEART Pathway, NICE-
+// based triage) compute-and-act, not name-and-gesture. This is the shared
+// mechanism: a pack opts in with a `SCORES` array; each score sums its
+// components live off the same `ans`/`val` state everything else uses, and
+// bands the total into the field's own published disposition.
+//
+// A component is either {featId, pts} — a plain present=pts/absent=0 toggle —
+// or {featId, map} — a choice/num field where `map` converts val[featId] to
+// points (e.g. an age band, a lab threshold). `unanswered:true` means that
+// component hasn't been entered yet, so a total is always honestly partial
+// until every component has an answer.
+function scoreDetail(comp){
+  // A component is one of: `fixed` (a known vignette fact, e.g. the patient's
+  // age — always "answered", nothing to elicit); `agg` (a function reading the
+  // full ans/val state — for components built from several findings at once,
+  // e.g. "count of cardiac risk factors"); or the plain case, one FEAT read
+  // straight (optionally through `map` to convert its value into points).
+  if(comp.fixed!==undefined) return{pts:comp.fixed,unanswered:false};
+  if(comp.agg) return comp.agg(ans,val);
+  const a=ans[comp.featId];
+  if(a===undefined) return{pts:0,unanswered:true};
+  if(comp.map) return{pts:comp.map(a,val[comp.featId]),unanswered:false};
+  return{pts:a==='present'?(comp.pts??1):0,unanswered:false};
+}
+function computeScore(sc){
+  let total=0,answeredAll=true;
+  const parts=sc.items.map(it=>{const d=scoreDetail(it);total+=d.pts;if(d.unanswered)answeredAll=false;return{...it,...d};});
+  const band=[...sc.bands].reverse().find(b=>total>=b.min)||sc.bands[0];
+  return{total,band,answeredAll,parts};
+}
 // Completeness and Confidence answer different questions and must stay
 // decoupled: Confidence is diagnosis-focused (a few high-yield findings can
 // justify 80% in the lead even from a thin clerking). Completeness is "how much
@@ -1091,6 +1215,30 @@ function paintVitals(){
   }));
 }
 
+// Renders every score a pack opts into (CASES[caseId].SCORES). Collapsed to
+// its total + band by default (tap to expand the component breakdown) so it
+// sits alongside .cap as a trust signal without competing with the
+// differential for attention. A score with unanswered components says so
+// plainly ("N of M answered") rather than showing a total that looks final
+// when it isn't.
+function paintScores(){
+  const el=document.getElementById('scorebar');
+  const scores=CASES[caseId].SCORES;
+  if(!scores||!scores.length){el.className='scorebar';el.innerHTML='';return;}
+  el.className='scorebar show';
+  el.innerHTML=scores.map(sc=>{
+    const r=computeScore(sc),open=scoreOpen.has(sc.id),answered=r.parts.filter(p=>!p.unanswered).length;
+    const bandCls=r.band.cls||'amber';
+    return `<div class="score${open?' open':''}" data-sid="${sc.id}">`
+      +`<div class="shd" data-shd="${sc.id}"><span class="sname">${sc.name}${!r.answeredAll?` <span class="spartial">(${answered}/${sc.items.length} answered)</span>`:''}</span>`
+      +`<span class="stot"><span class="spts">${r.total}${sc.maxNote?sc.maxNote:''}</span><span class="sband ${bandCls}">${r.band.label}</span></span></div>`
+      +(r.answeredAll&&r.band.action?`<div class="said">${r.band.action}</div>`:'')
+      +`<div class="sitems">${sc.items.map((it,i)=>{const p=r.parts[i];return `<div class="srow${p.unanswered?' unanswered':''}"><span>${it.label}</span><span class="rp">${p.unanswered?'— not yet answered':p.pts+' pt'+(p.pts===1?'':'s')}</span></div>`;}).join('')}</div>`
+      +`</div>`;
+  }).join('');
+  el.querySelectorAll('[data-shd]').forEach(h=>h.addEventListener('click',()=>{const id=h.dataset.shd;scoreOpen.has(id)?scoreOpen.delete(id):scoreOpen.add(id);paintScores();}));
+}
+
 function paintHeader(p,first){
   const c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);
   const cPc=Math.round(conf*100),comp=Math.round(completeness()*100);
@@ -1099,6 +1247,7 @@ function paintHeader(p,first){
   const capEl=document.getElementById('cap');
   if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')+' not yet excluded. Enter the pending results on the Ix tab to release.</span>';}
   else capEl.style.display='none';
+  paintScores();
   // The ranked differential otherwise only lives on the Hx·Exam tab — once on
   // Ix/Mx/Docs/Why there was no way to see which diagnosis a result or plan item
   // was even weighed against without tabbing back. A compact always-visible

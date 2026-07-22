@@ -11,13 +11,21 @@
 import type { DeptId } from './departments';
 import { stripNegated } from '../lib/clinicalText';
 
+type ShowIfCondition = { fieldId: string; equals: string | boolean };
+
 export interface SmartField {
   id: string;
   label: string;
   kind: 'toggle' | 'select' | 'number' | 'date' | 'text-short';
   options?: string[];
-  /** Show only when another field has this value (toggle: boolean, select: option string). */
-  showIf?: { fieldId: string; equals: string | boolean };
+  /**
+   * Show only when another field has this value (toggle: boolean, select: option string).
+   * An array is AND-ed — every condition must hold. This is what a block's confirmed-positive
+   * GATE field is built from: every detail field in a gated block carries the gate condition,
+   * combined with whatever narrower showIf it already had (e.g. "why missed?" needs both
+   * "confirmed on treatment" AND "not adherent").
+   */
+  showIf?: ShowIfCondition | ShowIfCondition[];
   /** Visual medication-recall cue (e.g. "Blue tablet" for TLD). */
   cue?: { color: string; label: string };
   /** Unit suffix for number fields, purely presentational. */
@@ -50,7 +58,8 @@ export function smartBlocksFor(recordText: string, dept?: DeptId): SmartBlock[] 
 
 export function fieldVisible(field: SmartField, state: SmartBlockState): boolean {
   if (!field.showIf) return true;
-  return state[field.showIf.fieldId] === field.showIf.equals;
+  const conditions = Array.isArray(field.showIf) ? field.showIf : [field.showIf];
+  return conditions.every(c => state[c.fieldId] === c.equals);
 }
 
 /** Serialize answered fields to clinical shorthand, e.g.
