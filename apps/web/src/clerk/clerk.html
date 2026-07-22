@@ -498,9 +498,10 @@ const CASES={
   PT:{line:'29 · G3P2 · 33<small>+4/40</small> · headache + epigastric pain', summaryLine:'29-year-old G3P2 at 33<sup>+4</sup> weeks', complaint:'headache and epigastric pain', background:'Third pregnancy. P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress). No hypertension before this pregnancy. Gestation 33<sup>+4</sup> weeks by dates.', obsHx:'P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress)'},
   VITALS:[{k:'HR',v:'104',vc:'var(--hr)'},{k:'BP',v:'168/112',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.9',vc:'var(--temp)'}],
   DX:[
-   {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.30,mnm:false,script:'HTN + proteinuria + end-organ symptoms after 20 weeks'},
-   {id:'hellp',name:'HELLP syndrome',icd:'O14.2',c:'var(--hellp)',prior:.12,mnm:true,script:'pre-eclampsia + haemolysis + low platelets + high LFTs'},
-   {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.10,mnm:true,script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
+   {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.28,mnm:false,script:'HTN after 20 weeks + proteinuria AND/OR end-organ dysfunction (renal, hepatic, neuro, haematological, or uteroplacental) — ISSHP 2021 does not require proteinuria'},
+   {id:'hellp',name:'HELLP syndrome',icd:'O14.2',c:'var(--hellp)',prior:.12,mnm:true,script:'pre-eclampsia + haemolysis + low platelets + high LFTs — TTP/HUS is the real mimicker (fever, neuro signs, renal failure disproportionate to the BP, LFTs often near-normal)'},
+   {id:'abruption',name:'Placental abruption',icd:'O45.9',c:'var(--bp)',prior:.09,mnm:true,script:'severe hypertension + abdominal pain + a tense/woody uterus ± vaginal bleeding ± fetal heart abnormality — a classic mimic of the headache+abdo-pain presentation this case has'},
+   {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.09,mnm:true,script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
    {id:'aflp',name:'Acute fatty liver of pregnancy',icd:'O26.6',c:'var(--aflp)',prior:.05,mnm:true,script:'3rd trimester + hypoglycaemia + coagulopathy + high LFTs'}],
   FEAT:[
    {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
@@ -538,6 +539,12 @@ const CASES={
    {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
    {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
    {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
+   // Abruption (2026-07-22 audit, critical-clinical): the most obvious
+   // consultant-level differential for headache+abdo-pain in severe HTN at
+   // 33 weeks was missing entirely.
+   {id:'pvbleed',lbl:'Vaginal bleeding',stream:'hx',eff:{abruption:[4,.5]},ask:'have you had any vaginal bleeding?'},
+   {id:'woodyuterus',lbl:'Tense / woody, constantly-contracted uterus',stream:'exam',eff:{abruption:[6,.4]}},
+   {id:'fhrabn',lbl:'Abnormal fetal heart rate / CTG',stream:'exam',eff:{abruption:[3,.6]}},
    // Grounded in the real trigger, not a bare "multiple pregnancy?" tick: SFH
    // measured against gestational age is what actually raises the suspicion.
    {id:'sfh',lbl:'Symphysis-fundal height',stream:'exam',num:{unit:'cm'},criterion:'compare to gestation in weeks — normally ≈ equal ± 2 cm',ask:'if larger than expected for dates: consider multiple pregnancy, polyhydramnios, macrosomia, wrong dates, or fibroids'},
@@ -557,7 +564,7 @@ const CASES={
    {id:'inr',cat:'lab',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'}],
   MX:{
    investigate:[{lbl:'Urgent bloods — FBC · U&amp;E · LFT · coagulation · glucose',when:'now — HELLP / AFLP',ix:'plt'}],
-   immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV over 20 min → 1 g/h IV infusion',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol 20 mg IV (double q10min, max 300 mg) · or nifedipine 10 mg PO · or hydralazine 5 mg IV',sign:true,activeKeys:['BP']}],
+   immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis — continue 24h after delivery or the last seizure, not just until delivery (postpartum eclampsia is real)',dose:'IV regimen: 4 g IV over 20 min → 1 g/h infusion. SA/low-resource alternative (Pritchard regimen, used where infusion pumps aren’t reliably available): 4 g IV + 10 g IM loading, then 5 g IM 4-hourly',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol 20 mg IV (double q10min, max 300 mg) · or nifedipine 10 mg PO · or hydralazine 5 mg IV',sign:true,activeKeys:['BP']}],
    definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'12 mg IM, 2 doses 24 h apart',sign:true,ind:'33+4 wk — give'}],
    longterm:[{rx:'Postnatal BP review',for:'PET resolves over weeks',dose:'BP checks + wean antihypertensives'},{rx:'Future-pregnancy prophylaxis',for:'high recurrence risk',dose:'aspirin 150 mg nocte from 12 wk + calcium',sign:true},{rx:'Cardiovascular risk follow-up',for:'lifelong ↑ CVD / HTN risk',dose:'BP, weight, metabolic screen'}],
    monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
@@ -815,11 +822,23 @@ const CASES={
    {id:'sah',name:'Subarachnoid haemorrhage',icd:'I60.9',c:'var(--chorio)',prior:.18,mnm:true,script:'thunderclap (peak < 1 min) + worst-ever + neck stiffness ± reduced GCS + blood on CT'},
    {id:'meningitis',name:'Meningitis',icd:'G03.9',c:'var(--hellp)',prior:.10,mnm:true,script:'fever + neck stiffness + photophobia + CSF pleocytosis'},
    {id:'cvst',name:'Cerebral venous sinus thrombosis',icd:'I67.6',c:'var(--aflp)',prior:.06,mnm:true,script:'subacute headache + prothrombotic risk + focal signs / seizure'},
-   {id:'migraine',name:'Migraine',icd:'G43.9',c:'var(--pet)',prior:.30,mnm:false,script:'gradual throbbing pain + prior similar attacks + aura + relief in a dark room'}],
+   {id:'rcvs',name:'Reversible cerebral vasoconstriction syndrome',icd:'I67.848',c:'var(--hr)',prior:.08,mnm:true,script:'recurrent thunderclap episodes over days-weeks + a vasoactive trigger (sex, Valsalva, SSRIs) + often-normal early imaging'},
+   {id:'migraine',name:'Migraine',icd:'G43.9',c:'var(--pet)',prior:.24,mnm:false,script:'gradual throbbing pain + prior similar attacks + aura + relief in a dark room'}],
   FEAT:[
    {id:'thunder',lbl:'Thunderclap (peak < 1 min)',stream:'hx',eff:{sah:[5,.3]},preset:'present'},
    {id:'worst',lbl:'Worst-ever headache',stream:'hx',eff:{sah:[3,.5]},preset:'present'},
    {id:'prior',lbl:'Prior similar headaches',stream:'hx',eff:{migraine:[4,.4]}},
+   // 2026-07-22 audit: the Ottawa SAH Rule (JAMA 2013) — the field's actual
+   // validated rule-out tool for exactly this presentation — was never
+   // implemented, only a home-grown LR. These two are the missing Ottawa
+   // criteria beyond thunderclap/neck-stiffness, which the pack already has.
+   {id:'loc',lbl:'Witnessed loss of consciousness',stream:'hx',eff:{sah:[3,.8]},ask:'did anyone see you lose consciousness or pass out?'},
+   {id:'exertional',lbl:'Onset during exertion',stream:'hx',eff:{sah:[2,.85]},ask:'did the headache start during exercise, straining, or sex?'},
+   // RCVS: recurrent episodes over days-weeks + a recognised trigger — real
+   // discriminators against a first, single SAH-type thunderclap.
+   {id:'recurrentTCH',lbl:'Recurrent thunderclap episodes over days–weeks',stream:'hx',eff:{rcvs:[6,.3]},ask:'has this kind of sudden severe headache happened more than once recently?'},
+   {id:'vasotrigger',lbl:'Trigger: sex, straining, or a vasoactive drug (SSRI, decongestant)',stream:'hx',eff:{rcvs:[4,.5]},ask:'did anything like sex, straining, or a new medication bring this on?'},
+   {id:'anticoag',lbl:'Anticoagulant / antiplatelet use',stream:'hx',eff:{sah:[1.5,.9]},ask:'are you on warfarin, a DOAC, aspirin, or clopidogrel? — this changes whether a lumbar puncture is safe'},
    {id:'feverh',lbl:'Fever',stream:'hx',eff:{meningitis:[3,.4]}},
    {id:'prothromb',lbl:'OCP / prothrombotic risk',stream:'hx',eff:{cvst:[3,.5]},ask:'are you on the contraceptive pill, pregnant, or have you ever had a blood clot?'},
    {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker'],preset:'present'},
@@ -828,6 +847,7 @@ const CASES={
    {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
    {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
    {id:'neck',lbl:'Neck stiffness',stream:'exam',eff:{sah:[3,.5],meningitis:[4,.4]},preset:'present'},
+   {id:'neckflex',lbl:'Limited neck flexion on examination',stream:'exam',eff:{sah:[2,.7],meningitis:[2,.7]},ask:'the specific exam maneuver — distinct from the patient reporting neck stiffness'},
    {id:'photo',lbl:'Photophobia',stream:'exam',eff:{meningitis:[2.5,.6],migraine:[1.5,.8]}},
    {id:'focaln',lbl:'Focal neurology / seizure',stream:'exam',eff:{cvst:[4,.4],sah:[2,.7]}},
    {id:'gcs',lbl:'Reduced GCS',stream:'exam',eff:{sah:[4,.4]}},
@@ -840,8 +860,23 @@ const CASES={
    {id:'lpxan',cat:'lab',lbl:'LP — xanthochromia',binary:true,dx:'SAH'},
    {id:'csf',cat:'lab',lbl:'CSF — pleocytosis',binary:true,dx:'Meningitis'},
    {id:'ctv',cat:'imaging',lbl:'CT venogram',binary:true,dx:'CVST'}],
+  // Ottawa SAH Rule (Perry JJ et al., JAMA 2013) — 100% sensitive rule-out
+  // instrument for exactly this presentation in an alert, neurologically
+  // normal adult. It's a rule-out gate, not a graded score: any ONE
+  // criterion positive means the workup proceeds.
+  SCORES:[{id:'ottawa',name:'Ottawa SAH Rule',
+   items:[
+    {label:'Age ≥40 (46)',fixed:1},
+    {label:'Neck pain / stiffness',featId:'neck',pts:1},
+    {label:'Witnessed loss of consciousness',featId:'loc',pts:1},
+    {label:'Onset during exertion',featId:'exertional',pts:1},
+    {label:'Thunderclap (instant peak)',featId:'thunder',pts:1},
+    {label:'Limited neck flexion on exam',featId:'neckflex',pts:1}],
+   bands:[
+    {min:0,label:'0 criteria',cls:'good',action:'Ottawa SAH Rule only applies to an alert, neurologically normal patient with peak pain <1h — if that population fit is right, 0 criteria supports not pursuing SAH further.'},
+    {min:1,label:'≥1 criterion — SAH workup indicated',cls:'bad',action:'Any positive criterion means proceed with CT ± LP — the rule does not permit stopping short.'}]}],
   MX:{
-   investigate:[{lbl:'Non-contrast CT head',when:'within 1 h',ix:'ct'},{lbl:'LP for xanthochromia',when:'if CT negative & SAH still suspected',ix:'lpxan'}],
+   investigate:[{lbl:'Non-contrast CT head',when:'within 1 h',ix:'ct'},{lbl:'LP for xanthochromia',when:'if CT negative & SAH still suspected — timing: 12h to 2 weeks post-onset, not before (earlier is unreliable); check anticoagulant use first',ix:'lpxan'}],
    immediate:[{rx:'Analgesia + antiemetic',for:'symptom control',dose:'paracetamol 1 g IV + metoclopramide 10 mg IV (avoid opioids in migraine)',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'keep SBP < 160 — labetalol 10–20 mg IV',sign:true,activeKeys:['BP']}],
    definitive:[{rx:'Migraine abortive',for:'lead: acute migraine',dose:'sumatriptan 50–100 mg PO (or 6 mg SC) + NSAID (ibuprofen 400 mg / naproxen 500 mg) + metoclopramide 10 mg',sign:true},{rx:'Neurosurgical referral',for:'only if SAH confirmed',dose:'urgent — aneurysm coiling / clipping + nimodipine 60 mg PO 4-hly'},{rx:'Antibiotics + aciclovir',for:'only if meningitis / encephalitis',dose:'ceftriaxone 2 g IV 12-hly + aciclovir 10 mg/kg IV 8-hly',sign:true},{rx:'Anticoagulation',for:'only if CVST (not SAH)',dose:'enoxaparin 1 mg/kg SC 12-hly (even if haemorrhagic infarct)',sign:true}],
    longterm:[{rx:'Migraine prophylaxis',for:'≥ 4 attacks/month or disabling',dose:'propranolol 80 mg/day · or amitriptyline 10–25 mg nocte · or topiramate 25 mg, titrate',sign:true},{rx:'Headache diary + neurology review',for:'map triggers, assess control',dose:'refer if refractory to prophylaxis'}],
@@ -877,11 +912,35 @@ const CASES={
    {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
    {id:'cld',lbl:'Chronic liver disease',stream:'exam',eff:{varices:[7,.3]},checklist:['Jaundice','Spider naevi','Palmar erythema','Ascites','Gynaecomastia','Asterixis']},
    {id:'melaena',lbl:'Melaena on PR',stream:'exam',eff:{pud:[2,.6],varices:[2,.6]}},
+   // Glasgow-Blatchford components not already captured elsewhere in the pack
+   // (2026-07-22 audit — the score was named in the recommendation text but
+   // never computed; several of its inputs simply weren't asked at all).
+   {id:'syncope',lbl:'Syncope / collapse with this bleed',stream:'hx',eff:{varices:[2,.7],pud:[1.5,.8]},ask:'did you feel faint, or actually pass out, with this bleed?'},
+   {id:'cardfail',lbl:'Known heart failure',stream:'hx',ask:'has a doctor told you that you have heart failure, or fluid on your lungs?'},
    {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{pud:[1.5,.8],varices:[1.5,.8]},key:'pud',short:'endoscopy'},
+   {id:'hbval',lbl:'Haemoglobin (value)',stream:'ix',num:{unit:'g/L'},ask:'the actual result, for the Glasgow-Blatchford score'},
+   {id:'urea',lbl:'Urea',stream:'ix',num:{unit:'mmol/L'},ask:'needed for the Glasgow-Blatchford score'},
    {id:'endo',lbl:'OGD — bleeding source seen',stream:'ix',eff:{varices:[8,.15]},key:'varices',short:'endoscopy'}],
   IX:[
    {id:'hb',lbl:'Haemoglobin',cat:'lab',unit:'g/L',norm:'130–170',lo:100,dir:'below',dx:'Bleed severity'},
+   {id:'urea',lbl:'Urea',cat:'lab',unit:'mmol/L',norm:'< 6.5',hi:6.5,dir:'above',dx:'Glasgow-Blatchford component'},
    {id:'endo',lbl:'OGD (upper endoscopy)',cat:'imaging',binary:true,dx:'Source'}],
+  // Glasgow-Blatchford (Blatchford O et al., Lancet 2000) — the field's real
+  // pre-endoscopy risk score for upper GI bleeding (NICE CG141 mandates it).
+  // SBP/pulse read the case's fixed vitals directly (98 systolic, HR 116).
+  SCORES:[{id:'gbs',name:'Glasgow-Blatchford score',
+   items:[
+    {label:'Urea (mmol/L)',featId:'urea',map:(a,v)=>{const x=parseFloat(v);if(isNaN(x))return 0;if(x>=25)return 6;if(x>=10)return 4;if(x>=8)return 3;if(x>=6.5)return 2;return 0;}},
+    {label:'Haemoglobin (g/L, male bands)',featId:'hbval',map:(a,v)=>{const x=parseFloat(v);if(isNaN(x))return 0;if(x<100)return 6;if(x<120)return 3;if(x<130)return 1;return 0;}},
+    {label:'Systolic BP (98 mmHg — 90–99 band)',fixed:2},
+    {label:'Pulse ≥100/min (116)',fixed:1},
+    {label:'Melaena',featId:'melaena',pts:1},
+    {label:'Syncope',featId:'syncope',pts:2},
+    {label:'Known hepatic disease',featId:'cld',pts:2},
+    {label:'Known cardiac failure',featId:'cardfail',pts:2}],
+   bands:[
+    {min:0,label:'0 — very low risk',cls:'good',action:'NICE CG141: a score of 0 supports safe outpatient management, no transfusion or urgent endoscopy needed on this criterion alone.'},
+    {min:1,label:'≥1 — admit',cls:'bad',action:'Any score above 0 means admission and endoscopy within 24h, per NICE CG141 — this is not a graded risk here, it is a binary gate.'}]}],
   MX:{
    investigate:[{lbl:'Bloods — FBC · U&amp;E · LFT · coagulation',when:'now',ix:'hb'},{lbl:'OGD (upper endoscopy)',when:'diagnostic + therapeutic — within 24 h',ix:'endo'}],
    immediate:[{rx:'Two large-bore IV lines + fluids',for:'resuscitation',dose:'balanced crystalloid; transfuse to target Hb ≥ 70 g/L',sign:true,activeKeys:['HR','BP']},{rx:'Group &amp; save + crossmatch',for:'likely transfusion',dose:'2–4 units; correct coagulopathy / platelets',sign:true},{rx:'Terlipressin + antibiotics',for:'if varices suspected',dose:'terlipressin 2 mg IV 4-hly + ceftriaxone 1 g IV OD',sign:true}],
@@ -970,13 +1029,19 @@ const CASES={
    {id:'guilt',lbl:'Feelings of worthlessness or excessive guilt',stream:'hx',eff:{mdd:[2.2,.7]},ask:'have you been feeling worthless, or guilty about things that aren’t really your fault?'},
    {id:'psychomotor',lbl:'Noticeably slowed down or restless/agitated',stream:'hx',eff:{mdd:[1.6,.85]},ask:'has anyone else noticed you moving or talking slower — or more restless — than usual?'},
    {id:'duration',lbl:'How long has this been going on',stream:'hx',num:{unit:'weeks'},criterion:'≥ 2 weeks needed for a depressive episode',ask:'how many weeks has this been going on for?'},
+   // 2026-07-22 audit: DSM-5-TR requires functional impairment as a core
+   // criterion for MDD — the script asserted it, nothing actually asked it.
+   {id:'functimpact',lbl:'Affecting studies, work, or relationships',stream:'hx',eff:{mdd:[1.8,.7]},ask:'has this affected your studies, work, or relationships?'},
    // Safety is never optional — a plain "any thoughts of suicide" gates a full
    // cascade the moment it's present, exactly like any other must-not-miss cascade.
    {id:'siwish',lbl:'Thoughts that life isn’t worth living, or of suicide',stream:'hx',eff:{mdd:[1.3,.95]},ask:'have you had any thoughts that life isn’t worth living, or of harming or killing yourself?',follow:[
      {id:'siplan',lbl:'Has a specific plan',stream:'hx',ask:'have you thought about how you would do it?'},
      {id:'simeans',lbl:'Access to means',stream:'hx',ask:'do you have access to what you’d use?'},
      {id:'siintent',lbl:'Intent to act on it',stream:'hx',ask:'do you feel you might act on these thoughts?'},
-     {id:'siattempt',lbl:'Previous suicide attempt',stream:'hx',ask:'have you ever tried to end your life before?'}]},
+     {id:'siattempt',lbl:'Previous suicide attempt',stream:'hx',ask:'have you ever tried to end your life before?'},
+     // Stanley-Brown Safety Planning Intervention: reasons-for-living /
+     // protective factors is a core step, not an optional extra.
+     {id:'protective',lbl:'Reasons to keep going / people or things that matter to you',stream:'hx',kind:'text',ask:'what — or who — has kept you going, or would you not want to leave behind?'}]},
    {id:'selfharm',lbl:'Self-harm (not intended to end life)',stream:'hx',ask:'have you done anything to hurt yourself on purpose, even if you didn’t mean to end your life?'},
    // Mania/hypomania screen — this is the "screen toward bipolar, not just assume
    // unipolar depression" the whole case is built to teach.
@@ -1018,7 +1083,7 @@ const CASES={
   MX:{
    investigate:[{lbl:'Urine drug screen',when:'first — exclude substance-induced',ix:'uds'},{lbl:'TSH + FBC/U&E/B12/folate',when:'now — exclude organic cause',ix:'tsh'}],
    immediate:[{rx:'Formal suicide risk assessment + safety plan',for:'any suicidal ideation',dose:'1:1 observation if active plan/intent + means; remove access to means; involve family/support',sign:true},{rx:'Consider admission (voluntary or MHCA)',for:'high risk — plan, intent, means, or mania with poor judgement',dose:'psychiatry-led decision per Mental Health Care Act'}],
-   definitive:[{rx:'Antidepressant (SSRI first-line)',for:'lead: major depressive episode — only once bipolar screened out',dose:'e.g. sertraline 50 mg PO OD, titrate; review in 2 weeks',sign:true,warnIf:{dxLead:'bipolar',msg:'Screen for mania/hypomania before starting an antidepressant alone — SSRI monotherapy can precipitate a manic switch in bipolar disorder.'}},{rx:'Mood stabiliser / antipsychotic',for:'lead: bipolar disorder (manic episode)',dose:'psychiatry-led — e.g. lithium, valproate, or an atypical antipsychotic per guideline',sign:true},{rx:'Structured psychotherapy referral',for:'CBT / interpersonal therapy',dose:'refer — first-line for mild-moderate, adjunct for severe'}],
+   definitive:[{rx:'Antidepressant (SSRI first-line)',for:'lead: major depressive episode — only once bipolar screened out',dose:'e.g. sertraline 50 mg PO OD, titrate; review in 1 week not 2 — patient is 24, inside the FDA-warned 18–24 age band for antidepressant-associated suicidality',sign:true,warnIf:{dxLead:'bipolar',msg:'Screen for mania/hypomania before starting an antidepressant alone — SSRI monotherapy can precipitate a manic switch in bipolar disorder.'}},{rx:'Mood stabiliser / antipsychotic',for:'lead: bipolar disorder (manic episode)',dose:'psychiatry-led — e.g. lithium, valproate, or an atypical antipsychotic per guideline',sign:true},{rx:'Structured psychotherapy referral',for:'CBT / interpersonal therapy',dose:'refer — first-line for mild-moderate, adjunct for severe'}],
    longterm:[{rx:'Relapse-prevention follow-up',for:'sustain response',dose:'review at 2, 6, 12 weeks; continue antidepressant ≥ 6–12 months after remission'},{rx:'Substance use support',for:'if substance use contributing',dose:'refer for counselling / rehabilitation as indicated',sign:true}],
    monitor:['Suicide risk reassessment at every contact','Mood chart','Medication adherence & side effects','Functional recovery (study/work, sleep, relationships)'],
    holistic:[
