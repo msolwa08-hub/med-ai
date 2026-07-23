@@ -555,15 +555,23 @@ const CASES={
    {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',eff:{hellp:[3,.5]}},
    {id:'glu',lbl:'Hypoglycaemia',stream:'ix',eff:{aflp:[6,.4]},key:'aflp',short:'glucose'},
    {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
-   {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}}],
+   {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}},
+   // Safety-audit fix (2026-07-23): abruption and chorio were added as
+   // must-not-miss diagnoses without a confirmatory `key` finding, so the
+   // confidence-cap safety mechanism silently could not see them as unresolved
+   // rivals — confirmed live, a real gap, not cosmetic.
+   {id:'usabruption',lbl:'Ultrasound — retroplacental clot / excludes praevia',stream:'ix',eff:{abruption:[5,.3]},key:'abruption',short:'US — abruption'},
+   {id:'amnioculture',lbl:'Amniotic fluid Gram stain / culture positive',stream:'ix',eff:{chorio:[8,.2]},key:'chorio',short:'amniotic fluid culture'}],
   IX:[
    {id:'plt',cat:'lab',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP'},
    {id:'ast',cat:'lab',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP'},
    {id:'ldh',cat:'lab',lbl:'LDH',unit:'U/L',norm:'< 600',hi:600,dir:'above',dx:'HELLP'},
    {id:'glu',cat:'bedside',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP'},
-   {id:'inr',cat:'lab',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'}],
+   {id:'inr',cat:'lab',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'},
+   {id:'usabruption',cat:'imaging',lbl:'Ultrasound — placenta',binary:true,dx:'Abruption'},
+   {id:'amnioculture',cat:'lab',lbl:'Amniotic fluid Gram stain / culture',binary:true,dx:'Chorioamnionitis'}],
   MX:{
-   investigate:[{lbl:'Urgent bloods — FBC · U&amp;E · LFT · coagulation · glucose',when:'now — HELLP / AFLP',ix:'plt'}],
+   investigate:[{lbl:'Urgent bloods — FBC · U&amp;E · LFT · coagulation · glucose',when:'now — HELLP / AFLP',ix:'plt'},{lbl:'Ultrasound — placenta (abruption is largely a clinical diagnosis; imaging excludes praevia and may show a retroplacental clot)',when:'now',ix:'usabruption'}],
    immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis — continue 24h after delivery or the last seizure, not just until delivery (postpartum eclampsia is real)',dose:'IV regimen: 4 g IV over 20 min → 1 g/h infusion. SA/low-resource alternative (Pritchard regimen, used where infusion pumps aren’t reliably available): 4 g IV + 10 g IM loading, then 5 g IM 4-hourly',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol 20 mg IV (double q10min, max 300 mg) · or nifedipine 10 mg PO · or hydralazine 5 mg IV',sign:true,activeKeys:['BP']}],
    definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'12 mg IM, 2 doses 24 h apart',sign:true,ind:'33+4 wk — give'}],
    longterm:[{rx:'Postnatal BP review',for:'PET resolves over weeks',dose:'BP checks + wean antihypertensives'},{rx:'Future-pregnancy prophylaxis',for:'high recurrence risk',dose:'aspirin 150 mg nocte from 12 wk + calcium',sign:true},{rx:'Cardiovascular risk follow-up',for:'lifelong ↑ CVD / HTN risk',dose:'BP, weight, metabolic screen'}],
@@ -869,12 +877,16 @@ const CASES={
    {id:'ct',lbl:'CT head — blood',stream:'ix',eff:{sah:[15,.2]},key:'sah',short:'CT head'},
    {id:'lpxan',lbl:'LP — xanthochromia',stream:'ix',eff:{sah:[8,.3]}},
    {id:'csf',lbl:'CSF pleocytosis',stream:'ix',eff:{meningitis:[10,.2]},key:'meningitis',short:'LP'},
-   {id:'ctv',lbl:'CT venogram — sinus thrombosis',stream:'ix',eff:{cvst:[14,.1]},key:'cvst',short:'CT venogram'}],
+   {id:'ctv',lbl:'CT venogram — sinus thrombosis',stream:'ix',eff:{cvst:[14,.1]},key:'cvst',short:'CT venogram'},
+   // Safety-audit fix (2026-07-23): rcvs had no confirmatory `key` finding —
+   // same class of gap as abruption/chorio above.
+   {id:'mra',lbl:'MRA / CTA — segmental "string of beads" vasoconstriction',stream:'ix',eff:{rcvs:[10,.1]},key:'rcvs',short:'MRA/CTA'}],
   IX:[
    {id:'ct',cat:'imaging',lbl:'CT head (non-contrast)',binary:true,dx:'SAH'},
    {id:'lpxan',cat:'lab',lbl:'LP — xanthochromia',binary:true,dx:'SAH'},
    {id:'csf',cat:'lab',lbl:'CSF — pleocytosis',binary:true,dx:'Meningitis'},
-   {id:'ctv',cat:'imaging',lbl:'CT venogram',binary:true,dx:'CVST'}],
+   {id:'ctv',cat:'imaging',lbl:'CT venogram',binary:true,dx:'CVST'},
+   {id:'mra',cat:'imaging',lbl:'MRA / CTA (± repeat at 12 wk for reversibility)',binary:true,dx:'RCVS'}],
   // Ottawa SAH Rule (Perry JJ et al., JAMA 2013) — 100% sensitive rule-out
   // instrument for exactly this presentation in an alert, neurologically
   // normal adult. It's a rule-out gate, not a graded score: any ONE
@@ -891,7 +903,7 @@ const CASES={
     {min:0,label:'0 criteria',cls:'good',action:'Ottawa SAH Rule only applies to an alert, neurologically normal patient with peak pain <1h — if that population fit is right, 0 criteria supports not pursuing SAH further.'},
     {min:1,label:'≥1 criterion — SAH workup indicated',cls:'bad',action:'Any positive criterion means proceed with CT ± LP — the rule does not permit stopping short.'}]}],
   MX:{
-   investigate:[{lbl:'Non-contrast CT head',when:'within 1 h',ix:'ct'},{lbl:'LP for xanthochromia',when:'if CT negative & SAH still suspected — timing: 12h to 2 weeks post-onset, not before (earlier is unreliable); check anticoagulant use first',ix:'lpxan'}],
+   investigate:[{lbl:'Non-contrast CT head',when:'within 1 h',ix:'ct'},{lbl:'LP for xanthochromia',when:'if CT negative & SAH still suspected — timing: 12h to 2 weeks post-onset, not before (earlier is unreliable); check anticoagulant use first',ix:'lpxan'},{lbl:'MRA/CTA',when:'if recurrent thunderclap pattern with a vasoactive trigger — RCVS suspected',ix:'mra'}],
    immediate:[{rx:'Analgesia + antiemetic',for:'symptom control',dose:'paracetamol 1 g IV + metoclopramide 10 mg IV (avoid opioids in migraine)',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'keep SBP < 160 — labetalol 10–20 mg IV',sign:true,activeKeys:['BP']}],
    definitive:[{rx:'Migraine abortive',for:'lead: acute migraine',dose:'sumatriptan 50–100 mg PO (or 6 mg SC) + NSAID (ibuprofen 400 mg / naproxen 500 mg) + metoclopramide 10 mg',sign:true},{rx:'Neurosurgical referral',for:'only if SAH confirmed',dose:'urgent — aneurysm coiling / clipping + nimodipine 60 mg PO 4-hly'},{rx:'Antibiotics + aciclovir',for:'only if meningitis / encephalitis',dose:'ceftriaxone 2 g IV 12-hly + aciclovir 10 mg/kg IV 8-hly',sign:true},{rx:'Anticoagulation',for:'only if CVST (not SAH)',dose:'enoxaparin 1 mg/kg SC 12-hly (even if haemorrhagic infarct)',sign:true}],
    longterm:[{rx:'Migraine prophylaxis',for:'≥ 4 attacks/month or disabling',dose:'propranolol 80 mg/day · or amitriptyline 10–25 mg nocte · or topiramate 25 mg, titrate',sign:true},{rx:'Headache diary + neurology review',for:'map triggers, assess control',dose:'refer if refractory to prophylaxis'}],
