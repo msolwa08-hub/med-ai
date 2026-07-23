@@ -14,7 +14,9 @@ android/
 coverage/
 .nyc_output/
 prisma/migrations/dev/
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/translator-hook.sh
 dist-beta
 
 # Beta encrypted session store

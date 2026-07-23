@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/translator-hook.sh",
+            "timeout": 20,
+            "statusMessage": "Loading The Translator's standing context..."
+          }
+        ]
+      }
+    ]
+  }
+}
