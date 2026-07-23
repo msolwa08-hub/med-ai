@@ -1,5 +1,7 @@
 import { MODELS, createMessage } from '../lib/models.js';
 import { betaConfig } from '../lib/beta-config.js';
+import { searchSTGEntries } from './stg.service.js';
+import type { STGSeedEntry } from '../data/stg-entries.js';
 
 /**
  * Turn a free-text presentation into a "case pack" the bedside reasoning clerk
@@ -84,6 +86,7 @@ const PLAN_SYSTEM = `You produce ONLY the management plan and pathophysiology fo
 - patho: an object mapping EACH given dx id to ONE plain-English sentence (≤ 25 words) of pathophysiology linking the history and signs to the presenting symptoms.
 - MX: terse management. investigate[] vs treatment is a HARD split: diagnostic tests (CT, ECG, bloods, βhCG, diagnostic LP, X-ray, ultrasound) are NOT treatments — put the time-critical ones in investigate[] as {lbl, when, ix:'<matching IX id if known>'}. immediate[], definitive[] and longterm[] are TREATMENTS/interventions only — drugs, fluids, and procedures that TREAT (a therapeutic endoscopy that bands/clips, surgery, delivery stay here). They are organised by TIME HORIZON: immediate[] = right now (resuscitation, symptom control, urgent drugs); definitive[] = short-term, this admission — the mainstay treatment of the diagnosis; longterm[] = ongoing / after discharge (secondary prevention, prophylaxis, maintenance meds, follow-up, surveillance, immunisations). Items are {rx, for, dose, sign?:true, active?:'why now', ind?:'why indicated'}. definitive[] MUST LEAD with the mainstay/definitive treatment of the SINGLE most likely diagnosis (the first dx) — the actual drug or procedure that treats it — then rival-directed "only if X confirmed" steps. Put prophylaxis / prevention (e.g. migraine prophylaxis, post-ACS secondary prevention) in longterm[], not definitive[]. monitor[] is strings. levers[] are treat-and-see {give, resp, means}. holistic[] is the COUNSELLING & HEALTH-PROMOTION layer (non-drug) for the leading diagnosis — rows of {label, chips:[short items]} (or {label, note}) covering trigger avoidance (name concrete triggers), lifestyle, self-management, and patient education / safety-netting; [] only for purely acute one-off surgical problems.
 - DOSING — BE SPECIFIC: for well-established first-line drugs give the standard adult dose, route and frequency as in the STG / BNF (e.g. "ceftriaxone 2 g IV 12-hly", "sumatriptan 50–100 mg PO", "aspirin 300 mg PO stat"). Use weight-based mg/kg for paediatric/weight-dependent drugs. Only write "per protocol"/"titrate" when the dose genuinely depends on local titration. ALWAYS set sign:true on every drug; never state a dose you are not confident is the accepted standard — omit the drug rather than guess.
+- If a "REFERENCE — matching South African STG entries" block is provided below, it is real, sourced dosing data for one or more of the given differentials — treat it as your primary source of truth for that diagnosis's first-line medications, investigations and referral criteria. Only deviate from it where a stated patient factor genuinely requires a different choice, and say so in the relevant "ind"/"active" field. Diagnoses with no matching STG entry still get a plan from your own clinical knowledge exactly as before — the reference block only ever adds grounding, it never narrows which diagnoses you can plan for.
 - Output MINIFIED JSON. Return valid JSON only.
 
 Example: {"patho":{"acs":"Plaque rupture occludes a coronary artery; ischaemia causes the crushing pain and troponin rise."},"MX":{"investigate":[{"lbl":"12-lead ECG","when":"within 10 min","ix":"ecg"}],"immediate":[{"rx":"Aspirin","for":"ACS","dose":"300 mg PO chewed, stat","sign":true}],"definitive":[{"rx":"Anticoagulation","for":"lead: confirmed NSTEMI","dose":"enoxaparin 1 mg/kg SC 12-hly (renal-adjust)","sign":true}],"longterm":[{"rx":"Secondary prevention","for":"post-ACS","dose":"dual antiplatelet 12 mth + high-intensity statin + ACE-inhibitor + beta-blocker","sign":true}],"monitor":["Continuous ECG"],"levers":[],"holistic":[{"label":"Lifestyle & counselling","chips":["Smoking cessation","Cardiac rehab","Mediterranean diet","Exercise"]}]}}`;
@@ -232,6 +235,34 @@ export async function generateClerkCore(text: string): Promise<ClerkPack> {
   return pack;
 }
 
+// Ground the plan call in the real SA STG dataset instead of trusting a
+// generated dose blind — works for whatever differentials come back, not a
+// fixed list of conditions. One STG entry per dx name, best substring match,
+// deduped by ICD code.
+function groundingBlock(dx: Array<{ id: string; name: string }>): string {
+  const seen = new Set<string>();
+  const entries: STGSeedEntry[] = [];
+  for (const d of dx) {
+    const hit = searchSTGEntries(d.name).entries[0];
+    if (hit && !seen.has(hit.icdCode)) {
+      seen.add(hit.icdCode);
+      entries.push(hit);
+    }
+  }
+  if (!entries.length) return '';
+  const formatted = entries
+    .map((e) => {
+      const meds = e.firstLinemedications
+        .map((m) => `${m.name} ${m.dose} ${m.route} ${m.frequency} x ${m.duration}${m.notes ? ` (${m.notes})` : ''}`)
+        .join('; ');
+      const invs = e.investigations.map((i) => `[${i.timing}] ${i.name}`).join('; ');
+      const referral = e.referralCriteria.join('; ');
+      return `${e.condition} (${e.icdCode}): first-line — ${meds || 'none listed'}. Investigations — ${invs || 'none listed'}. Referral if — ${referral || 'not specified'}.${e.contraindications?.length ? ` Contraindications — ${e.contraindications.join('; ')}.` : ''}`;
+    })
+    .join('\n');
+  return `\n\nREFERENCE — matching South African STG entries (source of truth, see system prompt):\n${formatted}`;
+}
+
 /** PHASE 2 — dosed management + pathophysiology for an established differential. */
 export async function generateClerkPlan(
   text: string,
@@ -241,7 +272,7 @@ export async function generateClerkPlan(
     throw new Error('The reasoning model is not configured on the server');
   }
   const dxList = dx.map((d) => `${d.id}: ${d.name}`).join('; ');
-  const userText = `Presentation: ${text}\nDifferentials (id: name): ${dxList}\nProduce the dosed management plan and one-sentence pathophysiology for each id.`;
+  const userText = `Presentation: ${text}\nDifferentials (id: name): ${dxList}\nProduce the dosed management plan and one-sentence pathophysiology for each id.${groundingBlock(dx)}`;
   const raw = (await runFast(PLAN_SYSTEM, userText, 2600)) as Record<string, unknown>;
   const mxRaw = (pick(raw, ['mx', 'management']) as Record<string, unknown>) || {};
   const pathoRaw = (pick(raw, ['patho', 'pathophysiology']) as Record<string, unknown>) || {};
