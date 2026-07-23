@@ -21,6 +21,10 @@ export interface ClerkPack {
   referTo: string;
   planLine: string;
   recommendation: string;
+  // Set true on every server-generated pack (never on the 8 hand-authored demo
+  // packs). Tells the client every probability/weight/dose on this board is an
+  // AI estimate, not a validated figure — see clerk.html's AI-estimated banner.
+  estimated?: boolean;
   PT: { line: string; summaryLine: string; complaint: string; background: string };
   VITALS: Array<{ k: string; v: string }>;
   DX: Array<{ id: string; name: string; icd: string; prior: number; mnm: boolean; script: string; patho?: string }>;
@@ -45,6 +49,11 @@ export interface ClerkPack {
     monitor: string[];
     levers: Array<Record<string, unknown>>;
     holistic: Array<{ label: string; chips?: string[]; note?: string }>;
+    // Dx names (matching DX[].name) whose dosing was actually grounded in a real
+    // STG guideline entry via groundingBlock(). Diagnoses NOT listed here got
+    // their doses from the model's own knowledge, with no real source — the
+    // client marks those doses "AI estimate — verify" instead of "STG".
+    groundedDx?: string[];
   };
 }
 
@@ -232,23 +241,36 @@ export async function generateClerkCore(text: string): Promise<ClerkPack> {
   }
   const pack = normalizeCore(await runFast(CORE_SYSTEM, text, 2000));
   if (pack.DX.length === 0) throw new Error('The board came back without any diagnoses — try rephrasing');
+  // Every board this function produces is AI-generated, not a validated
+  // dataset — the client must never render it identically to the 8
+  // hand-authored demo packs (see clerk.html AI-estimated banner).
+  pack.estimated = true;
   return pack;
 }
 
 // Ground the plan call in the real SA STG dataset instead of trusting a
 // generated dose blind — works for whatever differentials come back, not a
 // fixed list of conditions. One STG entry per dx name, best substring match,
-// deduped by ICD code.
-function groundingBlock(dx: Array<{ id: string; name: string }>): string {
+// deduped by ICD code. Shared by groundingBlock() (the prompt text) and
+// generateClerkPlan() (which needs the plain dx names that actually matched,
+// to tell the client which doses are STG-sourced vs model-estimated).
+function matchGrounding(dx: Array<{ id: string; name: string }>): { entries: STGSeedEntry[]; names: string[] } {
   const seen = new Set<string>();
   const entries: STGSeedEntry[] = [];
+  const names: string[] = [];
   for (const d of dx) {
     const hit = searchSTGEntries(d.name).entries[0];
+    if (hit) names.push(d.name);
     if (hit && !seen.has(hit.icdCode)) {
       seen.add(hit.icdCode);
       entries.push(hit);
     }
   }
+  return { entries, names };
+}
+
+export function groundingBlock(dx: Array<{ id: string; name: string }>): string {
+  const { entries } = matchGrounding(dx);
   if (!entries.length) return '';
   const formatted = entries
     .map((e) => {
@@ -272,6 +294,7 @@ export async function generateClerkPlan(
     throw new Error('The reasoning model is not configured on the server');
   }
   const dxList = dx.map((d) => `${d.id}: ${d.name}`).join('; ');
+  const { names: groundedDx } = matchGrounding(dx);
   const userText = `Presentation: ${text}\nDifferentials (id: name): ${dxList}\nProduce the dosed management plan and one-sentence pathophysiology for each id.${groundingBlock(dx)}`;
   const raw = (await runFast(PLAN_SYSTEM, userText, 2600)) as Record<string, unknown>;
   const mxRaw = (pick(raw, ['mx', 'management']) as Record<string, unknown>) || {};
@@ -280,7 +303,11 @@ export async function generateClerkPlan(
   for (const k of Object.keys(pathoRaw)) {
     if (typeof pathoRaw[k] === 'string') patho[k] = pathoRaw[k] as string;
   }
-  return { MX: normalizeMx(mxRaw), patho };
+  const mx = normalizeMx(mxRaw);
+  // Truthful and simple: if nothing matched an STG entry, the list is empty —
+  // the whole plan is model-estimated, and the client marks every dose as such.
+  mx.groundedDx = groundedDx;
+  return { MX: mx, patho };
 }
 
 // Back-compat single-shot: core board with the plan merged in (used by any
