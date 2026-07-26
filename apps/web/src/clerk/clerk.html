@@ -60,14 +60,54 @@
   input{font-family:inherit}
 
   header{padding:14px 16px 0}
-  .casebar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+  /* The patient's line is the one string on this screen that must never be cut.
+     It wraps; it does not ellipsis. Everything else can lose a word. */
+  .topbar{display:flex;align-items:flex-start;gap:10px}
+  .topbar .who{flex:1;min-width:0;font-size:16px;font-weight:700;letter-spacing:-.015em;line-height:1.3;
+               color:var(--ink);overflow-wrap:anywhere}
+  .casebtn{flex:none;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:var(--surface);
+           color:var(--ink-mute);font-size:15px;line-height:1;cursor:pointer;transition:all .14s}
+  .casebtn:hover{border-color:var(--brand);color:var(--brand-strong)}
+  .casebar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .casebar[hidden]{display:none}
   .casebar .cl{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute);margin-right:1px}
   .casebar button{font-size:10.5px;font-weight:650;padding:4px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-mute);cursor:pointer;transition:all .14s}
   .casebar button.on{background:var(--brand-tint);border-color:var(--brand);color:var(--brand-strong)}
-  .pt{display:flex;align-items:center;gap:9px;min-width:0}
-  .pt .chev{color:var(--ink-mute);font-size:19px;flex:none}
-  .pt .who{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  .pt .who small{font-weight:500;color:var(--ink-mute)}
+
+  /* ── The gauge ───────────────────────────────────────────────────────────
+     Modelled on the evaluation bar a chess engine shows beside a live game:
+     one sustained element carrying direction and magnitude, never explained,
+     and its whole power is that it moves the instant you act. The trace is a
+     rhythm strip — the shape this user reads all day — and it redraws on every
+     answer, so the screen visibly thinks alongside him rather than reporting
+     afterwards. Completeness rides underneath as a hairline, deliberately
+     quieter: it is a gauge you glance at, not an instrument you watch. */
+  .gauge{margin-top:13px;padding:13px 15px 12px;border-radius:16px;
+         background:linear-gradient(160deg,var(--surface) 0%,color-mix(in oklab,var(--brand) 4%,var(--surface)) 100%);
+         border:1px solid var(--line);box-shadow:var(--shadow)}
+  .gtop{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .glead{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink-soft);letter-spacing:-.01em;overflow-wrap:anywhere}
+  .gdelta{flex:none;font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .3s}
+  .gdelta.show{opacity:1}
+  .gdelta.up{color:var(--good)} .gdelta.down{color:var(--bad)}
+  .grow{display:flex;align-items:center;gap:12px;margin:2px 0 9px}
+  .gval{font-size:40px;font-weight:800;letter-spacing:-.035em;line-height:1;color:var(--ink);flex:none}
+  .gtrace{flex:1;min-width:0;height:34px;overflow:visible}
+  .gtrace path{fill:none;stroke:var(--brand);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;
+                opacity:.85;transition:stroke .3s}
+  .gauge.pulse .gtrace path{animation:sweep .9s cubic-bezier(.3,.9,.4,1)}
+  @keyframes sweep{0%{stroke-dasharray:0 400;opacity:.25}100%{stroke-dasharray:400 0;opacity:.85}}
+  .gbar{height:7px;border-radius:99px;background:var(--bar-track);overflow:hidden}
+  .gfill{height:100%;border-radius:99px;width:0;
+         background:linear-gradient(90deg,color-mix(in oklab,var(--brand) 70%,var(--brand-strong)),var(--brand-strong));
+         transition:width .6s cubic-bezier(.22,1,.36,1)}
+  .gfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;
+         font-size:10.5px;font-weight:600;color:var(--ink-mute);letter-spacing:.01em}
+  .gasked{white-space:nowrap}
+  .gcomp{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .gcomp b{color:var(--ink-soft);font-weight:800}
+  .grail{display:inline-block;width:52px;height:3px;border-radius:99px;background:var(--bar-track);overflow:hidden}
+  .gcfill{display:block;height:100%;width:0;border-radius:99px;background:var(--ink-mute);transition:width .6s cubic-bezier(.22,1,.36,1)}
 
   /* vitals — colour-coded by organ system */
   .vitals{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
@@ -85,9 +125,11 @@
   .vital.abn-hi .vin{color:var(--bad)} .vital.abn-lo .vin{color:var(--rr)}
   .vital.vunset{border-style:dashed;opacity:.85}
   .vital.vunset .vin{color:var(--ink-mute)}
-  .sysleg{display:flex;gap:12px;margin-top:8px;font-size:9.5px;color:var(--ink-mute);letter-spacing:.02em}
-  .sysleg span{display:inline-flex;align-items:center;gap:4px}
-  .sysleg i{width:8px;height:8px;border-radius:2px;display:inline-block}
+  /* The colour key is gone. A legend is an admission that the encoding failed —
+     and it was teaching colour theory to someone counting a respiratory rate.
+     The vitals sit in their organ-system order instead (cardiovascular, then
+     respiratory, then thermal), which is the order they are read aloud on a
+     ward round, so position carries the grouping and colour only reinforces it. */
 
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px 12px;box-shadow:var(--shadow)}
@@ -180,14 +222,52 @@
   .sprow input.sptxt{flex:1;min-width:0;font:inherit;font-size:12.5px;color:var(--ink);background:var(--surface-alt);
                      border:1px solid var(--line);border-radius:9px;padding:7px 10px}
 
-  .next{margin-top:12px;background:var(--surface);border:1.5px solid var(--brand);border-radius:13px;padding:10px 8px 10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
-  .next .tag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#fff;background:var(--brand);padding:4px 8px;border-radius:6px;flex:none}
-  .next .qt{flex:1;font-size:13.5px;font-weight:650;min-width:0;line-height:1.25}
-  .next .qt em{display:block;font-style:normal;color:var(--ink-mute);font-weight:500;font-size:11px;margin-top:1px}
+  /* The pinned question rides at the bottom of the screen, inside thumb reach,
+     with its two answers as the largest touch targets in the product. It floats
+     above the content rather than pushing it, so the differential stays visible
+     while you answer — which is the whole point of watching it move. */
+  .next{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0 auto;max-width:430px;
+        background:color-mix(in oklab,var(--surface) 92%,transparent);backdrop-filter:blur(14px);
+        border-top:1px solid var(--line);border-radius:18px 18px 0 0;padding:11px 13px calc(11px + env(safe-area-inset-bottom));
+        display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+        box-shadow:0 -8px 30px -16px rgba(14,26,28,.35);transition:transform .3s cubic-bezier(.22,1,.36,1)}
+  .next .tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-strong);
+             background:var(--brand-tint);padding:3px 7px;border-radius:6px;flex:none}
+  .next .qt{flex:1;font-size:14.5px;font-weight:700;min-width:0;line-height:1.25;letter-spacing:-.01em}
+  .next .qt em{display:block;font-style:normal;color:var(--ink-mute);font-weight:500;font-size:11px;margin-top:2px;line-height:1.4}
+  .next .tc{display:flex;gap:8px;flex:none}
+  .next .tc button{width:52px;height:44px;border-radius:13px;font-size:17px;font-weight:800;cursor:pointer;border:1.5px solid var(--line);background:var(--surface-alt);color:var(--ink-soft);transition:all .14s}
+  .next .tc .y{color:var(--good);border-color:color-mix(in oklab,var(--good) 40%,transparent);background:var(--good-tint)}
+  .next .tc .n{color:var(--bad);border-color:color-mix(in oklab,var(--bad) 35%,transparent);background:var(--bad-tint)}
+  .next .tc button:active{transform:scale(.94)}
+  .next .nxtop{display:flex;align-items:center;gap:10px;width:100%}
+  .next .nxdone{font-size:11px;font-weight:700;color:var(--brand-strong);background:var(--brand-tint);border:none;border-radius:9px;padding:7px 12px;cursor:pointer;flex:none}
+  .next .clchips,.next .cchips{width:100%}
+  body.hasnext .wrap{padding-bottom:118px}
 
-  .tabs{display:flex;gap:3px;margin-top:14px}
-  .tab{flex:1;text-align:center;padding:8px 2px 9px;font-size:10px;font-weight:650;color:var(--ink-mute);border-radius:11px 11px 0 0;border:1px solid transparent;border-bottom:none;cursor:pointer;background:none}
-  .tab .n{display:block;font-size:15px;margin-bottom:3px;line-height:1}
+  /* The moment an answer moves the picture, said loudly and briefly. This is
+     the closest thing the product has to a heartbeat, so it is the one piece of
+     motion allowed to interrupt. */
+  .shift{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0 auto;max-width:430px;
+         display:flex;justify-content:center;gap:7px;padding:0 14px;pointer-events:none;
+         transform:translateY(24px);opacity:0;transition:transform .34s cubic-bezier(.22,1,.36,1),opacity .34s}
+  /* Rides ABOVE the question bar. A notification that lands on the control you
+     are reaching for is worse than no notification at all. */
+  .shift.show{opacity:1;transform:translateY(-22px)}
+  body.hasnext .shift.show{transform:translateY(-96px)}
+  .shift .mv{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:-.01em;
+             color:#fff;background:var(--ink);border-radius:99px;padding:7px 13px;box-shadow:var(--shadow)}
+  .shift .mv.up{background:var(--good)} .shift .mv.down{background:var(--bad)}
+
+  /* On the examination page each manoeuvre states which two diagnoses it tells
+     apart, so it is a reason to look rather than a box to tick. */
+  .separates{font-size:10.5px;font-weight:600;color:var(--exam-c);background:color-mix(in oklab,var(--exam-c) 7%,transparent);
+             border-left:2px solid color-mix(in oklab,var(--exam-c) 45%,transparent);
+             padding:5px 11px;margin:-4px 0 8px 13px;border-radius:0 7px 7px 0}
+  .separates b{font-weight:800}
+
+  .tabs{display:flex;gap:2px;margin-top:14px}
+  .tab{flex:1;text-align:center;padding:9px 2px 10px;font-size:11px;font-weight:700;letter-spacing:-.01em;color:var(--ink-mute);border-radius:12px 12px 0 0;border:1px solid transparent;border-bottom:none;cursor:pointer;background:none;transition:color .16s,background .16s}
   .tab.on{color:var(--brand-strong);background:var(--surface);border-color:var(--line)}
 
   main{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 16px 16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
@@ -492,39 +572,60 @@
 </div>
 <div class="wrap">
   <header>
-    <div class="casebar" id="casebar"></div>
-    <div class="pt"><span class="chev">‹</span><div class="who" id="who"></div></div>
+    <!-- Identity first, and never abbreviated: this line is the human. It wraps
+         to a second line rather than truncating mid-word. The case switcher is a
+         single control — the worked examples are demonstrations, and three rows
+         of them were eating the most valuable space on a phone. -->
+    <div class="topbar">
+      <div class="who" id="who"></div>
+      <button class="casebtn" id="casebtn" aria-label="Switch case">⋯</button>
+    </div>
+    <div class="casebar" id="casebar" hidden></div>
     <div class="vitals" id="vitals"></div>
-    <div class="sysleg"><span><i style="background:var(--hr)"></i>Cardiovascular</span><span><i style="background:var(--rr)"></i>Respiratory</span><span><i style="background:var(--temp)"></i>Thermal</span></div>
 
-    <div class="cards">
-      <div class="card">
-        <div class="k">Confidence</div>
-        <div class="vrow"><span class="v tnum" id="confV">—</span><span class="d up" id="confD"></span></div>
-        <div class="track"><div class="fill conf" id="confF"></div></div>
+    <!-- The instrument. One number is live and one is a background gauge, so
+         they are no longer identical twins: the lead diagnosis and its
+         confidence carry the weight, with a trace that redraws whenever the
+         picture moves, and completeness runs underneath as a thin rail. -->
+    <div class="gauge">
+      <div class="gtop">
+        <span class="glead" id="gLead">—</span>
+        <span class="gdelta" id="confD"></span>
       </div>
-      <div class="card">
-        <div class="k">Clerking complete</div>
-        <div class="vrow"><span class="v tnum" id="compV">—</span><span class="d up" id="compD"></span></div>
-        <div class="track"><div class="fill comp" id="compF"></div></div>
+      <div class="grow">
+        <span class="gval tnum" id="confV">—</span>
+        <svg class="gtrace" id="gTrace" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"><path id="gPath" d=""/></svg>
+      </div>
+      <div class="gbar"><div class="gfill" id="confF"></div></div>
+      <div class="gfoot">
+        <span class="gasked" id="gAsked"></span>
+        <span class="gcomp">clerking <b class="tnum" id="compV">—</b><span class="grail"><i class="gcfill" id="compF"></i></span></span>
       </div>
     </div>
     <div class="spine" id="spine"></div>
     <div class="cap" id="cap"></div>
     <div class="scorebar" id="scorebar"></div>
     <div class="diffstrip" id="diffstrip"></div>
-    <div class="next" id="next"></div>
 
     <div class="tabs" id="tabs">
-      <button class="tab on" data-tab="hx"><span class="n">◧</span>Hx·Exam</button>
-      <button class="tab" data-tab="ix"><span class="n">⌾</span>Ix</button>
-      <button class="tab" data-tab="mx"><span class="n">✚</span>Mx</button>
-      <button class="tab" data-tab="docs"><span class="n">▤</span>Docs</button>
-      <button class="tab" data-tab="why"><span class="n">✦</span>Why</button>
+      <button class="tab on" data-tab="hx">History</button>
+      <button class="tab" data-tab="exam">Exam</button>
+      <button class="tab" data-tab="ix">Tests</button>
+      <button class="tab" data-tab="mx">Plan</button>
+      <button class="tab" data-tab="docs">Note</button>
+      <button class="tab" data-tab="why">Why</button>
     </div>
   </header>
 
   <main id="main"></main>
+
+  <!-- Thumb geography: he is holding this one-handed at a bedside, so the one
+       question being asked and its two answers live where the thumb already is,
+       not at the top of the screen beside the reading matter. -->
+  <div class="next" id="next"></div>
+  <!-- The movement is the product. When an answer shifts the picture this says
+       so loudly for a moment and then gets out of the way. -->
+  <div class="shift" id="shift" aria-live="polite"></div>
 
   <footer>
     <div class="estbanner" id="estbanner"><span class="eicon">◆</span><span>This board was built by a model from what you typed. Every diagnosis, probability, weight and dose on it is an estimate, not a validated figure. Check it before you act on it.</span></div>
@@ -1400,7 +1501,10 @@ function completeness(){
   const spineSide=st.filter(d=>d.covered).length/st.length;
   return caseSide*0.6+spineSide*0.4;
 }
-function nextBest(p){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;const g=Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
+// The highest-yield unanswered question. Scoped to the page he is on: asking an
+// examination question while he is still taking the history sends him back and
+// forth across the patient, which is exactly what splitting the pages fixed.
+function nextBest(p,stream){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;if(stream&&f.stream!==stream)continue;const g=Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
 function tween(el,to,suf=''){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/450);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
 function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
 function ixState(f){const a=ans[f.id];if(!a)return{cls:'pend',txt:'→ enter'};return a==='present'?{cls:'hi',txt:'abnormal'}:{cls:'ok',txt:'normal'};}
@@ -1511,6 +1615,42 @@ function paintScores(){
   el.querySelectorAll('[data-shd]').forEach(h=>h.addEventListener('click',()=>{const id=h.dataset.shd;scoreOpen.has(id)?scoreOpen.delete(id):scoreOpen.add(id);paintScores();}));
 }
 
+// The confidence history, drawn as a rhythm strip. It is not decoration: each
+// beat is one recorded answer, its height is where confidence stood, so the
+// shape IS the clerking so far — flat while nothing moves, stepping up as the
+// picture resolves. It is the form this user reads all day, which is why it
+// communicates faster here than a line chart would.
+const confHist=[];
+// The last percentage actually printed on the gauge — the only honest baseline
+// for the delta beside it (see paintHeader).
+let shownPc=null;
+function drawTrace(pc,reset){
+  const path=document.getElementById('gPath'); if(!path)return;
+  if(reset){confHist.length=0;shownPc=null;}
+  if(confHist[confHist.length-1]!==pc)confHist.push(pc);
+  if(confHist.length>14)confHist.shift();
+  const pts=confHist.length>1?confHist:[pc,pc];
+  const W=200,H=40,step=W/Math.max(1,pts.length-1);
+  // Each sample draws a beat: a baseline run, then a spike whose height is that
+  // reading, then back to baseline. Higher confidence, taller complex.
+  let d='';
+  pts.forEach((v,i)=>{
+    const x=i*step, y=H-2-(v/100)*(H-8), mid=x+step*0.5;
+    if(i===0){d+=`M${x.toFixed(1)},${(H-3).toFixed(1)}`;}
+    if(i<pts.length-1){
+      d+=`L${(x+step*0.22).toFixed(1)},${(H-3).toFixed(1)}`
+       +`L${(mid-step*0.10).toFixed(1)},${(H-3).toFixed(1)}`
+       +`L${mid.toFixed(1)},${y.toFixed(1)}`
+       +`L${(mid+step*0.12).toFixed(1)},${(H-1).toFixed(1)}`
+       +`L${(mid+step*0.24).toFixed(1)},${(H-3).toFixed(1)}`
+       +`L${(x+step).toFixed(1)},${(H-3).toFixed(1)}`;
+    }
+  });
+  path.setAttribute('d',d);
+  const g=document.querySelector('.gauge');
+  if(g&&!reset){g.classList.remove('pulse');void g.offsetWidth;g.classList.add('pulse');}
+}
+
 // Which domain panel is open, or '__sweep' for every open question at once.
 let spineOpen=null;
 function spineRow(i){
@@ -1583,8 +1723,25 @@ function paintHeader(p,first){
   // it can never be screenshotted/read out of context as a real figure.
   tween(document.getElementById('confV'),cPc,isEstimated()?'% est.':'%');document.getElementById('confF').style.width=cPc+'%';
   tween(document.getElementById('compV'),comp,'%');document.getElementById('compF').style.width=comp+'%';
+  document.getElementById('gLead').textContent=shortName(c.lead);
+  // What it has cost him so far. In a full clinic the intern's currency is time,
+  // and this is the only number on screen that measures the tool's own economy:
+  // how few questions it took to get here.
+  const asked=allFeats().filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]).length;
+  document.getElementById('gAsked').textContent=asked?`${asked} question${asked===1?'':'s'} in`:'no questions yet';
+  drawTrace(cPc,first);
+  // The delta describes the number printed beside it, so it is measured against
+  // the LAST DISPLAYED figure — not the raw probability. Those two diverge the
+  // moment the must-not-miss cap holds confidence down: the raw value moves, the
+  // shown value does not, and reading one against the other put a red "▼ 9" next
+  // to a percentage that had not changed. A gauge that contradicts itself is
+  // worse than a gauge with no delta at all.
+  const dEl=document.getElementById('confD'),ch=cPc-(shownPc??cPc);
+  if(!first&&Math.abs(ch)>=1){dEl.className='gdelta show '+(ch>0?'up':'down');dEl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}
+  else{dEl.className='gdelta';dEl.textContent='';}
+  shownPc=cPc;
   const capEl=document.getElementById('cap');
-  if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>esc(d.name.replace(' of pregnancy',''))).join(' + ')+' not yet excluded. Enter the pending results on the Ix tab to release.</span>';}
+  if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+esc(listOf(c.live.map(d=>d.name.replace(' of pregnancy',''))))+' not yet excluded. Enter the pending results under Tests to release it.</span>';}
   else capEl.style.display='none';
   paintSpine();
   paintScores();
@@ -1595,7 +1752,7 @@ function paintHeader(p,first){
   // the full differential cards already show this.
   const dsEl=document.getElementById('diffstrip');
   if(dsEl){
-    if(tab==='hx'){dsEl.className='diffstrip';dsEl.innerHTML='';}
+    if(isQueueTab()){dsEl.className='diffstrip';dsEl.innerHTML='';}
     else{
       const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]).slice(0,3);
       dsEl.className='diffstrip show';
@@ -1604,7 +1761,7 @@ function paintHeader(p,first){
   }
   let nb=null;
   if(pinNext){nb=FEAT.find(f=>f.id===pinNext);if(!nb)pinNext=null;}
-  if(!nb){nb=nextBest(p);if(nb&&nb.checklist)pinNext=nb.id;}
+  if(!nb){nb=nextBest(p,isQueueTab()?tab:null);if(nb&&nb.checklist)pinNext=nb.id;}
   const nx=document.getElementById('next');
   if(nb&&nb.checklist){
     nx.style.display='flex';nx.className='next next-cl';
@@ -1631,6 +1788,7 @@ function paintHeader(p,first){
     nx.innerHTML=`<span class="tag">Next</span><span class="qt">${esc(nb.lbl)}?<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${esc(nb.criterion)}</b> · `:''}${nb.ask?'ask: '+esc(nb.ask):''}`:'the one answer that moves the picture most'}</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
     nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{snap(probs());ans[nb.id]=b.dataset.a;refresh(false);}));
   } else nx.style.display='none';
+  document.body.classList.toggle('hasnext',nx.style.display!=='none');
 }
 
 function buildHx(){
@@ -1721,14 +1879,36 @@ function paintHx(p,first){
     const discPending=open.filter(isDiscrim).length;
     const completenessPhase=discPending===0&&open.length>0&&list.some(isDiscrim);
     const phaseTag=completenessPhase?`<div class="phasecut"><span>◆</span>Diagnostic ${esc(label.toLowerCase())} answered — for completeness (background, not diagnosis-moving)</div>`:'';
-    const doneMsg=S==='hx'?'✓ History complete — move to Examination':`✓ All ${esc(label.toLowerCase())} covered`;
-    const rows=shown.length?phaseTag+shown.map(f=>featRow(f,false)).join(''):`<div class="qdone">${doneMsg}</div>`;
+    const doneMsg=S==='hx'?'✓ History complete — move to Exam':`✓ All ${esc(label.toLowerCase())} covered`;
+    // An examination is not a list to work through, it is a set of manoeuvres
+    // chosen to separate two diagnoses. On its own page each one says which
+    // ones it separates, so the intern knows what they are looking for and why
+    // before they lay a hand on the patient.
+    const sep=f=>{
+      const ids=Object.keys(f.eff||{}); if(!ids.length)return '';
+      const names=ids.map(id=>DX.find(d=>d.id===id)).filter(Boolean)
+        .sort((a,b)=>p[b.id]-p[a.id]).slice(0,2).map(shortName);
+      if(!names.length)return '';
+      // Two diagnoses means this manoeuvre tells them apart; one means it only
+      // weighs on that one, and saying "separates X" with nothing to separate it
+      // from is the kind of half-sentence that makes a tool feel unfinished.
+      const txt=names.length>1
+        ? `tells <b>${esc(names[0])}</b> apart from <b>${esc(names[1])}</b>`
+        : `weighs on <b>${esc(names[0])}</b>`;
+      return `<div class="separates">${txt}</div>`;
+    };
+    const rows=shown.length
+      ? phaseTag+shown.map(f=>S==='exam'?featRow(f,false)+sep(f):featRow(f,false)).join('')
+      : `<div class="qdone">${doneMsg}</div>`;
     const moreTag=more>0?`<div class="qmore">+${more} more ${esc(label.toLowerCase())} question${more>1?'s':''} queued</div>`:'';
     const recd=done.length?`<div class="recd"><span class="recdh">Recorded</span>${done.map(recdChip).join('')}</div>`:'';
     return `<div class="qstream qs-${esc(S)}"><div class="qhd"><span class="sdot ${esc(S)}"></span>${esc(label)}<span class="qct">${done.length}/${list.length}</span></div>${rows}${moreTag}${recd}</div>`;
   };
   const qwrap=document.getElementById('queue');if(!qwrap)return;
-  qwrap.innerHTML=streamBlock('hx','History')+streamBlock('exam','Examination');
+  // History and examination are separate pages now. They are separate acts —
+  // you finish asking before you start looking — and stacking them made the
+  // history queue scroll away under the exam before it was done.
+  qwrap.innerHTML=tab==='exam'?streamBlock('exam','Examination'):streamBlock('hx','History');
   qwrap.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,t=findFeat(fid).num,raw=inp.value.trim();val[fid]=raw;snap(probs());const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[fid];else if(t.lo==null&&t.hi==null)ans[fid]='present';else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[fid]=abn?'present':'absent';}refresh(false);}));
   qwrap.querySelectorAll('[data-txt]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,raw=inp.value.trim();snap(probs());val[fid]=raw;if(raw)ans[fid]='present';else delete ans[fid];refresh(false);}));
   qwrap.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];if(ans[fid]!=='present')clearFollow(findFeat(fid));refresh(false);}));
@@ -1768,7 +1948,7 @@ function buildIx(){
       snap(probs());
       if(raw===''||isNaN(parseFloat(raw))){delete ans[t.id];}
       else{const x=parseFloat(raw);const abn=t.dir==='below'?x<t.lo:x>t.hi;ans[t.id]=abn?'present':'absent';}
-      refresh(false);showShift(t.id);
+      refresh(false);
     });
     row.querySelectorAll('.qk button').forEach(b=>b.addEventListener('click',()=>{
       snap(probs());const a=b.dataset.a;ans[t.id]=ans[t.id]===a?undefined:a;if(!ans[t.id])delete ans[t.id];
@@ -1776,22 +1956,25 @@ function buildIx(){
       // quantitative serum send) changes which controls should even be on
       // screen — a light repaint can't add/remove DOM, so rebuild the tab.
       if(IX.some(x=>x.gateOn===t.id))render();else refresh(false);
-      showShift(t.id);
     }));
   });
 }
-// When a result lands, name the diagnoses it just moved and by how much — so the
-// feedback loop (result → differential) is visible right where you entered it.
-function showShift(tid){
-  const row=document.querySelector(`.ixin[data-t="${tid}"]`);if(!row)return;
+// The moment an answer moves the picture, named and shown. This used to live in
+// a small strip inside one row of the tests page and vanish in under three
+// seconds; it now fires on EVERY answer, anywhere, above the thumb bar where the
+// eye already is. That instant — you answered, the picture moved — is the whole
+// feeling of something reasoning alongside you, so it is the loudest thing on
+// the screen for about a second and then it leaves.
+let shiftTimer=null;
+function showShift(){
+  const el=document.getElementById('shift');if(!el)return;
   const p=probs();
-  const movers=DX.map(d=>({d,ch:Math.round((p[d.id]-(last[d.id]??p[d.id]))*100)})).filter(m=>Math.abs(m.ch)>=1).sort((a,b)=>Math.abs(b.ch)-Math.abs(a.ch)).slice(0,3);
-  const old=row.querySelector('.ixshift');if(old)old.remove();
-  if(!movers.length)return;
-  const el=document.createElement('div');el.className='ixshift';
-  el.innerHTML=movers.map(m=>`<span class="mv ${m.ch>0?'up':'down'}" style="--c:${esc(m.d.c)}">${m.ch>0?'▲':'▼'} ${esc(shortName(m.d))} ${m.ch>0?'+':''}${m.ch}</span>`).join('');
-  row.appendChild(el);
-  setTimeout(()=>{if(el.parentNode)el.remove();},2600);
+  const movers=DX.map(d=>({d,ch:Math.round((p[d.id]-(last[d.id]??p[d.id]))*100)})).filter(m=>Math.abs(m.ch)>=1).sort((a,b)=>Math.abs(b.ch)-Math.abs(a.ch)).slice(0,2);
+  clearTimeout(shiftTimer);
+  if(!movers.length){el.className='shift';el.innerHTML='';return;}
+  el.innerHTML=movers.map(m=>`<span class="mv ${m.ch>0?'up':'down'}">${m.ch>0?'▲':'▼'} ${esc(shortName(m.d))} ${m.ch>0?'+':''}${m.ch}</span>`).join('');
+  el.className='shift show';
+  shiftTimer=setTimeout(()=>{el.className='shift';},2400);
 }
 function paintIx(p){
   IX.forEach(t=>{
@@ -1860,7 +2043,7 @@ function buildMx(){
   }
   document.getElementById('main').innerHTML=`<div class="mx">
     <div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${esc(c.lead.name)}</b>. Doses need clinician <b>sign-off</b>.</span></div>
-    ${MX.investigate&&MX.investigate.length?`<div class="mxsec ixref"><div class="hd"><span class="bar" style="background:var(--rr)"></span>⌾ Investigate first — enter results on the Ix tab</div><div class="invg">${MX.investigate.map(v=>`<button class="invrow" data-goix="${esc(v.ix||'')}"><span class="invl">${esc(v.lbl)}</span><span class="invr">${v.when?`<span class="invwhen">${esc(v.when)}</span>`:''}<span class="invarrow">Ix →</span></span></button>`).join('')}</div></div>`:''}
+    ${MX.investigate&&MX.investigate.length?`<div class="mxsec ixref"><div class="hd"><span class="bar" style="background:var(--rr)"></span>Investigate first — results go under Tests</div><div class="invg">${MX.investigate.map(v=>`<button class="invrow" data-goix="${esc(v.ix||'')}"><span class="invl">${esc(v.lbl)}</span><span class="invr">${v.when?`<span class="invwhen">${esc(v.when)}</span>`:''}<span class="invarrow">Tests →</span></span></button>`).join('')}</div></div>`:''}
     <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--bad)"></span>Immediate</div>${MX.immediate.map((m,i)=>rxRow(m,i,'im',c)).join('')}</div>
     <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--brand)"></span>Short-term · treat ${esc(shortName(c.lead))}</div>${MX.definitive.map((m,i)=>rxRow(m,i,'df',c)).join('')}</div>
     ${MX.longterm&&MX.longterm.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hx-c)"></span>Long-term</div>${MX.longterm.map((m,i)=>rxRow(m,i,'lt',c)).join('')}</div>`:''}
@@ -1891,7 +2074,7 @@ function buildMx(){
 }
 function paintMx(p){
   const c=cap(p),cv=document.querySelector('[data-cover]');
-  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${c.live.map(d=>esc(shortName(d))).join(' + ')} not excluded: treat the lead empirically and prioritise ${c.live.map(d=>esc(disc(d))).join(' &amp; ')} to rule ${c.live.length>1?'them':'it'} out.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${esc(shortName(c.lead))} and continue the definitive plan.</div>`;}
+  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${esc(listOf(c.live.map(shortName)))} not excluded: treat the lead empirically and prioritise ${esc(listOf(c.live.map(disc)))} to rule ${c.live.length>1?'them':'it'} out.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${esc(shortName(c.lead))} and continue the definitive plan.</div>`;}
   document.querySelectorAll('[data-lever]').forEach(el=>{const a=ans[el.dataset.lever];el.querySelector('.up').classList.toggle('sel',a==='present');el.querySelector('.no').classList.toggle('sel',a==='absent');});
 }
 
@@ -1928,10 +2111,21 @@ function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val
 function pendingTests(){return IX.filter(t=>!ans[t.id]).map(t=>t.lbl);}
 function leadInfo(){const p=probs(),c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);return{lead:c.lead,conf:Math.round(conf*100),capped:c.capped,live:c.live};}
 function shortName(d){return d.name.replace(' of pregnancy','');}
+// "A, B and C" — not "A and B and C". Four diagnoses joined by three "and"s is
+// the kind of sentence that tells a reader a machine wrote it.
+function listOf(arr,conj='and'){
+  const a=arr.filter(Boolean);
+  if(a.length<=1)return a[0]||'';
+  if(a.length===2)return `${a[0]} ${conj} ${a[1]}`;
+  return `${a.slice(0,-1).join(', ')} ${conj} ${a[a.length-1]}`;
+}
+// Findings are written with a leading capital because each one is a label. Read
+// back inside a sentence they have to stop shouting.
+function inSentence(arr){return listOf(arr.map(s=>String(s).charAt(0).toLowerCase()+String(s).slice(1)));}
 function obsLine(){return VITALS.map(v=>v.k+' '+v.v).join(', ');}
 function docSBAR(){
   const C=CASES[caseId],li=leadInfo(),pos=positives(),labs=labsEntered(),pend=pendingTests();
-  const capline=li.capped?` Confidence capped at ${li.conf}% — ${esc(li.live.map(shortName).join(' and '))} not yet excluded.`:'';
+  const capline=li.capped?` Confidence capped at ${li.conf}% — ${esc(listOf(li.live.map(shortName)))} not yet excluded.`:'';
   const ixLine=`${labs.length?' Results — '+esc(labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; '))+'.':''}${pend.length?' Pending — '+esc(pend.join(', '))+'.':(labs.length?'':' Investigations pending.')}`;
   return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${esc(PT.summaryLine)}, presenting with ${esc(PT.complaint)}. Current obs: ${esc(obsLine())}.</p></div></div>
    <div class="block"><span class="ltr">B</span><div><b>Background</b><p>${esc(PT.background)}</p></div></div>
@@ -1947,7 +2141,7 @@ function docClerk(){
    <div class="sec"><b>Pertinent negatives</b><p>${esc(neg.join(', '))||'none recorded'}</p></div>
    ${spineBlock()}
    <div class="sec"><b>Investigations</b><p>${labs.length?esc(labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; ')):''}${pendingTests().length?(labs.length?'; ':'')+'pending: '+esc(pendingTests().join(', ')):(labs.length?'':'awaited')}</p></div>
-   <div class="sec"><b>Impression</b><p>${esc(li.lead.name)} (${esc(li.lead.icd)}), ${li.conf}%${li.capped?'; must-not-miss not excluded: '+esc(li.live.map(shortName).join(', ')):''}.</p></div>
+   <div class="sec"><b>Impression</b><p>${esc(li.lead.name)} (${esc(li.lead.icd)}), ${li.conf}%${li.capped?'; must-not-miss not excluded: '+esc(listOf(li.live.map(shortName))):''}.</p></div>
    <div class="sec"><b>Plan</b><p>${esc(CASES[caseId].planLine)}</p></div>`;
 }
 function docRef(){
@@ -1977,13 +2171,36 @@ function docRound(){
   return `<div class="sec"><b>Ward round — today</b><p>${esc(PT.summaryLine)}, admitted with ${esc(PT.complaint)}.</p></div>
    <div class="sec"><b>New complaints / events today</b><textarea id="todayin" class="todayta" placeholder="e.g. new pleuritic pain overnight · febrile to 38.9 · passing less urine · feeds improving…">${esc(todayNote)}</textarea></div>
    <div class="sec"><b>Observations</b><p>${esc(VITALS.map(v=>v.k+' '+v.v).join(' · '))}</p></div>
-   <div class="sec"><b>Response to treatment</b><p>${resp.length?esc(resp.join('; ')):'no treat-and-see markers recorded on the Mx tab yet'}</p></div>
+   <div class="sec"><b>Response to treatment</b><p>${resp.length?esc(resp.join('; ')):'nothing recorded under Plan yet'}</p></div>
    <div class="sec"><b>On review</b><p>${esc(pos.join(', '))||'no positives recorded'}</p></div>
    <div class="sec"><b>Results</b><p>${labs.length?esc(labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; ')):''}${pend.length?(labs.length?'; ':'')+'pending: '+esc(pend.join(', ')):(labs.length?'':'awaited')}</p></div>
-   <div class="sec"><b>Assessment</b><p>Working diagnosis <b>${esc(li.lead.name)}</b> (${esc(li.lead.icd)}), ${li.conf}% (${esc(trend)}) — ${li.capped?'must-not-miss not yet excluded: '+esc(li.live.map(shortName).join(', ')):'killers excluded'}.</p></div>
+   <div class="sec"><b>Assessment</b><p>Working diagnosis <b>${esc(li.lead.name)}</b> (${esc(li.lead.icd)}), ${li.conf}% (${esc(trend)}) — ${li.capped?'must-not-miss not yet excluded: '+esc(listOf(li.live.map(shortName))):'killers excluded'}.</p></div>
    <div class="sec"><b>Plan / what to improve</b><p>${esc(roundPlan(li,pend))}</p></div>`;
 }
-const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},round:{label:'Ward round',title:'Ward round — daily review',f:docRound},ref:{label:'Referral',title:'Referral letter',f:docRef}};
+// The thirty-second version, plus what you will be asked next.
+//
+// This is the moment an intern is actually judged — standing at the foot of the
+// bed with a consultant waiting — and nothing in this product addressed it. The
+// questions are not invented: each one is read off the board's own open ends,
+// so it can only ask what the case genuinely leaves unanswered.
+function docHandover(){
+  const li=leadInfo(),pos=positives(),pend=pendingTests(),p=probs();
+  const asks=[];
+  if(li.capped)asks.push(`How have you excluded ${listOf(li.live.map(shortName))}?`);
+  if(pend.length)asks.push(`What are you expecting from the ${listOf(pend.slice(0,2))}?`);
+  const rival=[...DX].filter(d=>d.id!==li.lead.id).sort((a,b)=>p[b.id]-p[a.id])[0];
+  if(rival)asks.push(`Why ${shortName(li.lead)} and not ${shortName(rival)}?`);
+  const openSpine=spineState().filter(d=>!d.covered).map(d=>d.lbl.toLowerCase());
+  if(openSpine.length)asks.push(`You have not asked about ${listOf(openSpine.slice(0,2),'or')} — do that before the round.`);
+  asks.push(`What is your plan if they deteriorate overnight?`);
+  return `<div class="sec"><b>Say this</b><p>${esc(PT.summaryLine)}, in with ${esc(PT.complaint)}. `
+    +`${pos.length?`On my findings, ${esc(inSentence(pos.slice(0,3)))}. `:''}`
+    +`I think this is ${esc(li.lead.name)}${li.capped?`, though I have not yet excluded ${esc(listOf(li.live.map(shortName),'or'))}`:''}. `
+    +`${pend.length?`I am waiting on ${esc(listOf(pend.slice(0,3)))}. `:''}`
+    +`My plan is ${esc(CASES[caseId].planLine)}</p></div>`
+    +`<div class="sec"><b>What you will be asked next</b>${asks.map(a=>`<p>· ${esc(a)}</p>`).join('')}</div>`;
+}
+const DOCS={hand:{label:'Handover',title:'Handover — the thirty-second version',f:docHandover},sbar:{label:'SBAR',title:'SBAR — urgent referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},round:{label:'Ward round',title:'Ward round — daily review',f:docRound},ref:{label:'Referral',title:'Referral letter',f:docRef}};
 function buildDocs(){
   const d=DOCS[docType];
   document.getElementById('main').innerHTML=`<div class="doc">
@@ -2040,7 +2257,7 @@ function whyNarrative(){
   let s=`<b>${esc(c.lead.name)}</b> leads at <b>${li.conf}%</b>${li.capped?' — held there on purpose':''}. `;
   if(drivers)s+=`The weight is mostly ${esc(drivers)}. `;
   if(fa.con[0])s+=`Pulling against it: ${esc(fa.con[0].lbl)} (${esc(lrTxt(fa.con[0].lr))}). `;
-  if(c.capped){const t=c.live.map(disc);s+=`Confidence is capped at ${Math.round(c.ceil*100)}% because ${esc(c.live.map(shortName).join(' and '))} could still kill and ${c.live.length>1?'are':'is'} not excluded until ${esc(t.join(' and '))} ${t.length>1?'are':'is'} back — MedAI will not fake certainty over an unexcluded must-not-miss.`;}
+  if(c.capped){const t=c.live.map(disc);s+=`Confidence is capped at ${Math.round(c.ceil*100)}% because ${esc(listOf(c.live.map(shortName)))} could still kill and ${c.live.length>1?'are':'is'} not excluded until ${esc(listOf(t))} ${t.length>1?'are':'is'} back — MedAI will not fake certainty over an unexcluded must-not-miss.`;}
   else s+=`Every must-not-miss rival is now excluded, so the number is trustworthy.`;
   return s;
 }
@@ -2065,8 +2282,11 @@ function buildWhy(){
 }
 
 const EMPTY={};
-function refresh(first){const p=probs();paintHeader(p,first);if(tab==='hx')paintHx(p,first);else if(tab==='ix')paintIx(p);else if(tab==='mx')paintMx(p);}
-function render(){if(tab==='hx')buildHx();else if(tab==='ix')buildIx();else if(tab==='mx')buildMx();else if(tab==='docs')buildDocs();else if(tab==='why')buildWhy();refresh(true);}
+const isQueueTab=()=>tab==='hx'||tab==='exam';
+// showShift lives here rather than at each of the twenty answer handlers, so a
+// new control can never be added that silently forgets to report its own effect.
+function refresh(first){const p=probs();paintHeader(p,first);if(isQueueTab())paintHx(p,first);else if(tab==='ix')paintIx(p);else if(tab==='mx')paintMx(p);if(!first)showShift();}
+function render(){if(isQueueTab())buildHx();else if(tab==='ix')buildIx();else if(tab==='mx')buildMx();else if(tab==='docs')buildDocs();else if(tab==='why')buildWhy();refresh(true);}
 
 function paintCaseUI(){
   const entries=Object.entries(CASES).filter(([k])=>!k.startsWith('__'));
@@ -2074,7 +2294,7 @@ function paintCaseUI(){
     +entries.map(([k,c])=>`<button data-c="${esc(k)}" class="${k===caseId?'on':''}"><b>${esc(c.specialty)}</b> ${esc(c.label)}</button>`).join('')
     +(caseId.startsWith('__')?`<button data-c="${esc(caseId)}" class="on gen"><b>✦ ${esc(CASES[caseId].specialty)}</b> ${esc(CASES[caseId].label)}</button>`:'')
     +'<button class="newcase" id="newcase">＋ New case</button>';
-  document.getElementById('casebar').querySelectorAll('button[data-c]').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
+  document.getElementById('casebar').querySelectorAll('button[data-c]').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);document.getElementById('casebar').hidden=true;paintCaseUI();}));
   document.getElementById('newcase').addEventListener('click',showIntake);
   document.getElementById('estbanner').classList.toggle('show',isEstimated());
   document.getElementById('who').textContent=PT.line;
@@ -2153,8 +2373,14 @@ function hideIntake(){document.getElementById('intake').classList.add('hide');}
 function init(){
   document.getElementById('foot').innerHTML='<b><span class="sw" style="background:var(--good)">✓</span>present</b><b><span class="sw" style="background:var(--bad)">✕</span>absent</b>';
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
-    tab=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));render();
+    // Moving between history and examination is moving between two acts, so the
+    // pinned question is released rather than dragged across with you.
+    tab=t.dataset.tab;pinNext=null;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));render();
   }));
+  document.getElementById('casebtn').addEventListener('click',()=>{
+    const cb=document.getElementById('casebar');cb.hidden=!cb.hidden;
+  });
   // intake wiring
   document.getElementById('igen').addEventListener('click',()=>generateCase(document.getElementById('itext').value));
   document.getElementById('ichips').innerHTML=Object.entries(CASES).filter(([k])=>!k.startsWith('__')).map(([k,c])=>`<button data-c="${esc(k)}">${esc(c.specialty)} · ${esc(c.label)}</button>`).join('');
