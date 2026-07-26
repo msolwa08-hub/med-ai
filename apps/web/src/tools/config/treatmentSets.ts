@@ -891,4 +891,47 @@ export const TREATMENT_SETS: TreatmentSet[] = [
       it('cp-disposition', 'NEVER discharge into an unsafe disposition', 'Do not discharge home until a place-of-safety assessment/social work involvement has confirmed the disposition is safe — admission "for observation" is an appropriate protective holding measure even if the medical injury alone would not warrant it', 'This is a deliberate, appropriate use of admission as a protective measure, not medical over-treatment.'),
     ],
   },
+
+  // ─── Family Medicine / PHC ────────────────────────────────────────────────
+  {
+    id: 'hpt-initiation',
+    title: 'Hypertension — PHC initiation & step-up (SA STG)',
+    pattern: /hypertension|\bHPT\b|\bHTN\b|high blood pressure|elevated BP|\bBP\b[^.]{0,12}(high|raised|uncontrolled)/i,
+    items: [
+      it('hpt-confirm', 'Confirm diagnosis — two visits, both arms', 'BP ≥140/90 on two separate occasions measured correctly (sitting, rested, correct cuff size, both arms — use the higher reading)', 'A single elevated reading is not diagnostic — white-coat effect is common and leads to unnecessary lifelong treatment.'),
+      it('hpt-baseline', 'Baseline bloods before starting', 'U&E (creatinine, K+), fasting glucose, fasting lipogram, urine dipstick for proteinuria', 'Identifies secondary causes (renal), coexisting risk (DM, dyslipidaemia), and end-organ damage (proteinuria) before committing to a regimen.'),
+      it('hpt-cvd-risk', 'Cardiovascular risk assessment', 'Calculate total CVD risk — age, sex, smoking, DM, cholesterol, family history. Assess target-organ damage: LVH on ECG, proteinuria, fundoscopy if available', 'Risk stratification determines treatment intensity — high-risk patients start dual therapy, not monotherapy.'),
+      it('hpt-step1', 'Step 1 — amlodipine OR HCTZ', 'Start amlodipine 5mg daily (preferred if younger/black) OR HCTZ 12.5mg daily. Review in 4–8 weeks', 'SA STG first-line: CCB or low-dose thiazide. ACE inhibitor first-line only if DM/proteinuria/heart failure.'),
+      it('hpt-step2', 'Step 2 — add second agent', 'If BP still ≥140/90 on max monotherapy, add a second agent from a different class. Combination: amlodipine + enalapril, or HCTZ + enalapril', 'Different mechanisms are synergistic — doubling one drug gives diminishing returns with more side-effects.'),
+      it('hpt-step3', 'Step 3 — triple therapy / refer', 'If uncontrolled on 3 agents at max tolerated dose, refer to doctor/specialist. Exclude non-adherence and secondary causes first', 'Resistant hypertension needs investigation for secondary causes (renal artery stenosis, Conn syndrome, phaeochromocytoma).'),
+      it('hpt-lifestyle', 'Lifestyle modification at EVERY visit', 'Salt reduction, DASH-style diet, weight loss if overweight, exercise 150min/wk, alcohol reduction, smoking cessation', 'Non-pharmacological interventions can drop SBP 5–15mmHg — sometimes enough to avoid or reduce medication.'),
+    ],
+  },
+  {
+    id: 'dm-phc-management',
+    title: 'Diabetes mellitus — PHC management (SA STG)',
+    pattern: /diabet|\bDM\b|\bT[12]DM\b|HbA1c|metformin|glicl?azide|hyperglycaemia|blood sugar (high|raised|uncontrolled)/i,
+    items: [
+      it('dm-confirm', 'Confirm diagnosis + classify type', 'Fasting glucose ≥7.0 mmol/L on two occasions, or random ≥11.1 + symptoms, or HbA1c ≥6.5%. Classify: T2DM (most common at PHC), T1DM (young, thin, ketotic), gestational', 'Misclassifying T1DM as T2DM and starting oral agents delays insulin and risks DKA.'),
+      it('dm-baseline', 'Baseline assessment', 'HbA1c, fasting lipogram, U&E + eGFR, urine ACR (albumin-creatinine ratio), fundoscopy referral, foot exam', 'Establishes complication status at diagnosis — many T2DM patients already have complications at presentation.'),
+      it('dm-metformin', 'Step 1 — metformin first-line', 'Metformin 500mg daily with meals, titrate to 850mg BD over 4–6 weeks as tolerated. Target HbA1c <7%', 'SA STG first-line. Start low (GI side-effects are dose-related and settle), contraindicated if eGFR <30.'),
+      it('dm-add-su', 'Step 2 — add sulfonylurea if HbA1c still >7%', 'Add gliclazide 80mg daily (max 160mg BD). Warn about hypoglycaemia, especially if meals irregular', 'Second-line at PHC level per SA STG. Educate on hypo recognition and glucose monitoring.'),
+      it('dm-insulin', 'Step 3 — insulin initiation or refer', 'If HbA1c >10% on max oral, or symptomatic hyperglycaemia, initiate basal insulin (NPH 10U nocte, titrate) or refer for initiation', 'Delay in insulin initiation is a major cause of preventable complications — "insulin resistance" from the doctor is more common than from the patient.'),
+      it('dm-foot', 'Foot exam at EVERY visit', 'Inspect both feet: skin (ulcers, calluses, fungal infection), sensation (10g monofilament), pulses (dorsalis pedis, posterior tibial). Footwear assessment', 'Diabetic foot disease is the commonest reason for non-traumatic amputation in SA — caught early, most amputations are preventable.'),
+      it('dm-screening', 'Annual complication screen', 'HbA1c 6-monthly, annual: fundoscopy, urine ACR, lipogram, foot exam, BP (target <130/80)', 'Systematic screening catches silent progression — retinopathy and nephropathy are asymptomatic until advanced.'),
+    ],
+  },
+  {
+    id: 'sti-syndromic',
+    title: 'STI — syndromic management (SA national guidelines)',
+    pattern: /\bSTI\b|sexually transmitted|vaginal discharge|urethral discharge|genital ulcer|genital warts|\bGUD\b|\bVDS\b|\bMUS\b/i,
+    items: [
+      it('sti-syndrome', 'Identify the syndrome', 'Vaginal discharge syndrome (VDS), male urethral syndrome (MUS), genital ulcer disease (GUD), lower abdominal pain (LAP/PID), scrotal swelling, inguinal bubo', 'Syndromic management treats the SYNDROME, not a specific organism — the SA guidelines provide fixed regimens per syndrome.'),
+      it('sti-treat', 'Treat per SA STG syndromic protocol', 'VDS: ceftriaxone 250mg IM stat + azithromycin 1g stat + metronidazole 2g stat. MUS: ceftriaxone 250mg IM + azithromycin 1g stat. GUD: aciclovir 400mg TDS ×7d + benzathine penicillin 2.4MU IM stat', 'Fixed protocols ensure adequate coverage at first visit — do not wait for results in PHC.'),
+      it('sti-hiv', 'Offer HIV test', 'All STI patients must be offered HIV testing — an STI is an independent risk marker and the consultation is a testing opportunity', 'STI-HIV co-infection is extremely common in SA; this is a mandatory part of STI management per national protocol.'),
+      it('sti-partner', 'Partner notification', 'Issue a partner notification slip. Treat the partner for the SAME syndrome regardless of symptoms', 'Untreated partners guarantee reinfection — partner treatment is part of the treatment, not optional.'),
+      it('sti-condoms', 'Condom provision + safer sex', 'Provide condoms, counsel on consistent use. Assess contraception needs', 'Condom provision at the point of STI treatment has the highest uptake of any prevention intervention.'),
+      it('sti-followup', 'Follow-up at 7 days', 'If symptoms persist at 7 days, change to the persistent/recurrent protocol per SA STG. Consider non-compliance, reinfection, resistant organism', 'Treatment failure at 7 days triggers the next-line syndromic regimen — do not repeat the same treatment.'),
+    ],
+  },
 ];

@@ -20,7 +20,7 @@
  * token, mirroring [OG_HISTORY_COMPLETE].
  */
 
-import { anthropic, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL } from '../lib/claude.js';
+import { anthropic, CLAUDE_HAIKU_MODEL, CLAUDE_HISTORY_MODEL, CLAUDE_MODEL } from '../lib/claude.js';
 import type { SaLanguage, ConversationMessage } from '../types/index.js';
 import { SA_LANGUAGE_NAMES } from '../types/index.js';
 
@@ -85,6 +85,11 @@ export interface SpecialtySessionResponse {
 }
 
 const COMPLETE_TOKEN = '[SPECIALTY_HISTORY_COMPLETE]';
+
+// Cap how much prior conversation is resent each turn — mirrors
+// adaptive-ai-history's HISTORY_WINDOW so long specialty sessions don't
+// balloon the prompt (and don't blow past the 20-block cache lookback).
+const HISTORY_WINDOW = 8;
 
 // ─── Internal Medicine disease-system modules ─────────────────────────────────
 
@@ -693,7 +698,7 @@ Reply with ONLY one word from the options.`;
 
   try {
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: CLAUDE_HAIKU_MODEL,
       max_tokens: 10,
       temperature: 0,
       messages: [{ role: 'user', content: prompt }],
@@ -739,7 +744,7 @@ export async function startSpecialtyHistorySession(
   const response = await anthropic.messages.create({
     model: CLAUDE_HISTORY_MODEL,
     max_tokens: 512,
-    system: systemPrompt,
+    system: [{ type: 'text' as const, text: systemPrompt, cache_control: { type: 'ephemeral' as const } }],
     messages: [{ role: 'user', content: config.openingInstruction(patientName, context) }],
   });
 
@@ -767,7 +772,7 @@ export async function continueSpecialtyHistorySession(
   const systemPrompt = config.buildSystemPrompt(language, context, system);
 
   const messages = [
-    ...conversationHistory.map((m) => ({
+    ...conversationHistory.slice(-HISTORY_WINDOW).map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
@@ -777,7 +782,7 @@ export async function continueSpecialtyHistorySession(
   const response = await anthropic.messages.create({
     model: CLAUDE_HISTORY_MODEL,
     max_tokens: 600,
-    system: systemPrompt,
+    system: [{ type: 'text' as const, text: systemPrompt, cache_control: { type: 'ephemeral' as const } }],
     messages,
   });
 

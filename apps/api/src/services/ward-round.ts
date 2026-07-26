@@ -163,7 +163,11 @@ ${protocolBlock}`;
     // cases — measured 2938 output tokens truncated at 1800 (stop=max_tokens),
     // which severed the JSON and produced an empty round. Headroom avoids it.
     max_tokens: 4000,
-    system,
+    // `system` is fully determined by (dept, subDept) — no patient-specific
+    // content leaks in here (that all lives in userContent) — so caching it
+    // lets repeated rounds on different patients in the same department
+    // share the cached prefix instead of re-processing the shared prompt.
+    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: userContent }],
   });
 

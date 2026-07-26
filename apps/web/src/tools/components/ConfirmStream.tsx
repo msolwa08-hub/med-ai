@@ -34,12 +34,12 @@ function FeatureRow({ feature, answer, onAnswer }: {
 
   return (
     <div className="flex flex-col gap-2 py-3.5 first:pt-1 last:pb-1">
-      <div className="flex items-center gap-1.5 text-2xs text-ink-mute">
+      <div className="flex items-center gap-1.5 text-xs text-ink-soft">
         <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
-        <span className="uppercase tracking-wide">{feature.kind}</span>
+        <span className="uppercase tracking-wide font-medium">{feature.kind}</span>
         {feature.priority === 'now' && <span className="text-danger font-semibold">· now</span>}
       </div>
-      <p className="text-sm text-ink leading-snug">{feature.prompt}</p>
+      <p className="text-[15px] text-ink font-medium leading-snug">{feature.prompt}</p>
       <div className="flex flex-wrap gap-1.5">
         {choices.map(choice => {
           const selected = answer === choice.value;
@@ -74,7 +74,7 @@ export function ConfirmStream({ features, answers, onAnswer }: {
 
   return (
     <div className="rounded-card border border-line bg-surface shadow-card p-4 sm:p-5">
-      <SectionHead>Confirm the diagnosis — tap what you find</SectionHead>
+      <SectionHead>Confirm findings</SectionHead>
       <div className="divide-y divide-line">
         {features.map((f, i) => (
           <FeatureRow

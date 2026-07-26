@@ -47,7 +47,7 @@ const ALLERGY_CLASSES: Record<string, string[]> = {
   sulphonamide: ['sulfamethoxazole', 'co-trimoxazole', 'cotrimoxazole', 'bactrim', 'sulfasalazine'],
   aspirin: ['aspirin', 'ibuprofen', 'diclofenac', 'naproxen', 'indomethacin', 'ketorolac', 'meloxicam', 'piroxicam'],
   nsaid: ['aspirin', 'ibuprofen', 'diclofenac', 'naproxen', 'indomethacin', 'ketorolac', 'meloxicam', 'piroxicam'],
-  codeine: ['codeine', 'tramadol', 'morphine', 'oxycodone'],
+  codeine: ['codeine'],
   morphine: ['morphine', 'codeine', 'oxycodone', 'fentanyl'],
   cephalosporin: ['cefazolin', 'ceftriaxone', 'cefuroxime', 'cephalexin', 'cefalexin', 'cefixime'],
   tetracycline: ['tetracycline', 'doxycycline', 'minocycline'],
@@ -78,8 +78,9 @@ const PREGNANCY_BLOCK: Array<{ match: string; reason: string }> = [
   { match: 'rivaroxaban', reason: 'DOACs contraindicated in pregnancy — use LMWH' },
   { match: 'atorvastatin', reason: 'Statins contraindicated in pregnancy' },
   { match: 'simvastatin', reason: 'Statins contraindicated in pregnancy' },
-  { match: 'efavirenz', reason: 'First-trimester neural tube concern — specialist ART review' },
   { match: 'carbimazole', reason: 'First-trimester teratogen — propylthiouracil preferred' },
+  { match: 'lithium', reason: 'First-trimester cardiac teratogen (Ebstein anomaly) — specialist psychiatric review required' },
+  { match: 'misoprostol', reason: 'Uterotonic — causes uterine contractions; only indicated for specific obstetric indications under specialist care' },
 ];
 
 // ─── Renal caution (problem list N18*) ────────────────────────────────────────
@@ -147,6 +148,18 @@ const INTERACTIONS: Array<{ a: string[]; b: string[]; severity: 'BLOCK' | 'WARN'
     b: ['ibuprofen', 'diclofenac', 'naproxen', 'aspirin', 'indomethacin', 'ketorolac'],
     severity: 'WARN',
     reason: 'LMWH/heparin + NSAID — additive bleeding risk',
+  },
+  {
+    a: ['digoxin'],
+    b: ['amiodarone'],
+    severity: 'WARN',
+    reason: 'Amiodarone inhibits P-glycoprotein — increases digoxin levels 70-100%; halve digoxin dose and monitor levels',
+  },
+  {
+    a: ['kcl', 'potassium', 'slow-k', 'k-dur'],
+    b: ['enalapril', 'lisinopril', 'perindopril', 'losartan', 'valsartan', 'candesartan'],
+    severity: 'WARN',
+    reason: 'Potassium supplementation + ACE-i/ARB — hyperkalaemia risk; check K+ before and after',
   },
 ];
 

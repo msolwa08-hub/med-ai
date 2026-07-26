@@ -39,6 +39,9 @@ const BRIEFINGS: Record<string, Briefing> = {
       'Tension pneumothorax — deviated trachea, silent hemithorax',
       'Oesophageal rupture after vomiting',
     ],
+    byDept: {
+      family: ['GORD/MSK common but exclude ACS first — ECG + troponin if any doubt', 'Unstable angina may present as "my usual heartburn"'],
+    },
   },
   sob: {
     mustNotMiss: [
@@ -63,6 +66,7 @@ const BRIEFINGS: Record<string, Briefing> = {
     byDept: {
       og: ['Ruptured ectopic until proven otherwise', 'Abruption — woody uterus, fetal distress', 'Ovarian torsion'],
       paeds: ['Intussusception — episodic pain + pallor', 'Malrotation/volvulus — bilious vomiting is surgical', 'Consider NAI if story inconsistent'],
+      family: ['Ectopic in every reproductive-age woman — βhCG first', 'The chronic abdo pain that is really depression/anxiety — screen, but only after excluding the surgical causes'],
     },
   },
   headache: {
@@ -88,6 +92,7 @@ const BRIEFINGS: Record<string, Briefing> = {
     byDept: {
       paeds: ['IMCI danger signs FIRST — any one = severe', '<3 months febrile = sepsis until proven otherwise'],
       og: ['Puerperal sepsis — retained products, uterine tenderness', 'Chorioamnionitis with ROM'],
+      family: ['Malaria travel screen — any fever with travel history', 'HIV/TB overlay — fever may be the only TB symptom'],
     },
   },
   trauma: {
@@ -152,6 +157,7 @@ const BRIEFINGS: Record<string, Briefing> = {
     ],
     byDept: {
       paeds: ['Inhaled foreign body — sudden coughing fit in a toddler', 'Pertussis in the unimmunised infant — apnoeas'],
+      family: ['TB — cough ≥2 weeks in SA = GeneXpert, no exceptions', 'Asthma/COPD step-up — assess control before adding another inhaler'],
     },
   },
   'vomiting-diarrhoea': {

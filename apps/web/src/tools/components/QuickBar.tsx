@@ -147,11 +147,13 @@ export function QuickBar({
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="w-4 h-4 text-brand-600" />
         <h3 className="text-base font-bold text-ink tracking-tight">{title}</h3>
-        <span className="text-xs text-ink-soft">— {hint}</span>
+        {hint && <span className="text-xs text-ink-soft">— {hint}</span>}
+        <kbd className="hidden lg:inline-block ml-auto text-2xs text-ink-mute/50 font-mono border border-line rounded px-1.5 py-0.5">⌘K</kbd>
       </div>
 
       <div className="relative">
         <textarea
+          data-quickbar-input
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') parse(); }}
@@ -164,7 +166,7 @@ export function QuickBar({
             onClick={toggleMic}
             aria-label={listening ? 'Stop dictation' : 'Dictate'}
             title={listening ? 'Stop dictation' : 'Dictate'}
-            className={`absolute top-2.5 right-2.5 grid place-items-center w-9 h-9 rounded-lg transition-colors focus:outline-none focus-visible:shadow-focus ${
+            className={`absolute top-2 right-2 grid place-items-center w-11 h-11 rounded-lg transition-colors focus:outline-none focus-visible:shadow-focus ${
               listening ? 'bg-danger text-white animate-pulse' : 'bg-surface-alt text-ink-soft hover:text-brand-700'
             }`}
           >
@@ -177,7 +179,7 @@ export function QuickBar({
         <button
           onClick={parse}
           disabled={loading || scanning || !text.trim()}
-          className="inline-flex items-center gap-2 bg-brand-700 hover:bg-brand-600 active:bg-brand-800 disabled:opacity-45 disabled:pointer-events-none text-white text-sm font-medium px-4 min-h-[42px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
+          className="inline-flex items-center gap-2 bg-brand-700 hover:bg-brand-600 active:bg-brand-800 disabled:opacity-45 disabled:pointer-events-none text-white text-sm font-medium px-4 min-h-[44px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           {loading ? 'Filing…' : cta}
@@ -194,7 +196,7 @@ export function QuickBar({
           onClick={() => fileRef.current?.click()}
           disabled={loading || scanning}
           aria-label="Photograph the paper notes"
-          className="inline-flex items-center gap-2 border border-brand-300 bg-surface text-brand-800 hover:bg-brand-50 disabled:opacity-45 disabled:pointer-events-none text-sm font-medium px-3.5 min-h-[42px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
+          className="inline-flex items-center gap-2 border border-brand-300 bg-surface text-brand-800 hover:bg-brand-50 disabled:opacity-45 disabled:pointer-events-none text-sm font-medium px-3.5 min-h-[44px] rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
         >
           {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
           {scanning ? 'Reading…' : 'Photo'}
@@ -205,7 +207,7 @@ export function QuickBar({
         {listening && <span className="text-2xs text-danger font-medium">● listening…</span>}
       </div>
 
-      {error && <p className="mt-2 text-sm text-band-exclude">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       <AnimatePresence>
         {filled.length > 0 && (

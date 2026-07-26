@@ -32,7 +32,12 @@ class HttpError extends Error {
 
 async function post<T>(url: string, key: string, body: unknown): Promise<T> {
   return withRetry(async () => {
-    const res = await fetch(url, { method: 'POST', headers: H(key), body: JSON.stringify(body) });
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: H(key),
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60_000),
+    });
     if (!res.ok) throw new HttpError(res.status, await res.text());
     return res.json() as Promise<T>;
   });
@@ -40,7 +45,10 @@ async function post<T>(url: string, key: string, body: unknown): Promise<T> {
 
 async function get<T>(url: string, key: string): Promise<T> {
   return withRetry(async () => {
-    const res = await fetch(url, { headers: H(key) });
+    const res = await fetch(url, {
+      headers: H(key),
+      signal: AbortSignal.timeout(30_000),
+    });
     if (!res.ok) throw new HttpError(res.status, await res.text());
     return res.json() as Promise<T>;
   });

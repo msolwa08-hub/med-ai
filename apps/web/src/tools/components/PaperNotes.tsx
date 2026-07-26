@@ -17,7 +17,7 @@ function Line({ text, tag, struck, onTap }: { text: string; tag?: string; struck
       type="button"
       onClick={onTap}
       aria-pressed={struck}
-      className={`w-full flex items-baseline gap-2 text-left rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-surface-alt focus:outline-none focus-visible:shadow-focus ${
+      className={`w-full flex items-baseline gap-2 text-left rounded-lg px-2 min-h-[44px] py-2 -mx-2 transition-colors hover:bg-surface-alt focus:outline-none focus-visible:shadow-focus ${
         struck ? 'opacity-40' : ''
       }`}
     >
@@ -37,6 +37,7 @@ export function PaperNotes({ picture }: { picture: WorkingPicture }) {
 
   const seen = new Set<string>();
   const ix = picture.differentials
+    .filter(d => d.confidence >= 25 || d.band === 'must-exclude')
     .flatMap(d => d.discriminators ?? [])
     .filter(d => d.status !== 'done')
     .filter(d => {
@@ -55,7 +56,7 @@ export function PaperNotes({ picture }: { picture: WorkingPicture }) {
       <div className="flex items-center gap-2">
         <NotebookPen className="w-4 h-4 text-brand-600" aria-hidden />
         <h3 className="text-base font-bold text-ink tracking-tight">For the paper notes</h3>
-        <span className="text-xs text-ink-soft">— transcribe, tap what&rsquo;s written</span>
+        <span className="text-xs text-ink-soft">— tap when written</span>
       </div>
 
       {ix.length > 0 && (

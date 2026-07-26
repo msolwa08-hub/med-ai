@@ -93,9 +93,6 @@ export function CascadePanel({ cascade, value, isFemale, onChange }: {
           onSelect={id => select(b, id)}
         />
       ))}
-      {firstUnanswered !== -1 && shown.length < blocks.length && (
-        <p className="text-2xs text-ink-mute">More questions follow as you answer…</p>
-      )}
       <EscapeHatch
         value={value.customNote}
         onChange={v => emit({ ...value, customNote: v })}

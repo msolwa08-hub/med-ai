@@ -21,8 +21,7 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
     return (
       <div className="text-center py-16 text-ink-mute">
         <Tag className="w-10 h-10 mx-auto mb-3" aria-hidden />
-        <p>Specialist tab is currently available for O&G.</p>
-        <p className="text-sm mt-1">More specialties coming soon.</p>
+        <p>Specialist tab available for O&G only.</p>
       </div>
     );
   }
@@ -56,7 +55,7 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
           <button
             key={m}
             onClick={() => setMode(m)}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-4 min-h-[44px] rounded-lg text-sm font-medium transition-colors ${
               mode === m ? 'bg-brand-700 text-white shadow-card' : 'bg-surface border border-line-strong text-ink-soft hover:bg-surface-alt'
             }`}
           >
@@ -65,10 +64,22 @@ export function SpecialistTab({ patient, toolsKey, dept }: {
           </button>
         ))}
       </div>
-      <div className="flex gap-3">
+      <div className="flex items-center gap-3">
         <AiBtn onClick={generate} loading={loading} label={`Generate ${mode === 'obs' ? 'Obs' : 'Gynae'} Note`} />
       </div>
       {err && <p className="text-danger text-xs">{err}</p>}
+      {loading && !result && (
+        <div className="rounded-card border border-line bg-surface p-5 space-y-3" aria-hidden>
+          <div className="skeleton h-5 w-56 rounded" />
+          <div className="skeleton h-3 w-full rounded" />
+          <div className="skeleton h-3 w-5/6 rounded" />
+          <div className="skeleton h-3 w-full rounded" />
+          <div className="skeleton h-3 w-3/4 rounded" />
+          <div className="skeleton h-5 w-40 rounded mt-4" />
+          <div className="skeleton h-3 w-full rounded" />
+          <div className="skeleton h-3 w-2/3 rounded" />
+        </div>
+      )}
       {result && <DocOutput text={result} />}
     </div>
   );

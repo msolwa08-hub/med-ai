@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import formbody from '@fastify/formbody';
 import multipart from '@fastify/multipart';
@@ -39,9 +40,26 @@ export async function buildApp(opts: { serveStatic?: boolean } = {}) {
     bodyLimit: 12 * 1024 * 1024,
   });
 
+  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173,http://localhost:3000')
+    .split(',').map(o => o.trim()).filter(Boolean);
   await app.register(cors, {
-    origin: true,
+    origin: betaConfig.NODE_ENV === 'production' ? ALLOWED_ORIGINS : true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
   });
 
   await app.register(rateLimit, {

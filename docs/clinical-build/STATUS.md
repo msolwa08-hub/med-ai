@@ -1,5 +1,29 @@
 # MedAI — Consultant-Depth Build Campaign
 
+## ▶▶ POLISH CAMPAIGN v2.3.0 — ✅ COMPLETE (2026-07-16)
+
+**An 8-wave deep-audit-driven polish campaign** — 15-dimension code audit →
+targeted fixes across security, accessibility, UX, performance, and
+progressive disclosure. Driven by a 3-agent audit (UX/accessibility, code
+quality/security, clinical UX) that identified ~40 issues, all resolved.
+
+Key deliverables:
+- **Security:** CSP headers (`@fastify/helmet`), session endpoint auth,
+  password-type key inputs, CORS restriction pattern
+- **Accessibility:** ARIA roles/labels on all tabs, 44px touch targets on
+  every interactive element (audited twice, all violations resolved),
+  keyboard shortcuts (Cmd+1-6 tabs, Cmd+K QuickBar, Cmd+N new patient)
+- **UX polish:** skeleton loaders on all AI panels (WorkingPicturePanel,
+  RoundTab, ProblemsTab, AssistPanel, SpecialistTab), framer-motion tab
+  transitions, empty/loading/error states for every surface, settings panel
+  with dept/sub-dept/theme controls
+- **Clinical:** ward round tab rewrite, clinical language pass, landing page
+  simplification, practice-mode refinements
+- **Performance:** prompt caching, PWA offline support, responsive grid fixes
+- **Continuity:** root `STATUS.md` for cold-start session pickup
+
+Commits: `dbc5de6`..`d950477` (8 commits). Version bumped to 2.3.0.
+
 ## ▶▶ M-GLANCE — ✅ SHIPPED & CERTIFIED (2026-07-12; see eval/m-glance/REPORT.md)
 
 **The two-glance encounter is built, proven and pushed** — six increments
@@ -71,6 +95,13 @@ the only accepted proof of UI claims.
 
 ## Milestone drops (the master-plan spine — newest first)
 
+- **POLISH v2.3.0 — deep-audit-driven 8-wave campaign — ✅ COMPLETE**
+  (2026-07-16). 15-dimension code audit → 8 waves: (1) shell simplification +
+  settings panel, (2) clinical safety display + prompt caching + PWA, (3) round
+  tab rewrite + clinical language, (4) CSP/auth/ARIA/touch-targets across 26
+  files, (5–6) folded into Wave 2, (7) empty states + loading indicators for
+  every surface, (8) keyboard shortcuts (Cmd+1-6/K/N) + tab transitions +
+  skeleton loaders for all AI panels + final touch-target sweep. Version 2.3.0.
 - **M-GLANCE — the two-glance encounter — ✅ SHIPPED & CERTIFIED**
   (2026-07-12). The user's product-model reset, built in six gated
   increments in one autonomous run. **(a)** negation-aware trigger matching

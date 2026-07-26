@@ -14,6 +14,7 @@ import { extractTextFromFile } from '../lib/extract-text.js';
 import { analyzeClinicalImage, type ImageAnalysisRequest, type ImageModality } from '../services/image-analysis.js';
 import { generateWardRoundDelta, type WardRoundDeltaRequest } from '../services/ward-round.js';
 import { draftLegalForm, type LegalFormRequest } from '../services/clinical-forms.js';
+import { generateClerkCore, generateClerkPlan } from '../services/clerk-generate.js';
 import { screeningForProblems } from '../services/clinical-screening.js';
 import { checkConsistency } from '../services/consistency.js';
 import { usageStats, resetUsageStats } from '../lib/models.js';
@@ -48,6 +49,30 @@ export async function toolsRoutes(app: FastifyInstance) {
   app.post('/tools/validate', async (req, reply) => {
     if (!authTools(req)) return unauth(reply);
     return reply.send({ valid: true });
+  });
+
+  // Reasoning clerk — free-text presentation → a live differential "case pack".
+  // The model produces the clinical data; the client's local likelihood-ratio
+  // engine does the maths (posterior, must-not-miss cap, info-gain).
+  app.post('/tools/clerk-generate', async (req, reply) => {
+    if (!authTools(req)) return unauth(reply);
+    const body = req.body as { text?: string; phase?: string; dx?: Array<{ id: string; name: string }> };
+    if (!body || typeof body.text !== 'string' || !body.text.trim()) {
+      return reply.status(400).send({ error: 'A non-empty text presentation is required' });
+    }
+    try {
+      if (body.phase === 'plan') {
+        const dx = Array.isArray(body.dx) ? body.dx.filter((d) => d && d.id && d.name) : [];
+        return reply.send(await generateClerkPlan(body.text.trim(), dx));
+      }
+      const pack = await generateClerkCore(body.text.trim());
+      return reply.send(pack);
+    } catch (err) {
+      app.log.error(err);
+      const msg = err instanceof Error ? err.message : 'Could not build the board';
+      const notConfigured = /not configured/i.test(msg);
+      return reply.status(notConfigured ? 503 : 502).send({ error: msg });
+    }
   });
 
   // AI-assisted sequential logging: the AI asks one question at a time,

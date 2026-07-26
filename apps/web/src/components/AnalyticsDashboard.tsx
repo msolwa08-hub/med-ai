@@ -20,7 +20,7 @@ const DEPT_LABELS: Record<string, string> = {
 export function AnalyticsDashboard({ analytics }: Props) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Stat label="Total Sessions" value={analytics.total} color="blue" />
         <Stat label="Completed" value={analytics.completed} color="green" />
         <Stat label="Active" value={analytics.active} color="yellow" />

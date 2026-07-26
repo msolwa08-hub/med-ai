@@ -31,6 +31,7 @@ export const DEPT_LABELS: Record<string, string> = {
   psych: 'Psychiatry',
   ortho: 'Orthopaedics',
   anaes: 'Anaesthetics',
+  family: 'Family Medicine',
 };
 
 /**

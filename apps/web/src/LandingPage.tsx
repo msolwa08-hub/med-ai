@@ -1,83 +1,77 @@
-import { MessageCircle, Stethoscope, ClipboardList, ArrowRight, type LucideIcon } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Stethoscope, Activity, FileText, ArrowRight } from 'lucide-react';
 
 interface Props {
-  onNavigate: (route: 'chat' | 'doctor' | 'tools') => void;
+  onNavigate: (route: 'chat' | 'doctor' | 'tools' | 'clerk' | 'ward') => void;
 }
 
+const PROMISES = [
+  { icon: Stethoscope, text: 'A live differential as you clerk — confidence + reasoning' },
+  { icon: Activity, text: 'Investigations chosen to discriminate, not just screen' },
+  { icon: FileText, text: 'The note falls out at the end — ward round to discharge' },
+];
+
 export default function LandingPage({ onNavigate }: Props) {
+  const reduce = useReducedMotion();
+
   return (
     <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6">
-      {/* A soft brand wash behind the hero — depth without decoration. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 h-[42vh] bg-gradient-to-b from-surface-brand to-transparent"
       />
 
-      <div className="relative mb-12 text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <img src="/medai-icon.svg" alt="" className="w-14 h-14" />
-          <h1 className="text-4xl font-bold text-ink tracking-tight">MedAI</h1>
-        </div>
-        <p className="text-ink-soft text-lg">AI-powered clinical tools for South African healthcare</p>
-      </div>
-
-      <div className="relative grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
-        <NavCard
-          icon={MessageCircle}
-          title="Patient Chat"
-          description="AI-guided medical history taking for patients. Share your link before your appointment."
-          onClick={() => onNavigate('chat')}
-        />
-        <NavCard
-          icon={Stethoscope}
-          title="Doctor Cockpit"
-          description="View completed patient histories, analytics, and consult workspace."
-          onClick={() => onNavigate('doctor')}
-        />
-        <NavCard
-          icon={ClipboardList}
-          title="Intern Tools"
-          description="Ward round tools, clinical calculators, AI documents, and department-specific workflows."
-          featured
-          onClick={() => onNavigate('tools')}
-        />
-      </div>
-
-      <p className="relative mt-12 text-ink-mute text-sm text-center max-w-md">
-        For healthcare professionals. All AI-generated content requires clinical verification.
-      </p>
-    </div>
-  );
-}
-
-function NavCard({
-  icon: Icon, title, description, featured, onClick,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  featured?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`group text-left rounded-card border bg-surface p-6 transition-all duration-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 focus:outline-none focus-visible:shadow-focus ${
-        featured ? 'border-brand-200 hover:border-brand-300' : 'border-line hover:border-line-strong'
-      }`}
-    >
-      <div
-        className={`mb-4 grid place-items-center w-12 h-12 rounded-xl transition-colors ${
-          featured ? 'bg-brand-600 text-white' : 'bg-surface-alt text-ink-soft group-hover:text-brand-700'
-        }`}
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-md text-center"
       >
-        <Icon className="w-6 h-6" />
-      </div>
-      <h2 className="text-ink text-xl font-semibold mb-2 tracking-tight">{title}</h2>
-      <p className="text-ink-soft text-sm leading-relaxed">{description}</p>
-      <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-ink-mute group-hover:text-brand-700 transition-colors">
-        Open <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-      </div>
-    </button>
+        <img src="/medai-icon.svg" alt="" className="w-16 h-16 mx-auto mb-5 rounded-2xl shadow-card" />
+        <h1 className="text-4xl font-bold text-ink tracking-tight">MedAI</h1>
+        <p className="text-ink-soft text-base mt-2">The clinical brain beside you — Intern Aide</p>
+
+        <div className="mt-8 rounded-card border border-line bg-surface shadow-elevated p-6 text-left">
+          <ul className="space-y-3 mb-6">
+            {PROMISES.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-start gap-3 text-sm text-ink-soft">
+                <span className="grid place-items-center w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-500/15 shrink-0 mt-0.5">
+                  <Icon className="w-4 h-4 text-brand-600 dark:text-brand-300" aria-hidden />
+                </span>
+                <span className="pt-1">{text}</span>
+              </li>
+            ))}
+          </ul>
+
+          <button
+            onClick={() => onNavigate('tools')}
+            className="w-full group inline-flex items-center justify-center gap-2 bg-brand-700 hover:bg-brand-600 active:bg-brand-800 text-white text-base font-medium py-3.5 rounded-xl shadow-card transition-colors focus:outline-none focus-visible:shadow-focus"
+          >
+            Open Intern Tools
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          <button
+            onClick={() => onNavigate('clerk')}
+            className="mt-3 w-full group inline-flex items-center justify-center gap-2 border border-brand-600 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-base font-medium py-3.5 rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
+          >
+            Open Reasoning Clerk
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          <button
+            onClick={() => onNavigate('ward')}
+            className="mt-3 w-full group inline-flex items-center justify-center gap-2 border border-brand-600 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-base font-medium py-3.5 rounded-xl transition-colors focus:outline-none focus-visible:shadow-focus"
+          >
+            Open Inpatient Ward
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+
+        <p className="mt-6 text-2xs text-ink-mute">
+          For healthcare professionals. All AI-generated content requires clinical verification.
+        </p>
+      </motion.div>
+    </div>
   );
 }

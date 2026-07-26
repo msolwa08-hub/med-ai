@@ -366,20 +366,20 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
   // "still missing".
   const storySummary = (() => {
     const who = [patient.intake.name, patient.intake.age && `${patient.intake.age}`].filter(Boolean).join(', ');
-    return who || 'type what you have — nothing is required';
+    return who || 'enter clinical details as available';
   })();
 
   const utilityRow = (
     <div className="flex gap-2">
       <button
         onClick={() => setDrawer('record')}
-        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
+        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
       >
         <ClipboardList className="w-4 h-4" /> Full record
       </button>
       <button
         onClick={() => setDrawer('docs')}
-        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[42px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
+        className="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-md border border-line bg-surface text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-alt transition-colors focus:outline-none focus-visible:shadow-focus"
       >
         <FileText className="w-4 h-4" /> Documents
       </button>
@@ -421,10 +421,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             fields={[...clerkFields, ...examFields]}
             context={patientContext(patient, dept, subDept)}
             onResults={routeAnyUpdates}
-            title="Tell me what you found"
-            hint="fragments are fine — everything files itself"
-            cta="File it"
-            placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
+            title="Enter clinical findings"
+            cta="Submit"
+            placeholder={'e.g. "BP 145/92, tachy, creps L base"'}
           />
         )}
 
@@ -458,12 +457,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
           </div>
         ) : (
         <Card elevation="e1" className="p-4 sm:p-5 space-y-3.5">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Presenting complaint</h2>
-            <p className="text-xs text-ink-soft">
-              {cc ? 'Tap another if it changes — the picture re-reads itself.' : 'Tap your patient’s main complaint — the differential builds itself.'}
-            </p>
-          </div>
+          <h2 className="text-sm font-semibold text-ink">Presenting complaint</h2>
           <div className="flex flex-wrap gap-1.5">
             {cascades.map(c => {
               const on = patient.activeCascadeId === c.id;
@@ -502,7 +496,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               onClick={() => setChangingComplaint(false)}
               className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
             >
-              Done — collapse
+              Collapse
             </button>
           )}
 
@@ -514,7 +508,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               className="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 text-sm font-medium text-brand-800 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:shadow-focus"
             >
               <Sparkles className="w-4 h-4" aria-hidden />
-              New here? See it in action — load an example patient
+              Load a demonstration case
             </button>
           )}
         </Card>
@@ -535,10 +529,9 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             fields={[...clerkFields, ...examFields]}
             context={patientContext(patient, dept, subDept)}
             onResults={routeAnyUpdates}
-            title="Tell me what you found"
-            hint="fragments are fine — everything files itself"
-            cta="File it"
-            placeholder={'e.g. "BP 145/92, tachy, creps L base" — or photograph your written note'}
+            title="Enter clinical findings"
+            cta="Submit"
+            placeholder={'e.g. "BP 145/92, tachy, creps L base"'}
           />
         )}
 
@@ -552,7 +545,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               loading={wp.loading}
               error={wp.error}
               onGenerate={wp.generate}
-              generateLabel="Build picture"
+              generateLabel="Generate picture"
               hideManagement
             />
 
@@ -598,7 +591,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                   aria-expanded={tapStreamOpen}
                   className="w-full flex items-center justify-between gap-2 px-4 sm:px-5 py-3 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
                 >
-                  <span className="text-sm font-medium text-ink-soft">Answer by tapping — the discriminating questions</span>
+                  <span className="text-sm font-medium text-ink-soft">Tap to confirm findings</span>
                   <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform ${tapStreamOpen ? 'rotate-180' : ''}`} aria-hidden />
                 </button>
                 {tapStreamOpen && (
@@ -625,7 +618,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                       key={s.id}
                       type="button"
                       onClick={() => openDoc(s.id)}
-                      className="inline-flex items-center min-h-[36px] px-3 rounded-pill border border-line bg-surface text-xs font-medium text-ink-soft hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800 transition-colors focus:outline-none focus-visible:shadow-focus"
+                      className="inline-flex items-center min-h-[44px] px-3.5 rounded-pill border border-line bg-surface text-sm font-medium text-ink-soft hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800 transition-colors focus:outline-none focus-visible:shadow-focus"
                     >
                       {s.label}
                     </button>
@@ -641,7 +634,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                   aria-expanded={moreDetailOpen}
                   className="w-full flex items-center justify-between gap-2 px-4 sm:px-5 py-3 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
                 >
-                  <span className="text-sm font-medium text-ink-soft">More detail — {activeCascade.label}</span>
+                  <span className="text-sm font-medium text-ink-soft">{activeCascade.label}</span>
                   <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform ${moreDetailOpen ? 'rotate-180' : ''}`} aria-hidden />
                 </button>
                 {moreDetailOpen && (
@@ -672,10 +665,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
             aria-expanded={completeOpen}
             className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left focus:outline-none focus-visible:shadow-focus rounded-card"
           >
-            <span className="min-w-0">
-              <span className="text-sm font-semibold text-ink">More detail</span>
-              <span className="block text-xs text-ink-mute mt-0.5">Background, exam, results — if and when you want</span>
-            </span>
+            <span className="text-sm font-semibold text-ink">More detail</span>
             <ChevronDown className={`w-4 h-4 shrink-0 text-ink-mute transition-transform duration-200 ${completeOpen ? 'rotate-180' : ''}`} aria-hidden />
           </button>
 
@@ -696,7 +686,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
 
                   {matchedBlocks.length > 0 && (
                     <div className="space-y-3">
-                      <SectionHead>Smart Blocks — triggered by this record</SectionHead>
+                      <SectionHead>Smart Blocks</SectionHead>
                       {matchedBlocks.map(b => (
                         <SmartBlockCard
                           key={b.id}
@@ -716,7 +706,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                       aria-expanded={moreHistoryOpen}
                       className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
                     >
-                      <span className="text-xs font-medium text-ink-soft">More history — background, ROS, social, HIV, admin</span>
+                      <span className="text-xs font-medium text-ink-soft">More history</span>
                       <ChevronDown className={`w-4 h-4 text-ink-mute transition-transform ${moreHistoryOpen ? 'rotate-180' : ''}`} aria-hidden />
                     </button>
                     {moreHistoryOpen && (
@@ -734,7 +724,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
                       className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft transition-colors"
                     >
                       <ChevronDown className={`w-3 h-3 transition-transform ${aiInterviewOpen ? 'rotate-180' : ''}`} aria-hidden />
-                      or let the AI interview the patient
+                      or use AI-assisted history-taking
                     </button>
                     {aiInterviewOpen && (
                       <div className="mt-2.5">
@@ -757,7 +747,7 @@ export function ClerkTab({ patient, toolsKey, dept, subDept, onPatient }: {
               <StageCard
                 title="Examine"
                 icon={Stethoscope}
-                summary={capturedCount > 0 ? `${capturedCount} value${capturedCount === 1 ? '' : 's'} captured` : 'values, if you have them'}
+                summary={capturedCount > 0 ? `${capturedCount} finding${capturedCount === 1 ? '' : 's'} recorded` : 'enter findings as obtained'}
                 open={openStage === 'examine'}
                 onToggle={() => toggle('examine')}
               >

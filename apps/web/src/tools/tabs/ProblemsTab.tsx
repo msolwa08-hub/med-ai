@@ -253,7 +253,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           : res.note
       );
     } catch {
-      setErr('Couldn’t reach the engine just now — tap to retry, or add problems manually.');
+      setErr('Unable to reach the clinical engine — retry or add problems manually.');
     } finally {
       setSuggesting(false);
     }
@@ -332,13 +332,13 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           <button
             onClick={checkInteractions}
             disabled={checking}
-            className="inline-flex items-center gap-1.5 text-sm bg-surface-alt hover:bg-warn/10 disabled:opacity-40 text-warn px-3.5 py-2 rounded-full font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm bg-surface-alt hover:bg-warn/10 disabled:opacity-40 text-warn min-h-[44px] px-3.5 rounded-full font-medium transition-colors"
           >
             {checking ? 'Checking…' : (<><TriangleAlert className="w-3.5 h-3.5" aria-hidden /> Check interactions</>)}
           </button>
           <button
             onClick={addProblem}
-            className="text-sm text-brand-600 hover:text-brand-700 transition-colors"
+            className="inline-flex items-center min-h-[44px] px-3 text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
           >
             + Add Problem
           </button>
@@ -346,6 +346,28 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
       </div>
 
       {err && <p className="text-danger text-xs">{err}</p>}
+
+      {suggesting && (
+        <div className="space-y-3" aria-hidden>
+          {[0, 1, 2].map(i => (
+            <Card key={i} elevation="e1" className="p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="skeleton h-5 w-5 rounded mt-1 shrink-0" />
+                <div className="flex-1 space-y-2.5">
+                  <div className="skeleton h-4 w-3/5 rounded" />
+                  <div className="skeleton h-3 w-full rounded" />
+                  <div className="skeleton h-3 w-4/5 rounded" />
+                  <div className="flex gap-2 mt-1">
+                    <div className="skeleton h-5 w-16 rounded-full" />
+                    <div className="skeleton h-5 w-20 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {aiNote && (
         <p className="text-sm text-brand-800 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
           {aiNote}
@@ -386,7 +408,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
           open={openSets}
           onToggle={() => setOpenSets(o => !o)}
         >
-          <p className="text-xs text-ink-mute mb-3">Tap off what doesn’t apply.</p>
+          <div className="mb-1" />
           <div className="space-y-3">
             {matchedSets.map(s => (
               <TreatmentSetCard key={s.id} set={s} onAdd={lines => addToPlan(s.pattern, lines)} />
@@ -399,7 +421,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
         <div className="text-center py-10 text-ink-mute">
           <ClipboardList className="w-8 h-8 mx-auto mb-2" aria-hidden />
           <p className="text-sm">No problems added yet</p>
-          <p className="text-xs mt-1">"Suggest from assessment" builds one from the record — or add problems manually</p>
+          <p className="text-xs mt-1">Add problems manually or use Suggest.</p>
         </div>
       )}
 
@@ -488,7 +510,7 @@ export function ProblemsTab({ patient, toolsKey, dept, problems, onChange }: {
             </div>
             <button
               onClick={() => removeProblem(p.id)}
-              className="text-ink-mute hover:text-danger transition-colors shrink-0 p-1 -mr-1"
+              className="text-ink-mute hover:text-danger transition-colors shrink-0 grid place-items-center w-11 h-11 rounded-lg -mr-2 -mt-1"
               aria-label="Remove problem"
             >
               <X className="w-4 h-4" aria-hidden />

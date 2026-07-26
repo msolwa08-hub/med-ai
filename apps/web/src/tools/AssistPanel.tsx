@@ -87,7 +87,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       // Give the intern their answer back — a failed call must never eat what
       // they typed.
       if (failedAnswer) setAnswer(failedAnswer);
-      setError('AI assist is unavailable right now — you can fill the form below directly.');
+      setError('AI assist unavailable — fill the form directly.');
     } finally {
       setLoading(false);
     }
@@ -151,7 +151,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
       setDone(false);
       await step([...transcript, { role: 'user', content: scanSummary }], merged);
     } catch {
-      setError('Could not scan the photo — try again with better lighting, or answer by typing.');
+      setError('Could not scan the photo — try better lighting or retake.');
     } finally {
       setScanning(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -192,8 +192,8 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="text-sm bg-surface-alt hover:bg-brand-50 disabled:opacity-40 text-brand-700 px-3.5 py-1.5 rounded-full font-medium transition-colors"
-            title="Photograph the doctor's handwritten notes — the AI reads them and fills the form, flagging anything it can't decipher"
+            className="text-sm bg-surface-alt hover:bg-brand-50 disabled:opacity-40 text-brand-700 px-3.5 min-h-[44px] rounded-full font-medium transition-colors inline-flex items-center"
+            title="Scan handwritten notes"
           >
             {scanning ? 'Reading handwriting…' : '📷 Scan notes'}
           </button>
@@ -202,16 +202,17 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
 
       {error ? (
         <p className="text-sm text-warn bg-warn/[0.08] border border-warn/20 rounded-2xl px-4 py-3">{error}</p>
+      ) : busy && !question ? (
+        <div className="space-y-2" aria-hidden>
+          <div className="skeleton h-5 w-4/5 rounded" />
+          <div className="skeleton h-5 w-3/5 rounded" />
+        </div>
       ) : (
         <p
           key={question || '__pending__'}
           className={`animate-question-in text-lg sm:text-xl font-semibold leading-snug tracking-tight ${done ? 'text-positive' : 'text-ink'}`}
         >
-          {busy && !question ? (
-            <span className="text-ink-mute">{scanning ? 'Reading the handwriting…' : 'One moment…'}</span>
-          ) : (
-            <>{done ? '✓ ' : ''}{question}</>
-          )}
+          {done ? '✓ ' : ''}{question}
         </p>
       )}
 
@@ -234,7 +235,7 @@ export function AssistPanel({ toolsKey, dept, subDept, section, fields, onUpdate
             onClick={submit}
             disabled={busy || !answer.trim()}
             aria-label="Send"
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-brand-700 hover:bg-brand-600 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-brand-700 hover:bg-brand-600 disabled:opacity-30 text-white font-semibold transition-colors flex items-center justify-center"
           >
             {busy ? '…' : '↑'}
           </button>

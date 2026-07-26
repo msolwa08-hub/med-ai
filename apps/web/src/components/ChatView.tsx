@@ -69,7 +69,7 @@ export default function ChatView({ sessionId }: Props) {
   async function loadSession() {
     if (sessionId) {
       try {
-        const session = await api.getSession(sessionId);
+        const session = await api.getSession(sessionId, betaKey ?? undefined);
         setActiveSessionId(sessionId);
         setMessages(session.messages as Message[]);
         if (session.status === 'completed') setCompleted(true);
@@ -123,6 +123,9 @@ export default function ChatView({ sessionId }: Props) {
             onChange={e => setKeyInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && keyInput.trim() && startNewSession(keyInput.trim())}
             placeholder="Access key"
+            type="password"
+            autoComplete="off"
+            aria-label="Access key"
             autoFocus
             className="w-full bg-surface border border-line-strong rounded-xl px-4 py-3 text-ink placeholder:text-ink-mute text-sm focus:outline-none focus:border-brand-500 focus:shadow-focus mb-3"
           />
@@ -219,13 +222,15 @@ export default function ChatView({ sessionId }: Props) {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
               placeholder="Type your response..."
+              aria-label="Your response"
               disabled={starting || !activeSessionId}
-              className="flex-1 bg-surface border border-line-strong rounded-xl px-4 py-3 text-ink placeholder:text-ink-mute text-sm focus:outline-none focus:border-brand-500 focus:shadow-focus disabled:opacity-50"
+              className="flex-1 bg-surface border border-line-strong rounded-xl px-4 py-3 text-ink placeholder:text-ink-mute text-sm focus:outline-none focus:border-brand-500 focus:shadow-focus disabled:opacity-50 min-h-[44px]"
             />
             <button
               onClick={send}
+              aria-label="Send message"
               disabled={loading || starting || !input.trim() || !activeSessionId}
-              className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white px-5 py-3 rounded-xl font-medium text-sm transition-colors"
+              className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white px-5 min-h-[44px] rounded-xl font-medium text-sm transition-colors"
             >
               Send
             </button>

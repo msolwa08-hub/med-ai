@@ -1,0 +1,1651 @@
+<title>MedAI — Clerk v4</title>
+<style>
+  :root{
+    --ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;
+    --surface:#ffffff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;
+    --brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;
+    --good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;
+    --amber:#b45309;--amber-tint:#fbf1e3;
+    --pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;
+    --bar-track:#eaf0f0;--hx-c:#2563eb;--exam-c:#7c3aed;
+    /* vital sign colours — grouped by organ system */
+    --hr:#e5484d;   --bp:#a51d2d;    /* cardiovascular: reds */
+    --rr:#0284c7;   --spo2:#0891b2;  /* respiratory: blues */
+    --temp:#d97706;                  /* thermal: amber */
+    --shadow-sm:0 1px 2px rgba(14,26,28,.06);
+    --shadow:0 2px 6px rgba(14,26,28,.06),0 12px 28px -14px rgba(14,26,28,.18);
+    --page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;
+    --surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;
+    --brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;
+    --good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;
+    --amber:#e0a05a;--amber-tint:#2f2417;
+    --pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;
+    --bar-track:#1c2a2b;--hx-c:#60a5fa;--exam-c:#a78bfa;
+    --hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+    --shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);
+    --page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);
+  }}
+  :root[data-theme="dark"]{--hx-c:#60a5fa;--exam-c:#a78bfa;--ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;--surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;--brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;--good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;--amber:#e0a05a;--amber-tint:#2f2417;--pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;--bar-track:#1c2a2b;--hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;--shadow-sm:0 1px 2px rgba(0,0,0,.35);--shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);--page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);}
+  :root[data-theme="light"]{--hx-c:#2563eb;--exam-c:#7c3aed;--ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;--surface:#fff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;--brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;--good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;--amber:#b45309;--amber-tint:#fbf1e3;--pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;--bar-track:#eaf0f0;--hr:#e5484d;--bp:#a51d2d;--rr:#0284c7;--spo2:#0891b2;--temp:#d97706;--page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
+  .wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:20px}
+  /* Intake / chat front door */
+  .intake{position:fixed;inset:0;z-index:50;background:var(--page);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+  .intake.hide{display:none}
+  .intake-card{width:100%;max-width:430px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:24px 20px 20px;text-align:center}
+  .ilogo{width:46px;height:46px;border-radius:14px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;background:linear-gradient(150deg,var(--brand),var(--brand-strong));box-shadow:var(--shadow-sm)}
+  .ititle{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .isub{font-size:12.5px;color:var(--ink-mute);line-height:1.5;margin:6px auto 16px;max-width:340px}
+  .itext{width:100%;box-sizing:border-box;font-size:14px;line-height:1.5;color:var(--ink);background:var(--surface-alt);border:1.5px solid var(--line);border-radius:13px;padding:12px 13px;resize:vertical;min-height:96px;outline:none;transition:border-color .15s}
+  .itext:focus{border-color:var(--brand)}
+  .ibtn{margin-top:12px;width:100%;font-size:15px;font-weight:700;color:#fff;background:var(--brand);border:none;border-radius:13px;padding:13px;cursor:pointer;transition:background .15s}
+  .ibtn:hover{background:var(--brand-strong)}
+  .ibtn:disabled{opacity:.6;cursor:default}
+  .istatus{font-size:12px;margin-top:11px;min-height:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .istatus.load{color:var(--brand-strong)}.istatus.err{color:var(--bad)}
+  .ispin{width:14px;height:14px;border:2px solid var(--brand);border-top-color:transparent;border-radius:99px;animation:spin .7s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .iex{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-mute);margin:18px 0 9px}
+  .ichips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+  .ichips button{font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border:1px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;transition:all .14s}
+  .ichips button:hover{border-color:var(--brand);color:var(--brand-strong)}
+  .newcase{font-size:10.5px;font-weight:650;color:var(--ink-mute);background:none;border:1px dashed var(--line);border-radius:99px;padding:4px 11px;cursor:pointer}
+  .newcase:hover{border-color:var(--brand);color:var(--brand-strong)}
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  input{font-family:inherit}
+
+  header{padding:14px 16px 0}
+  .casebar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+  .casebar .cl{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute);margin-right:1px}
+  .casebar button{font-size:10.5px;font-weight:650;padding:4px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .casebar button.on{background:var(--brand-tint);border-color:var(--brand);color:var(--brand-strong)}
+  .pt{display:flex;align-items:center;gap:9px;min-width:0}
+  .pt .chev{color:var(--ink-mute);font-size:19px;flex:none}
+  .pt .who{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .pt .who small{font-weight:500;color:var(--ink-mute)}
+
+  /* vitals — colour-coded by organ system */
+  .vitals{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .vital{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 9px 4px 7px;box-shadow:var(--shadow-sm)}
+  .vital .dot{width:7px;height:7px;border-radius:99px;background:var(--vc);flex:none}
+  .vital .lbl{font-weight:600;color:var(--ink-mute);letter-spacing:.01em}
+  .vital b{color:var(--vc);font-weight:800;font-variant-numeric:tabular-nums}
+  .vital.abn-hi{border-color:color-mix(in oklab,var(--bad) 45%,var(--line));background:color-mix(in oklab,var(--bad) 6%,var(--surface))}
+  .vital.abn-hi b{color:var(--bad)}
+  .vital.abn-lo{border-color:color-mix(in oklab,var(--rr) 45%,var(--line));background:color-mix(in oklab,var(--rr) 6%,var(--surface))}
+  .vital.abn-lo b{color:var(--rr)}
+  .vital .varw{font-size:9px;vertical-align:1px}
+  .vital .vin{width:auto;field-sizing:content;min-width:1.4ch;max-width:7ch;border:none;background:none;color:var(--vc);font:inherit;font-weight:800;font-variant-numeric:tabular-nums;outline:none;padding:0;text-align:left}
+  .vital .vin::placeholder{color:var(--ink-mute);font-weight:700}
+  .vital.abn-hi .vin{color:var(--bad)} .vital.abn-lo .vin{color:var(--rr)}
+  .vital.vunset{border-style:dashed;opacity:.85}
+  .vital.vunset .vin{color:var(--ink-mute)}
+  .sysleg{display:flex;gap:12px;margin-top:8px;font-size:9.5px;color:var(--ink-mute);letter-spacing:.02em}
+  .sysleg span{display:inline-flex;align-items:center;gap:4px}
+  .sysleg i{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px 12px;box-shadow:var(--shadow)}
+  .card .k{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-mute)}
+  .card .vrow{display:flex;align-items:baseline;gap:6px;margin:3px 0 8px}
+  .card .v{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .card .d{font-size:11px;font-weight:700}
+  .card .d.up{color:var(--good)}.card .d.down{color:var(--bad)}
+  .track{height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
+  .track .fill{height:100%;border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  .fill.conf{background:linear-gradient(90deg,var(--brand),var(--brand-strong))}
+  .fill.comp{background:linear-gradient(90deg,#8fa3a6,#5f7377)}
+  .cap{display:flex;gap:7px;align-items:flex-start;margin-top:10px;font-size:11.5px;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:10px;padding:8px 10px;line-height:1.4}
+  .diffstrip{display:none;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .diffstrip.show{display:flex}
+  .diffchip{font-size:10.5px;font-weight:750;padding:4px 10px;border-radius:99px;background:var(--surface);border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px;color:var(--ink-soft)}
+  .diffchip .dot{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
+  .diffchip b{color:var(--ink);font-weight:800}
+  @media print{
+    body *{visibility:hidden}
+    .paper,.paper *{visibility:visible}
+    .paper{position:absolute;top:0;left:0;width:100%;border:none;box-shadow:none}
+  }
+  .genbanner{display:none;gap:8px;align-items:flex-start;margin-top:11px;font-size:11px;color:var(--brand-strong);background:linear-gradient(150deg,var(--brand-tint),transparent);border:1px solid color-mix(in oklab,var(--brand) 30%,transparent);border-radius:11px;padding:8px 11px;line-height:1.45}
+  .genbanner.show{display:flex}
+  .genbanner .gicon{flex:none;font-size:13px;line-height:1.2}
+  .genbanner b{font-weight:750}
+
+  .next{margin-top:12px;background:var(--surface);border:1.5px solid var(--brand);border-radius:13px;padding:10px 8px 10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+  .next .tag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#fff;background:var(--brand);padding:4px 8px;border-radius:6px;flex:none}
+  .next .qt{flex:1;font-size:13.5px;font-weight:650;min-width:0;line-height:1.25}
+  .next .qt em{display:block;font-style:normal;color:var(--ink-mute);font-weight:500;font-size:11px;margin-top:1px}
+
+  .tabs{display:flex;gap:3px;margin-top:14px}
+  .tab{flex:1;text-align:center;padding:8px 2px 9px;font-size:10px;font-weight:650;color:var(--ink-mute);border-radius:11px 11px 0 0;border:1px solid transparent;border-bottom:none;cursor:pointer;background:none}
+  .tab .n{display:block;font-size:15px;margin-bottom:3px;line-height:1}
+  .tab.on{color:var(--brand-strong);background:var(--surface);border-color:var(--line)}
+
+  main{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 16px 16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+
+  /* differential rows */
+  .dx{display:flex;order:0}
+  .dx .accent{width:4px;flex:none;background:var(--dxc)}
+  .dx .col{flex:1;min-width:0;border-bottom:1px solid var(--line-soft)}
+  .dx:last-child .col{border-bottom:none}
+  .dx-head{display:flex;align-items:center;gap:9px;padding:13px 13px 13px 12px;cursor:pointer;user-select:none}
+  .caret{color:var(--ink-mute);font-size:11px;width:9px;flex:none;transition:transform .2s}
+  .dx.open .caret{transform:rotate(90deg)}
+  .nm{flex:1;min-width:0;display:flex;align-items:center;gap:7px}
+  .name{font-size:14px;font-weight:650;letter-spacing:-.01em;color:var(--dxc);white-space:normal;line-height:1.25;flex:0 1 auto;min-width:0}
+  .icd{font-size:9.5px;font-weight:700;color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line);border-radius:5px;padding:1px 5px;flex:none;letter-spacing:.02em}
+  .dot-mnm{width:8px;height:8px;border-radius:99px;background:var(--bad);flex:none;box-shadow:0 0 0 3px var(--bad-tint)}
+  .mnmnote{font-size:10px;font-weight:800;letter-spacing:.03em;color:var(--bad);margin:0 0 9px}
+  .metric{display:flex;align-items:center;gap:7px;flex:none}
+  .delta{font-size:11px;font-weight:800;text-align:right;opacity:0;transition:opacity .3s;white-space:nowrap}
+  .delta.up{color:var(--good);opacity:1}.delta.down{color:var(--bad);opacity:1}
+  .mini{width:42px;height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
+  .mini .f{height:100%;background:var(--dxc);border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  .pct{font-size:16px;font-weight:800;width:38px;text-align:right;letter-spacing:-.02em}
+  .body{display:none;padding:0 13px 13px 12px}
+  .dx.open .body{display:block}
+  .script{font-size:11.5px;color:var(--ink-mute);line-height:1.45;margin:0 0 11px;padding:8px 10px;background:var(--surface-alt);border-radius:9px}
+  .script b{color:var(--dxc);font-weight:650}
+  .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
+  .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
+  .feat.has-sub{align-items:flex-start}
+  .clerk{padding:14px 13px 16px;border-bottom:6px solid var(--surface-alt);background:var(--surface)}
+  .clerkhd{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border-radius:10px;padding:9px 11px;margin-bottom:14px;line-height:1.4}
+  .dxlead{padding:12px 13px 9px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-mute)}
+  .qstream{margin-top:4px;position:relative;padding-left:12px}
+  .qstream::before{content:'';position:absolute;left:0;top:3px;bottom:3px;width:3px;border-radius:3px}
+  .qs-hx::before{background:var(--hx-c)} .qs-exam::before{background:var(--exam-c)}
+  .qstream+.qstream{margin-top:14px;padding-top:13px}
+  .qhd{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .qs-hx .qhd{color:var(--hx-c)} .qs-exam .qhd{color:var(--exam-c)}
+  @keyframes qpop{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+  #queue .recd .recdchip{animation:qpop .18s ease both}
+  .qhd .qct{margin-left:auto;font-size:10px;font-weight:700;color:var(--ink-mute);letter-spacing:0;text-transform:none}
+  .qmore{font-size:10.5px;color:var(--ink-mute);padding:5px 0 2px;font-style:italic}
+  .qdone{font-size:11.5px;color:var(--good);font-weight:600;padding:4px 0}
+  .phasecut{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--ink-mute);letter-spacing:.02em;padding:9px 0 6px;border-top:1px dashed var(--line-soft);margin-top:2px}
+  .phasecut span{color:var(--brand);flex:none}
+  .recd{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dotted var(--line-soft)}
+  .recd .recdh{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-right:2px}
+  .recdchip{font-size:10.5px;font-weight:600;border-radius:7px;padding:4px 8px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);transition:all .12s}
+  .recdchip:hover{border-color:var(--ink-mute)}
+  .recdchip.present{background:var(--good-tint);border-color:color-mix(in oklab,var(--good) 30%,transparent);color:var(--good)}
+  .recdchip.absent{background:var(--surface-alt);color:var(--ink-mute)}
+  .recdchip.preset{border-style:dashed}
+  .recdchip.preset::after{content:'· given';font-weight:500;opacity:.75;margin-left:2px}
+  .follows{margin:1px 0 5px 15px;padding-left:13px;border-left:2px solid var(--line-soft);display:flex;flex-direction:column}
+  .follows .feat{padding:4px 0}
+  .follows .feat .fl{font-size:12px}
+  .follows .feat .fll{color:var(--ink-mute)}
+  .follows .feat.on .fll{color:var(--ink-soft)}
+  .follows .feat .sdot{opacity:.5}
+  .numin{display:flex;align-items:center;gap:2px;flex:none}
+  .numin .field{padding:4px 8px}
+  .numin .field input{width:40px}
+  .numin .badge{margin-left:6px}
+  .txtin{flex:none;max-width:56%}
+  .txtin input{width:100%;box-sizing:border-box;background:var(--surface-alt);border:1.5px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px;color:var(--ink);outline:none;transition:border-color .15s}
+  .txtin input:focus{border-color:var(--brand)}
+  .txtin input::placeholder{color:var(--ink-mute)}
+  .feat.has-sub .tc{margin-top:2px}
+  .fll{display:block}
+  .fsub{display:block;font-size:10.5px;color:var(--ink-mute);line-height:1.4;margin-top:3px}
+  .fsub b{color:var(--ink-soft);font-weight:700}
+  .fsub .askk{font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--hx-c);background:color-mix(in oklab,var(--hx-c) 12%,transparent);border-radius:4px;padding:1px 5px;margin-right:2px}
+  .feat.on .fl{color:var(--ink);font-weight:550}
+  .feat-cl{display:block;padding:9px 0}
+  .sdot{width:8px;height:8px;border-radius:99px;display:inline-block;margin-right:8px;vertical-align:middle;flex:none}
+  .sdot.hx{background:var(--hx-c)} .sdot.exam{background:var(--exam-c)}
+  .feat.str-hx{box-shadow:inset 3px 0 0 -1px var(--hx-c)} .feat.str-exam{box-shadow:inset 3px 0 0 -1px var(--exam-c)}
+  .feat.str-hx,.feat.str-exam{padding-left:9px;border-radius:0 8px 8px 0}
+  .streamleg{display:flex;gap:14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);padding:11px 13px 3px}
+  .streamleg span{display:inline-flex;align-items:center;gap:5px}
+  .streamleg i{width:8px;height:8px;border-radius:99px}
+  .streamleg i.hx{background:var(--hx-c)} .streamleg i.exam{background:var(--exam-c)}
+  .feat-cl .fl{font-size:12.5px;font-weight:650;color:var(--ink)}
+  .feat-cl .fl em{font-style:normal;font-weight:500;font-size:10.5px;color:var(--ink-mute);margin-left:6px}
+  .clchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .clchip{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;transition:all .13s}
+  .clchip:hover{border-color:var(--ink-mute)}
+  .clchip.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .clchip.none{color:var(--ink-mute)}
+  .clchip.none.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .next.next-cl{flex-direction:column;align-items:stretch;gap:0;padding:11px 12px}
+  .next-cl .nxtop{display:flex;align-items:center;gap:10px}
+  .next-cl .nxdone{flex:none;font-size:11px;font-weight:700;color:var(--brand-strong);background:var(--brand-tint);border:none;border-radius:8px;padding:6px 11px;cursor:pointer}
+  .next-cl .clchips{margin-top:10px}
+  .cchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .cchip{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;transition:all .13s}
+  .cchip:hover{border-color:var(--ink-mute)}
+  .cchip.sel{background:var(--brand);border-color:var(--brand);color:#fff}
+  .cchip.other{color:var(--ink-mute);border-style:dashed}
+  .cchip.other.sel{background:var(--ink-mute);border-color:var(--ink-mute);color:#fff;border-style:solid}
+  .cotherin{display:block;width:100%;box-sizing:border-box;margin-top:8px;background:var(--surface-alt);border:1.5px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;font-size:12.5px;color:var(--ink);outline:none}
+  .cotherin:focus{border-color:var(--brand)}
+  .tc{display:flex;gap:6px;flex:none}
+  .tc button{width:38px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);font-size:15px;font-weight:800;cursor:pointer;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;transition:transform .09s cubic-bezier(.34,1.56,.64,1),background .14s,border-color .14s,color .14s}
+  /* tap micro-feedback: a quick press/settle on any tick-style control */
+  .tc button:active,.qk button:active,.recdchip:active,.invrow:active,.clchip:active,.give:active,.resp button:active{transform:scale(.9)}
+  .tc button:hover{border-color:var(--ink-mute)}
+  .tc button.y.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .tc button.n.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .ixref{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .ixref .h{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:7px}
+  .ixr{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);padding:4px 0}
+  .ixr .r{margin-left:auto;font-size:10px;font-weight:700;border-radius:6px;padding:2px 8px;flex:none}
+  .ixr .r.pend{color:var(--brand-strong);background:var(--brand-tint)}
+  .ixr .r.hi{color:#fff;background:var(--bad)}
+  .ixr .r.ok{color:var(--good);background:var(--good-tint)}
+
+  /* Ix INPUT panel */
+  .panel{padding:14px 14px 4px}
+  .phd{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--ink-soft);background:var(--surface-alt);border-radius:10px;padding:9px 11px;margin-bottom:14px;line-height:1.45}
+  .phd b{color:var(--brand-strong);font-weight:700}
+  .ixsec{margin-bottom:14px}
+  .ixhd{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:2px}
+  .ixhd .ixstep{width:15px;height:15px;border-radius:50%;background:var(--brand);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;flex:none}
+  .ixhd .ixdot{width:8px;height:8px;border-radius:3px;flex:none}
+  .ixhd .ixdot.bedside{background:var(--rr)} .ixhd .ixdot.lab{background:var(--hellp)} .ixhd .ixdot.imaging{background:var(--aflp)}
+  .ixhd .ixn{margin-left:auto;font-size:10px;font-weight:700;color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line);border-radius:99px;padding:1px 8px}
+  .ixin{padding:11px 0;border-bottom:1px solid var(--line-soft);transition:background-color .3s,box-shadow .3s;border-radius:9px}
+  .ixin.pulse{background:color-mix(in oklab,var(--rr) 10%,transparent);box-shadow:0 0 0 1.5px var(--rr) inset}
+  @keyframes shiftin{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+  .ixshift{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;animation:shiftin .2s ease}
+  .ixshift .mv{font-size:11px;font-weight:750;color:var(--c)}
+  .ixin:last-child{border-bottom:none}
+  .ixsec .ixin:last-child{border-bottom:none}
+  .ixin .top{display:flex;align-items:center;gap:9px}
+  .ixin .lab{flex:1;min-width:0}
+  .ixin .lab .t{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:normal;line-height:1.25}
+  .ixin .lab .sub{font-size:10.5px;color:var(--ink-mute);margin-top:1px}
+  .ixin .lab .sub .dxc{color:var(--ink-soft);font-weight:600}
+  .ixin.gated{opacity:.5}
+  .gatenote{font-size:10px;color:var(--ink-mute);margin-top:2px;font-style:italic}
+  .field{display:flex;align-items:center;gap:5px;flex:none;background:var(--surface-alt);border:1.5px solid var(--line);border-radius:10px;padding:5px 9px;transition:border-color .15s}
+  .field:focus-within{border-color:var(--brand)}
+  .field input{width:52px;border:none;background:none;color:var(--ink);font-size:15px;font-weight:700;text-align:right;outline:none;font-variant-numeric:tabular-nums;padding:0}
+  .field .unit{font-size:10px;color:var(--ink-mute);white-space:nowrap;min-width:26px}
+  .badge{margin-left:9px;font-size:10px;font-weight:800;letter-spacing:.03em;border-radius:6px;padding:3px 8px;flex:none;opacity:0;transition:opacity .2s}
+  .badge.show{opacity:1}
+  .badge.hi{color:#fff;background:var(--bad)}
+  .badge.lo{color:#fff;background:var(--bad)}
+  .badge.ok{color:var(--good);background:var(--good-tint)}
+  .badge.pend{color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line)}
+  .ixin .qk{display:flex;gap:6px;margin-top:8px;padding-left:1px}
+  .ixin .qk button{font-size:11px;font-weight:650;border-radius:8px;padding:5px 11px;border:1.5px solid var(--line);background:var(--surface-alt);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .ixin .qk button.y.sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .ixin .qk button.n.sel{background:var(--good);border-color:var(--good);color:#fff}
+
+  /* Management panel */
+  .mx{padding:14px 14px 4px}
+  .mxsec{margin-bottom:16px}
+  .mxsec>.hd{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:9px}
+  .mxsec>.hd .bar{width:3px;height:13px;border-radius:2px;flex:none}
+  /* The "Investigate first" block is a cross-reference INTO the Ix tab, not
+     Mx's own content — give it a visibly different tint + the Ix tab's own
+     icon so the eye doesn't read it as part of the treatment plan. */
+  .mxsec.ixref{background:color-mix(in oklab,var(--rr) 5%,transparent);border:1px solid color-mix(in oklab,var(--rr) 16%,transparent);border-radius:14px;padding:12px 12px 4px}
+  .mxsec.ixref>.hd{color:var(--rr)}
+  .rx{padding:10px 11px;background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:12px;margin-bottom:8px}
+  .rx-warn{border-color:var(--bad);background:color-mix(in oklab,var(--bad) 7%,var(--surface-alt))}
+  .pill-a.warn{color:#fff;background:var(--bad)}
+  .rxwarnmsg{font-size:11px;font-weight:700;color:var(--bad);margin-top:7px;padding-top:7px;border-top:1px dashed color-mix(in oklab,var(--bad) 35%,transparent)}
+  .rxtop{display:flex;align-items:center;gap:7px}
+  .rxtop .n{flex:1;min-width:0;font-size:14px;font-weight:650;letter-spacing:-.01em;line-height:1.25}
+  .rxbot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}
+  .rxbot .for{font-size:11px;color:var(--ink-mute)}
+  .dosechip{font-size:10.5px;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+  .pill-a{font-size:8.5px;font-weight:800;letter-spacing:.03em;border-radius:5px;padding:3px 6px;white-space:nowrap;flex:none}
+  .pill-a.act{color:#fff;background:var(--bad)}
+  .pill-a.ind{color:#fff;background:var(--brand)}
+  .pill-a.sign{color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent)}
+  .give{width:38px;height:32px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface);color:var(--line);font-size:15px;font-weight:800;cursor:pointer;flex:none;transition:all .15s}
+  .give.on{background:var(--good);border-color:var(--good);color:#fff;transform:scale(1.04)}
+  .rxnote{font-size:10.5px;font-weight:750;color:var(--bad)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;color:var(--ink-soft);background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:8px;padding:6px 10px}
+  .planwait{border:1px dashed var(--line);border-radius:14px;padding:16px 15px;background:var(--surface-alt)}
+  .planwait .pwrow{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink)}
+  .planwait .pwsub{margin-top:7px;font-size:11.5px;color:var(--ink-soft);line-height:1.5}
+  .invg{display:flex;flex-direction:column;gap:7px}
+  .invrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--rr);border-radius:11px;padding:10px 12px;cursor:pointer;font:inherit;transition:all .14s}
+  .invrow:hover{border-color:var(--rr);background:var(--surface-alt)}
+  .invl{font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.35;flex:1 1 140px;min-width:0}
+  .invr{display:flex;align-items:center;gap:9px;flex:0 1 auto;min-width:0;justify-content:flex-end}
+  .invwhen{font-size:10.5px;font-weight:650;color:var(--rr);text-align:right;white-space:normal;min-width:0}
+  .invarrow{font-size:10px;font-weight:800;color:var(--rr);background:color-mix(in oklab,var(--rr) 12%,transparent);border-radius:7px;padding:4px 8px;white-space:nowrap}
+  .holi{background:linear-gradient(160deg,color-mix(in oklab,var(--good) 9%,transparent),transparent);border:1px solid color-mix(in oklab,var(--good) 26%,transparent);border-radius:14px;padding:12px 13px;display:flex;flex-direction:column;gap:11px}
+  .hrow{display:flex;flex-direction:column;gap:6px}
+  .hlbl{font-size:12px;font-weight:750;color:var(--ink);display:flex;align-items:center;gap:6px}
+  .hlbl::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--good);flex:none}
+  .hchips{display:flex;flex-wrap:wrap;gap:5px;padding-left:11px}
+  .hchips .chip{background:var(--surface);border-color:color-mix(in oklab,var(--good) 22%,transparent)}
+  .hnote{font-size:11px;color:var(--ink-soft);padding-left:11px;line-height:1.4}
+  .tns{background:linear-gradient(160deg,color-mix(in oklab,var(--hellp) 12%,transparent),transparent);border:1px solid color-mix(in oklab,var(--hellp) 32%,transparent);border-radius:14px;padding:11px 13px}
+  .tns .lv{padding:8px 0;border-bottom:1px dashed color-mix(in oklab,var(--hellp) 22%,transparent)}
+  .tns .lv:first-child{padding-top:2px}.tns .lv:last-child{border-bottom:none;padding-bottom:2px}
+  .tns .lvtop{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12.5px}
+  .tns .lvtop .g{font-weight:750;color:var(--ink)}
+  .tns .lvtop .ar{color:var(--hellp);font-weight:800}
+  .tns .lvtop .rs{color:var(--ink-soft)}
+  .tns .lvbot{display:flex;align-items:center;gap:8px;margin-top:4px}
+  .tns .lvbot .m{flex:1;min-width:0;font-size:11px;color:var(--ink-mute)}
+  .tns .resp{display:flex;gap:6px;flex:none}
+  .tns .resp button{font-size:10.5px;font-weight:650;border-radius:8px;padding:5px 10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .tns .resp button.up.sel{background:var(--good);border-color:var(--good);color:#fff}
+  .tns .resp button.no.sel{background:var(--ink-mute);border-color:var(--ink-mute);color:#fff}
+  .cover{border-radius:12px;padding:10px 12px;font-size:11.5px;line-height:1.45;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent)}
+  .cover b{font-weight:750}
+  .cover.ok{color:var(--good);background:var(--good-tint);border-color:color-mix(in oklab,var(--good) 25%,transparent)}
+  .mxcite{display:flex;gap:7px;font-size:10.5px;color:var(--ink-mute);line-height:1.45;padding:8px 2px 4px}
+  /* Documents panel */
+  .doc{padding:14px}
+  .docpick{display:flex;gap:6px;margin-bottom:13px}
+  .docpick button{flex:1;font-size:11.5px;font-weight:650;padding:9px 4px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-alt);color:var(--ink-mute);cursor:pointer;transition:all .14s}
+  .docpick button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .paper{background:var(--surface-alt);border:1px solid var(--line);border-radius:13px;padding:15px 15px 8px}
+  .doctitle{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:750;letter-spacing:-.01em;margin-bottom:11px;color:var(--ink)}
+  .doctitle span{font-size:10px;font-weight:500;color:var(--ink-mute);white-space:nowrap;flex:none}
+  .block{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line-soft)}
+  .block:first-child{border-top:none;padding-top:2px}
+  .block .ltr{width:24px;height:24px;border-radius:7px;background:var(--brand-tint);color:var(--brand-strong);font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+  .block b,.sec b{display:block;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:3px}
+  .block p,.sec p,.lt{font-size:12.5px;line-height:1.5;color:var(--ink);margin:0}
+  .block p b,.sec p b,.lt b{display:inline;font-size:inherit;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:700;margin:0}
+  .sec{padding:9px 0;border-top:1px solid var(--line-soft)}
+  .todayta{width:100%;box-sizing:border-box;margin-top:4px;min-height:56px;resize:vertical;font:inherit;font-size:12.5px;color:var(--ink);background:var(--surface-alt);border:1.5px solid var(--line);border-radius:9px;padding:8px 10px;outline:none}
+  .todayta:focus{border-color:var(--brand)}
+  .sec:first-child{border-top:none;padding-top:2px}
+  .lt{margin-bottom:10px}.lt:last-child{margin-bottom:2px}
+  .docact{display:flex;gap:8px;margin-top:12px}
+  .docact button{flex:1;font-size:12.5px;font-weight:650;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink-soft);cursor:pointer;transition:all .14s}
+  .docact button.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+  .docflag{font-size:10.5px;color:var(--amber);text-align:center;margin-top:10px}
+  /* Why / reasoning panel */
+  .why{padding:14px}
+  .whysum{font-size:13px;line-height:1.55;color:var(--ink);background:linear-gradient(160deg,var(--brand-tint),transparent);border:1px solid color-mix(in oklab,var(--brand) 26%,transparent);border-radius:13px;padding:13px 14px;margin-bottom:14px}
+  .whysum b{font-weight:750}
+  .wledger{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dxc);border-radius:12px;padding:11px 12px;margin-bottom:10px}
+  .wlhd{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+  .wlhd .n{font-size:13.5px;font-weight:700;color:var(--dxc);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+  .wlhd .pc{font-size:15px;font-weight:800;flex:none;letter-spacing:-.02em}
+  .capchip{font-size:9px;font-weight:800;letter-spacing:.02em;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:5px;padding:2px 6px;flex:none}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .col-f,.col-a{border-radius:9px;padding:7px 9px}
+  .col-f{background:var(--good-tint)}
+  .col-a{background:var(--bad-tint)}
+  .colh{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+  .col-f .colh{color:var(--good)}
+  .col-a .colh{color:var(--bad)}
+  .li{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px;line-height:1.3;padding:2.5px 0;color:var(--ink-soft)}
+  .li.dim{color:var(--ink-mute)}
+  .li .lr{font-weight:800;font-variant-numeric:tabular-nums;flex:none}
+  .col-f .li .lr{color:var(--good)}
+  .col-a .li .lr{color:var(--bad)}
+  .wscript{font-size:10.5px;color:var(--ink-mute);margin-top:8px;font-style:italic;line-height:1.4}
+  .wpatho{font-size:11.5px;color:var(--ink);line-height:1.5;margin-top:8px;padding:8px 10px;background:color-mix(in oklab,var(--hx-c) 8%,transparent);border-left:3px solid var(--hx-c);border-radius:0 8px 8px 0}
+  .wpatho b{color:var(--hx-c);font-weight:750}
+  .whycard{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px;background:var(--surface-alt)}
+  .whycard.pm{background:var(--amber-tint);border-color:color-mix(in oklab,var(--amber) 22%,transparent)}
+  .whycard .h{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);margin-bottom:5px;display:flex;gap:6px;align-items:center}
+  .whycard.pm .h{color:var(--amber)}
+  .whycard p{font-size:12.5px;line-height:1.5;margin:0;color:var(--ink)}
+  .whycard p b{font-weight:750}
+  .empty{padding:40px 26px 44px;text-align:center}
+  .empty .ic{font-size:30px;color:var(--brand);opacity:.8}
+  .empty .t{font-size:15px;font-weight:700;margin:12px 0 5px;letter-spacing:-.01em}
+  .empty .s{font-size:12.5px;color:var(--ink-mute);line-height:1.5;max-width:270px;margin:0 auto}
+  .empty .pill{margin-top:14px;display:inline-block;font-size:11px;font-weight:650;color:var(--brand-strong);background:var(--brand-tint);border-radius:99px;padding:6px 13px}
+
+  footer{padding:13px 16px 0;text-align:center}
+  .legend{display:inline-flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-mute)}
+  .legend b{display:inline-flex;align-items:center;gap:4px;font-weight:500}
+  .sw{width:15px;height:15px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+  .theme{margin-top:10px;font-size:11px;color:var(--brand-strong);background:var(--brand-tint);border:none;padding:6px 12px;border-radius:99px;cursor:pointer;font-weight:650}
+</style>
+
+<div class="intake" id="intake">
+  <div class="intake-card">
+    <div class="ilogo">✦</div>
+    <div class="ititle">MedAI clerk</div>
+    <div class="isub">Describe the patient in your own words. The AI builds a live differential — confidence, must-not-miss, the next best question — that you push toward certainty.</div>
+    <textarea id="itext" class="itext" rows="4" placeholder="e.g. 58-year-old man, crushing central chest pain for 2 hours radiating to the left arm, sweaty, known hypertension, ex-smoker…"></textarea>
+    <button id="igen" class="ibtn">Build the board →</button>
+    <div id="istatus" class="istatus"></div>
+    <div class="iex">or open a worked example</div>
+    <div id="ichips" class="ichips"></div>
+  </div>
+</div>
+<div class="wrap">
+  <header>
+    <div class="casebar" id="casebar"></div>
+    <div class="pt"><span class="chev">‹</span><div class="who" id="who"></div></div>
+    <div class="genbanner" id="genbanner"><span class="gicon">✦</span><span><b>AI-drafted from your description.</b> Verify every diagnosis, weight and dose before acting — this is a reasoning aid, not a decision.</span></div>
+    <div class="vitals" id="vitals"></div>
+    <div class="sysleg"><span><i style="background:var(--hr)"></i>Cardiovascular</span><span><i style="background:var(--rr)"></i>Respiratory</span><span><i style="background:var(--temp)"></i>Thermal</span></div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="k">Confidence</div>
+        <div class="vrow"><span class="v tnum" id="confV">—</span><span class="d up" id="confD"></span></div>
+        <div class="track"><div class="fill conf" id="confF"></div></div>
+      </div>
+      <div class="card">
+        <div class="k">Clerking complete</div>
+        <div class="vrow"><span class="v tnum" id="compV">—</span><span class="d up" id="compD"></span></div>
+        <div class="track"><div class="fill comp" id="compF"></div></div>
+      </div>
+    </div>
+    <div class="cap" id="cap"></div>
+    <div class="diffstrip" id="diffstrip"></div>
+    <div class="next" id="next"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-tab="hx"><span class="n">◧</span>Hx·Exam</button>
+      <button class="tab" data-tab="ix"><span class="n">⌾</span>Ix</button>
+      <button class="tab" data-tab="mx"><span class="n">✚</span>Mx</button>
+      <button class="tab" data-tab="docs"><span class="n">▤</span>Docs</button>
+      <button class="tab" data-tab="why"><span class="n">✦</span>Why</button>
+    </div>
+  </header>
+
+  <main id="main"></main>
+
+  <footer>
+    <div class="legend" id="foot"></div>
+    <div><button class="theme" id="theme">Light / dark</button></div>
+  </footer>
+</div>
+
+<script>
+// ===== CASE PACKS — the engine is specialty-agnostic; a specialty is just data =====
+const CASES={
+ pre:{
+  specialty:'O&G', label:'Pre-eclampsia',
+  referTo:'O&G Registrar on call',
+  planLine:'MgSO₄ · BP control · betamethasone · urgent bloods · senior O&amp;G review · plan delivery.',
+  recommendation:'MgSO₄ seizure prophylaxis; control BP &lt;150/100; betamethasone for fetal lung maturity; urgent FBC, U&amp;E, LFT, coagulation, glucose. <b>Urgent senior O&amp;G review — plan delivery after maternal stabilisation.</b>',
+  PT:{line:'29 · G3P2 · 33<small>+4/40</small> · headache + epigastric pain', summaryLine:'29-year-old G3P2 at 33<sup>+4</sup> weeks', complaint:'headache and epigastric pain', background:'Third pregnancy. P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress). No hypertension before this pregnancy. Gestation 33<sup>+4</sup> weeks by dates.', obsHx:'P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress)'},
+  VITALS:[{k:'HR',v:'104',vc:'var(--hr)'},{k:'BP',v:'168/112',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.9',vc:'var(--temp)'}],
+  DX:[
+   {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.30,mnm:false,script:'HTN + proteinuria + end-organ symptoms after 20 weeks'},
+   {id:'hellp',name:'HELLP syndrome',icd:'O14.2',c:'var(--hellp)',prior:.12,mnm:true,script:'pre-eclampsia + haemolysis + low platelets + high LFTs'},
+   {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.10,mnm:true,script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
+   {id:'aflp',name:'Acute fatty liver of pregnancy',icd:'O26.6',c:'var(--aflp)',prior:.05,mnm:true,script:'3rd trimester + hypoglycaemia + coagulopathy + high LFTs'}],
+  FEAT:[
+   {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
+   {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pet:[2.4,.6],hellp:[3,.5],aflp:[2,.7]},preset:'present'},
+   {id:'vis',lbl:'Visual disturbance',stream:'hx',eff:{pet:[3,.5]}},
+   // Antenatal history — informational (no eff): this doesn't move the PET/HELLP
+   // odds, but a complete obstetric presentation needs it regardless. This is
+   // what Completeness measures and Confidence deliberately does not.
+   {id:'antenatal',lbl:'Antenatal care attended',stream:'hx',follow:[
+     {id:'confirmmethod',lbl:'How pregnancy was confirmed',stream:'hx',kind:'choice',options:['Urine pregnancy test','Missed period + clinical exam','Early dating ultrasound','Booking bloods / βhCG']},
+     {id:'bookingga',lbl:'Gestation at booking (first) antenatal visit',stream:'hx',num:{unit:'weeks'}},
+     {id:'ancvisits',lbl:'Total antenatal visits so far',stream:'hx',num:{unit:'visits'}},
+     {id:'ancsig',lbl:'Any significant findings at antenatal visits',stream:'hx',kind:'text'},
+     {id:'bloodgroup',lbl:'Blood group (ABO)',stream:'hx',kind:'choice',options:['A','B','AB','O','Not done']},
+     {id:'rhesus',lbl:'Rhesus factor',stream:'hx',kind:'choice',options:['Positive','Negative','Not done']},
+     {id:'rpr',lbl:'RPR (syphilis screen)',stream:'hx',kind:'choice',options:['Non-reactive','Reactive','Not done']},
+     {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
+     {id:'hepb',lbl:'Hepatitis B surface antigen',stream:'hx',kind:'choice',options:['Negative','Positive','Not done']}]},
+   // Universal background, every case regardless of department (South African
+   // context: HIV and TB status are relevant on essentially every clerking).
+   {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
+   {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker'],ask:'do you smoke, or did you smoke before this pregnancy?'},
+   {id:'alcohol',lbl:'Alcohol use in pregnancy',stream:'hx',kind:'choice',options:['None','Stopped once pregnant','Occasional','Regular'],ask:'do you drink any alcohol?'},
+   // Generic background completeness — not tied to obstetrics, every full
+   // clerking needs these regardless of presenting complaint.
+   {id:'lmp',lbl:'Last menstrual period',stream:'hx',kind:'text'},
+   {id:'menarche',lbl:'Age at menarche',stream:'hx',num:{unit:'years'}},
+   {id:'pmhx',lbl:'Past medical history',stream:'hx',kind:'text'},
+   {id:'pshx',lbl:'Past surgical history',stream:'hx',follow:[
+     {id:'pshxwhat',lbl:'Procedure',stream:'hx',kind:'choice',options:['Caesarean section','Appendicectomy','Cholecystectomy','Hernia repair','Tubal ligation','Other gynaecological surgery']},
+     {id:'pshxwhen',lbl:'Time since procedure',stream:'hx',num:{unit:'years'}}]},
+   {id:'drughx',lbl:'Current medications',stream:'hx',kind:'text'},
+   {id:'allergy',lbl:'Known drug allergies',stream:'hx',kind:'choice',options:['No known allergies','Penicillin','Sulfa drugs','NSAIDs']},
+   {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
+   {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
+   {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
+   {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
+   // Grounded in the real trigger, not a bare "multiple pregnancy?" tick: SFH
+   // measured against gestational age is what actually raises the suspicion.
+   {id:'sfh',lbl:'Symphysis-fundal height',stream:'exam',num:{unit:'cm'},criterion:'compare to gestation in weeks — normally ≈ equal ± 2 cm',ask:'if larger than expected for dates: consider multiple pregnancy, polyhydramnios, macrosomia, wrong dates, or fibroids'},
+   {id:'liquor',lbl:'Ruptured membranes / offensive liquor',stream:'exam',eff:{chorio:[5,.5]}},
+   {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',eff:{chorio:[3,.6]}},
+   {id:'plt',lbl:'Platelets < 100',stream:'ix',eff:{hellp:[8,.2]},key:'hellp',short:'platelets'},
+   {id:'ast',lbl:'AST / ALT raised',stream:'ix',eff:{hellp:[4,.4],aflp:[3,.5]}},
+   {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',eff:{hellp:[3,.5]}},
+   {id:'glu',lbl:'Hypoglycaemia',stream:'ix',eff:{aflp:[6,.4]},key:'aflp',short:'glucose'},
+   {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
+   {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}}],
+  IX:[
+   {id:'plt',cat:'lab',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP'},
+   {id:'ast',cat:'lab',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP'},
+   {id:'ldh',cat:'lab',lbl:'LDH',unit:'U/L',norm:'< 600',hi:600,dir:'above',dx:'HELLP'},
+   {id:'glu',cat:'bedside',lbl:'Glucose',unit:'mmol/L',norm:'3.5–7.8',lo:3.0,dir:'below',dx:'AFLP'},
+   {id:'inr',cat:'lab',lbl:'INR',unit:'',norm:'< 1.2',hi:1.2,dir:'above',dx:'AFLP'}],
+  MX:{
+   investigate:[{lbl:'Urgent bloods — FBC · U&amp;E · LFT · coagulation · glucose',when:'now — HELLP / AFLP',ix:'plt'}],
+   immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis',dose:'4 g IV over 20 min → 1 g/h IV infusion',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol 20 mg IV (double q10min, max 300 mg) · or nifedipine 10 mg PO · or hydralazine 5 mg IV',sign:true,activeKeys:['BP']}],
+   definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'12 mg IM, 2 doses 24 h apart',sign:true,ind:'33+4 wk — give'}],
+   longterm:[{rx:'Postnatal BP review',for:'PET resolves over weeks',dose:'BP checks + wean antihypertensives'},{rx:'Future-pregnancy prophylaxis',for:'high recurrence risk',dose:'aspirin 150 mg nocte from 12 wk + calcium',sign:true},{rx:'Cardiovascular risk follow-up',for:'lifelong ↑ CVD / HTN risk',dose:'BP, weight, metabolic screen'}],
+   monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
+   levers:[{id:'rx_dex',give:'IV dextrose',resp:'glucose corrects, rouses',means:'supports AFLP / hypoglycaemia',wired:true},{give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},{give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'}]},
+ },
+ cp:{
+  specialty:'IM / EM', label:'Chest pain',
+  referTo:'Medical Registrar / Cardiology',
+  planLine:'aspirin · serial troponin · 12-lead ECG · anticoagulation per pathway · cardiology review.',
+  recommendation:'Aspirin if ACS likely and dissection excluded; serial troponin and continuous ECG; treat along the confirmed pathway — PCI for STEMI, anticoagulation for PE/NSTEMI, urgent aortic control for dissection. <b>Urgent medical / cardiology review.</b>',
+  PT:{line:'58 · ♂ · central chest pain · 2 h', summaryLine:'58-year-old man', complaint:'central chest pain for 2 hours', background:'Hypertension and hyperlipidaemia. Ex-smoker, 20 pack-years. Father had a myocardial infarction at 55. No recent surgery or immobility.'},
+  VITALS:[{k:'HR',v:'108',vc:'var(--hr)'},{k:'BP',v:'148/92',vc:'var(--bp)'},{k:'RR',v:'22',vc:'var(--rr)'},{k:'SpO₂',v:'93',vc:'var(--spo2)'},{k:'T',v:'36.8',vc:'var(--temp)'}],
+  DX:[
+   {id:'acs',name:'Acute coronary syndrome',icd:'I24.9',c:'var(--chorio)',prior:.30,mnm:true,script:'ischaemic-type pain + risk factors + rising troponin / ECG change'},
+   {id:'pe',name:'Pulmonary embolism',icd:'I26.9',c:'var(--pet)',prior:.14,mnm:true,script:'pleuritic pain + dyspnoea + hypoxia + immobility / DVT risk'},
+   {id:'dissection',name:'Aortic dissection',icd:'I71.0',c:'var(--hellp)',prior:.05,mnm:true,script:'sudden tearing pain to the back + BP/pulse asymmetry + wide mediastinum'},
+   {id:'pericarditis',name:'Pericarditis',icd:'I30.9',c:'var(--aflp)',prior:.10,mnm:false,script:'sharp pleuritic pain, better sitting forward + friction rub + diffuse ST'}],
+  FEAT:[
+   {id:'crush',lbl:'Crushing pain radiating to arm/jaw',stream:'hx',eff:{acs:[3,.5]},preset:'present'},
+   {id:'exert',lbl:'Exertional onset',stream:'hx',eff:{acs:[2.5,.6]}},
+   // Discrete, consultant-level risk-factor elicitation — not one bundled tick.
+   // Each is individually documentable (and individually manageable) rather than
+   // collapsed into a single "cardiac risk factors: yes" checkbox.
+   {id:'htn',lbl:'Hypertension',stream:'hx',eff:{acs:[1.3,.85]},preset:'present',ask:'has a doctor told you your blood pressure is high, or are you on tablets for it?'},
+   {id:'dm',lbl:'Diabetes',stream:'hx',eff:{acs:[1.3,.85]},ask:'do you have diabetes / high sugar, or are you on tablets or insulin for it?'},
+   {id:'lipids',lbl:'High cholesterol',stream:'hx',eff:{acs:[1.25,.9]},preset:'present',ask:'has a doctor said your cholesterol is high, or are you on a statin tablet?'},
+   {id:'famhx',lbl:'Family history of heart disease',stream:'hx',eff:{acs:[1.4,.85]},preset:'present',ask:'has your father, mother, brother or sister had a heart attack young?'},
+   {id:'pleur',lbl:'Pleuritic (worse on inspiration)',stream:'hx',eff:{pe:[2.5,.6],pericarditis:[3,.5],acs:[.6,1.1]}},
+   {id:'tear',lbl:'Tearing pain radiating to back',stream:'hx',eff:{dissection:[8,.4]},ask:'did the pain feel like tearing, ripping through to your back?'},
+   {id:'immob',lbl:'Recent immobility / DVT risk',stream:'hx',eff:{pe:[3,.5]},ask:'any long trip, bed rest, recent surgery, or swelling/pain in one leg?'},
+   {id:'ssf',lbl:'Relieved sitting forward',stream:'hx',eff:{pericarditis:[4,.5]}},
+   // Universal background — smoking is already diagnostically weighted for ACS
+   // via cardiac risk above; this captures full current status for the record.
+   {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker'],ask:'do you smoke now, or did you used to?'},
+   {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent'],ask:'do you drink alcohol, and how much / how often?'},
+   {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
+   {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
+   {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
+   {id:'diaph',lbl:'Diaphoresis / distress',stream:'exam',eff:{acs:[2,.7]},preset:'present'},
+   {id:'asym',lbl:'Unequal arm BP / pulse deficit',stream:'exam',eff:{dissection:[6,.4]}},
+   {id:'jvp',lbl:'Raised JVP / RV strain',stream:'exam',eff:{pe:[3,.6]}},
+   {id:'rub',lbl:'Pericardial friction rub',stream:'exam',eff:{pericarditis:[8,.3]}},
+   {id:'hypox',lbl:'Tachycardia + hypoxia',stream:'exam',eff:{pe:[2.5,.6]},preset:'present'},
+   {id:'trop',lbl:'Troponin raised',stream:'ix',eff:{acs:[8,.2]},key:'acs',short:'troponin'},
+   {id:'ecgisch',lbl:'ECG ischaemia',stream:'ix',eff:{acs:[6,.3]}},
+   {id:'ddimer',lbl:'D-dimer raised',stream:'ix',eff:{pe:[2.5,.5]}},
+   {id:'ctpa',lbl:'CTPA positive',stream:'ix',eff:{pe:[15,.1]},key:'pe',short:'CTPA'},
+   {id:'ctaorta',lbl:'CT aorta — dissection flap',stream:'ix',eff:{dissection:[14,.08]},key:'dissection',short:'CT aorta'},
+   {id:'ecgperi',lbl:'ECG diffuse ST / PR depression',stream:'ix',eff:{pericarditis:[5,.4]}}],
+  IX:[
+   {id:'trop',cat:'lab',lbl:'Troponin (hs)',unit:'ng/L',norm:'< 14',hi:14,dir:'above',dx:'ACS'},
+   {id:'ddimer',cat:'lab',lbl:'D-dimer',unit:'µg/L',norm:'< 0.5',hi:0.5,dir:'above',dx:'PE'},
+   {id:'ecgisch',cat:'bedside',lbl:'ECG — ischaemia',binary:true,dx:'ACS'},
+   {id:'ctpa',cat:'imaging',lbl:'CTPA',binary:true,dx:'PE'},
+   {id:'ctaorta',cat:'imaging',lbl:'CT aorta',binary:true,dx:'Dissection'},
+   {id:'ecgperi',cat:'bedside',lbl:'ECG — pericarditis pattern',binary:true,dx:'Pericarditis'}],
+  MX:{
+   investigate:[{lbl:'12-lead ECG',when:'within 10 min of arrival',ix:'ecgisch'},{lbl:'Bloods — troponin · D-dimer',when:'now (serial troponin)',ix:'trop'}],
+   immediate:[{rx:'Aspirin',for:'if ACS likely, dissection not suspected',dose:'300 mg PO chewed, stat',sign:true},{rx:'Analgesia + antiemetic',for:'pain and distress',dose:'morphine 2.5–5 mg IV titrated + metoclopramide 10 mg IV',sign:true}],
+   definitive:[{rx:'Reperfusion (PCI / lysis)',for:'STEMI pathway',dose:'primary PCI < 120 min · or tenecteplase (weight-based) if PCI unavailable'},{rx:'Anticoagulation',for:'confirmed PE / NSTEMI — not if dissection',dose:'enoxaparin 1 mg/kg SC 12-hly (renal-adjust) · or fondaparinux 2.5 mg SC OD',sign:true},{rx:'Aortic control + CT surgery',for:'dissection',dose:'keep SBP 100–120 / HR < 60 (IV labetalol); urgent cardiothoracic referral'}],
+   longterm:[{rx:'Secondary prevention',for:'post-ACS',dose:'dual antiplatelet 12 mth + high-intensity statin + ACE-inhibitor + beta-blocker',sign:true},{rx:'Cardiac rehabilitation + risk-factor control',for:'reduce recurrence',dose:'structured programme; BP, lipids, glucose, smoking'}],
+   monitor:['Continuous ECG','Serial troponin','BP in both arms','SpO₂ + respiratory rate'],
+   holistic:[
+    {label:'Secondary prevention',chips:['Smoking cessation','High-intensity statin','BP control','Diabetes control','Antiplatelet']},
+    {label:'Lifestyle',chips:['Cardiac rehabilitation','Mediterranean diet','Regular aerobic exercise','Weight management','Reduce alcohol']},
+    {label:'Educate & safety-net',note:'Explain red-flag return: recurrent or worsening chest pain, breathlessness or syncope; adherence to secondary-prevention meds.'}],
+   levers:[{give:'GTN',resp:'pain settles',means:'consistent with ischaemia — not specific'},{give:'After full analgesia',resp:'pain persists',means:'concerning — reconsider dissection'}]},
+ },
+ surg:{
+  specialty:'Surgery', label:'RIF pain',
+  referTo:'Surgical Registrar on call',
+  planLine:'analgesia · nil by mouth · IV fluids · βhCG · WCC/CRP · imaging · surgical review.',
+  recommendation:'Analgesia and antiemetic; keep nil by mouth with IV fluids pending theatre; <b>exclude pregnancy with βhCG</b>; WCC/CRP and imaging as indicated. <b>Urgent surgical review — laparoscopy if torsion or ectopic suspected.</b>',
+  PT:{line:'24 · ♀ · right iliac fossa pain · 1 day', summaryLine:'24-year-old woman', complaint:'right iliac fossa pain for one day', background:'Previously well. Last menstrual period about 6 weeks ago, uncertain dates. No previous surgery.'},
+  VITALS:[{k:'HR',v:'98',vc:'var(--hr)'},{k:'BP',v:'118/74',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'99',vc:'var(--spo2)'},{k:'T',v:'37.8',vc:'var(--temp)'}],
+  DX:[
+   {id:'appy',name:'Acute appendicitis',icd:'K35.80',c:'var(--pet)',prior:.35,mnm:false,script:'central pain migrating to RIF + anorexia + RIF tenderness / guarding'},
+   {id:'ectopic',name:'Ectopic pregnancy',icd:'O00.9',c:'var(--chorio)',prior:.12,mnm:true,script:'reproductive age + missed period + positive βhCG + adnexal pain'},
+   {id:'torsion',name:'Ovarian torsion',icd:'N83.5',c:'var(--hellp)',prior:.08,mnm:true,script:'sudden severe unilateral pain + nausea + tender adnexal mass'},
+   {id:'adenitis',name:'Mesenteric adenitis',icd:'I88.0',c:'var(--aflp)',prior:.10,mnm:false,script:'recent viral illness + diffuse tenderness without guarding'}],
+  FEAT:[
+   {id:'migrate',lbl:'Pain migrated central → RIF',stream:'hx',eff:{appy:[3,.5]},preset:'present'},
+   {id:'anorexia',lbl:'Anorexia',stream:'hx',eff:{appy:[2,.6]}},
+   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{ectopic:[4,.4]}},
+   {id:'suddensev',lbl:'Sudden severe onset',stream:'hx',eff:{torsion:[3,.5]}},
+   {id:'viral',lbl:'Recent viral illness',stream:'hx',eff:{adenitis:[3,.5]}},
+   // Real ectopic risk factors — grounded, not filler: previous ectopic and
+   // tubal damage (PID / tubal surgery) materially raise pre-test probability.
+   {id:'priorectopic',lbl:'Previous ectopic pregnancy',stream:'hx',eff:{ectopic:[4,.85]},ask:'have you ever had a pregnancy in the tube before?'},
+   {id:'pidhx',lbl:'Previous pelvic infection or tubal surgery',stream:'hx',eff:{ectopic:[3,.9]},ask:'have you ever had a pelvic infection (PID), or an operation on your tubes?'},
+   {id:'parity',lbl:'Previous pregnancies (parity)',stream:'hx',num:{unit:'pregnancies'}},
+   {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
+   {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker']},
+   {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent']},
+   {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
+   {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
+   {id:'rifguard',lbl:'RIF tenderness + guarding',stream:'exam',eff:{appy:[4,.4]},preset:'present'},
+   {id:'rebound',lbl:'Rebound / percussion tenderness',stream:'exam',eff:{appy:[3,.5]}},
+   {id:'adnexal',lbl:'Adnexal tenderness / cervical excitation',stream:'exam',eff:{ectopic:[3,.5],torsion:[2,.7]}},
+   {id:'mass',lbl:'Palpable tender adnexal mass',stream:'exam',eff:{torsion:[5,.5]}},
+   // Two DISTINCT tests, staged like real practice — never collapse them into
+   // one "quantitative at presentation" number. (1) bedside urine screen: instant,
+   // qualitative, the actual rule-out gate. (2) only once that's positive do you
+   // SEND a quantitative serum level to the lab — it comes back later and its
+   // value (vs the discriminatory zone) is what shapes the ectopic workup.
+   {id:'bhcg',lbl:'βhCG positive (urine, bedside)',stream:'ix',eff:{ectopic:[6,.1]},key:'ectopic',short:'urine βhCG'},
+   {id:'bhcgquant',lbl:'Quantitative serum βhCG',stream:'ix',eff:{ectopic:[3,.6]}},
+   {id:'usadnexa',lbl:'US — adnexal mass / absent flow',stream:'ix',eff:{torsion:[8,.2]},key:'torsion',short:'pelvic US'},
+   {id:'wcc',lbl:'WCC raised',stream:'ix',eff:{appy:[2.5,.5],adenitis:[1.3,.9]}},
+   {id:'crp',lbl:'CRP raised',stream:'ix',eff:{appy:[2,.6],adenitis:[1.2,.9]}},
+   {id:'usappy',lbl:'US / CT — appendicitis',stream:'ix',eff:{appy:[10,.2]}},
+   {id:'allergy',lbl:'Known drug allergies',stream:'hx',kind:'choice',options:['No known allergies','Penicillin','Sulfa drugs','NSAIDs'],ask:'are you allergic to any medicines — penicillin, "-mycin" antibiotics, or painkillers like ibuprofen/Voltaren?'}],
+  IX:[
+   {id:'bhcg',cat:'bedside',lbl:'βhCG (urine, bedside)',binary:true,dx:'Pregnancy — rule out first, at the bedside'},
+   {id:'bhcgquant',cat:'lab',lbl:'βhCG (quantitative, serum)',unit:'IU/L',norm:'discriminatory zone ≈ 1500–2000',hi:1500,dir:'above',dx:'Ectopic — send once urine screen is positive; above the zone with an empty uterus on TVUS = ectopic until proven otherwise',gateOn:'bhcg'},
+   {id:'usadnexa',cat:'imaging',lbl:'Pelvic ultrasound',binary:true,dx:'Torsion'},
+   {id:'wcc',cat:'lab',lbl:'WCC',unit:'×10⁹/L',norm:'4–11',hi:11,dir:'above',dx:'Appendicitis'},
+   {id:'crp',cat:'lab',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Appendicitis'},
+   {id:'usappy',cat:'imaging',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'}],
+  MX:{
+   investigate:[{lbl:'Urine βhCG',when:'first — any reproductive-age woman',ix:'bhcg'},{lbl:'WCC · CRP + US / CT abdomen',when:'now',ix:'wcc'},{lbl:'Quantitative serum βhCG',when:'send once urine screen positive',ix:'bhcgquant'}],
+   immediate:[{rx:'Analgesia + antiemetic',for:'pain and nausea',dose:'morphine 0.1 mg/kg IV titrated + ondansetron 4 mg IV',sign:true},{rx:'Nil by mouth + IV fluids',for:'likely theatre',dose:'balanced crystalloid: maintenance + replace deficit',active:'keep NBM'}],
+   definitive:[{rx:'Appendicectomy',for:'confirmed appendicitis',dose:'laparoscopic'},{rx:'Emergency laparoscopy',for:'torsion / ectopic',dose:'salvage ovary / arrest bleeding',sign:true},{rx:'Antibiotics',for:'appendicitis / intra-abdominal cover',dose:'co-amoxiclav 1.2 g IV 8-hly · or cefuroxime 1.5 g IV + metronidazole 500 mg IV',sign:true,warnIf:{allergyId:'allergy',match:['Penicillin'],msg:'Documented penicillin allergy — use cefuroxime + metronidazole, not co-amoxiclav.'}}],
+   longterm:[{rx:'Post-operative recovery',for:'uncomplicated appendicectomy',dose:'wound care, early mobilisation, histology review'},{rx:'Fertility counselling',for:'if ovary lost to torsion',dose:'reassure — single ovary preserves fertility'}],
+   monitor:['Serial abdominal exam','Obs + urine output','Repeat bloods','βhCG result'],
+   levers:[{give:'Analgesia',resp:'pain well controlled',means:'reassess — does not exclude a surgical abdomen'},{give:'Serial exam',resp:'localises / worsens',means:'evolving appendicitis'}]},
+ },
+ paeds:{
+  specialty:'Paeds', label:'Febrile infant',
+  referTo:'Paediatric Registrar on call',
+  planLine:'sepsis assessment · weight-based antibiotics if indicated · CRP · urine · CXR · LP if meningism · admit.',
+  recommendation:'Assess for sepsis (HR 168, RR 44); weight-based fluids and empirical antibiotics if meningitis or sepsis suspected — do not delay treatment for LP if unwell; septic screen with urine, CRP and chest X-ray. <b>Urgent paediatric review.</b>',
+  PT:{line:'8 mo · ♂ · fever + irritability · 1 day', summaryLine:'8-month-old boy', complaint:'fever and irritability for one day', background:'Fully immunised for age. Reduced feeds today. No rash noticed by parents.'},
+  VITALS:[{k:'HR',v:'168',vc:'var(--hr)'},{k:'BP',v:'92/54',vc:'var(--bp)'},{k:'RR',v:'44',vc:'var(--rr)'},{k:'SpO₂',v:'96',vc:'var(--spo2)'},{k:'T',v:'39.2',vc:'var(--temp)'}],
+  DX:[
+   {id:'pneumonia',name:'Pneumonia',icd:'J18.9',c:'var(--hellp)',prior:.15,mnm:false,script:'fever + tachypnoea + focal chest signs / hypoxia'},
+   {id:'meningitis',name:'Meningitis / sepsis',icd:'G00.9',c:'var(--chorio)',prior:.12,mnm:true,script:'unwell infant + bulging fontanelle / neck stiffness + non-blanching rash + high CRP'},
+   {id:'uti',name:'Urinary tract infection',icd:'N39.0',c:'var(--pet)',prior:.22,mnm:false,script:'fever without source + offensive urine + positive dip / culture'},
+   {id:'viral',name:'Viral illness',icd:'J06.9',c:'var(--aflp)',prior:.30,mnm:false,script:'coryza + well-appearing between fevers + self-limiting'}],
+  FEAT:[
+   {id:'irrit',lbl:'Irritable / lethargic',stream:'hx',eff:{meningitis:[3,.4]},preset:'present'},
+   {id:'feeds',lbl:'Reduced feeds',stream:'hx',eff:{meningitis:[1.5,.8],uti:[1.3,.9]},preset:'present'},
+   {id:'cough',lbl:'Cough',stream:'hx',eff:{pneumonia:[2.5,.6]},preset:'present',follow:[
+     {id:'sputum',lbl:'Productive — brings up sputum',stream:'hx',eff:{pneumonia:[2,.7]},follow:[
+       {id:'purulent',lbl:'Colour change (green / yellow)',stream:'hx',eff:{pneumonia:[2.2,.7]}},
+       {id:'haemoptysis',lbl:'Blood in it (haemoptysis)',stream:'hx',eff:{pneumonia:[1.3,.95]}}]},
+     {id:'wob',lbl:'Working hard to breathe',stream:'hx',eff:{pneumonia:[2,.7]}}]},
+   {id:'coryza',lbl:'Coryza',stream:'hx',eff:{viral:[3,.4]}},
+   // South African paediatric context: home/traditional remedies (muthi, herbal
+   // preparations, enemas) matter for toxicity risk, delayed presentation, and
+   // diagnostic confounding — a standard question, not an optional extra.
+   {id:'muthi',lbl:'Any home, traditional or herbal remedy given',stream:'hx',ask:'has the baby been given any muthi, herbal medicine, or enema at home?',follow:[
+     {id:'muthiwhat',lbl:'What was given',stream:'hx',kind:'text',ask:'what exactly was given, and by whom?'}]},
+   {id:'hivexp',lbl:'HIV exposure status',stream:'hx',kind:'choice',options:['HIV-unexposed','HIV-exposed, on prophylaxis','HIV-exposed, status unknown','Confirmed HIV-positive'],ask:'is the mother HIV-positive, and is baby on PMTCT prophylaxis?'},
+   {id:'tbcontact',lbl:'Known household TB contact',stream:'hx',kind:'choice',options:['No known contact','Contact — on treatment','Contact — status unknown'],ask:'does anyone at home have TB, or cough for a long time?'},
+   {id:'prevadmit',lbl:'Previous hospital admissions',stream:'hx',kind:'text',ask:'has the baby ever been in hospital before?'},
+   {id:'smokeexp',lbl:'Household smoke exposure',stream:'hx',eff:{pneumonia:[1.3,.9]},ask:'does anyone at home smoke around the baby?'},
+   {id:'fontanelle',lbl:'Bulging fontanelle / neck stiffness',stream:'exam',eff:{meningitis:[6,.4]}},
+   {id:'rash',lbl:'Non-blanching rash',stream:'exam',eff:{meningitis:[8,.5]}},
+   {id:'perf',lbl:'Prolonged capillary refill / mottled',stream:'exam',eff:{meningitis:[3,.6]},preset:'present'},
+   {id:'cyan',lbl:'Central cyanosis',stream:'exam',eff:{pneumonia:[3,.8],meningitis:[2,.9]}},
+   {id:'dehyd',lbl:'Dehydration / sunken fontanelle',stream:'exam',eff:{uti:[1.5,.8],meningitis:[1.3,.9]}},
+   {id:'tachypnoea',lbl:'Tachypnoea / recession',stream:'exam',eff:{pneumonia:[3,.5]},preset:'present'},
+   {id:'focal',lbl:'Focal chest signs / hypoxia',stream:'exam',eff:{pneumonia:[4,.4]},preset:'present'},
+   {id:'crp',lbl:'CRP / procalcitonin raised',stream:'ix',eff:{meningitis:[3,.4],uti:[1.5,.8],pneumonia:[2,.7]}},
+   {id:'lp',lbl:'LP — CSF pleocytosis',stream:'ix',eff:{meningitis:[12,.1]},key:'meningitis',short:'LP'},
+   {id:'urine',lbl:'Urine dip / culture positive',stream:'ix',eff:{uti:[8,.2]}},
+   {id:'cxr',lbl:'CXR — consolidation',stream:'ix',eff:{pneumonia:[8,.2]}}],
+  IX:[
+   {id:'crp',cat:'lab',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Meningitis / UTI'},
+   {id:'lp',cat:'lab',lbl:'Lumbar puncture',binary:true,dx:'Meningitis'},
+   {id:'urine',cat:'bedside',lbl:'Urine dip / culture',binary:true,dx:'UTI'},
+   {id:'cxr',cat:'imaging',lbl:'Chest X-ray',binary:true,dx:'Pneumonia'}],
+  MX:{
+   investigate:[{lbl:'Septic screen — CRP · urine dip/culture · CXR',when:'now',ix:'crp'},{lbl:'Lumbar puncture + CSF',when:'once stable — do NOT delay antibiotics',ix:'lp'}],
+   immediate:[{rx:'Sepsis assessment + fluids',for:'if unwell',dose:'balanced crystalloid 20 ml/kg bolus, reassess',sign:true,activeKeys:['HR','RR']},{rx:'Empirical antibiotics',for:'if meningitis / sepsis suspected',dose:'ceftriaxone 80 mg/kg IV OD (neonate < 1 mth: ampicillin + cefotaxime)',sign:true},{rx:'Antipyretic',for:'comfort',dose:'paracetamol 15 mg/kg PO/PR 6-hly'}],
+   definitive:[{rx:'Source-directed therapy',for:'UTI / pneumonia',dose:'narrow per culture & sensitivities',sign:true}],
+   longterm:[{rx:'Complete course + review',for:'confirmed source',dose:'finish antibiotics; reassess feeding, hydration & growth'},{rx:'Immunisations + renal follow-up',for:'prevent recurrence',dose:'catch-up per schedule; imaging after first UTI as indicated'}],
+   monitor:['Continuous obs + AVPU','Fluid balance / urine output','Repeat examination','Blood glucose'],
+   levers:[{give:'Antipyretic',resp:'bright & playful once afebrile',means:'reassuring — favours viral'},{give:'Fluid bolus',resp:'perfusion improves',means:'supports sepsis physiology'}]},
+ },
+ neuro:{
+  specialty:'Neuro', label:'Thunderclap HA',
+  referTo:'Medical / Neurology Registrar on call',
+  planLine:'analgesia · non-contrast CT head within 1 h · LP for xanthochromia if CT negative · BP control · neuro review.',
+  recommendation:'Analgesia and antiemetic; <b>urgent non-contrast CT head within the hour</b>; LP for xanthochromia if CT negative and SAH still suspected; cautious BP control. <b>Urgent medical / neurology review; neurosurgery if SAH confirmed.</b>',
+  PT:{line:'46 · ♀ · sudden severe headache · 3 h', summaryLine:'46-year-old woman', complaint:'sudden-onset severe headache for three hours', background:'Smoker. Family history of subarachnoid haemorrhage. No head injury.'},
+  VITALS:[{k:'HR',v:'88',vc:'var(--hr)'},{k:'BP',v:'176/98',vc:'var(--bp)'},{k:'RR',v:'16',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.1',vc:'var(--temp)'}],
+  DX:[
+   {id:'sah',name:'Subarachnoid haemorrhage',icd:'I60.9',c:'var(--chorio)',prior:.18,mnm:true,script:'thunderclap (peak < 1 min) + worst-ever + neck stiffness ± reduced GCS + blood on CT'},
+   {id:'meningitis',name:'Meningitis',icd:'G03.9',c:'var(--hellp)',prior:.10,mnm:true,script:'fever + neck stiffness + photophobia + CSF pleocytosis'},
+   {id:'cvst',name:'Cerebral venous sinus thrombosis',icd:'I67.6',c:'var(--aflp)',prior:.06,mnm:true,script:'subacute headache + prothrombotic risk + focal signs / seizure'},
+   {id:'migraine',name:'Migraine',icd:'G43.9',c:'var(--pet)',prior:.30,mnm:false,script:'gradual throbbing pain + prior similar attacks + aura + relief in a dark room'}],
+  FEAT:[
+   {id:'thunder',lbl:'Thunderclap (peak < 1 min)',stream:'hx',eff:{sah:[5,.3]},preset:'present'},
+   {id:'worst',lbl:'Worst-ever headache',stream:'hx',eff:{sah:[3,.5]},preset:'present'},
+   {id:'prior',lbl:'Prior similar headaches',stream:'hx',eff:{migraine:[4,.4]}},
+   {id:'feverh',lbl:'Fever',stream:'hx',eff:{meningitis:[3,.4]}},
+   {id:'prothromb',lbl:'OCP / prothrombotic risk',stream:'hx',eff:{cvst:[3,.5]},ask:'are you on the contraceptive pill, pregnant, or have you ever had a blood clot?'},
+   {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker'],preset:'present'},
+   {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent']},
+   {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
+   {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
+   {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
+   {id:'neck',lbl:'Neck stiffness',stream:'exam',eff:{sah:[3,.5],meningitis:[4,.4]},preset:'present'},
+   {id:'photo',lbl:'Photophobia',stream:'exam',eff:{meningitis:[2.5,.6],migraine:[1.5,.8]}},
+   {id:'focaln',lbl:'Focal neurology / seizure',stream:'exam',eff:{cvst:[4,.4],sah:[2,.7]}},
+   {id:'gcs',lbl:'Reduced GCS',stream:'exam',eff:{sah:[4,.4]}},
+   {id:'ct',lbl:'CT head — blood',stream:'ix',eff:{sah:[15,.2]},key:'sah',short:'CT head'},
+   {id:'lpxan',lbl:'LP — xanthochromia',stream:'ix',eff:{sah:[8,.3]}},
+   {id:'csf',lbl:'CSF pleocytosis',stream:'ix',eff:{meningitis:[10,.2]},key:'meningitis',short:'LP'},
+   {id:'ctv',lbl:'CT venogram — sinus thrombosis',stream:'ix',eff:{cvst:[14,.1]},key:'cvst',short:'CT venogram'}],
+  IX:[
+   {id:'ct',cat:'imaging',lbl:'CT head (non-contrast)',binary:true,dx:'SAH'},
+   {id:'lpxan',cat:'lab',lbl:'LP — xanthochromia',binary:true,dx:'SAH'},
+   {id:'csf',cat:'lab',lbl:'CSF — pleocytosis',binary:true,dx:'Meningitis'},
+   {id:'ctv',cat:'imaging',lbl:'CT venogram',binary:true,dx:'CVST'}],
+  MX:{
+   investigate:[{lbl:'Non-contrast CT head',when:'within 1 h',ix:'ct'},{lbl:'LP for xanthochromia',when:'if CT negative & SAH still suspected',ix:'lpxan'}],
+   immediate:[{rx:'Analgesia + antiemetic',for:'symptom control',dose:'paracetamol 1 g IV + metoclopramide 10 mg IV (avoid opioids in migraine)',sign:true},{rx:'BP control',for:'cautious, pre-securing aneurysm',dose:'keep SBP < 160 — labetalol 10–20 mg IV',sign:true,activeKeys:['BP']}],
+   definitive:[{rx:'Migraine abortive',for:'lead: acute migraine',dose:'sumatriptan 50–100 mg PO (or 6 mg SC) + NSAID (ibuprofen 400 mg / naproxen 500 mg) + metoclopramide 10 mg',sign:true},{rx:'Neurosurgical referral',for:'only if SAH confirmed',dose:'urgent — aneurysm coiling / clipping + nimodipine 60 mg PO 4-hly'},{rx:'Antibiotics + aciclovir',for:'only if meningitis / encephalitis',dose:'ceftriaxone 2 g IV 12-hly + aciclovir 10 mg/kg IV 8-hly',sign:true},{rx:'Anticoagulation',for:'only if CVST (not SAH)',dose:'enoxaparin 1 mg/kg SC 12-hly (even if haemorrhagic infarct)',sign:true}],
+   longterm:[{rx:'Migraine prophylaxis',for:'≥ 4 attacks/month or disabling',dose:'propranolol 80 mg/day · or amitriptyline 10–25 mg nocte · or topiramate 25 mg, titrate',sign:true},{rx:'Headache diary + neurology review',for:'map triggers, assess control',dose:'refer if refractory to prophylaxis'}],
+   holistic:[
+    {label:'Identify & avoid triggers',chips:['Chocolate','Aged cheese','Red wine','Caffeine excess / withdrawal','Skipped meals','Dehydration','Poor / irregular sleep','Stress','Bright light / screens','Menstrual cycle']},
+    {label:'Lifestyle',chips:['Regular meals','Regular sleep','Hydration','Aerobic exercise','Limit acute analgesia (avoid medication-overuse headache)']},
+    {label:'Self-management',chips:['Headache diary to map triggers','Rest in a dark, quiet room','Take abortive early at onset']},
+    {label:'Educate & safety-net',note:'Reassure once killers excluded; return for thunderclap onset, fever with neck stiffness, or new focal neurology.'}],
+   monitor:['GCS + pupils','BP','Hourly neuro obs','Repeat CT if deteriorates'],
+   levers:[{give:'Analgesia',resp:'headache fully resolves',means:'less reassuring — SAH pain can settle'},{give:'Dark quiet room',resp:'settles with prior pattern',means:'favours migraine'}]},
+ },
+ gib:{
+  specialty:'IM / Surgery', label:'Haematemesis',
+  referTo:'Medical / Surgical Registrar on call',
+  planLine:'resuscitate · 2 large IV lines · G&S + crossmatch · risk score · urgent endoscopy.',
+  recommendation:'Resuscitate with two large-bore IV lines and fluids/blood as needed; group &amp; save and crossmatch; risk-stratify (Glasgow-Blatchford); <b>urgent upper GI endoscopy</b>. If varices suspected: terlipressin and antibiotics per protocol. Senior review.',
+  PT:{line:'62 · ♂ · haematemesis · 3 h', summaryLine:'62-year-old man', complaint:'vomiting fresh blood for three hours', background:'Alcohol excess; regular NSAIDs for back pain. No prior variceal bleed documented.'},
+  VITALS:[{k:'HR',v:'116',vc:'var(--hr)'},{k:'BP',v:'98/62',vc:'var(--bp)'},{k:'RR',v:'20',vc:'var(--rr)'},{k:'SpO₂',v:'97',vc:'var(--spo2)'},{k:'T',v:'36.7',vc:'var(--temp)'}],
+  DX:[
+   {id:'pud',name:'Peptic ulcer bleed',icd:'K27.4',c:'var(--pet)',prior:.38,mnm:true,script:'epigastric pain + NSAID / H. pylori + melaena / haematemesis',patho:'NSAIDs strip the gastric mucosal defence, an ulcer erodes into a vessel → brisk bleeding presents as haematemesis; digested blood in the gut becomes melaena and the volume loss drives the tachycardia and hypotension.'},
+   {id:'varices',name:'Oesophageal varices',icd:'I85.0',c:'var(--chorio)',prior:.20,mnm:true,script:'chronic liver disease + large-volume haematemesis',patho:'Cirrhosis raises portal pressure, so blood back-pressures into thin-walled oesophageal collaterals; these rupture and bleed large-volume — hence the stigmata of chronic liver disease alongside the haematemesis.'},
+   {id:'mallory',name:'Mallory–Weiss tear',icd:'K22.6',c:'var(--hellp)',prior:.15,mnm:false,script:'retching / vomiting then small streaks of blood',patho:'Forceful retching spikes intragastric pressure and tears the mucosa at the gastro-oesophageal junction — so the vomiting precedes, and the bleed is usually small streaks.'},
+   {id:'malig',name:'Upper GI malignancy',icd:'C16.9',c:'var(--aflp)',prior:.07,mnm:false,script:'weight loss + anorexia + chronic anaemia in an older patient',patho:'A friable tumour surface bleeds slowly and chronically → the anaemia, weight loss and anorexia build over weeks rather than the acute picture.'}],
+  FEAT:[
+   {id:'nsaid',lbl:'NSAID use',stream:'hx',eff:{pud:[3,.6]},preset:'present',ask:'do you take ibuprofen, Voltaren, or other painkillers regularly?'},
+   {id:'etoh',lbl:'Alcohol excess',stream:'hx',eff:{varices:[3,.5]},preset:'present',ask:'how much alcohol do you drink, and how often?'},
+   {id:'retch',lbl:'Retching before the bleed',stream:'hx',eff:{mallory:[4,.5]}},
+   {id:'wtloss',lbl:'Weight loss / anorexia',stream:'hx',eff:{malig:[3,.5]}},
+   {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pud:[2,.7]}},
+   {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker']},
+   {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
+   {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
+   {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
+   {id:'cld',lbl:'Chronic liver disease',stream:'exam',eff:{varices:[7,.3]},checklist:['Jaundice','Spider naevi','Palmar erythema','Ascites','Gynaecomastia','Asterixis']},
+   {id:'melaena',lbl:'Melaena on PR',stream:'exam',eff:{pud:[2,.6],varices:[2,.6]}},
+   {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{pud:[1.5,.8],varices:[1.5,.8]},key:'pud',short:'endoscopy'},
+   {id:'endo',lbl:'OGD — bleeding source seen',stream:'ix',eff:{varices:[8,.15]},key:'varices',short:'endoscopy'}],
+  IX:[
+   {id:'hb',lbl:'Haemoglobin',cat:'lab',unit:'g/L',norm:'130–170',lo:100,dir:'below',dx:'Bleed severity'},
+   {id:'endo',lbl:'OGD (upper endoscopy)',cat:'imaging',binary:true,dx:'Source'}],
+  MX:{
+   investigate:[{lbl:'Bloods — FBC · U&amp;E · LFT · coagulation',when:'now',ix:'hb'},{lbl:'OGD (upper endoscopy)',when:'diagnostic + therapeutic — within 24 h',ix:'endo'}],
+   immediate:[{rx:'Two large-bore IV lines + fluids',for:'resuscitation',dose:'balanced crystalloid; transfuse to target Hb ≥ 70 g/L',sign:true,activeKeys:['HR','BP']},{rx:'Group &amp; save + crossmatch',for:'likely transfusion',dose:'2–4 units; correct coagulopathy / platelets',sign:true},{rx:'Terlipressin + antibiotics',for:'if varices suspected',dose:'terlipressin 2 mg IV 4-hly + ceftriaxone 1 g IV OD',sign:true}],
+   definitive:[{rx:'Urgent upper GI endoscopy',for:'diagnose &amp; treat the source',dose:'within 24 h (sooner if unstable); band varices / clip ulcer'},{rx:'PPI infusion',for:'confirmed high-risk ulcer bleed',dose:'esomeprazole 80 mg IV bolus → 8 mg/h for 72 h',sign:true}],
+   longterm:[{rx:'Prevent rebleed',for:'ulcer / varices',dose:'H. pylori eradication + confirm cure · oral PPI · stop NSAIDs · variceal band programme + β-blocker if cirrhotic',sign:true},{rx:'Correct anaemia + repeat scope',for:'ongoing recovery',dose:'iron replacement; surveillance OGD as indicated'}],
+   monitor:['Obs + urine output','Serial haemoglobin','Repeat PR for melaena'],
+   holistic:[
+    {label:'Remove precipitants',chips:['Stop NSAIDs','Stop / reduce alcohol','Smoking cessation','Review anticoagulants / antiplatelets']},
+    {label:'Definitive risk reduction',chips:['H. pylori test & eradicate','PPI course','Variceal surveillance if cirrhotic','Iron replacement']},
+    {label:'Educate & safety-net',note:'Return immediately for fresh haematemesis, black tarry stools, dizziness or collapse.'}],
+   levers:[{give:'Fluids / blood',resp:'obs improve then re-drop',means:'ongoing bleeding — expedite scope'}]},
+ },
+ aub:{
+  specialty:'O&G / Gynae', label:'Abnormal uterine bleeding',
+  referTo:'Gynaecology Registrar on call',
+  planLine:'exclude pregnancy (βhCG) · FBC/ferritin · TVUS · endometrial biopsy if at risk · treat cause.',
+  recommendation:'Exclude pregnancy with βhCG; FBC and ferritin for anaemia; transvaginal ultrasound for structural cause; <b>endometrial sampling if ≥45 yr, or younger with risk factors or failed treatment</b> to exclude hyperplasia/cancer. Treat the cause and correct anaemia.',
+  PT:{line:'44 · ♀ · heavy periods · 6 months', summaryLine:'44-year-old woman, para 2', complaint:'heavy, prolonged menstrual bleeding for six months', background:'BMI 32. No hormonal contraception. Not on anticoagulants. Cycles becoming irregular.'},
+  VITALS:[{k:'HR',v:'96',vc:'var(--hr)'},{k:'BP',v:'114/72',vc:'var(--bp)'},{k:'RR',v:'16',vc:'var(--rr)'},{k:'SpO₂',v:'99',vc:'var(--spo2)'},{k:'T',v:'36.6',vc:'var(--temp)'}],
+  DX:[
+   {id:'fibroid',name:'Uterine fibroids',icd:'D25.9',c:'var(--pet)',prior:.30,mnm:false,script:'heavy + prolonged bleeding + bulky / irregular uterus',patho:'Leiomyomata enlarge and distort the endometrial cavity and impair contractility, so periods become heavy and prolonged and the uterus feels bulky.'},
+   {id:'anov',name:'Ovulatory dysfunction (AUB-O)',icd:'N92.6',c:'var(--hellp)',prior:.25,mnm:false,script:'irregular cycle length + perimenopausal / PCOS + variable flow',patho:'Without ovulation there is no progesterone to stabilise the endometrium, so it proliferates unopposed and sheds erratically — irregular, sometimes heavy bleeding.'},
+   {id:'canc',name:'Endometrial hyperplasia / carcinoma',icd:'C54.1',c:'var(--chorio)',prior:.10,mnm:true,script:'age ≥45 or risk factors + intermenstrual / postmenopausal bleeding + thick endometrium',patho:'Prolonged unopposed oestrogen (obesity, anovulation) drives endometrial overgrowth that outstrips its blood supply and bleeds — classically intermenstrual or postmenopausal.'},
+   {id:'preg',name:'Pregnancy-related bleeding',icd:'O20.9',c:'var(--aflp)',prior:.10,mnm:true,script:'reproductive age + missed / late period + positive βhCG',patho:'A failing early pregnancy (miscarriage or ectopic) bleeds from the decidua — a missed period then bleeding; βhCG confirms it and an ectopic can be catastrophic.'}],
+  FEAT:[
+   {id:'heavy',lbl:'Heavy menstrual bleeding',stream:'hx',eff:{fibroid:[2.5,.6],anov:[1.5,.8]},preset:'present',criterion:'≥ 80 mL per cycle',ask:'soaking a pad or tampon every ≤ 2 h, flooding, clots > 2.5 cm, or double protection?'},
+   {id:'prolonged',lbl:'Bleeding duration',stream:'hx',eff:{fibroid:[2,.7],anov:[1.8,.8]},preset:'present',num:{unit:'days',hi:8},criterion:'> 8 days per cycle',ask:'how many days do you bleed for each period?'},
+   {id:'irregular',lbl:'Cycle length',stream:'hx',eff:{anov:[4,.4]},num:{unit:'days',lo:24,hi:38},criterion:'normal 24–38 days',ask:'days from the start of one period to the start of the next?'},
+   {id:'imb',lbl:'Intermenstrual bleeding',stream:'hx',eff:{canc:[3,.5],fibroid:[1.5,.8]},criterion:'bleeding between periods',ask:'any bleeding or spotting between your periods, or after sex?'},
+   {id:'risk',lbl:'Endometrial-cancer risk',stream:'hx',eff:{canc:[3,.5]},criterion:'age ≥ 45, BMI ≥ 30, nulliparity, unopposed oestrogen, diabetes',ask:'age, weight, any children, and diabetes?'},
+   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{preg:[4,.4]},criterion:'possible pregnancy',ask:'when was your last normal period, and could you be pregnant?'},
+   {id:'parity',lbl:'Parity (previous deliveries)',stream:'hx',num:{unit:'deliveries'},follow:[
+     {id:'delmode',lbl:'Mode of delivery(s)',stream:'hx',kind:'text'}]},
+   {id:'priorgynsurg',lbl:'Prior gynaecological surgery',stream:'hx',criterion:'e.g. myomectomy, hysteroscopy, hysterectomy',ask:'have you ever had any womb / gynaecological surgery?',follow:[
+     {id:'gynsurgwhat',lbl:'Procedure',stream:'hx',kind:'choice',options:['Hysterectomy','Myomectomy','Endometrial ablation','Hysteroscopy ± polypectomy','Caesarean section','Tubal ligation','Dilatation & curettage']},
+     {id:'gynsurgwhy',lbl:'Indication',stream:'hx',kind:'text'},
+     {id:'gynsurgwhen',lbl:'Time since procedure',stream:'hx',num:{unit:'years'}}]},
+   {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker']},
+   {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent']},
+   {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
+   {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
+   {id:'bulky',lbl:'Bulky / irregular uterus',stream:'exam',eff:{fibroid:[4,.4]},criterion:'palpable ≥ 12-week size or irregular contour',ask:'bimanual: is the uterus enlarged or irregular?'},
+   {id:'pallor',lbl:'Pallor / signs of anaemia',stream:'exam',eff:{fibroid:[1.3,.9],anov:[1.3,.9]}},
+   {id:'bhcg',lbl:'βhCG positive',stream:'ix',eff:{preg:[10,.05]},key:'preg',short:'βhCG'},
+   {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{fibroid:[1.4,.9],anov:[1.4,.9]}},
+   {id:'tvus',lbl:'TVUS — fibroid / thick endometrium',stream:'ix',eff:{fibroid:[6,.3],canc:[3,.5]}},
+   {id:'biopsy',lbl:'Endometrial biopsy — hyperplasia / cancer',stream:'ix',eff:{canc:[12,.15]},key:'canc',short:'endometrial biopsy'}],
+  IX:[
+   {id:'bhcg',lbl:'Urine βhCG',cat:'bedside',binary:true,dx:'Pregnancy'},
+   {id:'hb',lbl:'Haemoglobin',cat:'lab',unit:'g/L',norm:'120–160',lo:120,dir:'below',dx:'Bleed severity'},
+   {id:'tvus',lbl:'Transvaginal ultrasound',cat:'imaging',binary:true,dx:'Fibroid / endometrium'},
+   {id:'biopsy',lbl:'Endometrial biopsy',cat:'lab',binary:true,dx:'Hyperplasia / cancer'}],
+  MX:{
+   investigate:[{lbl:'Urine βhCG',when:'first — any reproductive-age woman',ix:'bhcg'},{lbl:'FBC / ferritin · TVUS · endometrial biopsy if indicated',when:'now',ix:'hb'}],
+   immediate:[{rx:'Tranexamic acid',for:'reduce menstrual blood loss',dose:'1 g PO 6–8-hly during menses (up to 4 days)',sign:true},{rx:'Iron replacement',for:'correct anaemia',dose:'elemental iron 100–200 mg/day PO (IV if intolerant / severe)',sign:true}],
+   definitive:[{rx:'Hormonal control',for:'medical first-line',dose:'LNG-IUS (Mirena) 1st-line · or COCP · or norethisterone 5 mg TDS days 5–26',sign:true,warnIf:{dxLead:'preg',msg:'Exclude pregnancy first (urine βhCG) — do not start hormonal contraception until a current pregnancy is ruled out.'}},{rx:'Endometrial sampling ± hysteroscopy',for:'if ≥45 yr or risk factors',dose:'Pipelle biopsy — exclude hyperplasia / cancer'},{rx:'Surgical (myomectomy / ablation / hysterectomy)',for:'structural or failed medical',dose:'per gynae — definitive if family complete'}],
+   longterm:[{rx:'Maintain bleeding control',for:'sustain response',dose:'LNG-IUS in situ · or continue medical therapy; review at 3–6 months'},{rx:'Correct anaemia + surveillance',for:'if hyperplasia risk',dose:'iron replacement; repeat sampling / TVUS as indicated',sign:true}],
+   monitor:['Menstrual calendar / pictorial blood-loss chart','Repeat Hb / ferritin','Biopsy result'],
+   holistic:[
+    {label:'Correct & prevent anaemia',chips:['Iron-rich diet','Iron replacement','Recheck FBC / ferritin']},
+    {label:'Modifiable contributors',chips:['Weight management (adipose oestrogen)','Thyroid check','Review anticoagulants','Smoking cessation']},
+    {label:'Self-management',chips:['Bleeding diary','Count soaked pads / clots to quantify loss']},
+    {label:'Educate & safety-net',note:'Return for flooding, dizziness or collapse; any post-menopausal bleeding needs urgent assessment.'}],
+   levers:[{give:'Tranexamic acid + hormonal therapy',resp:'bleeding settles over 1–2 cycles',means:'consistent with dysfunctional / structural AUB — reassess if it does not'}]},
+ },
+ psych:{
+  specialty:'Psych', label:'Low mood',
+  referTo:'Psychiatry Registrar on call',
+  planLine:'screen for mania/organic cause before treating · urine drug screen + TSH · safety plan · psychiatry review.',
+  recommendation:'Full mood-episode history (depressive AND manic/hypomanic) before any treatment decision; exclude substance-induced and organic (thyroid) causes; formal suicide risk assessment. <b>Do not start an antidepressant alone until bipolar disorder has been screened out</b> — SSRI monotherapy can precipitate a manic switch. Urgent psychiatry review if active suicidal intent or mania.',
+  PT:{line:'24 · ♀ · low mood + anhedonia · 3 weeks', summaryLine:'24-year-old woman', complaint:'low mood and loss of interest for three weeks', background:'No known past psychiatric history. Lives with parents, final-year student. Recent breakup six weeks ago.'},
+  VITALS:[{k:'HR',v:'',vc:'var(--hr)'},{k:'BP',v:'',vc:'var(--bp)'},{k:'RR',v:'',vc:'var(--rr)'},{k:'SpO₂',v:'',vc:'var(--spo2)'},{k:'T',v:'',vc:'var(--temp)'}],
+  DX:[
+   {id:'mdd',name:'Major depressive episode',icd:'F32.9',c:'var(--pet)',prior:.35,mnm:false,script:'≥2 weeks low mood or anhedonia + ≥4 SIGECAPS features + functional impairment'},
+   {id:'bipolar',name:'Bipolar disorder (screen for mania)',icd:'F31.9',c:'var(--hellp)',prior:.15,mnm:true,script:'current depressive episode + a past period of elevated/irritable mood with decreased sleep need, grandiosity or reckless behaviour lasting ≥4 days'},
+   {id:'substance',name:'Substance-induced mood disorder',icd:'F19.94',c:'var(--chorio)',prior:.15,mnm:true,script:'mood symptoms temporally linked to intoxication / withdrawal — resolves with abstinence'},
+   {id:'adjustment',name:'Adjustment disorder / normal grief',icd:'F43.21',c:'var(--aflp)',prior:.35,mnm:false,script:'clear recent stressor + symptoms proportionate + no full depressive syndrome + expected to resolve'},
+   {id:'organic',name:'Organic mood disorder (e.g. thyroid)',icd:'F06.30',c:'var(--rr)',prior:.05,mnm:true,script:'mood symptoms explained by a medical condition (thyroid disease commonest) — never diagnose a primary psychiatric disorder until this is excluded'}],
+  FEAT:[
+   {id:'lowmood',lbl:'Low mood, most of the day, nearly every day',stream:'hx',eff:{mdd:[3,.4]},preset:'present',ask:'have you been feeling down, sad, or hopeless most days?'},
+   {id:'anhedonia',lbl:'Loss of interest or pleasure in things you used to enjoy',stream:'hx',eff:{mdd:[3,.4]},preset:'present',ask:'have you lost interest or pleasure in things you usually enjoy?'},
+   {id:'sleepch',lbl:'Sleep change',stream:'hx',kind:'choice',options:['No change','Trouble falling/staying asleep','Sleeping much more than usual'],eff:{mdd:[2,.6]},ask:'how has your sleep been?'},
+   {id:'appetitech',lbl:'Appetite / weight change',stream:'hx',kind:'choice',options:['No change','Eating much less','Eating much more'],eff:{mdd:[1.6,.8]},ask:'has your appetite or weight changed?'},
+   {id:'energy',lbl:'Fatigue or loss of energy nearly every day',stream:'hx',eff:{mdd:[2,.6]},ask:'have you been feeling tired or low on energy?'},
+   {id:'concentration',lbl:'Trouble concentrating or making decisions',stream:'hx',eff:{mdd:[1.8,.7]},ask:'has it been hard to concentrate, or to make decisions?'},
+   {id:'guilt',lbl:'Feelings of worthlessness or excessive guilt',stream:'hx',eff:{mdd:[2.2,.7]},ask:'have you been feeling worthless, or guilty about things that aren’t really your fault?'},
+   {id:'psychomotor',lbl:'Noticeably slowed down or restless/agitated',stream:'hx',eff:{mdd:[1.6,.85]},ask:'has anyone else noticed you moving or talking slower — or more restless — than usual?'},
+   {id:'duration',lbl:'How long has this been going on',stream:'hx',num:{unit:'weeks'},criterion:'≥ 2 weeks needed for a depressive episode',ask:'how many weeks has this been going on for?'},
+   // Safety is never optional — a plain "any thoughts of suicide" gates a full
+   // cascade the moment it's present, exactly like any other must-not-miss cascade.
+   {id:'siwish',lbl:'Thoughts that life isn’t worth living, or of suicide',stream:'hx',eff:{mdd:[1.3,.95]},ask:'have you had any thoughts that life isn’t worth living, or of harming or killing yourself?',follow:[
+     {id:'siplan',lbl:'Has a specific plan',stream:'hx',ask:'have you thought about how you would do it?'},
+     {id:'simeans',lbl:'Access to means',stream:'hx',ask:'do you have access to what you’d use?'},
+     {id:'siintent',lbl:'Intent to act on it',stream:'hx',ask:'do you feel you might act on these thoughts?'},
+     {id:'siattempt',lbl:'Previous suicide attempt',stream:'hx',ask:'have you ever tried to end your life before?'}]},
+   {id:'selfharm',lbl:'Self-harm (not intended to end life)',stream:'hx',ask:'have you done anything to hurt yourself on purpose, even if you didn’t mean to end your life?'},
+   // Mania/hypomania screen — this is the "screen toward bipolar, not just assume
+   // unipolar depression" the whole case is built to teach.
+   {id:'manicepisode',lbl:'Ever had days of unusually high, elated, or irritable mood',stream:'hx',eff:{bipolar:[6,.25]},key:'bipolar',short:'mania screen',criterion:'≥ 4 days, clearly different from your usual self',ask:'have you ever had a stretch of days where you felt unusually high, full of energy, or irritable — very different from your normal self?',follow:[
+     {id:'manicsleep',lbl:'Needed much less sleep but still felt full of energy',stream:'hx',ask:'during that time, could you get by on much less sleep than usual and still feel fine?'},
+     {id:'manicgrandiose',lbl:'Felt unusually important, talented, or powerful',stream:'hx',ask:'did you feel unusually important, talented, or that you could do things others couldn’t?'},
+     {id:'manicspeech',lbl:'Talked much faster or more than usual',stream:'hx',ask:'did people say you were talking faster, or more, than usual?'},
+     {id:'manicrisky',lbl:'Reckless spending, sex, or other risky behaviour',stream:'hx',ask:'did you do anything risky during that time — spending, sex, driving — that wasn’t like you?'},
+     {id:'manicgambling',lbl:'Gambling or other compulsive behaviour during that time',stream:'hx',ask:'did you gamble, or do anything else compulsively, during that time?'}]},
+   {id:'psychotic',lbl:'Hearing voices or unusual beliefs others don’t share',stream:'hx',eff:{mdd:[.8,1.05]},ask:'have you heard voices when no one is there, or believed things other people say aren’t true?'},
+   {id:'stressor',lbl:'Recent significant loss or life stressor',stream:'hx',eff:{adjustment:[3,.5]},preset:'present',ask:'has anything difficult happened recently — a breakup, loss, or big change?'},
+   {id:'drughx2',lbl:'Recreational drug use',stream:'hx',kind:'choice',options:['None','Cannabis','Stimulants (cocaine/meth)','Other'],eff:{substance:[3,.5]},ask:'do you use any recreational drugs — cannabis, tik, cocaine, or anything else?'},
+   {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent'],eff:{substance:[2,.7]},ask:'do you drink alcohol, and how much / how often?'},
+   {id:'prevadmit',lbl:'Previous psychiatric admissions',stream:'hx',kind:'text',ask:'have you ever been admitted to hospital for a mental health reason before?'},
+   {id:'prevdx',lbl:'Previous psychiatric diagnosis or treatment',stream:'hx',kind:'text',ask:'have you seen a psychiatrist or psychologist before, or been on any medication for your mood?'},
+   {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker']},
+   {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
+   {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
+   {id:'pmhx',lbl:'Past medical history',stream:'hx',kind:'text'},
+   {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text'},
+   {id:'drughx',lbl:'Current medications',stream:'hx',kind:'text'},
+   {id:'allergy',lbl:'Known drug allergies',stream:'hx',kind:'choice',options:['No known allergies','Penicillin','Sulfa drugs','NSAIDs']},
+   // Mental state examination — findings a consultant would EXPECT given the
+   // history above, formally documented rather than assumed.
+   {id:'appearance',lbl:'Appearance & behaviour',stream:'exam',checklist:['Kempt / appropriate','Unkempt / self-neglect','Psychomotor retardation','Psychomotor agitation','Poor eye contact']},
+   {id:'speechrate',lbl:'Speech',stream:'exam',kind:'choice',options:['Normal rate & volume','Slowed / quiet / monotone','Rapid / pressured / loud'],eff:{bipolar:[3,.85],mdd:[1.4,.9]}},
+   {id:'objmood',lbl:'Objective mood & affect',stream:'exam',kind:'text',ask:'observed — e.g. "low, congruent affect" or "elevated, labile affect"'},
+   {id:'thoughtform',lbl:'Thought form',stream:'exam',kind:'choice',options:['Normal / linear','Flight of ideas','Poverty of thought / slowed'],eff:{bipolar:[3,.9],mdd:[1.3,.9]}},
+   {id:'thoughtcontent',lbl:'Thought content',stream:'exam',checklist:['Hopelessness','Guilt','Suicidal ideation','Grandiosity','Preoccupation with stressor']},
+   {id:'perception',lbl:'Perceptual disturbances',stream:'exam',checklist:['Auditory hallucinations','Visual hallucinations','Other']},
+   {id:'cognition',lbl:'Cognition grossly intact (orientation, memory, concentration)',stream:'exam',preset:'present'},
+   {id:'insight',lbl:'Insight & judgement',stream:'exam',kind:'choice',options:['Good','Partial','Poor']},
+   {id:'tsh',lbl:'TSH abnormal',stream:'ix',eff:{organic:[6,.2]},key:'organic',short:'TSH'},
+   {id:'uds',lbl:'Urine drug screen positive',stream:'ix',eff:{substance:[6,.25]},key:'substance',short:'urine drug screen'}],
+  IX:[
+   {id:'uds',cat:'bedside',lbl:'Urine drug screen',binary:true,dx:'Substance-induced mood disorder'},
+   {id:'tsh',cat:'lab',lbl:'TSH',unit:'mIU/L',norm:'0.4–4.0',hi:4.0,lo:0.4,dir:'above',dx:'Organic (thyroid) mood disorder'},
+   {id:'fbc',cat:'lab',lbl:'FBC / U&E / B12 / folate',binary:true,dx:'Organic screen'}],
+  MX:{
+   investigate:[{lbl:'Urine drug screen',when:'first — exclude substance-induced',ix:'uds'},{lbl:'TSH + FBC/U&E/B12/folate',when:'now — exclude organic cause',ix:'tsh'}],
+   immediate:[{rx:'Formal suicide risk assessment + safety plan',for:'any suicidal ideation',dose:'1:1 observation if active plan/intent + means; remove access to means; involve family/support',sign:true},{rx:'Consider admission (voluntary or MHCA)',for:'high risk — plan, intent, means, or mania with poor judgement',dose:'psychiatry-led decision per Mental Health Care Act'}],
+   definitive:[{rx:'Antidepressant (SSRI first-line)',for:'lead: major depressive episode — only once bipolar screened out',dose:'e.g. sertraline 50 mg PO OD, titrate; review in 2 weeks',sign:true,warnIf:{dxLead:'bipolar',msg:'Screen for mania/hypomania before starting an antidepressant alone — SSRI monotherapy can precipitate a manic switch in bipolar disorder.'}},{rx:'Mood stabiliser / antipsychotic',for:'lead: bipolar disorder (manic episode)',dose:'psychiatry-led — e.g. lithium, valproate, or an atypical antipsychotic per guideline',sign:true},{rx:'Structured psychotherapy referral',for:'CBT / interpersonal therapy',dose:'refer — first-line for mild-moderate, adjunct for severe'}],
+   longterm:[{rx:'Relapse-prevention follow-up',for:'sustain response',dose:'review at 2, 6, 12 weeks; continue antidepressant ≥ 6–12 months after remission'},{rx:'Substance use support',for:'if substance use contributing',dose:'refer for counselling / rehabilitation as indicated',sign:true}],
+   monitor:['Suicide risk reassessment at every contact','Mood chart','Medication adherence & side effects','Functional recovery (study/work, sleep, relationships)'],
+   holistic:[
+    {label:'Safety-netting',note:'Give a crisis line number and an explicit safety plan; return immediately for worsening suicidal thoughts, a plan, or intent.'},
+    {label:'Psychosocial support',chips:['Family psychoeducation','Peer / support groups','Sleep hygiene','Regular routine','Address substance use']},
+    {label:'Educate',note:'Explain the difference between a normal grief reaction and a depressive episode, and why screening for mania matters before starting treatment.'}],
+   levers:[{give:'Explore the recent stressor in depth',resp:'mood tracks the stressor and is time-limited, no full depressive syndrome',means:'favours adjustment disorder over major depressive episode'}]},
+ },
+};
+
+let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false, todayNote='', otherOpen=new Set(), presetIds=new Set();
+// Which findings came pre-answered from the vignette vs. what the intern actually
+// elicited — a teaching tool should let the learner tell those apart.
+function collectPresetIds(){const out=new Set();(function w(l){for(const f of l){if(f.preset)out.add(f.id);if(f.follow)w(f.follow);}})(FEAT);return out;}
+const featsFor=id=>FEAT.filter(f=>f.eff&&f.eff[id]);
+// A finding may carry follow-up children (revealed when it is present) that
+// characterise it — cough → productive → colour change / blood. They live
+// nested on the parent; these helpers flatten the tree for the engine.
+function allFeats(){const out=[];(function w(l){for(const f of l){out.push(f);if(f.follow&&f.follow.length)w(f.follow);}})(FEAT);return out;}
+const featsForAll=id=>allFeats().filter(f=>f.eff&&f.eff[id]);
+function findFeat(id){let r=null;(function w(l){for(const f of l){if(f.id===id){r=f;return;}if(f.follow)w(f.follow);}})(FEAT);return r;}
+function clearFollow(f){if(!f||!f.follow)return;for(const c of f.follow){delete ans[c.id];delete val[c.id];if(checks[c.id])delete checks[c.id];clearFollow(c);}}
+// Colour each differential by its organ system (derived from the ICD-10 chapter),
+// the same principle the vitals use. Same-system rivals get progressively darker
+// shades of the system hue so the cards stay distinguishable.
+const SYS_MAP=[[/^I/,'cardiac',2,66],[/^J/,'resp',206,58],[/^G/,'neuro',268,46],[/^F/,'psych',248,40],[/^D[5-8]/,'haem',344,58],[/^[CD]/,'onc',222,22],[/^K/,'GI',33,64],[/^N/,'renal',176,50],[/^E/,'endo',30,72],[/^[AB]/,'infective',146,46],[/^O/,'obstetric',324,54],[/^M/,'MSK',20,32]];
+function sysOf(icd){const s=(icd||'').trim().toUpperCase();for(const r of SYS_MAP)if(r[0].test(s))return r;return[null,'general',192,26];}
+function assignSystemColors(dx){const cnt={};dx.forEach(d=>{const r=sysOf(d.icd),k=r[1],i=cnt[k]||0;cnt[k]=i+1;const L=Math.max(40,60-i*11);d.c=`hsl(${r[2]} ${r[3]}% ${L}%)`;d.sys=k;});}
+function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;todayNote='';otherOpen=new Set();presetIds=collectPresetIds();}
+// Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
+const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
+// A num finding with no lo/hi is INFORMATIONAL (e.g. "years since surgery") — it
+// has nothing to be abnormal against, so it must never be marked ABNORMAL; it's
+// simply RECORDED once a value is entered.
+const numBadge=f=>{const a=ans[f.id];if(!a)return{c:'',t:''};const t=f.num;if(t.lo==null&&t.hi==null)return{c:'ok',t:'RECORDED'};if(a==='absent')return{c:'ok',t:'NORMAL'};const x=parseFloat(val[f.id]);let txt='ABNORMAL';if(!isNaN(x)){if(t.hi!=null&&x>t.hi)txt='HIGH';else if(t.lo!=null&&x<t.lo)txt='LOW';}return{c:'hi',t:txt};};
+function clChips(f){return '<div class="clchips" data-clf="'+f.id+'">'+f.checklist.map(function(s){var sel=checks[f.id]&&checks[f.id].has(s)?' sel':'';return '<button class="clchip'+sel+'" data-s="'+s+'">'+s+'</button>';}).join('')+'<button class="clchip none'+(ans[f.id]==='absent'?' sel':'')+'" data-none>none seen</button></div>';}
+function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(c){var fid=c.dataset.clf;c.querySelectorAll('.clchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());if(!checks[fid])checks[fid]=new Set();if(b.hasAttribute('data-none')){checks[fid].clear();ans[fid]='absent';}else{var s=b.dataset.s;checks[fid].has(s)?checks[fid].delete(s):checks[fid].add(s);if(checks[fid].size>0)ans[fid]='present';else delete ans[fid];}refresh(false);});});});}
+// Single-select tap chips for a small enumerable answer set (a handful of common
+// procedures, delivery modes, contraception types…) — tapping beats typing.
+// "Other" reveals a one-off text field only when none of the common options fit;
+// otherOpen tracks that reveal explicitly so the field appears the instant
+// "Other" is tapped, before any text exists (val alone can't signal that).
+function chChips(f){
+  const opts=f.options||[],cur=val[f.id]||'',showOther=otherOpen.has(f.id)||(cur!==''&&!opts.includes(cur));
+  return '<div class="cchips" data-chf="'+f.id+'">'+opts.map(function(o){return '<button class="cchip'+(cur===o?' sel':'')+'" data-v="'+o.replace(/"/g,'&quot;')+'">'+o+'</button>';}).join('')
+    +'<button class="cchip other'+(showOther?' sel':'')+'" data-other>Other</button></div>'
+    +(showOther?'<input type="text" class="cotherin" data-cotxt="'+f.id+'" value="'+cur.replace(/"/g,'&quot;')+'" placeholder="type the answer…">':'');
+}
+function wireChChips(root){
+  root.querySelectorAll('[data-chf]').forEach(function(c){var fid=c.dataset.chf;c.querySelectorAll('.cchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());
+    if(b.hasAttribute('data-other')){otherOpen.add(fid);refresh(false);return;}
+    otherOpen.delete(fid);val[fid]=b.dataset.v;ans[fid]='present';refresh(false);
+  });});});
+  root.querySelectorAll('[data-cotxt]').forEach(function(inp){inp.addEventListener('change',function(){const fid=inp.dataset.cotxt,raw=inp.value.trim();snap(probs());val[fid]=raw;if(raw)ans[fid]='present';else delete ans[fid];refresh(false);});});
+}
+
+
+function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsForAll(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
+function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
+// Completeness and Confidence answer different questions and must stay
+// decoupled: Confidence is diagnosis-focused (a few high-yield findings can
+// justify 80% in the lead even from a thin clerking). Completeness is "how much
+// of the full history & exam have I actually gathered" — an unweighted count,
+// blind to any single finding's diagnostic importance, so a case isn't "100%
+// complete" just because the handful of high-LR questions got answered.
+// Relevance-gated: a follow-up only enters the count once its parent is
+// present (revealed), and drops back out if the parent is answered absent —
+// asking "how many antenatal visits?" isn't a gap for a patient with no
+// antenatal care, but it IS a gap once she says she attended.
+function relevantFeats(){
+  const out=[];
+  (function walk(list){for(const f of list){out.push(f);if(ans[f.id]==='present'&&f.follow&&f.follow.length)walk(f.follow);}})(FEAT);
+  return out;
+}
+function completeness(){const hx=relevantFeats().filter(f=>f.stream==='hx'||f.stream==='exam');if(!hx.length)return 0;return hx.filter(f=>ans[f.id]).length/hx.length;}
+function nextBest(p){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;const g=Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
+function tween(el,to,suf=''){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/450);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
+function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
+function ixState(f){const a=ans[f.id];if(!a)return{cls:'pend',txt:'→ enter'};return a==='present'?{cls:'hi',txt:'abnormal'}:{cls:'ok',txt:'normal'};}
+
+// Demographic-aware vital-sign ranges. Heart rate and respiratory rate change
+// enormously across age (an infant's normal HR is a tachycardia in an adult),
+// and pregnancy raises resting HR and lowers the BP threshold for concern — so
+// the flag has to know who the patient is, not use one adult range for all.
+// HR/RR by APLS bands; systolic-BP lower limits ~ (70 + 2×age) rounded to bands.
+const AGE_RANGES={
+  neonate:   {HR:[120,160],RR:[40,60],sys:[60,90]},   // < 1 month
+  infant:    {HR:[100,160],RR:[30,53],sys:[70,100]},  // 1–12 months
+  toddler:   {HR:[90,150], RR:[22,37],sys:[80,110]},  // 1–2 y
+  preschool: {HR:[80,140], RR:[20,28],sys:[80,110]},  // 2–5 y
+  child:     {HR:[70,120], RR:[18,25],sys:[90,120]},  // 5–12 y
+  adolescent:{HR:[60,105], RR:[12,22],sys:[90,130]},  // 12–18 y
+  adult:     {HR:[60,100], RR:[12,20],sys:[90,140]},
+  elderly:   {HR:[60,100], RR:[12,22],sys:[90,150]},  // ≥ 65 y (isolated systolic common)
+  pregnant:  {HR:[60,110], RR:[12,22],sys:[90,140]},  // resting HR rises; HTN threshold 140/90
+};
+const VITAL_STATIC={'SpO₂':[94,101],SpO2:[94,101],Sats:[94,101],T:[36.0,37.9],Temp:[36.0,37.9]};
+// Work out the demographic band from the patient header (age token + pregnancy).
+// Parses the patient's age in years from the case header text (handles "8 mo",
+// "24 ·", "46-year-old" etc.) — shared by demoBand()'s paediatric banding and
+// anything else that needs a plain numeric age (e.g. the Ward handoff).
+function ageYears(){
+  const m=/^\D*(\d+(?:\.\d+)?)\s*(mo|month|wk|week|d|day|y|yr|year)?/i.exec((PT.line||'').trim())||/(\d+)[-\s]*(year|yr|month|mo|week|wk|day|d)\b/i.exec(PT.summaryLine||'');
+  if(!m)return null;
+  const n=parseFloat(m[1]),u=(m[2]||'').toLowerCase();
+  if(/^mo|month/.test(u))return n/12;
+  if(/^wk|week/.test(u))return n/52;
+  if(/^d|day/.test(u))return n/365;
+  return n;
+}
+function demoBand(){
+  const blob=`${PT.line||''} ${PT.summaryLine||''} ${PT.background||''}`;
+  let guess=(/\b\d{1,2}\s*(?:\+\s*\d)?\s*\/\s*40\b/.test(blob)||/pregnan|antenatal|gestation|liquor|trimester|G\dP\d/i.test(PT.line||''))?'pregnant':null;
+  // The header text is only a starting guess. A live clerking answer about
+  // pregnancy status (bhcg or a "missed period"-style finding) must be able to
+  // OVERRIDE it — "not pregnant" entered mid-clerking has to actually change
+  // the vitals band, not sit there while the header still assumes pregnant.
+  const pregFinding=allFeats().find(f=>/\bbhcg\b|hcg\b|pregnan/i.test(f.id+' '+f.lbl));
+  if(pregFinding&&ans[pregFinding.id]){
+    guess=ans[pregFinding.id]==='present'?'pregnant':null;
+  }
+  if(guess)return guess;
+  const yrs=ageYears();
+  if(yrs==null)return 'adult';
+  if(yrs< (1/12))return 'neonate';
+  if(yrs<1)return 'infant';
+  if(yrs<2)return 'toddler';
+  if(yrs<5)return 'preschool';
+  if(yrs<12)return 'child';
+  if(yrs<18)return 'adolescent';
+  if(yrs>=65)return 'elderly';
+  return 'adult';
+}
+function vitalRange(v,ctx){
+  if(v.lo!=null||v.hi!=null)return [v.lo??-1e9,v.hi??1e9];
+  if(v.k==='HR')return ctx.r.HR;
+  if(v.k==='RR')return ctx.r.RR;
+  return VITAL_STATIC[v.k]||null;
+}
+function vitalFlag(v,ctx){
+  if(v.k==='BP'){const m=/(\d+)\D+(\d+)/.exec(v.v||'');if(!m)return'';const s=+m[1],d=+m[2];const sys=ctx.r.sys||[90,140];const adultish=ctx.band==='adult'||ctx.band==='elderly'||ctx.band==='pregnant';if(s>=sys[1]||(adultish&&d>=90))return'hi';if(s<sys[0])return'lo';return'';}
+  const rg=vitalRange(v,ctx);if(!rg)return'';const x=parseFloat(v.v);if(isNaN(x))return'';if(x>rg[1])return'hi';if(x<rg[0])return'lo';return'';
+}
+function paintVitals(){
+  const band=demoBand(),ctx={band,r:AGE_RANGES[band]||AGE_RANGES.adult};
+  const el=document.getElementById('vitals');
+  el.innerHTML=VITALS.map((v,i)=>{
+    const has=(v.v!=null&&String(v.v).trim()!=='');
+    const fl=has?vitalFlag(v,ctx):'',rg=v.k==='BP'?ctx.r.sys:vitalRange(v,ctx);
+    const title=rg?`${v.k} normal ${rg[0]}–${rg[1]}${v.k==='BP'?' systolic':''} · ${band}`:'';
+    const arw=fl==='hi'?'<span class="varw">↑</span>':fl==='lo'?'<span class="varw">↓</span>':'';
+    // Vitals are MEASURED, never assumed — each value is an inline field the
+    // clinician records; blank shows a muted "—" until entered.
+    return `<span class="vital${fl?' abn-'+fl:''}${has?'':' vunset'}" style="--vc:${v.vc}"${title?` title="${title}"`:''}><span class="dot"></span><span class="lbl">${v.k}</span><input class="vin" data-vi="${i}" value="${String(v.v??'').replace(/"/g,'&quot;')}" placeholder="—" aria-label="${v.k}">${arw}</span>`;
+  }).join('');
+  el.querySelectorAll('.vin').forEach(inp=>inp.addEventListener('change',()=>{VITALS[+inp.dataset.vi].v=inp.value.trim();paintVitals();
+    // On the Mx tab, "ACTIVE — <vital> now" notes read straight off VITALS — rebuild
+    // it immediately rather than leaving a stale reading until the clinician tabs away.
+    if(tab==='mx')render();
+  }));
+}
+
+function paintHeader(p,first){
+  const c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);
+  const cPc=Math.round(conf*100),comp=Math.round(completeness()*100);
+  tween(document.getElementById('confV'),cPc,'%');document.getElementById('confF').style.width=cPc+'%';
+  tween(document.getElementById('compV'),comp,'%');document.getElementById('compF').style.width=comp+'%';
+  const capEl=document.getElementById('cap');
+  if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')+' not yet excluded. Enter the pending results on the Ix tab to release.</span>';}
+  else capEl.style.display='none';
+  // The ranked differential otherwise only lives on the Hx·Exam tab — once on
+  // Ix/Mx/Docs/Why there was no way to see which diagnosis a result or plan item
+  // was even weighed against without tabbing back. A compact always-visible
+  // strip (top 3, name + %) closes that gap everywhere except Hx·Exam, where
+  // the full differential cards already show this.
+  const dsEl=document.getElementById('diffstrip');
+  if(dsEl){
+    if(tab==='hx'){dsEl.className='diffstrip';dsEl.innerHTML='';}
+    else{
+      const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]).slice(0,3);
+      dsEl.className='diffstrip show';
+      dsEl.innerHTML=ranked.map(d=>`<span class="diffchip" style="--c:${d.c}"><span class="dot"></span>${shortName(d)} <b>${Math.round(p[d.id]*100)}%</b></span>`).join('');
+    }
+  }
+  let nb=null;
+  if(pinNext){nb=FEAT.find(f=>f.id===pinNext);if(!nb)pinNext=null;}
+  if(!nb){nb=nextBest(p);if(nb&&nb.checklist)pinNext=nb.id;}
+  const nx=document.getElementById('next');
+  if(nb&&nb.checklist){
+    nx.style.display='flex';nx.className='next next-cl';
+    nx.innerHTML=`<div class="nxtop"><span class="tag">Next</span><span class="qt">${nb.lbl}<em>tick what you see — no need to recall the term</em></span><button class="nxdone" data-done>done →</button></div>${clChips(nb)}`;
+    nx.querySelector('[data-done]').addEventListener('click',()=>{pinNext=null;refresh(false);});
+    wireClChips(nx);
+  } else if(nb&&nb.kind==='choice'){
+    // Same type-dispatch discipline as the queue: the pinned "Next" question
+    // must render by what the finding IS, not default to a yes/no it doesn't fit.
+    nx.style.display='flex';nx.className='next';
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'tap the closest match'}</em></span>`+chChips(nb);
+    wireChChips(nx);
+  } else if(nb&&nb.kind==='text'){
+    nx.style.display='flex';nx.className='next';
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'type the answer'}</em></span><span class="txtin"><input type="text" placeholder="type answer…" data-txt value="${(val[nb.id]||'').replace(/"/g,'&quot;')}"></span>`;
+    nx.querySelectorAll('[data-txt]').forEach(inp=>inp.addEventListener('change',()=>{const raw=inp.value.trim();snap(probs());val[nb.id]=raw;if(raw)ans[nb.id]='present';else delete ans[nb.id];refresh(false);}));
+  } else if(nb&&nb.num){
+    const nbb=numBadge(nb);
+    nx.style.display='flex';nx.className='next';
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'enter the value'}</em></span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[nb.id]??''}"><span class="unit">${nb.num.unit||''}</span></span><span class="badge${nbb.c?' show '+nbb.c:''}">${nbb.t}</span></span>`;
+    nx.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const t=nb.num,raw=inp.value.trim();snap(probs());val[nb.id]=raw;const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[nb.id];else if(t.lo==null&&t.hi==null)ans[nb.id]='present';else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[nb.id]=abn?'present':'absent';}refresh(false);}));
+  } else if(nb){
+    nx.style.display='flex';nx.className='next';
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'the one answer that moves the picture most'}</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
+    nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{snap(probs());ans[nb.id]=b.dataset.a;refresh(false);}));
+  } else nx.style.display='none';
+}
+
+function buildHx(){
+  // The clerking QUEUE sits on top — a rolling ≤5 history + ≤5 exam questions,
+  // highest-yield first; answer one and it drops into the Recorded strip while
+  // the next slides up. The ranked differential is the "picture" beneath it.
+  // (Discriminating tests live on the Ix tab only — not here.)
+  document.getElementById('main').innerHTML='<div class="clerk" style="order:-10"><div id="queue"></div></div>'
+  +'<div class="dxlead" style="order:-5">Working differential</div>'
+  +DX.map(d=>`
+    <div class="dx open" data-id="${d.id}" style="--dxc:${d.c}">
+      <div class="accent"></div>
+      <div class="col">
+        <div class="dx-head" style="cursor:default">
+          <span class="nm"><span class="name">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm" title="Must not miss"></span>':''}</span>
+          <span class="metric"><span class="delta" data-delta></span><span class="mini"><span class="f" data-mini></span></span><span class="pct tnum" data-pct>0</span></span>
+        </div>
+        <div class="body"><div class="script" data-script></div></div>
+      </div>
+    </div>`).join('');
+}
+function paintHx(p,first){
+  const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
+  // FLIP: record each card's position (relative to the list heading, so a queue
+  // height change above doesn't count), reorder, then animate the slide so a
+  // diagnosis overtaking another visibly moves rather than jumping.
+  const cards=[...document.querySelectorAll('.dx')];
+  const anchor=document.querySelector('.dxlead');
+  const relTop=c=>c.getBoundingClientRect().top-(anchor?anchor.getBoundingClientRect().top:0);
+  const firstRel=first?null:new Map(cards.map(c=>[c,relTop(c)]));
+  ranked.forEach((d,i)=>{
+    const el=document.querySelector(`.dx[data-id="${d.id}"]`);if(!el)return;el.style.order=i;
+    const pc=Math.round(p[d.id]*100);
+    el.querySelector('[data-mini]').style.width=pc+'%';tween(el.querySelector('[data-pct]'),pc);
+    const dl=el.querySelector('[data-delta]'),ch=Math.round((p[d.id]-last[d.id])*100);
+    if(!first&&Math.abs(ch)>=1){dl.className='delta '+(ch>0?'up':'down');dl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}else{dl.className='delta';dl.textContent='';}
+    const matched=featsForAll(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
+    el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
+  });
+  if(firstRel)requestAnimationFrame(()=>{cards.forEach(c=>{const dy=firstRel.get(c)-relTop(c);if(Math.abs(dy)>1){c.style.transition='none';c.style.transform=`translateY(${dy}px)`;requestAnimationFrame(()=>{c.style.transition='transform .42s cubic-bezier(.22,1,.36,1)';c.style.transform='';});}});});
+  // ---- the global rolling clerking queue (≤5 per stream, highest-yield first) ----
+  const QLIMIT=5;
+  const yieldOf=f=>Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0),0);
+  const isDiscrim=f=>!!(f.eff&&Object.keys(f.eff).length); // does it actually move a differential, or is it background/completeness
+  function hasOpenDesc(f){if(!f.follow)return false;for(const c of f.follow){if(!ans[c.id])return true;if(ans[c.id]==='present'&&hasOpenDesc(c))return true;}return false;}
+  const needsWork=f=>!ans[f.id]||(ans[f.id]==='present'&&hasOpenDesc(f));
+  const rank=f=>(ans[f.id]==='present'&&hasOpenDesc(f))?0:1; // finish an open cascade before starting fresh
+  // A num finding with no lo/hi is INFORMATIONAL (e.g. "years since surgery") —
+  // it has nothing to be abnormal against, so it must never be marked ABNORMAL;
+  // it's simply RECORDED once a value is entered.
+  const kids=f=>(ans[f.id]==='present'&&f.follow&&f.follow.length)?`<div class="follows">${f.follow.map(c=>featRow(c,true)).join('')}</div>`:'';
+  function featRow(f,child){
+    const sub=fsub(f),st=f.stream||'hx';
+    // IMPORTANT: a finding's control type (checklist / text / num / y-n) is
+    // decided by what it IS, never by whether it happens to be a nested
+    // follow-up — a follow-up child asking a duration or an indication needs
+    // exactly the same field as it would at the top level. (This used to be
+    // gated on "!child", which silently forced every follow-up question back
+    // to a yes/no tick regardless of its real type — e.g. "how long ago was
+    // the hysterectomy?" rendered as present/absent. That was the bug.)
+    if(f.checklist)return `<div class="feat feat-cl str-${st}${child?' child':''}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
+    // A small enumerable answer set (common procedures, delivery mode, contraception
+    // type…) gets tap chips — minimises typing to the genuine "none of these fit" case.
+    if(f.kind==='choice')return `<div class="feat feat-cl str-${st}${child?' child':''}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}</div>${sub}${chChips(f)}</div>${kids(f)}`;
+    // Free-text answers (an indication, a procedure name, "what medication") get
+    // a text field, never a yes/no tick — a y/n control doesn't fit an open answer.
+    if(f.kind==='text')return `<div class="feat str-${st}${child?' child':''} has-sub text${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="txtin"><input type="text" placeholder="type answer…" data-txt value="${(val[f.id]||'').replace(/"/g,'&quot;')}"></span></div>${kids(f)}`;
+    if(f.num){const nb=numBadge(f);return `<div class="feat str-${st}${child?' child':''} has-sub num${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[f.id]??''}"><span class="unit">${f.num.unit||''}</span></span><span class="badge${nb.c?' show '+nb.c:''}">${nb.t}</span></span></div>${kids(f)}`;}
+    return `<div class="feat str-${st}${child?' child':''}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>${kids(f)}`;
+  }
+  const recdChip=f=>{
+    const base=f.lbl.split(' (')[0];
+    const pre=presetIds.has(f.id)?' preset':'';
+    if((f.kind==='text'||f.kind==='choice')&&val[f.id])return `<button class="recdchip present${pre}" data-reopen="${f.id}">${base}: "${val[f.id]}"</button>`;
+    if(f.num&&f.num.lo==null&&f.num.hi==null&&val[f.id])return `<button class="recdchip present${pre}" data-reopen="${f.id}">${base}: ${val[f.id]}${f.num.unit?' '+f.num.unit:''}</button>`;
+    return `<button class="recdchip ${ans[f.id]}${pre}" data-reopen="${f.id}">${base} ${ans[f.id]==='present'?'✓':'✕'}</button>`;
+  };
+  const streamBlock=(S,label)=>{
+    const list=FEAT.filter(f=>f.stream===S);
+    if(!list.length)return '';
+    const open=list.filter(needsWork).sort((a,b)=>rank(a)-rank(b)||yieldOf(b)-yieldOf(a));
+    const shown=open.slice(0,QLIMIT), more=open.length-shown.length;
+    const done=list.filter(f=>!needsWork(f));
+    // Once every diagnosis-discriminating question is answered, what's left is
+    // pure completeness (background history, not diagnostic) — call that out
+    // explicitly rather than let it look like more of the same differential-
+    // driving questions. "Satisfied on the diagnostic stuff → now the rest."
+    const discPending=open.filter(isDiscrim).length;
+    const completenessPhase=discPending===0&&open.length>0&&list.some(isDiscrim);
+    const phaseTag=completenessPhase?`<div class="phasecut"><span>◆</span>Diagnostic ${label.toLowerCase()} answered — for completeness (background, not diagnosis-moving)</div>`:'';
+    const doneMsg=S==='hx'?'✓ History complete — move to Examination':`✓ All ${label.toLowerCase()} covered`;
+    const rows=shown.length?phaseTag+shown.map(f=>featRow(f,false)).join(''):`<div class="qdone">${doneMsg}</div>`;
+    const moreTag=more>0?`<div class="qmore">+${more} more ${label.toLowerCase()} question${more>1?'s':''} queued</div>`:'';
+    const recd=done.length?`<div class="recd"><span class="recdh">Recorded</span>${done.map(recdChip).join('')}</div>`:'';
+    return `<div class="qstream qs-${S}"><div class="qhd"><span class="sdot ${S}"></span>${label}<span class="qct">${done.length}/${list.length}</span></div>${rows}${moreTag}${recd}</div>`;
+  };
+  const qwrap=document.getElementById('queue');if(!qwrap)return;
+  qwrap.innerHTML=streamBlock('hx','History')+streamBlock('exam','Examination');
+  qwrap.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,t=findFeat(fid).num,raw=inp.value.trim();val[fid]=raw;snap(probs());const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[fid];else if(t.lo==null&&t.hi==null)ans[fid]='present';else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[fid]=abn?'present':'absent';}refresh(false);}));
+  qwrap.querySelectorAll('[data-txt]').forEach(inp=>inp.addEventListener('change',()=>{const fid=inp.closest('.feat').dataset.f,raw=inp.value.trim();snap(probs());val[fid]=raw;if(raw)ans[fid]='present';else delete ans[fid];refresh(false);}));
+  qwrap.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{const fid=b.closest('.feat').dataset.f,a=b.dataset.a;snap(p);ans[fid]=ans[fid]===a?undefined:a;if(!ans[fid])delete ans[fid];if(ans[fid]!=='present')clearFollow(findFeat(fid));refresh(false);}));
+  qwrap.querySelectorAll('[data-reopen]').forEach(b=>b.addEventListener('click',()=>{const fid=b.dataset.reopen;snap(p);delete ans[fid];delete val[fid];if(checks[fid])delete checks[fid];otherOpen.delete(fid);clearFollow(findFeat(fid));refresh(false);}));
+  wireClChips(qwrap);
+  wireChChips(qwrap);
+}
+function buildIx(){
+  const p=probs();
+  // Weight each test by how much it would move the differential right now, so
+  // the heaviest-yield test sits first — but keep the chronological bedside →
+  // lab → imaging order (you reach for point-of-care before you send bloods).
+  const yieldOf=t=>{const f=allFeats().find(x=>x.id===t.id&&x.eff);return f?Object.keys(f.eff).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0),0):0;};
+  const CATS=[['bedside','Bedside'],['lab','Laboratory'],['imaging','Imaging']];
+  // A test that's only sent once an earlier one screens positive (e.g. quantitative
+  // serum βhCG after the urine screen) must not be enterable up front — that would
+  // contradict the very sequencing the tool teaches. Grey it out until its gate answers 'present'.
+  const item=t=>{
+    const gated=t.gateOn&&ans[t.gateOn]!=='present';
+    const gateSrc=gated?IX.find(x=>x.id===t.gateOn):null;
+    return `<div class="ixin${gated?' gated':''}" data-t="${t.id}">
+      <div class="top">
+        <span class="lab"><div class="t">${t.lbl}</div><div class="sub">${t.binary?'':'normal '+t.norm+' · '}<span class="dxc">discriminates ${t.dx}</span></div>${gated?`<div class="gatenote">send once ${gateSrc?gateSrc.lbl:'the prior test'} is positive</div>`:''}</span>
+        ${t.binary||gated?'':`<span class="field"><input inputmode="decimal" placeholder="—" data-in value="${val[t.id]??''}"><span class="unit">${t.unit||''}</span></span>`}
+        <span class="badge" data-badge></span>
+      </div>
+      <div class="qk">${gated?'':`<button class="y" data-a="present">${t.binary?'Positive':'Abnormal'}</button><button class="n" data-a="absent">${t.binary?'Negative':'Normal'}</button>`}</div>
+    </div>`;
+  };
+  const sections=CATS.map(([c,label],i)=>{const items=IX.filter(t=>(t.cat||'lab')===c).sort((a,b)=>yieldOf(b)-yieldOf(a));return items.length?`<div class="ixsec"><div class="ixhd"><span class="ixstep">${i+1}</span><span class="ixdot ${c}"></span>${label}<span class="ixn">${items.length}</span></div>${items.map(item).join('')}</div>`:'';}).join('');
+  document.getElementById('main').innerHTML=`<div class="panel">${sections}</div>`;
+  IX.forEach(t=>{
+    const row=document.querySelector(`.ixin[data-t="${t.id}"]`);
+    const inp=row.querySelector('[data-in]');
+    if(inp)inp.addEventListener('input',e=>{
+      const raw=e.target.value.trim();val[t.id]=raw;
+      snap(probs());
+      if(raw===''||isNaN(parseFloat(raw))){delete ans[t.id];}
+      else{const x=parseFloat(raw);const abn=t.dir==='below'?x<t.lo:x>t.hi;ans[t.id]=abn?'present':'absent';}
+      refresh(false);showShift(t.id);
+    });
+    row.querySelectorAll('.qk button').forEach(b=>b.addEventListener('click',()=>{
+      snap(probs());const a=b.dataset.a;ans[t.id]=ans[t.id]===a?undefined:a;if(!ans[t.id])delete ans[t.id];
+      // Answering a test that GATES another (e.g. urine βhCG unlocking the
+      // quantitative serum send) changes which controls should even be on
+      // screen — a light repaint can't add/remove DOM, so rebuild the tab.
+      if(IX.some(x=>x.gateOn===t.id))render();else refresh(false);
+      showShift(t.id);
+    }));
+  });
+}
+// When a result lands, name the diagnoses it just moved and by how much — so the
+// feedback loop (result → differential) is visible right where you entered it.
+function showShift(tid){
+  const row=document.querySelector(`.ixin[data-t="${tid}"]`);if(!row)return;
+  const p=probs();
+  const movers=DX.map(d=>({d,ch:Math.round((p[d.id]-(last[d.id]??p[d.id]))*100)})).filter(m=>Math.abs(m.ch)>=1).sort((a,b)=>Math.abs(b.ch)-Math.abs(a.ch)).slice(0,3);
+  const old=row.querySelector('.ixshift');if(old)old.remove();
+  if(!movers.length)return;
+  const el=document.createElement('div');el.className='ixshift';
+  el.innerHTML=movers.map(m=>`<span class="mv ${m.ch>0?'up':'down'}" style="--c:${m.d.c}">${m.ch>0?'▲':'▼'} ${shortName(m.d)} ${m.ch>0?'+':''}${m.ch}</span>`).join('');
+  row.appendChild(el);
+  setTimeout(()=>{if(el.parentNode)el.remove();},2600);
+}
+function paintIx(p){
+  IX.forEach(t=>{
+    const row=document.querySelector(`.ixin[data-t="${t.id}"]`);if(!row)return;
+    const bd=row.querySelector('[data-badge]'),a=ans[t.id];
+    if(!a){bd.className='badge show pend';bd.textContent='PENDING';}
+    else if(a==='present'){bd.className='badge show '+(t.binary||t.dir!=='below'?'hi':'lo');bd.textContent=t.binary?'POSITIVE':(t.dir==='below'?'LOW':'HIGH');}
+    else{bd.className='badge show ok';bd.textContent=t.binary?'NEGATIVE':'NORMAL';}
+    // A gated test (waiting on its prior screen) renders with no qk buttons at all.
+    const yb=row.querySelector('.qk .y'),nb=row.querySelector('.qk .n');
+    if(yb)yb.classList.toggle('sel',a==='present');
+    if(nb)nb.classList.toggle('sel',a==='absent');
+  });
+}
+
+// ---- Management (tab 3) ----
+// A vital-referencing "ACTIVE — BP 168/112" note must track what the clinician
+// currently has entered on the vitals strip, not the value scripted at case
+// authoring time — otherwise correcting a vital never updates the plan that
+// cites it (the same staleness class demoBand() had before its live-override fix).
+function vitalsSnippet(keys){
+  const parts=(keys||[]).map(k=>{const v=VITALS.find(x=>x.k===k);return(v&&v.v!=null&&String(v.v).trim()!=='')?`${k} ${v.v}`:null;}).filter(Boolean);
+  return parts.length?parts.join(', ')+' — now':'';
+}
+// A management item can be actively dangerous given the LIVE picture — e.g.
+// starting hormonal contraception while pregnancy is the unexcluded leading
+// diagnosis, or an antibiotic the patient has a documented allergy to. This is
+// declared once on the rx item (warnIf) and checked live at every render
+// against the current differential/answers, never baked into static text.
+function mxWarn(m,ctx){
+  const w=m.warnIf;if(!w||!ctx)return null;
+  if(w.dxLead&&(ctx.lead.id===w.dxLead||ctx.live.some(d=>d.id===w.dxLead)))return w.msg;
+  if(w.allergyId&&ans[w.allergyId]==='present'&&w.match&&w.match.includes(val[w.allergyId]))return w.msg;
+  return null;
+}
+function rxRow(m,i,sec,ctx){
+  const activeNote=m.activeKeys?vitalsSnippet(m.activeKeys):null;
+  const warn=mxWarn(m,ctx);
+  const pills=(warn?`<span class="pill-a warn">HOLD</span>`:'')+((m.activeKeys||m.active)?`<span class="pill-a act">ACTIVE</span>`:'')+(m.ind?`<span class="pill-a ind">INDICATED</span>`:'')+(m.sign?`<span class="pill-a sign">sign-off</span>`:'');
+  const note=activeNote||m.active||m.ind;
+  return `<div class="rx${warn?' rx-warn':''}" data-rx="${sec}-${i}">`
+    +`<div class="rxtop"><span class="n">${m.rx}</span>${pills}<button class="give" title="mark given">✓</button></div>`
+    +`<div class="rxbot"><span class="for">${m.for}</span><span class="dosechip">${m.dose}</span>${note?`<span class="rxnote">${note}</span>`:''}</div>`
+    +(warn?`<div class="rxwarnmsg">⚠ ${warn}</div>`:'')
+    +`</div>`;
+}
+function buildMx(){
+  const p=probs(),c=cap(p);
+  if(genPlanPending&&caseId==='__gen'){
+    document.getElementById('main').innerHTML=`<div class="mx"><div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div><div class="planwait"><div class="pwrow"><span class="ispin"></span><b>Writing the dosed management plan…</b></div><div class="pwsub">The board is ready — the plan and pathophysiology are generated in the background so the differential shows first.</div></div></div>`;
+    return;
+  }
+  document.getElementById('main').innerHTML=`<div class="mx">
+    <div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div>
+    ${MX.investigate&&MX.investigate.length?`<div class="mxsec ixref"><div class="hd"><span class="bar" style="background:var(--rr)"></span>⌾ Investigate first — enter results on the Ix tab</div><div class="invg">${MX.investigate.map(v=>`<button class="invrow" data-goix="${v.ix||''}"><span class="invl">${v.lbl}</span><span class="invr">${v.when?`<span class="invwhen">${v.when}</span>`:''}<span class="invarrow">Ix →</span></span></button>`).join('')}</div></div>`:''}
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--bad)"></span>Immediate</div>${MX.immediate.map((m,i)=>rxRow(m,i,'im',c)).join('')}</div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--brand)"></span>Short-term · treat ${shortName(c.lead)}</div>${MX.definitive.map((m,i)=>rxRow(m,i,'df',c)).join('')}</div>
+    ${MX.longterm&&MX.longterm.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hx-c)"></span>Long-term</div>${MX.longterm.map((m,i)=>rxRow(m,i,'lt',c)).join('')}</div>`:''}
+    ${MX.holistic&&MX.holistic.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--good)"></span>Counselling &amp; health promotion</div><div class="holi">${MX.holistic.map(h=>`<div class="hrow"><span class="hlbl">${h.label}</span>${(h.chips&&h.chips.length)?`<span class="hchips">${h.chips.map(x=>`<span class="chip">${x}</span>`).join('')}</span>`:''}${h.note?`<span class="hnote">${h.note}</span>`:''}</div>`).join('')}</div></div>`:''}
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--ink-mute)"></span>Monitor</div><div class="chips">${MX.monitor.map(x=>`<span class="chip">${x}</span>`).join('')}</div></div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hellp)"></span>Treat-and-see · response is evidence</div>
+      <div class="tns">${MX.levers.map(l=>`<div class="lv"><div class="lvtop"><span class="g">${l.give}</span><span class="ar">→</span><span class="rs">${l.resp}</span></div><div class="lvbot"><span class="m">${l.means}</span>${l.wired?`<span class="resp" data-lever="${l.id}"><button class="up" data-a="present">improved</button><button class="no" data-a="absent">no change</button></span>`:''}</div></div>`).join('')}</div>
+    </div>
+    <div class="mxsec" data-cover></div>
+    <div class="mxcite"><span>❦</span><span>Doses follow <b>local protocol / Standard Treatment Guidelines</b> — verify against your formulary and obtain clinician sign-off before administering. No free-hand dosing.</span></div>
+  </div>`;
+  document.querySelectorAll('[data-goix]').forEach(b=>b.addEventListener('click',()=>{
+    const goix=b.dataset.goix;
+    tab='ix';document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab==='ix'));render();
+    // The "Investigate first" strip promises a SPECIFIC test, not just the Ix tab
+    // in general — land the clinician on that exact row, not the top of a flat list.
+    if(goix){
+      const row=document.querySelector(`.ixin[data-t="${goix}"]`);
+      if(row){
+        row.scrollIntoView({block:'center',behavior:'smooth'});
+        row.classList.add('pulse');
+        setTimeout(()=>row.classList.remove('pulse'),1800);
+      }
+    }
+  }));
+  document.querySelectorAll('.give').forEach(b=>b.addEventListener('click',()=>{const k=b.closest('.rx').dataset.rx;given.has(k)?given.delete(k):given.add(k);b.classList.toggle('on',given.has(k));}));
+  document.querySelectorAll('[data-lever] button').forEach(b=>b.addEventListener('click',()=>{const id=b.closest('[data-lever]').dataset.lever,a=b.dataset.a;snap(probs());ans[id]=ans[id]===a?undefined:a;if(!ans[id])delete ans[id];refresh(false);}));
+}
+function paintMx(p){
+  const c=cap(p),cv=document.querySelector('[data-cover]');
+  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${c.live.map(shortName).join(' + ')} not excluded: treat the lead empirically and prioritise ${c.live.map(disc).join(' & ')} to rule ${c.live.length>1?'them':'it'} out.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${shortName(c.lead)} and continue the definitive plan.</div>`;}
+  document.querySelectorAll('[data-lever]').forEach(el=>{const a=ans[el.dataset.lever];el.querySelector('.up').classList.toggle('sel',a==='present');el.querySelector('.no').classList.toggle('sel',a==='absent');});
+}
+
+// ---- Documents (tab 4) — the note the clerk writes back (case-aware) ----
+function positives(){return allFeats().filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='present').map(f=>{
+  const base=f.lbl.split(' (')[0];
+  if(f.checklist&&checks[f.id]&&checks[f.id].size)return base+' ('+[...checks[f.id]].join(', ').toLowerCase()+')';
+  if((f.kind==='text'||f.kind==='choice')&&val[f.id])return base+': '+val[f.id];
+  if(f.num&&val[f.id])return base+' '+val[f.id]+(f.num.unit?' '+f.num.unit:'');
+  return base;
+});}
+function negatives(){return allFeats().filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='absent').map(f=>f.lbl.split(' (')[0]);}
+function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val[t.id]||'',state:ans[t.id]==='present'?(t.binary?'positive':(t.dir==='below'?'low':'high')):(t.binary?'negative':'normal')}));}
+function pendingTests(){return IX.filter(t=>!ans[t.id]).map(t=>t.lbl);}
+function leadInfo(){const p=probs(),c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);return{lead:c.lead,conf:Math.round(conf*100),capped:c.capped,live:c.live};}
+function shortName(d){return d.name.replace(' of pregnancy','');}
+function obsLine(){return VITALS.map(v=>v.k+' '+v.v).join(', ');}
+function docSBAR(){
+  const C=CASES[caseId],li=leadInfo(),pos=positives(),labs=labsEntered(),pend=pendingTests();
+  const capline=li.capped?` Confidence capped at ${li.conf}% — ${li.live.map(shortName).join(' and ')} not yet excluded.`:'';
+  const ixLine=`${labs.length?' Results — '+labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; ')+'.':''}${pend.length?' Pending — '+pend.join(', ')+'.':(labs.length?'':' Investigations pending.')}`;
+  return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${PT.summaryLine}, presenting with ${PT.complaint}. Current obs: ${obsLine()}.</p></div></div>
+   <div class="block"><span class="ltr">B</span><div><b>Background</b><p>${PT.background}</p></div></div>
+   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence.${capline} Supporting findings: ${pos.join(', ')||'—'}.${ixLine}</p></div></div>
+   <div class="block"><span class="ltr">R</span><div><b>Recommendation</b><p>${C.recommendation}</p></div></div>`;
+}
+function docClerk(){
+  const pos=positives(),neg=negatives(),labs=labsEntered(),li=leadInfo();
+  return `<div class="sec"><b>Presenting complaint</b><p>${PT.complaint}.</p></div>
+   ${PT.obsHx?`<div class="sec"><b>Obstetric history</b><p>${PT.obsHx}.</p></div>`:`<div class="sec"><b>Background</b><p>${PT.background}</p></div>`}
+   <div class="sec"><b>Observations</b><p>${VITALS.map(v=>v.k+' '+v.v).join(' · ')}</p></div>
+   <div class="sec"><b>Positive findings</b><p>${pos.join(', ')||'none recorded'}</p></div>
+   <div class="sec"><b>Pertinent negatives</b><p>${neg.join(', ')||'none recorded'}</p></div>
+   <div class="sec"><b>Investigations</b><p>${labs.length?labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; '):''}${pendingTests().length?(labs.length?'; ':'')+'pending: '+pendingTests().join(', '):(labs.length?'':'awaited')}</p></div>
+   <div class="sec"><b>Impression</b><p>${li.lead.name} (${li.lead.icd}), ${li.conf}%${li.capped?'; must-not-miss not excluded: '+li.live.map(shortName).join(', '):''}.</p></div>
+   <div class="sec"><b>Plan</b><p>${CASES[caseId].planLine}</p></div>`;
+}
+function docRef(){
+  const C=CASES[caseId],li=leadInfo(),pos=positives();
+  return `<p class="lt">Dear ${C.referTo},</p>
+   <p class="lt">Please urgently review this ${PT.summaryLine} presenting with ${PT.complaint}. My working diagnosis is <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence${li.capped?', with '+li.live.map(shortName).join(' and ')+' not yet excluded pending investigations':''}.</p>
+   ${PT.obsHx?`<p class="lt">Obstetric history: ${PT.obsHx} — relevant to mode of delivery.</p>`:`<p class="lt">Background: ${PT.background}</p>`}
+   <p class="lt">Positive findings: ${pos.join(', ')||'—'}. Initial management: ${C.planLine}</p>
+   <p class="lt">I would be grateful for urgent review.</p>
+   <p class="lt">Kind regards,<br>Admitting clinician</p>`;
+}
+// Ward round — the "known patient" daily review: what's new today, how they're
+// responding, where the picture sits now, and what to improve.
+function roundPlan(li,pend){
+  const bits=[];
+  if(li.capped)bits.push('do NOT de-escalate — prioritise '+li.live.map(disc).join(' & ')+' to exclude the must-not-miss');
+  else bits.push('killers excluded — narrow therapy to '+shortName(li.lead)+' and step down monitoring');
+  if(pend.length)bits.push('chase pending: '+pend.join(', '));
+  bits.push('continue '+CASES[caseId].planLine.replace(/\.$/,''));
+  return bits.join('. ')+'.';
+}
+function docRound(){
+  const li=leadInfo(),pos=positives(),labs=labsEntered(),pend=pendingTests();
+  const resp=MX.levers.filter(l=>l.wired&&l.id&&ans[l.id]).map(l=>`${l.give} → ${ans[l.id]==='present'?l.resp+' (improving)':'no change — reconsider'}`);
+  const p=probs(),dl=Math.round((p[li.lead.id]-(last[li.lead.id]??p[li.lead.id]))*100);
+  const trend=dl>0?`▲ up ${dl}% since last review`:dl<0?`▼ down ${Math.abs(dl)}%`:'stable';
+  return `<div class="sec"><b>Ward round — today</b><p>${PT.summaryLine}, admitted with ${PT.complaint}.</p></div>
+   <div class="sec"><b>New complaints / events today</b><textarea id="todayin" class="todayta" placeholder="e.g. new pleuritic pain overnight · febrile to 38.9 · passing less urine · feeds improving…">${todayNote.replace(/</g,'&lt;')}</textarea></div>
+   <div class="sec"><b>Observations</b><p>${VITALS.map(v=>v.k+' '+v.v).join(' · ')}</p></div>
+   <div class="sec"><b>Response to treatment</b><p>${resp.length?resp.join('; '):'no treat-and-see markers recorded on the Mx tab yet'}</p></div>
+   <div class="sec"><b>On review</b><p>${pos.join(', ')||'no positives recorded'}</p></div>
+   <div class="sec"><b>Results</b><p>${labs.length?labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; '):''}${pend.length?(labs.length?'; ':'')+'pending: '+pend.join(', '):(labs.length?'':'awaited')}</p></div>
+   <div class="sec"><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% (${trend}) — ${li.capped?'must-not-miss not yet excluded: '+li.live.map(shortName).join(', '):'killers excluded'}.</p></div>
+   <div class="sec"><b>Plan / what to improve</b><p>${roundPlan(li,pend)}</p></div>`;
+}
+const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},round:{label:'Ward round',title:'Ward round — daily review',f:docRound},ref:{label:'Referral',title:'Referral letter',f:docRef}};
+function buildDocs(){
+  const d=DOCS[docType];
+  document.getElementById('main').innerHTML=`<div class="doc">
+    <div class="docpick">${Object.entries(DOCS).map(([k,v])=>`<button data-d="${k}" class="${k===docType?'on':''}">${v.label}</button>`).join('')}</div>
+    <div class="paper"><div class="doctitle">${d.title}<span>${docType==='round'?'today':'on admission'}</span></div><div class="paperbody">${d.f()}</div></div>
+    <div class="docact"><button class="pri" data-copy>Copy</button><button data-exp>Export PDF</button><button data-ward>Send to Ward →</button></div>
+    <div class="docflag">◆ Auto-generated from the clerking — review and sign before use.</div>
+  </div>`;
+  document.querySelectorAll('.docpick button').forEach(b=>b.addEventListener('click',()=>{docType=b.dataset.d;buildDocs();}));
+  const ta=document.getElementById('todayin');if(ta)ta.addEventListener('input',e=>{todayNote=e.target.value;});
+  const cp=document.querySelector('[data-copy]');
+  cp.addEventListener('click',()=>{try{navigator.clipboard.writeText(document.querySelector('.paperbody').innerText);}catch(e){}cp.textContent='Copied ✓';setTimeout(()=>{cp.textContent='Copy';},1400);});
+  // "Export PDF" had no handler at all — clicking it silently did nothing.
+  // Print-to-PDF via the browser's own dialog, scoped to just the note via
+  // the @media print rule above, needs no PDF library.
+  document.querySelector('[data-exp]').addEventListener('click',()=>window.print());
+  // The Inpatient Ward tool already reads this localStorage key and renders a
+  // patient card from it — only the writing side was missing. Wire it here so
+  // a clerked patient can hand off into a ward admission in one tap.
+  const wardBtn=document.querySelector('[data-ward]');
+  wardBtn.addEventListener('click',()=>{
+    const li=leadInfo();
+    const num=k=>{const v=VITALS.find(x=>x.k===k);const n=parseFloat(v&&v.v);return isNaN(n)?undefined:n;};
+    const bp=(VITALS.find(v=>v.k==='BP')||{}).v||'';const sbp=parseInt(bp)||undefined;
+    const yrs=ageYears();
+    const handoff={
+      line:`${PT.summaryLine||PT.line||'—'} · Day 1`,
+      age:yrs!=null?Math.round(yrs):50,
+      dx:li.lead.name,icd:li.lead.icd,
+      paeds:demoBand()==='neonate'||demoBand()==='infant'||demoBand()==='toddler'||demoBand()==='preschool'||demoBand()==='child',
+      plan:CASES[caseId].planLine.replace(/<[^>]+>/g,''),
+      obs:{rr:num('RR'),spo2:num('SpO₂'),o2:'air',sbp,hr:num('HR'),temp:num('T'),acvpu:'A'},
+    };
+    try{localStorage.setItem('medai_ward_handoff',JSON.stringify(handoff));wardBtn.textContent='Sent ✓ — open Inpatient Ward';}catch(e){wardBtn.textContent='Could not send';}
+    setTimeout(()=>{wardBtn.textContent='Send to Ward →';},2200);
+  });
+}
+
+// ---- Why (tab 5) — the reasoning trace; the only place full sentences live ----
+const lrTxt=lr=>'×'+(+lr).toFixed(1);
+const disc=d=>{const k=FEAT.find(f=>f.key===d.id);return k?(k.short||k.lbl.split(' (')[0].toLowerCase()):'its discriminating test';};
+function forAgainst(d){
+  const items=[];
+  for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;const lr=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];items.push({lbl:f.lbl.split(' (')[0]+(a==='absent'?' (absent)':''),lr,pro:lr>=1});}
+  return {pro:items.filter(i=>i.pro).sort((x,y)=>y.lr-x.lr),con:items.filter(i=>!i.pro).sort((x,y)=>x.lr-y.lr)};
+}
+function whyNarrative(){
+  const p=probs(),c=cap(p),li=leadInfo(),fa=forAgainst(c.lead);
+  const drivers=fa.pro.slice(0,2).map(i=>i.lbl).join(' and ');
+  let s=`<b>${c.lead.name}</b> leads at <b>${li.conf}%</b>${li.capped?' — held there on purpose':''}. `;
+  if(drivers)s+=`The weight is mostly ${drivers}. `;
+  if(fa.con[0])s+=`Pulling against it: ${fa.con[0].lbl} (${lrTxt(fa.con[0].lr)}). `;
+  if(c.capped){const t=c.live.map(disc);s+=`Confidence is capped at ${Math.round(c.ceil*100)}% because ${c.live.map(shortName).join(' and ')} could still kill and ${c.live.length>1?'are':'is'} not excluded until ${t.join(' and ')} ${t.length>1?'are':'is'} back — MedAI will not fake certainty over an unexcluded must-not-miss.`;}
+  else s+=`Every must-not-miss rival is now excluded, so the number is trustworthy.`;
+  return s;
+}
+function whyNext(){const p=probs(),nb=nextBest(p);if(!nb)return 'History and exam are saturated — the picture now moves on investigations.';const aff=Object.keys(nb.eff).map(id=>shortName(DX.find(d=>d.id===id))).join(' vs ');return `<b>${nb.lbl}</b> is the highest-yield next question — it best separates ${aff}.`;}
+function whyPremortem(){const p=probs(),c=cap(p);const r=[...DX].filter(d=>d.mnm&&d.id!==c.lead.id).sort((a,b)=>p[b.id]-p[a.id])[0];if(!r)return 'No must-not-miss rival remains in play.';return `If this call is wrong, the dangerous miss is <b>${shortName(r)}</b> — exclude it with <b>${disc(r)}</b> before committing.`;}
+function ledger(d,p,capTo){
+  const fa=forAgainst(d),pc=Math.round(p[d.id]*100);
+  const col=(items,cls,head)=>`<div class="${cls}"><div class="colh">${head}</div>${items.length?items.map(i=>`<div class="li"><span>${i.lbl}</span><span class="lr">${lrTxt(i.lr)}</span></div>`).join(''):'<div class="li dim">—</div>'}</div>`;
+  return `<div class="wledger" style="--dxc:${d.c}"><div class="wlhd"><span class="n">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${d.c}">${pc}%</span></div>
+    <div class="cols">${col(fa.pro,'col-f','For')}${col(fa.con,'col-a','Against')}</div>
+    <div class="wscript">illness script — ${d.script}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> — ${d.patho}</div>`:''}</div>`;
+}
+function buildWhy(){
+  const p=probs(),c=cap(p),li=leadInfo(),ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
+  document.getElementById('main').innerHTML=`<div class="why">
+    <div class="whysum">${whyNarrative()}</div>
+    ${(genPlanPending&&caseId==='__gen')?`<div class="planwait"><div class="pwrow"><span class="ispin"></span><b>Writing the pathophysiology…</b></div><div class="pwsub">Each diagnosis's mechanism is being generated in the background.</div></div>`:''}
+    ${ranked.map(d=>ledger(d,p,(d.id===c.lead.id&&c.capped)?li.conf:null)).join('')}
+    <div class="whycard"><div class="h"><span>➜</span>Highest-yield next</div><p>${whyNext()}</p></div>
+    <div class="whycard pm"><div class="h"><span>⚠</span>Pre-mortem — what would change my mind</div><p>${whyPremortem()}</p></div>
+  </div>`;
+}
+
+const EMPTY={};
+function refresh(first){const p=probs();paintHeader(p,first);if(tab==='hx')paintHx(p,first);else if(tab==='ix')paintIx(p);else if(tab==='mx')paintMx(p);}
+function render(){if(tab==='hx')buildHx();else if(tab==='ix')buildIx();else if(tab==='mx')buildMx();else if(tab==='docs')buildDocs();else if(tab==='why')buildWhy();refresh(true);}
+
+function paintCaseUI(){
+  const entries=Object.entries(CASES).filter(([k])=>!k.startsWith('__'));
+  document.getElementById('casebar').innerHTML='<span class="cl">Case</span>'
+    +entries.map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}"><b>${c.specialty}</b> ${c.label}</button>`).join('')
+    +(caseId.startsWith('__')?`<button data-c="${caseId}" class="on gen"><b>✦ ${CASES[caseId].specialty}</b> ${CASES[caseId].label}</button>`:'')
+    +'<button class="newcase" id="newcase">＋ New case</button>';
+  document.getElementById('casebar').querySelectorAll('button[data-c]').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
+  document.getElementById('newcase').addEventListener('click',showIntake);
+  document.getElementById('genbanner').classList.toggle('show',caseId.startsWith('__'));
+  document.getElementById('who').innerHTML=PT.line;
+  paintVitals();
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab==='hx'));
+  snap(probs());render();
+}
+
+// ---- Chat intake → AI-generated case (works for any presentation) ----
+const VC_BY_KEY={HR:'var(--hr)',BP:'var(--bp)',RR:'var(--rr)','SpO₂':'var(--spo2)',SpO2:'var(--spo2)','SpOâ‚‚':'var(--spo2)',T:'var(--temp)',Temp:'var(--temp)',Sats:'var(--spo2)'};
+const DX_ACCENTS=['var(--pet)','var(--hellp)','var(--chorio)','var(--aflp)','var(--rr)'];
+function loadGeneratedCase(pack){
+  pack.DX.forEach((d,i)=>{ if(!d.c) d.c=DX_ACCENTS[i%DX_ACCENTS.length]; });
+  // Always show the five standard vital slots as blank, enterable fields — the
+  // model must not invent vitals, so any it didn't get from the text stay empty
+  // for the clinician to measure and record.
+  pack.VITALS=Array.isArray(pack.VITALS)?pack.VITALS:[];
+  ['HR','BP','RR','SpO₂','T'].forEach(k=>{ if(!pack.VITALS.some(v=>v.k===k||v.k===k.replace('₂','2'))) pack.VITALS.push({k,v:''}); });
+  pack.VITALS.forEach(v=>{ if(!v.vc) v.vc=VC_BY_KEY[v.k]||'var(--ink-mute)'; });
+  pack.MX=pack.MX||{investigate:[],immediate:[],definitive:[],longterm:[],monitor:[],levers:[],holistic:[]};
+  ['investigate','immediate','definitive','longterm','monitor','levers','holistic'].forEach(k=>{pack.MX[k]=pack.MX[k]||[];});
+  pack.IX=pack.IX||[]; pack.FEAT=pack.FEAT||[];
+  CASES.__gen=pack;
+  loadCase('__gen');
+  hideIntake();
+  paintCaseUI();
+}
+function istatus(cls,html){const el=document.getElementById('istatus');el.className='istatus '+(cls||'');el.innerHTML=html||'';}
+async function apiGenerate(text,phase,dx){
+  // Host app can inject window.MEDAI_GENERATE(text,phase,dx) → Promise<pack>
+  // (calls the key-gated /tools/clerk-generate endpoint). Else same-origin.
+  if(typeof window.MEDAI_GENERATE==='function') return await window.MEDAI_GENERATE(text,phase,dx);
+  const key=(window.localStorage&&localStorage.getItem('medai_tools_key'))||'';
+  const r=await fetch('/tools/clerk-generate',{method:'POST',headers:{'content-type':'application/json','x-tools-key':key},body:JSON.stringify({text,phase,dx})});
+  if(!r.ok) throw new Error('The reasoning service is unavailable here — try a worked example below.');
+  return await r.json();
+}
+// Merge the background PLAN (dosed management + pathophysiology) into the
+// already-rendered generated board, then repaint if the user is looking at Mx/Why.
+function mergePlan(plan){
+  const gen=CASES.__gen; if(!gen||!plan) return;
+  if(plan.MX){gen.MX=plan.MX;['investigate','immediate','definitive','monitor','levers','holistic'].forEach(k=>{gen.MX[k]=gen.MX[k]||[];});}
+  if(plan.patho){gen.DX.forEach(d=>{ if(plan.patho[d.id]) d.patho=plan.patho[d.id]; });}
+  genPlanPending=false;
+  if(caseId==='__gen'){ MX=gen.MX; if(tab==='mx'||tab==='why') render(); }
+}
+async function generateCase(text){
+  if(!text||!text.trim()){istatus('err','Type a short description first.');return;}
+  const btn=document.getElementById('igen');btn.disabled=true;
+  istatus('load','<span class="ispin"></span>Weighing the differential…');
+  try{
+    // PHASE 1 — the board itself: fast, small. Show it the moment it lands.
+    const pack=await apiGenerate(text.trim(),'core');
+    if(!pack||!Array.isArray(pack.DX)||!pack.DX.length) throw new Error('The board came back empty — try rephrasing.');
+    genPlanPending=true;
+    loadGeneratedCase(pack); istatus('','');
+    // PHASE 2 — dosed plan + pathophysiology: in the background, merged when ready.
+    const dx=pack.DX.map(d=>({id:d.id,name:d.name}));
+    apiGenerate(text.trim(),'plan',dx).then(mergePlan).catch(()=>{ genPlanPending=false; if(caseId==='__gen'&&(tab==='mx'||tab==='why')) render(); });
+  }catch(e){
+    genPlanPending=false;
+    // A raw network failure surfaces as the browser's bare "Failed to fetch" —
+    // meaningless to a tired first-time user, who'd likely conclude the tool is
+    // broken rather than that no server is reachable. Say what actually happened.
+    const raw=(e&&e.message)||'';
+    const msg=/failed to fetch|networkerror|load failed/i.test(raw)
+      ?'Couldn\'t reach the case generator — try a worked example below, or check your connection.'
+      :(raw||'Could not build the board.');
+    istatus('err', msg);
+  }
+  finally{ btn.disabled=false; }
+}
+function showIntake(){document.getElementById('intake').classList.remove('hide');if(window.parent&&window.parent!==window)window.parent.postMessage({type:'medai-warm'},'*');}
+function hideIntake(){document.getElementById('intake').classList.add('hide');}
+
+function init(){
+  document.getElementById('foot').innerHTML='<b><span class="sw" style="background:var(--good)">✓</span>present</b><b><span class="sw" style="background:var(--bad)">✕</span>absent</b>';
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    tab=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));render();
+  }));
+  // intake wiring
+  document.getElementById('igen').addEventListener('click',()=>generateCase(document.getElementById('itext').value));
+  document.getElementById('ichips').innerHTML=Object.entries(CASES).filter(([k])=>!k.startsWith('__')).map(([k,c])=>`<button data-c="${k}">${c.specialty} · ${c.label}</button>`).join('');
+  document.getElementById('ichips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);hideIntake();paintCaseUI();}));
+  // When embedded in the app, route generation through the host (which holds the tools key).
+  if(window.parent&&window.parent!==window){
+    window.MEDAI_GENERATE=function(text,phase,dx){return new Promise(function(resolve,reject){
+      var id='g'+String(performance.now())+String(Math.round(Math.random()*1e6));
+      function on(e){if(!e.data||e.data.type!=='medai-generated'||e.data.id!==id)return;window.removeEventListener('message',on);if(e.data.error)reject(new Error(e.data.error));else resolve(e.data.pack);}
+      window.addEventListener('message',on);
+      window.parent.postMessage({type:'medai-generate',id:id,text:text,phase:phase,dx:dx},'*');
+      setTimeout(function(){window.removeEventListener('message',on);reject(new Error('The reasoning service timed out — the server may be waking up; try again.'));},75000);
+    });};
+    // Wake the (free-tier, sleeps-when-idle) server the moment the clerk opens,
+    // so it is warm by the time a presentation is submitted.
+    window.parent.postMessage({type:'medai-warm'},'*');
+  }
+  loadCase('pre');paintCaseUI(); // preload behind the overlay so there is no flash
+}
+init();
+document.getElementById('theme').addEventListener('click',()=>{const r=document.documentElement,c=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.setAttribute('data-theme',c==='dark'?'light':'dark');});
+</script>

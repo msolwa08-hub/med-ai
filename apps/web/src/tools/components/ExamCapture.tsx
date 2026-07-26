@@ -54,7 +54,7 @@ function FindingRow({ item, value, onSet }: {
           type="button"
           onClick={() => onSet(isNad ? '' : 'NAD')}
           aria-pressed={isNad}
-          className={`inline-flex items-center gap-1 shrink-0 min-h-[36px] px-2.5 rounded-pill text-xs font-medium border transition-colors ${
+          className={`inline-flex items-center gap-1 shrink-0 min-h-[44px] px-2.5 rounded-pill text-xs font-medium border transition-colors ${
             isNad
               ? 'bg-brand-600 border-brand-600 text-white'
               : 'bg-surface border-line-strong text-ink-soft hover:border-brand-400 hover:text-brand-700'
@@ -99,7 +99,7 @@ export function ExamCapture({ vitals, focus, survey, values, customNote, onValue
   return (
     <div className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xs font-semibold text-ink-mute uppercase tracking-wider">Examination — values are the record</h3>
+        <h3 className="text-xs font-semibold text-ink-mute uppercase tracking-wider">Examination</h3>
         <span
           className={`text-xs font-medium rounded-full px-2.5 py-1 shrink-0 ${
             captured > 0 ? 'bg-brand-50 text-brand-700' : 'bg-surface-alt text-ink-mute'
@@ -112,7 +112,7 @@ export function ExamCapture({ vitals, focus, survey, values, customNote, onValue
       {/* ── Vitals: a value grid. Typing the number IS the capture. ── */}
       {vitals.length > 0 && (
         <div>
-          <p className="text-2xs font-semibold text-brand-700/70 uppercase tracking-wider mb-2">Vitals — every patient</p>
+          <p className="text-2xs font-semibold text-brand-700/70 uppercase tracking-wider mb-2">Vitals</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {vitals.map(item => {
               const meta = VITAL_META[item.id] ?? { label: findingStem(item.label), placeholder: '' };
@@ -147,7 +147,7 @@ export function ExamCapture({ vitals, focus, survey, values, customNote, onValue
       {focus.length > 0 ? (
         <div>
           <p className="flex items-center gap-1.5 text-2xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
-            <Sparkles className="w-3.5 h-3.5" aria-hidden /> Focused — what discriminates the diagnosis
+            <Sparkles className="w-3.5 h-3.5" aria-hidden /> Focused exam
           </p>
           <div className="space-y-1.5">
             {focus.map(item => (
@@ -156,11 +156,11 @@ export function ExamCapture({ vitals, focus, survey, values, customNote, onValue
           </div>
         </div>
       ) : (
-        historyEmpty && (
-          <p className="text-xs text-ink-soft bg-surface-alt border border-line rounded-xl px-3 py-2 leading-relaxed">
-            Add the history above — the focused exam appears here, built from the differential, so you examine only what the story implicates.
-          </p>
-        )
+        <p className="text-xs text-ink-soft bg-surface-alt border border-line rounded-xl px-3 py-2 leading-relaxed">
+          {historyEmpty
+            ? 'Focused exam targets appear once the differential is generated.'
+            : 'Awaiting differential — use the full survey below.'}
+        </p>
       )}
 
       {/* ── Full survey: everything else, one tap away, never in the way. ── */}
@@ -172,7 +172,7 @@ export function ExamCapture({ vitals, focus, survey, values, customNote, onValue
             aria-expanded={surveyOpen}
             className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
           >
-            <span className="text-xs font-medium text-ink-soft">Full survey — {surveyCount} more, if you want them</span>
+            <span className="text-xs font-medium text-ink-soft">Full survey ({surveyCount})</span>
             <ChevronDown className={`w-4 h-4 text-ink-mute transition-transform ${surveyOpen ? 'rotate-180' : ''}`} aria-hidden />
           </button>
           {surveyOpen && (

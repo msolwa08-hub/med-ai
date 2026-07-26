@@ -80,8 +80,11 @@ export async function betaRoutes(app: FastifyInstance) {
     }
   });
 
-  // Get session (public — patients access via session ID in URL)
   app.get('/beta/session/:id', async (req, reply) => {
+    const key = (req.headers['x-beta-key'] as string) ?? '';
+    if (!validateBetaKey(key)) {
+      return reply.status(401).send({ error: 'Invalid access key' });
+    }
     const { id } = req.params as { id: string };
     const session = await betaStore.load(id);
     if (!session) return reply.status(404).send({ error: 'Session not found' });

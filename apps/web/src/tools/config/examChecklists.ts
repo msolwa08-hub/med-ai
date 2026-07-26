@@ -243,6 +243,17 @@ const DEPT_SECTIONS: Record<DeptId, ChecklistSection | ((subDept?: string) => Ch
       item('anaes-dentition', 'Dentition checked, dentures out', 'The loose incisor found during laryngoscopy becomes an inhaled foreign body — look first.'),
     ],
   },
+  family: {
+    id: 'dept-family',
+    title: 'PHC / chronic disease screen',
+    items: [
+      item('fm-bp-target', 'BP at target for comorbidity profile', 'HPT target <140/90 general, <130/80 if DM or CKD — a single reading off target needs a trend (home readings, previous visits), not an immediate escalation.', true),
+      item('fm-bmi', 'BMI / waist circumference', 'Obesity is the modifiable driver of HPT, DM, OA and OSA at PHC level — measure it, trend it, address it.'),
+      item('fm-foot-exam', 'Diabetic foot exam (if DM)', 'Monofilament + pedal pulses annually — the neuropathic ulcer that amputates is the one never looked for.'),
+      item('fm-mental-health', 'Mental health screen (PHQ-2 / suicide risk)', 'Depression is the most prevalent and most missed comorbidity in chronic disease — two questions ("feeling down?" + "lost interest?") take 30 seconds.'),
+      item('fm-tb-screen', 'TB symptom screen (cough, fever, night sweats, weight loss)', 'Any one positive symptom → sputum GeneXpert. Every visit, every patient, in the SA context.'),
+    ],
+  },
 };
 
 // ── Presentation-adaptive additions ──────────────────────────────────────────

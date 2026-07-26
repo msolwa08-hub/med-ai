@@ -31,8 +31,8 @@ export const api = {
   chat: (key: string, sessionId: string, message: string, transcript?: { role: string; content: string }[]) =>
     post<{ message: string; completed: boolean }>('/beta/chat', { sessionId, message, transcript }, key),
 
-  getSession: (sessionId: string) =>
+  getSession: (sessionId: string, key?: string) =>
     get<{ id: string; status: string; messages: { role: string; content: string }[]; department?: string }>(
-      `/beta/session/${sessionId}`
+      `/beta/session/${sessionId}`, key
     ),
 };
