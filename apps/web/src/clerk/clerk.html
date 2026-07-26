@@ -293,7 +293,17 @@
   .delta{font-size:11px;font-weight:800;text-align:right;opacity:0;transition:opacity .3s;white-space:nowrap}
   .delta.up{color:var(--good);opacity:1}.delta.down{color:var(--bad);opacity:1}
   .mini{width:42px;height:6px;background:var(--bar-track);border-radius:99px;overflow:hidden}
-  .mini .f{height:100%;background:var(--dxc);border-radius:99px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+  /* Stage 2 of the differential transition. Held to the same duration as the
+     counting number so the bar and its figure land together rather than
+     finishing 100ms apart. */
+  .mini .f{height:100%;background:var(--dxc);border-radius:99px;transition:width .54s cubic-bezier(.22,1,.36,1)}
+  /* Common fate: every diagnosis that moved the same way on this finding is
+     marked in the same frame with the same treatment, so three rising together
+     reads as one grouped event instead of three separate numbers to compare.
+     It rides the accent bar that already carries the card's identity colour. */
+  .dx .accent{transition:box-shadow .54s cubic-bezier(.22,1,.36,1),opacity .54s cubic-bezier(.22,1,.36,1)}
+  .dx.rise .accent{box-shadow:0 0 0 1px var(--dxc),0 0 8px var(--dxc)}
+  .dx.fall .accent{opacity:.32}
   .pct{font-size:16px;font-weight:800;width:38px;text-align:right;letter-spacing:-.02em}
   .body{display:none;padding:0 13px 13px 12px}
   .dx.open .body{display:block}
@@ -1507,7 +1517,7 @@ function completeness(){
 // examination question while he is still taking the history sends him back and
 // forth across the patient, which is exactly what splitting the pages fixed.
 function nextBest(p,stream){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;if(stream&&f.stream!==stream)continue;const g=Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
-function tween(el,to,suf=''){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/450);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
+function tween(el,to,suf='',ms=450){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/ms);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
 function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
 function ixState(f){const a=ans[f.id];if(!a)return{cls:'pend',txt:'→ enter'};return a==='present'?{cls:'hi',txt:'abnormal'}:{cls:'ok',txt:'normal'};}
 
@@ -1799,6 +1809,15 @@ function buildHx(){
       </div>
     </div>`).join('');
 }
+// The differential transition is STAGED: the ranking travels first, then the
+// weights change. Both used to happen in the same frame over three different
+// durations (travel 420ms, bar 550ms, number 450ms), so a card slid while its
+// own figure was still counting and nothing landed together — the overtake, the
+// one event this tool exists to show, was blurred by everything else moving
+// under it. Staging is what makes a change readable rather than merely visible:
+// an element should never change position and value at once. ~1s in total.
+const RANK_MS=460, WEIGHT_MS=540;
+let stageTimer=null;
 function paintHx(p,first){
   const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
   // FLIP: record each card's position (relative to the list heading, so a queue
@@ -1808,16 +1827,42 @@ function paintHx(p,first){
   const anchor=document.querySelector('.dxlead');
   const relTop=c=>c.getBoundingClientRect().top-(anchor?anchor.getBoundingClientRect().top:0);
   const firstRel=first?null:new Map(cards.map(c=>[c,relTop(c)]));
+  // A stage 2 still pending from the previous answer must never land on top of
+  // this one: a clerker answering twice inside a second would otherwise watch
+  // the older weights arrive after the newer ones.
+  if(stageTimer){clearTimeout(stageTimer);stageTimer=null;}
+  // Stage 1 — position, plus the content that neither moves nor counts.
   ranked.forEach((d,i)=>{
     const el=document.querySelector(`.dx[data-id="${d.id}"]`);if(!el)return;el.style.order=i;
-    const pc=Math.round(p[d.id]*100);
-    el.querySelector('[data-mini]').style.width=pc+'%';tween(el.querySelector('[data-pct]'),pc);
-    const dl=el.querySelector('[data-delta]'),ch=Math.round((p[d.id]-last[d.id])*100);
-    if(!first&&Math.abs(ch)>=1){dl.className='delta '+(ch>0?'up':'down');dl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}else{dl.className='delta';dl.textContent='';}
     const matched=featsForAll(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
     el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${esc(w)}</b>`:esc(w)).join('');
   });
-  if(firstRel)requestAnimationFrame(()=>{cards.forEach(c=>{const dy=firstRel.get(c)-relTop(c);if(Math.abs(dy)>1){c.style.transition='none';c.style.transform=`translateY(${dy}px)`;requestAnimationFrame(()=>{c.style.transition='transform .42s cubic-bezier(.22,1,.36,1)';c.style.transform='';});}});});
+  // Stage 2 — the weights. Every card is written in ONE pass so the cards that
+  // moved the same way this round change together and read as a group.
+  const applyWeights=()=>{
+    stageTimer=null;
+    ranked.forEach(d=>{
+      const el=document.querySelector(`.dx[data-id="${d.id}"]`);if(!el)return;
+      const pc=Math.round(p[d.id]*100);
+      el.querySelector('[data-mini]').style.width=pc+'%';
+      tween(el.querySelector('[data-pct]'),pc,'',WEIGHT_MS);
+      const dl=el.querySelector('[data-delta]'),ch=Math.round((p[d.id]-last[d.id])*100);
+      const moved=!first&&Math.abs(ch)>=1;
+      if(moved){dl.className='delta '+(ch>0?'up':'down');dl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}
+      else{dl.className='delta';dl.textContent='';}
+      el.classList.remove('rise','fall');
+      if(moved)el.classList.add(ch>0?'rise':'fall');
+    });
+  };
+  let travelled=false;
+  if(firstRel)requestAnimationFrame(()=>{
+    cards.forEach(c=>{const dy=firstRel.get(c)-relTop(c);if(Math.abs(dy)>1){travelled=true;c.style.transition='none';c.style.transform=`translateY(${dy}px)`;requestAnimationFrame(()=>{c.style.transition=`transform ${RANK_MS}ms cubic-bezier(.22,1,.36,1)`;c.style.transform='';});}});
+    // Nothing overtook anything: there is no position change to stage against,
+    // and a transition with no movement in it should not be slowed down to
+    // preserve a sequence that isn't happening.
+    if(travelled)stageTimer=setTimeout(applyWeights,RANK_MS);else applyWeights();
+  });
+  else applyWeights();
   // ---- the global rolling clerking queue (≤5 per stream, highest-yield first) ----
   const QLIMIT=5;
   const yieldOf=f=>Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0),0);
