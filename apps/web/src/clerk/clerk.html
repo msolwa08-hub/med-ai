@@ -135,15 +135,50 @@
     .paper,.paper *{visibility:visible}
     .paper{position:absolute;top:0;left:0;width:100%;border:none;box-shadow:none}
   }
-  /* SAFETY: one persistent, unmissable banner on every tab (header markup isn't
-     rebuilt on tab switch — only toggled once per case load) — a doctor must
-     never mistake an AI-generated board for a validated one. Amber/bad warning
-     tint. Merged 2026-07-23 from two stacked banners (origin + estimate) that
-     always fired together — one considered notice, not two overlapping alerts. */
-  .estbanner{display:none;gap:8px;align-items:flex-start;margin-top:9px;font-size:11.5px;font-weight:600;color:var(--bad);background:linear-gradient(150deg,var(--amber-tint),var(--bad-tint));border:1px solid color-mix(in oklab,var(--bad) 35%,transparent);border-radius:11px;padding:8px 11px;line-height:1.45}
+  /* SAFETY: one persistent notice that a board is model-built, shown on every
+     tab (footer markup isn't rebuilt on tab switch — only toggled once per case
+     load). It sits at the BOTTOM, quiet and always there, the way every major
+     assistant carries its disclaimer: never competing with the clinical work,
+     never absent. His correction, 2026-07-23 — at the top it "takes out too
+     much clot at the top, popping up in your face". The sharp "% est." marker
+     stays welded to the confidence number itself, where it cannot be read out
+     of context; this line carries the wider warning. Merged 2026-07-23 from two
+     stacked banners that always fired together. */
+  .estbanner{display:none;gap:7px;align-items:flex-start;text-align:left;margin:0 auto 11px;max-width:520px;font-size:11px;font-weight:500;color:var(--ink-mute);border-top:1px solid var(--line);padding-top:10px;line-height:1.5}
   .estbanner.show{display:flex}
-  .estbanner .eicon{flex:none;font-size:13px;line-height:1.2;color:var(--amber)}
-  .estbanner b{font-weight:800}
+  .estbanner .eicon{flex:none;font-size:9px;line-height:1.7;color:var(--amber)}
+
+  /* The spine strip: seven pips, one per clerking domain, always on screen.
+     Its whole job is peripheral — a clinician mid-clerking should be able to
+     see WITHOUT READING that they never asked about drugs. Filled = covered,
+     hollow = not asked, amber ring = a flagged question (HIV, TB, allergies)
+     still open. Colour is doing one job here and no other. */
+  .spine{display:flex;align-items:center;gap:5px;margin-top:9px;flex-wrap:wrap}
+  .spip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:650;letter-spacing:.03em;
+        color:var(--ink-mute);background:var(--surface);border:1px solid var(--line);border-radius:99px;
+        padding:4px 9px;cursor:pointer;transition:color .18s,border-color .18s,background .18s}
+  .spip .sd{width:6px;height:6px;border-radius:99px;background:var(--line);transition:background .28s}
+  .spip.done{color:var(--brand-strong);border-color:color-mix(in oklab,var(--brand) 40%,transparent);background:var(--brand-tint)}
+  .spip.done .sd{background:var(--brand)}
+  .spip.flag{color:var(--amber);border-color:color-mix(in oklab,var(--amber) 45%,transparent)}
+  .spip.flag .sd{background:var(--amber)}
+  .spip.on{outline:2px solid color-mix(in oklab,var(--brand) 45%,transparent);outline-offset:1px}
+  .sweep{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.03em;color:var(--brand-strong);
+         background:var(--brand-tint);border:1px solid color-mix(in oklab,var(--brand) 30%,transparent);
+         border-radius:99px;padding:4px 11px;cursor:pointer}
+  .spanel{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 11px;box-shadow:var(--shadow-sm)}
+  .spanel .sph{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:8px}
+  .sprow{padding:8px 0;border-top:1px solid var(--line-soft)}
+  .sprow:first-of-type{border-top:none}
+  .sprow .spl{font-size:12.5px;font-weight:600;color:var(--ink);display:block;margin-bottom:6px}
+  .sprow .spw{display:block;font-size:11px;font-weight:400;color:var(--ink-mute);margin-top:2px;line-height:1.45}
+  .sprow .spopts{display:flex;flex-wrap:wrap;gap:5px}
+  .sprow .spopt{font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);
+                border:1px solid var(--line);border-radius:99px;padding:5px 11px;cursor:pointer}
+  .sprow .spopt.sel{color:#fff;background:var(--brand);border-color:var(--brand)}
+  .sprow .sptxrow{display:flex;gap:6px;align-items:center}
+  .sprow input.sptxt{flex:1;min-width:0;font:inherit;font-size:12.5px;color:var(--ink);background:var(--surface-alt);
+                     border:1px solid var(--line);border-radius:9px;padding:7px 10px}
 
   .next{margin-top:12px;background:var(--surface);border:1.5px solid var(--brand);border-radius:13px;padding:10px 8px 10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
   .next .tag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#fff;background:var(--brand);padding:4px 8px;border-radius:6px;flex:none}
@@ -474,7 +509,7 @@
         <div class="track"><div class="fill comp" id="compF"></div></div>
       </div>
     </div>
-    <div class="estbanner" id="estbanner"><span class="eicon">⚠</span><span><b>AI-generated from your description</b> — every diagnosis, probability, weight and dose here is a model estimate, not from a validated dataset. Verify before acting — a reasoning aid, not a source of truth.</span></div>
+    <div class="spine" id="spine"></div>
     <div class="cap" id="cap"></div>
     <div class="scorebar" id="scorebar"></div>
     <div class="diffstrip" id="diffstrip"></div>
@@ -492,6 +527,7 @@
   <main id="main"></main>
 
   <footer>
+    <div class="estbanner" id="estbanner"><span class="eicon">◆</span><span>This board was built by a model from what you typed. Every diagnosis, probability, weight and dose on it is an estimate, not a validated figure. Check it before you act on it.</span></div>
     <div class="legend" id="foot"></div>
     <div><button class="theme" id="theme">Light / dark</button></div>
   </footer>
@@ -503,9 +539,9 @@ const CASES={
  pre:{
   specialty:'O&G', label:'Pre-eclampsia',
   referTo:'O&G Registrar on call',
-  planLine:'MgSO₄ · BP control · betamethasone · urgent bloods · senior O&amp;G review · plan delivery.',
-  recommendation:'MgSO₄ seizure prophylaxis; control BP &lt;150/100; betamethasone for fetal lung maturity; urgent FBC, U&amp;E, LFT, coagulation, glucose. <b>Urgent senior O&amp;G review — plan delivery after maternal stabilisation.</b>',
-  PT:{line:'29 · G3P2 · 33<small>+4/40</small> · headache + epigastric pain', summaryLine:'29-year-old G3P2 at 33<sup>+4</sup> weeks', complaint:'headache and epigastric pain', background:'Third pregnancy. P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress). No hypertension before this pregnancy. Gestation 33<sup>+4</sup> weeks by dates.', obsHx:'P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress)'},
+  planLine:'MgSO₄ · BP control · betamethasone · urgent bloods · senior O&G review · plan delivery.',
+  recommendation:'MgSO₄ seizure prophylaxis; control BP <150/100; betamethasone for fetal lung maturity; urgent FBC, U&E, LFT, coagulation, glucose. Urgent senior O&G review — plan delivery after maternal stabilisation.',
+  PT:{line:'29 · G3P2 · 33+4/40 · headache + epigastric pain', summaryLine:'29-year-old G3P2 at 33+4 weeks', complaint:'headache and epigastric pain', background:'Third pregnancy. P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress). No hypertension before this pregnancy. Gestation 33+4 weeks by dates.', obsHx:'P2 — 1 normal vaginal delivery (2019) and 1 lower-segment Caesarean section (2022, for fetal distress)'},
   VITALS:[{k:'HR',v:'104',vc:'var(--hr)'},{k:'BP',v:'168/112',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.9',vc:'var(--temp)'}],
   DX:[
    {id:'pet',name:'Severe pre-eclampsia',icd:'O14.1',c:'var(--pet)',prior:.28,mnm:false,script:'HTN after 20 weeks + proteinuria AND/OR end-organ dysfunction (renal, hepatic, neuro, haematological, or uteroplacental) — ISSHP 2021 does not require proteinuria'},
@@ -581,7 +617,7 @@ const CASES={
    {id:'usabruption',cat:'imaging',lbl:'Ultrasound — placenta',binary:true,dx:'Abruption'},
    {id:'amnioculture',cat:'lab',lbl:'Amniotic fluid Gram stain / culture',binary:true,dx:'Chorioamnionitis'}],
   MX:{
-   investigate:[{lbl:'Urgent bloods — FBC · U&amp;E · LFT · coagulation · glucose',when:'now — HELLP / AFLP',ix:'plt'},{lbl:'Ultrasound — placenta (abruption is largely a clinical diagnosis; imaging excludes praevia and may show a retroplacental clot)',when:'now',ix:'usabruption'}],
+   investigate:[{lbl:'Urgent bloods — FBC · U&E · LFT · coagulation · glucose',when:'now — HELLP / AFLP',ix:'plt'},{lbl:'Ultrasound — placenta (abruption is largely a clinical diagnosis; imaging excludes praevia and may show a retroplacental clot)',when:'now',ix:'usabruption'}],
    immediate:[{rx:'Magnesium sulphate',for:'seizure prophylaxis — continue 24h after delivery or the last seizure, not just until delivery (postpartum eclampsia is real)',dose:'IV regimen: 4 g IV over 20 min → 1 g/h infusion. SA/low-resource alternative (Pritchard regimen, used where infusion pumps aren’t reliably available): 4 g IV + 10 g IM loading, then 5 g IM 4-hourly',sign:true},{rx:'Antihypertensive',for:'BP ≥ 160/110',dose:'labetalol 20 mg IV (double q10min, max 300 mg) · or nifedipine 10 mg PO · or hydralazine 5 mg IV',sign:true,activeKeys:['BP']}],
    definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'12 mg IM, 2 doses 24 h apart',sign:true,ind:'33+4 wk — give'}],
    longterm:[{rx:'Postnatal BP review',for:'PET resolves over weeks',dose:'BP checks + wean antihypertensives'},{rx:'Future-pregnancy prophylaxis',for:'high recurrence risk',dose:'aspirin 150 mg nocte from 12 wk + calcium',sign:true},{rx:'Cardiovascular risk follow-up',for:'lifelong ↑ CVD / HTN risk',dose:'BP, weight, metabolic screen'}],
@@ -592,7 +628,7 @@ const CASES={
   specialty:'IM / EM', label:'Chest pain',
   referTo:'Medical Registrar / Cardiology',
   planLine:'aspirin · serial troponin · 12-lead ECG · anticoagulation per pathway · cardiology review.',
-  recommendation:'Aspirin if ACS likely and dissection excluded; serial troponin and continuous ECG; treat along the confirmed pathway — PCI for STEMI, anticoagulation for PE/NSTEMI, urgent aortic control for dissection. <b>Urgent medical / cardiology review.</b>',
+  recommendation:'Aspirin if ACS likely and dissection excluded; serial troponin and continuous ECG; treat along the confirmed pathway — PCI for STEMI, anticoagulation for PE/NSTEMI, urgent aortic control for dissection. Urgent medical / cardiology review.',
   PT:{line:'58 · ♂ · central chest pain · 2 h', summaryLine:'58-year-old man', complaint:'central chest pain for 2 hours', background:'Hypertension and hyperlipidaemia. Ex-smoker, 20 pack-years. Father had a myocardial infarction at 55. No recent surgery or immobility.'},
   VITALS:[{k:'HR',v:'108',vc:'var(--hr)'},{k:'BP',v:'148/92',vc:'var(--bp)'},{k:'RR',v:'22',vc:'var(--rr)'},{k:'SpO₂',v:'93',vc:'var(--spo2)'},{k:'T',v:'36.8',vc:'var(--temp)'}],
   DX:[
@@ -691,7 +727,7 @@ const CASES={
   specialty:'Surgery', label:'RIF pain',
   referTo:'Surgical Registrar on call',
   planLine:'analgesia · nil by mouth · IV fluids · βhCG · WCC/CRP · imaging · surgical review.',
-  recommendation:'Analgesia and antiemetic; keep nil by mouth with IV fluids pending theatre; <b>exclude pregnancy with βhCG</b>; WCC/CRP and imaging as indicated. <b>Urgent surgical review — laparoscopy if torsion or ectopic suspected.</b>',
+  recommendation:'Analgesia and antiemetic; keep nil by mouth with IV fluids pending theatre; exclude pregnancy with βhCG; WCC/CRP and imaging as indicated. Urgent surgical review — laparoscopy if torsion or ectopic suspected.',
   PT:{line:'24 · ♀ · right iliac fossa pain · 1 day', summaryLine:'24-year-old woman', complaint:'right iliac fossa pain for one day', background:'Previously well. Last menstrual period about 6 weeks ago, uncertain dates. No previous surgery.'},
   VITALS:[{k:'HR',v:'98',vc:'var(--hr)'},{k:'BP',v:'118/74',vc:'var(--bp)'},{k:'RR',v:'18',vc:'var(--rr)'},{k:'SpO₂',v:'99',vc:'var(--spo2)'},{k:'T',v:'37.8',vc:'var(--temp)'}],
   DX:[
@@ -763,7 +799,7 @@ const CASES={
   specialty:'Paeds', label:'Febrile infant',
   referTo:'Paediatric Registrar on call',
   planLine:'sepsis assessment · weight-based antibiotics if indicated · CRP · urine · CXR · LP if meningism · admit.',
-  recommendation:'Assess for sepsis (HR 168, RR 44); weight-based fluids and empirical antibiotics if meningitis or sepsis suspected — do not delay treatment for LP if unwell; septic screen with urine, CRP and chest X-ray. <b>Urgent paediatric review.</b>',
+  recommendation:'Assess for sepsis (HR 168, RR 44); weight-based fluids and empirical antibiotics if meningitis or sepsis suspected — do not delay treatment for LP if unwell; septic screen with urine, CRP and chest X-ray. Urgent paediatric review.',
   PT:{line:'8 mo · ♂ · fever + irritability · 1 day', summaryLine:'8-month-old boy', complaint:'fever and irritability for one day', background:'Fully immunised for age. Reduced feeds today. No rash noticed by parents.'},
   VITALS:[{k:'HR',v:'168',vc:'var(--hr)'},{k:'BP',v:'92/54',vc:'var(--bp)'},{k:'RR',v:'44',vc:'var(--rr)'},{k:'SpO₂',v:'96',vc:'var(--spo2)'},{k:'T',v:'39.2',vc:'var(--temp)'}],
   DX:[
@@ -848,7 +884,7 @@ const CASES={
   specialty:'Neuro', label:'Thunderclap HA',
   referTo:'Medical / Neurology Registrar on call',
   planLine:'analgesia · non-contrast CT head within 1 h · LP for xanthochromia if CT negative · BP control · neuro review.',
-  recommendation:'Analgesia and antiemetic; <b>urgent non-contrast CT head within the hour</b>; LP for xanthochromia if CT negative and SAH still suspected; cautious BP control. <b>Urgent medical / neurology review; neurosurgery if SAH confirmed.</b>',
+  recommendation:'Analgesia and antiemetic; urgent non-contrast CT head within the hour; LP for xanthochromia if CT negative and SAH still suspected; cautious BP control. Urgent medical / neurology review; neurosurgery if SAH confirmed.',
   PT:{line:'46 · ♀ · sudden severe headache · 3 h', summaryLine:'46-year-old woman', complaint:'sudden-onset severe headache for three hours', background:'Smoker. Family history of subarachnoid haemorrhage. No head injury.'},
   VITALS:[{k:'HR',v:'88',vc:'var(--hr)'},{k:'BP',v:'176/98',vc:'var(--bp)'},{k:'RR',v:'16',vc:'var(--rr)'},{k:'SpO₂',v:'98',vc:'var(--spo2)'},{k:'T',v:'37.1',vc:'var(--temp)'}],
   DX:[
@@ -929,7 +965,7 @@ const CASES={
   specialty:'IM / Surgery', label:'Haematemesis',
   referTo:'Medical / Surgical Registrar on call',
   planLine:'resuscitate · 2 large IV lines · G&S + crossmatch · risk score · urgent endoscopy.',
-  recommendation:'Resuscitate with two large-bore IV lines and fluids/blood as needed; group &amp; save and crossmatch; risk-stratify (Glasgow-Blatchford); <b>urgent upper GI endoscopy</b>. If varices suspected: terlipressin and antibiotics per protocol. Senior review.',
+  recommendation:'Resuscitate with two large-bore IV lines and fluids/blood as needed; group & save and crossmatch; risk-stratify (Glasgow-Blatchford); urgent upper GI endoscopy. If varices suspected: terlipressin and antibiotics per protocol. Senior review.',
   PT:{line:'62 · ♂ · haematemesis · 3 h', summaryLine:'62-year-old man', complaint:'vomiting fresh blood for three hours', background:'Alcohol excess; regular NSAIDs for back pain. No prior variceal bleed documented.'},
   VITALS:[{k:'HR',v:'116',vc:'var(--hr)'},{k:'BP',v:'98/62',vc:'var(--bp)'},{k:'RR',v:'20',vc:'var(--rr)'},{k:'SpO₂',v:'97',vc:'var(--spo2)'},{k:'T',v:'36.7',vc:'var(--temp)'}],
   DX:[
@@ -979,9 +1015,9 @@ const CASES={
     {min:0,label:'0 — very low risk',cls:'good',action:'NICE CG141: a score of 0 supports safe outpatient management, no transfusion or urgent endoscopy needed on this criterion alone.'},
     {min:1,label:'≥1 — admit',cls:'bad',action:'Any score above 0 means admission and endoscopy within 24h, per NICE CG141 — this is not a graded risk here, it is a binary gate.'}]}],
   MX:{
-   investigate:[{lbl:'Bloods — FBC · U&amp;E · LFT · coagulation',when:'now',ix:'hb'},{lbl:'OGD (upper endoscopy)',when:'diagnostic + therapeutic — within 24 h',ix:'endo'}],
-   immediate:[{rx:'Two large-bore IV lines + fluids',for:'resuscitation',dose:'balanced crystalloid; transfuse to target Hb ≥ 70 g/L',sign:true,activeKeys:['HR','BP']},{rx:'Group &amp; save + crossmatch',for:'likely transfusion',dose:'2–4 units; correct coagulopathy / platelets',sign:true},{rx:'Terlipressin + antibiotics',for:'if varices suspected',dose:'terlipressin 2 mg IV 4-hly + ceftriaxone 1 g IV OD',sign:true}],
-   definitive:[{rx:'Urgent upper GI endoscopy',for:'diagnose &amp; treat the source',dose:'within 24 h (sooner if unstable); band varices / clip ulcer'},{rx:'PPI infusion',for:'confirmed high-risk ulcer bleed',dose:'esomeprazole 80 mg IV bolus → 8 mg/h for 72 h',sign:true}],
+   investigate:[{lbl:'Bloods — FBC · U&E · LFT · coagulation',when:'now',ix:'hb'},{lbl:'OGD (upper endoscopy)',when:'diagnostic + therapeutic — within 24 h',ix:'endo'}],
+   immediate:[{rx:'Two large-bore IV lines + fluids',for:'resuscitation',dose:'balanced crystalloid; transfuse to target Hb ≥ 70 g/L',sign:true,activeKeys:['HR','BP']},{rx:'Group & save + crossmatch',for:'likely transfusion',dose:'2–4 units; correct coagulopathy / platelets',sign:true},{rx:'Terlipressin + antibiotics',for:'if varices suspected',dose:'terlipressin 2 mg IV 4-hly + ceftriaxone 1 g IV OD',sign:true}],
+   definitive:[{rx:'Urgent upper GI endoscopy',for:'diagnose & treat the source',dose:'within 24 h (sooner if unstable); band varices / clip ulcer'},{rx:'PPI infusion',for:'confirmed high-risk ulcer bleed',dose:'esomeprazole 80 mg IV bolus → 8 mg/h for 72 h',sign:true}],
    longterm:[{rx:'Prevent rebleed',for:'ulcer / varices',dose:'H. pylori eradication + confirm cure · oral PPI · stop NSAIDs · variceal band programme + β-blocker if cirrhotic',sign:true},{rx:'Correct anaemia + repeat scope',for:'ongoing recovery',dose:'iron replacement; surveillance OGD as indicated'}],
    monitor:['Obs + urine output','Serial haemoglobin','Repeat PR for melaena'],
    holistic:[
@@ -994,7 +1030,7 @@ const CASES={
   specialty:'O&G / Gynae', label:'Abnormal uterine bleeding',
   referTo:'Gynaecology Registrar on call',
   planLine:'exclude pregnancy (βhCG) · FBC/ferritin · TVUS · endometrial biopsy if at risk · treat cause.',
-  recommendation:'Exclude pregnancy with βhCG; FBC and ferritin for anaemia; transvaginal ultrasound for structural cause; <b>endometrial sampling if ≥45 yr, or younger with risk factors or failed treatment</b> to exclude hyperplasia/cancer. Treat the cause and correct anaemia.',
+  recommendation:'Exclude pregnancy with βhCG; FBC and ferritin for anaemia; transvaginal ultrasound for structural cause; endometrial sampling if ≥45 yr, or younger with risk factors or failed treatment to exclude hyperplasia/cancer. Treat the cause and correct anaemia.',
   PT:{line:'44 · ♀ · heavy periods · 6 months', summaryLine:'44-year-old woman, para 2', complaint:'heavy, prolonged menstrual bleeding for six months', background:'BMI 32. No hormonal contraception. Not on anticoagulants. Cycles becoming irregular.'},
   VITALS:[{k:'HR',v:'96',vc:'var(--hr)'},{k:'BP',v:'114/72',vc:'var(--bp)'},{k:'RR',v:'16',vc:'var(--rr)'},{k:'SpO₂',v:'99',vc:'var(--spo2)'},{k:'T',v:'36.6',vc:'var(--temp)'}],
   DX:[
@@ -1061,7 +1097,7 @@ const CASES={
   specialty:'Psych', label:'Low mood',
   referTo:'Psychiatry Registrar on call',
   planLine:'screen for mania/organic cause before treating · urine drug screen + TSH · safety plan · psychiatry review.',
-  recommendation:'Full mood-episode history (depressive AND manic/hypomanic) before any treatment decision; exclude substance-induced and organic (thyroid) causes; formal suicide risk assessment. <b>Do not start an antidepressant alone until bipolar disorder has been screened out</b> — SSRI monotherapy can precipitate a manic switch. Urgent psychiatry review if active suicidal intent or mania.',
+  recommendation:'Full mood-episode history (depressive AND manic/hypomanic) before any treatment decision; exclude substance-induced and organic (thyroid) causes; formal suicide risk assessment. Do not start an antidepressant alone until bipolar disorder has been screened out — SSRI monotherapy can precipitate a manic switch. Urgent psychiatry review if active suicidal intent or mania.',
   PT:{line:'24 · ♀ · low mood + anhedonia · 3 weeks', summaryLine:'24-year-old woman', complaint:'low mood and loss of interest for three weeks', background:'No known past psychiatric history. Lives with parents, final-year student. Recent breakup six weeks ago.'},
   VITALS:[{k:'HR',v:'',vc:'var(--hr)'},{k:'BP',v:'',vc:'var(--bp)'},{k:'RR',v:'',vc:'var(--rr)'},{k:'SpO₂',v:'',vc:'var(--spo2)'},{k:'T',v:'',vc:'var(--temp)'}],
   DX:[
@@ -1145,6 +1181,31 @@ const CASES={
  },
 };
 
+// SAFETY: every string on a generated board originates outside this file — the
+// model wrote it, from text the clinician typed. This screen builds its markup
+// with innerHTML, so any such string must be escaped before it is interpolated
+// or it becomes executable script running on this app's own origin, next to the
+// stored access key. esc() is that boundary; t() is its short name at the call
+// sites. It also fixes a real display bug: clinical text legitimately contains
+// "<" ("norm <14", "peak <1 min"), which the browser was silently swallowing as
+// a broken tag.
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// Two small errands this board cannot run for itself once it is properly
+// locked down: saving a ward handoff, and putting a note on the clipboard.
+// Both need the app's own origin, which the frame deliberately does not have.
+// Ask the host to do them; fall back to doing them directly when the clerk is
+// opened as a standalone page with no host above it.
+const embedded=()=>!!(window.parent&&window.parent!==window);
+function hostWrite(key,value){
+  if(embedded()){window.parent.postMessage({type:'medai-store',key,value},'*');return true;}
+  try{localStorage.setItem(key,value);return true;}catch(e){return false;}
+}
+function hostCopy(text){
+  if(embedded()){window.parent.postMessage({type:'medai-copy',text},'*');return;}
+  try{navigator.clipboard.writeText(text);}catch(e){}
+}
+
 let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(), last={}, tab='hx', docType='sbar', checks={}, pinNext=null, genPlanPending=false, todayNote='', otherOpen=new Set(), presetIds=new Set(), scoreOpen=new Set();
 // Which findings came pre-answered from the vignette vs. what the intern actually
 // elicited — a teaching tool should let the learner tell those apart.
@@ -1172,12 +1233,12 @@ function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX
 // every marker in the header/Mx tab reads — never invent a value, only mark it.
 function isEstimated(){return caseId==='__gen'||Boolean(CASES[caseId]&&CASES[caseId].estimated);}
 // Composite-finding checklist — tick concrete signs instead of recalling an umbrella term.
-const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${f.criterion}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${f.ask}`:''}</div>`:'';
+const fsub=f=>(f.criterion||f.ask)?`<div class="fsub">${f.criterion?`<b>${esc(f.criterion)}</b>`:''}${f.criterion&&f.ask?' · ':''}${f.ask?`<span class="askk">ask</span> ${esc(f.ask)}`:''}</div>`:'';
 // A num finding with no lo/hi is INFORMATIONAL (e.g. "years since surgery") — it
 // has nothing to be abnormal against, so it must never be marked ABNORMAL; it's
 // simply RECORDED once a value is entered.
 const numBadge=f=>{const a=ans[f.id];if(!a)return{c:'',t:''};const t=f.num;if(t.lo==null&&t.hi==null)return{c:'ok',t:'RECORDED'};if(a==='absent')return{c:'ok',t:'NORMAL'};const x=parseFloat(val[f.id]);let txt='ABNORMAL';if(!isNaN(x)){if(t.hi!=null&&x>t.hi)txt='HIGH';else if(t.lo!=null&&x<t.lo)txt='LOW';}return{c:'hi',t:txt};};
-function clChips(f){return '<div class="clchips" data-clf="'+f.id+'">'+f.checklist.map(function(s){var sel=checks[f.id]&&checks[f.id].has(s)?' sel':'';return '<button class="clchip'+sel+'" data-s="'+s+'">'+s+'</button>';}).join('')+'<button class="clchip none'+(ans[f.id]==='absent'?' sel':'')+'" data-none>none seen</button></div>';}
+function clChips(f){return '<div class="clchips" data-clf="'+esc(f.id)+'">'+f.checklist.map(function(s){var sel=checks[f.id]&&checks[f.id].has(s)?' sel':'';return '<button class="clchip'+sel+'" data-s="'+esc(s)+'">'+esc(s)+'</button>';}).join('')+'<button class="clchip none'+(ans[f.id]==='absent'?' sel':'')+'" data-none>none seen</button></div>';}
 function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(c){var fid=c.dataset.clf;c.querySelectorAll('.clchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());if(!checks[fid])checks[fid]=new Set();if(b.hasAttribute('data-none')){checks[fid].clear();ans[fid]='absent';}else{var s=b.dataset.s;checks[fid].has(s)?checks[fid].delete(s):checks[fid].add(s);if(checks[fid].size>0)ans[fid]='present';else delete ans[fid];}refresh(false);});});});}
 // Single-select tap chips for a small enumerable answer set (a handful of common
 // procedures, delivery modes, contraception types…) — tapping beats typing.
@@ -1186,9 +1247,9 @@ function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(
 // "Other" is tapped, before any text exists (val alone can't signal that).
 function chChips(f){
   const opts=f.options||[],cur=val[f.id]||'',showOther=otherOpen.has(f.id)||(cur!==''&&!opts.includes(cur));
-  return '<div class="cchips" data-chf="'+f.id+'">'+opts.map(function(o){return '<button class="cchip'+(cur===o?' sel':'')+'" data-v="'+o.replace(/"/g,'&quot;')+'">'+o+'</button>';}).join('')
+  return '<div class="cchips" data-chf="'+esc(f.id)+'">'+opts.map(function(o){return '<button class="cchip'+(cur===o?' sel':'')+'" data-v="'+esc(o)+'">'+esc(o)+'</button>';}).join('')
     +'<button class="cchip other'+(showOther?' sel':'')+'" data-other>Other</button></div>'
-    +(showOther?'<input type="text" class="cotherin" data-cotxt="'+f.id+'" value="'+cur.replace(/"/g,'&quot;')+'" placeholder="type the answer…">':'');
+    +(showOther?'<input type="text" class="cotherin" data-cotxt="'+esc(f.id)+'" value="'+esc(cur)+'" placeholder="type the answer…">':'');
 }
 function wireChChips(root){
   root.querySelectorAll('[data-chf]').forEach(function(c){var fid=c.dataset.chf;c.querySelectorAll('.cchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());
@@ -1250,7 +1311,95 @@ function relevantFeats(){
   (function walk(list){for(const f of list){out.push(f);if(ans[f.id]==='present'&&f.follow&&f.follow.length)walk(f.follow);}})(FEAT);
   return out;
 }
-function completeness(){const hx=relevantFeats().filter(f=>f.stream==='hx'||f.stream==='exam');if(!hx.length)return 0;return hx.filter(f=>ans[f.id]).length/hx.length;}
+// ─── THE CLERKING SPINE ──────────────────────────────────────────────────────
+// Completeness used to be answered-findings ÷ findings-the-model-generated. That
+// denominator was written by the same model being scored, so if it never thought
+// to ask about HIV the screen still read 100% complete with HIV never mentioned.
+// A number that can only reach 100% is not a measurement.
+//
+// So the denominator lives here, in code, and the model cannot touch it: the
+// domains every clerking covers, whatever the presentation. Case-specific
+// findings still come from the model and still drive the differential — this
+// runs beside them and answers a different question: what has not been asked.
+//
+// The list is deliberately South African. HIV status and previous TB are not
+// background trivia in this country; they change which diagnosis leads. They
+// carry a flag so an unanswered one is visible rather than averaged away.
+const SPINE=[
+  {id:'sysrev', lbl:'Systems review', short:'SYS'},
+  {id:'pmh',    lbl:'Past medical',   short:'PMH'},
+  {id:'psh',    lbl:'Past surgical',  short:'PSH'},
+  {id:'drugs',  lbl:'Medication',     short:'RX'},
+  {id:'allergy',lbl:'Allergies',      short:'ALG'},
+  {id:'fhx',    lbl:'Family',         short:'FHX'},
+  {id:'shx',    lbl:'Social',         short:'SHX'},
+];
+// One tap each. Nothing here is free text unless free text is the only honest
+// answer — a clinician between patients will not type, and a question that
+// costs typing is a question that gets skipped.
+const SPINE_ITEMS=[
+  {id:'sp-hiv', dom:'pmh', flag:true, lbl:'HIV status', kind:'choice',
+   options:['Negative','Positive, on ART','Positive, not on ART','Unknown'],
+   why:'Changes which diagnoses lead, not just their odds.'},
+  {id:'sp-tb', dom:'pmh', flag:true, lbl:'TB — treated before, or a household contact', kind:'choice',
+   options:['Neither','Treated before','Household contact','Both'],
+   why:'Prior treatment and contact both shift the pre-test probability sharply here.'},
+  {id:'sp-dm', dom:'pmh', flag:true, lbl:'Diabetes', kind:'choice', options:['No','Yes','Not known']},
+  {id:'sp-htn', dom:'pmh', flag:true, lbl:'Hypertension', kind:'choice', options:['No','Yes','Not known']},
+  {id:'sp-other', dom:'pmh', lbl:'Any other chronic illness', kind:'text'},
+  {id:'sp-psh', dom:'psh', lbl:'Previous operations', kind:'text'},
+  {id:'sp-rx', dom:'drugs', lbl:'Current medication', kind:'text'},
+  {id:'sp-alg', dom:'allergy', flag:true, lbl:'Drug allergies', kind:'choice',
+   options:['None known','Yes — record below','Not known'],
+   why:'An allergy missed before prescribing is the cheapest avoidable harm on the ward.'},
+  {id:'sp-alg-what', dom:'allergy', lbl:'Which drug, and what happened', kind:'text', showIf:'sp-alg', showIfVal:'Yes — record below'},
+  {id:'sp-fhx', dom:'fhx', lbl:'Family history of note', kind:'text'},
+  {id:'sp-shx', dom:'shx', lbl:'Smoking, alcohol, work, who is at home', kind:'text'},
+  {id:'sp-sys', dom:'sysrev', lbl:'Systems review', kind:'checklist',
+   checklist:['Weight loss','Night sweats','Fever','Cough','Chest pain','Breathlessness',
+              'Abdominal pain','Bowel change','Urinary change','Headache','Rash','Joint pain']},
+];
+// A domain the model already covered does not get asked twice — if a generated
+// finding clearly belongs to a domain and has been answered, that domain counts.
+const SPINE_MATCH={
+  pmh:/\b(hiv|arv|art\b|tb\b|tubercul|diabet|hypertens|chronic|comorbid|known )/i,
+  psh:/\b(surger|operat|laparot|caesar|c-section)\b/i,
+  drugs:/\b(medicat|drug|treatment|tablets|on any)\b/i,
+  allergy:/\ballerg/i,
+  fhx:/\bfamily\b/i,
+  shx:/\b(smok|alcohol|drink|occupat|work|social|hous)/i,
+  sysrev:/\b(weight loss|night sweat|systems review)\b/i,
+};
+// A conditional item appears only on the answer that actually opens it — asking
+// "which drug, and what happened" of someone who just said they have no allergies
+// is the kind of dead question that teaches a busy clinician to ignore the panel.
+function spineItems(dom){return SPINE_ITEMS.filter(i=>i.dom===dom&&(!i.showIf||val[i.showIf]===i.showIfVal));}
+function spineAnswered(i){return !!ans[i.id];}
+// Covered by the model's own questions, so the intern is not asked it twice.
+function domCoveredByBoard(dom){
+  const re=SPINE_MATCH[dom]; if(!re)return false;
+  return allFeats().some(f=>ans[f.id]&&re.test(String(f.lbl||'')));
+}
+function spineState(){
+  return SPINE.map(d=>{
+    const items=spineItems(d.id);
+    const done=items.filter(spineAnswered).length;
+    const byBoard=done===0&&domCoveredByBoard(d.id);
+    const missingFlag=items.some(i=>i.flag&&!spineAnswered(i))&&!byBoard;
+    return {...d, items, done, total:items.length,
+            covered:byBoard||(items.length>0&&done===items.length), byBoard, missingFlag};
+  });
+}
+// Two halves, and the spine is the half that can honestly stay low: the model's
+// own case-specific questions, plus the fixed domains above. Weighted so a fast
+// clerking that skipped every background domain cannot read as complete.
+function completeness(){
+  const hx=relevantFeats().filter(f=>f.stream==='hx'||f.stream==='exam');
+  const caseSide=hx.length?hx.filter(f=>ans[f.id]).length/hx.length:0;
+  const st=spineState();
+  const spineSide=st.filter(d=>d.covered).length/st.length;
+  return caseSide*0.6+spineSide*0.4;
+}
 function nextBest(p){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;const g=Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
 function tween(el,to,suf=''){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/450);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
 function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
@@ -1329,7 +1478,7 @@ function paintVitals(){
     const arw=fl==='hi'?'<span class="varw">↑</span>':fl==='lo'?'<span class="varw">↓</span>':'';
     // Vitals are MEASURED, never assumed — each value is an inline field the
     // clinician records; blank shows a muted "—" until entered.
-    return `<span class="vital${fl?' abn-'+fl:''}${has?'':' vunset'}" style="--vc:${v.vc}"${title?` title="${title}"`:''}><span class="dot"></span><span class="lbl">${v.k}</span><input class="vin" data-vi="${i}" value="${String(v.v??'').replace(/"/g,'&quot;')}" placeholder="—" aria-label="${v.k}">${arw}</span>`;
+    return `<span class="vital${fl?' abn-'+fl:''}${has?'':' vunset'}" style="--vc:${esc(v.vc)}"${title?` title="${esc(title)}"`:''}><span class="dot"></span><span class="lbl">${esc(v.k)}</span><input class="vin" data-vi="${i}" value="${esc(v.v??'')}" placeholder="—" aria-label="${esc(v.k)}">${arw}</span>`;
   }).join('');
   el.querySelectorAll('.vin').forEach(inp=>inp.addEventListener('change',()=>{VITALS[+inp.dataset.vi].v=inp.value.trim();paintVitals();
     // On the Mx tab, "ACTIVE — <vital> now" notes read straight off VITALS — rebuild
@@ -1352,16 +1501,80 @@ function paintScores(){
   el.innerHTML=scores.map(sc=>{
     const r=computeScore(sc),open=scoreOpen.has(sc.id),answered=r.parts.filter(p=>!p.unanswered).length;
     const bandCls=r.band.cls||'amber';
-    return `<div class="score${open?' open':''}" data-sid="${sc.id}">`
-      +`<div class="shd" data-shd="${sc.id}"><span class="sname">${sc.name}${!r.answeredAll?` <span class="spartial">(${answered}/${sc.items.length} answered)</span>`:''}</span>`
-      +`<span class="stot"><span class="spts">${r.total}${sc.maxNote?sc.maxNote:''}</span><span class="sband ${bandCls}">${r.band.label}</span></span></div>`
-      +(r.answeredAll&&r.band.action?`<div class="said">${r.band.action}</div>`:'')
-      +`<div class="sitems">${sc.items.map((it,i)=>{const p=r.parts[i];return `<div class="srow${p.unanswered?' unanswered':''}"><span>${it.label}</span><span class="rp">${p.unanswered?'— not yet answered':p.pts+' pt'+(p.pts===1?'':'s')}</span></div>`;}).join('')}</div>`
+    return `<div class="score${open?' open':''}" data-sid="${esc(sc.id)}">`
+      +`<div class="shd" data-shd="${esc(sc.id)}"><span class="sname">${esc(sc.name)}${!r.answeredAll?` <span class="spartial">(${answered}/${sc.items.length} answered)</span>`:''}</span>`
+      +`<span class="stot"><span class="spts">${r.total}${sc.maxNote?esc(sc.maxNote):''}</span><span class="sband ${esc(bandCls)}">${esc(r.band.label)}</span></span></div>`
+      +(r.answeredAll&&r.band.action?`<div class="said">${esc(r.band.action)}</div>`:'')
+      +`<div class="sitems">${sc.items.map((it,i)=>{const p=r.parts[i];return `<div class="srow${p.unanswered?' unanswered':''}"><span>${esc(it.label)}</span><span class="rp">${p.unanswered?'— not yet answered':p.pts+' pt'+(p.pts===1?'':'s')}</span></div>`;}).join('')}</div>`
       +`</div>`;
   }).join('');
   el.querySelectorAll('[data-shd]').forEach(h=>h.addEventListener('click',()=>{const id=h.dataset.shd;scoreOpen.has(id)?scoreOpen.delete(id):scoreOpen.add(id);paintScores();}));
 }
 
+// Which domain panel is open, or '__sweep' for every open question at once.
+let spineOpen=null;
+function spineRow(i){
+  const cur=val[i.id]||'';
+  const head=`<span class="spl">${esc(i.lbl)}${i.why?`<span class="spw">${esc(i.why)}</span>`:''}</span>`;
+  if(i.kind==='choice')
+    return `<div class="sprow" data-sp="${esc(i.id)}">${head}<div class="spopts">${i.options.map(o=>
+      `<button class="spopt${cur===o?' sel':''}" data-spv="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`;
+  if(i.kind==='checklist')
+    return `<div class="sprow" data-sp="${esc(i.id)}">${head}<div class="spopts">${i.checklist.map(o=>
+      `<button class="spopt${(checks[i.id]&&checks[i.id].has(o))?' sel':''}" data-spc="${esc(o)}">${esc(o)}</button>`).join('')}
+      <button class="spopt${ans[i.id]==='absent'?' sel':''}" data-spnone>Nothing else</button></div></div>`;
+  // Every free-text row carries a one-tap "none" beside it. Without it, closing a
+  // domain would cost typing, and a question that costs typing is a question that
+  // gets skipped in a full clinic — which would put the honesty of the whole
+  // number back in the hands of how rushed someone is.
+  return `<div class="sprow" data-sp="${esc(i.id)}">${head}<div class="sptxrow"><input class="sptxt" data-spt placeholder="type…" value="${esc(cur)}">`
+    +`<button class="spopt${ans[i.id]==='absent'?' sel':''}" data-spnil>None</button></div></div>`;
+}
+function paintSpine(){
+  const el=document.getElementById('spine'); if(!el)return;
+  const st=spineState();
+  const open=st.filter(d=>!d.covered).length;
+  // The sweep closes itself once there is nothing left in it, rather than leaving
+  // an empty panel headed "everything still unasked" sitting on the screen.
+  if(spineOpen==='__sweep'&&!open)spineOpen=null;
+  el.innerHTML=st.map(d=>`<button class="spip${d.covered?' done':''}${d.missingFlag?' flag':''}${spineOpen===d.id?' on':''}" data-sp-dom="${esc(d.id)}"><span class="sd"></span>${esc(d.short)}</button>`).join('')
+    +(open?`<button class="sweep" data-sweep>${spineOpen==='__sweep'?'Close':`Fill the last ${open}`}</button>`:'')
+    +(spineOpen?`<div class="spanel" style="flex-basis:100%"><div class="sph">${spineOpen==='__sweep'?'Everything still unasked':esc((SPINE.find(d=>d.id===spineOpen)||{}).lbl||'')}</div>`
+      +(spineOpen==='__sweep'
+        ? st.filter(d=>!d.covered).flatMap(d=>d.items).map(spineRow).join('')
+        : spineItems(spineOpen).map(spineRow).join(''))
+      +`</div>`:'');
+  el.querySelectorAll('[data-sp-dom]').forEach(b=>b.addEventListener('click',()=>{
+    const d=b.dataset.spDom; spineOpen=spineOpen===d?null:d; paintSpine();
+  }));
+  const sw=el.querySelector('[data-sweep]');
+  if(sw)sw.addEventListener('click',()=>{spineOpen=spineOpen==='__sweep'?null:'__sweep';paintSpine();});
+  // A spine answer is recorded exactly like any other finding, so it flows into
+  // the clerking note and the referral letter without a second code path.
+  el.querySelectorAll('[data-spv]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.closest('[data-sp]').dataset.sp;
+    val[id]=b.dataset.spv; ans[id]='present'; refresh(false);
+  }));
+  el.querySelectorAll('[data-spc]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.closest('[data-sp]').dataset.sp, s=b.dataset.spc;
+    if(!checks[id])checks[id]=new Set();
+    checks[id].has(s)?checks[id].delete(s):checks[id].add(s);
+    ans[id]=checks[id].size?'present':undefined; if(!ans[id])delete ans[id];
+    refresh(false);
+  }));
+  el.querySelectorAll('[data-spnone]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.closest('[data-sp]').dataset.sp;
+    if(checks[id])checks[id].clear(); ans[id]='absent'; refresh(false);
+  }));
+  el.querySelectorAll('[data-spnil]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.closest('[data-sp]').dataset.sp;
+    val[id]=''; ans[id]='absent'; refresh(false);
+  }));
+  el.querySelectorAll('[data-spt]').forEach(inp=>inp.addEventListener('change',()=>{
+    const id=inp.closest('[data-sp]').dataset.sp, raw=inp.value.trim();
+    val[id]=raw; if(raw)ans[id]='present'; else delete ans[id]; refresh(false);
+  }));
+}
 function paintHeader(p,first){
   const c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);
   const cPc=Math.round(conf*100),comp=Math.round(completeness()*100);
@@ -1371,8 +1584,9 @@ function paintHeader(p,first){
   tween(document.getElementById('confV'),cPc,isEstimated()?'% est.':'%');document.getElementById('confF').style.width=cPc+'%';
   tween(document.getElementById('compV'),comp,'%');document.getElementById('compF').style.width=comp+'%';
   const capEl=document.getElementById('cap');
-  if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>d.name.replace(' of pregnancy','')).join(' + ')+' not yet excluded. Enter the pending results on the Ix tab to release.</span>';}
+  if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+c.live.map(d=>esc(d.name.replace(' of pregnancy',''))).join(' + ')+' not yet excluded. Enter the pending results on the Ix tab to release.</span>';}
   else capEl.style.display='none';
+  paintSpine();
   paintScores();
   // The ranked differential otherwise only lives on the Hx·Exam tab — once on
   // Ix/Mx/Docs/Why there was no way to see which diagnosis a result or plan item
@@ -1385,7 +1599,7 @@ function paintHeader(p,first){
     else{
       const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]).slice(0,3);
       dsEl.className='diffstrip show';
-      dsEl.innerHTML=ranked.map(d=>`<span class="diffchip" style="--c:${d.c}"><span class="dot"></span>${shortName(d)} <b>${Math.round(p[d.id]*100)}%</b></span>`).join('');
+      dsEl.innerHTML=ranked.map(d=>`<span class="diffchip" style="--c:${esc(d.c)}"><span class="dot"></span>${esc(shortName(d))} <b>${Math.round(p[d.id]*100)}%</b></span>`).join('');
     }
   }
   let nb=null;
@@ -1394,27 +1608,27 @@ function paintHeader(p,first){
   const nx=document.getElementById('next');
   if(nb&&nb.checklist){
     nx.style.display='flex';nx.className='next next-cl';
-    nx.innerHTML=`<div class="nxtop"><span class="tag">Next</span><span class="qt">${nb.lbl}<em>tick what you see — no need to recall the term</em></span><button class="nxdone" data-done>done →</button></div>${clChips(nb)}`;
+    nx.innerHTML=`<div class="nxtop"><span class="tag">Next</span><span class="qt">${esc(nb.lbl)}<em>tick what you see — no need to recall the term</em></span><button class="nxdone" data-done>done →</button></div>${clChips(nb)}`;
     nx.querySelector('[data-done]').addEventListener('click',()=>{pinNext=null;refresh(false);});
     wireClChips(nx);
   } else if(nb&&nb.kind==='choice'){
     // Same type-dispatch discipline as the queue: the pinned "Next" question
     // must render by what the finding IS, not default to a yes/no it doesn't fit.
     nx.style.display='flex';nx.className='next';
-    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'tap the closest match'}</em></span>`+chChips(nb);
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${esc(nb.lbl)}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${esc(nb.criterion)}</b> · `:''}${nb.ask?'ask: '+esc(nb.ask):''}`:'tap the closest match'}</em></span>`+chChips(nb);
     wireChChips(nx);
   } else if(nb&&nb.kind==='text'){
     nx.style.display='flex';nx.className='next';
-    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'type the answer'}</em></span><span class="txtin"><input type="text" placeholder="type answer…" data-txt value="${(val[nb.id]||'').replace(/"/g,'&quot;')}"></span>`;
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${esc(nb.lbl)}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${esc(nb.criterion)}</b> · `:''}${nb.ask?'ask: '+esc(nb.ask):''}`:'type the answer'}</em></span><span class="txtin"><input type="text" placeholder="type answer…" data-txt value="${esc(val[nb.id]||'')}"></span>`;
     nx.querySelectorAll('[data-txt]').forEach(inp=>inp.addEventListener('change',()=>{const raw=inp.value.trim();snap(probs());val[nb.id]=raw;if(raw)ans[nb.id]='present';else delete ans[nb.id];refresh(false);}));
   } else if(nb&&nb.num){
     const nbb=numBadge(nb);
     nx.style.display='flex';nx.className='next';
-    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'enter the value'}</em></span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[nb.id]??''}"><span class="unit">${nb.num.unit||''}</span></span><span class="badge${nbb.c?' show '+nbb.c:''}">${nbb.t}</span></span>`;
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${esc(nb.lbl)}<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${esc(nb.criterion)}</b> · `:''}${nb.ask?'ask: '+esc(nb.ask):''}`:'enter the value'}</em></span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${esc(val[nb.id]??'')}"><span class="unit">${esc(nb.num.unit||'')}</span></span><span class="badge${nbb.c?' show '+esc(nbb.c):''}">${esc(nbb.t)}</span></span>`;
     nx.querySelectorAll('[data-num]').forEach(inp=>inp.addEventListener('change',()=>{const t=nb.num,raw=inp.value.trim();snap(probs());val[nb.id]=raw;const x=parseFloat(raw);if(raw===''||isNaN(x))delete ans[nb.id];else if(t.lo==null&&t.hi==null)ans[nb.id]='present';else{const abn=(t.lo!=null&&x<t.lo)||(t.hi!=null&&x>t.hi);ans[nb.id]=abn?'present':'absent';}refresh(false);}));
   } else if(nb){
     nx.style.display='flex';nx.className='next';
-    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${nb.lbl}?<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${nb.criterion}</b> · `:''}${nb.ask?'ask: '+nb.ask:''}`:'the one answer that moves the picture most'}</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
+    nx.innerHTML=`<span class="tag">Next</span><span class="qt">${esc(nb.lbl)}?<em>${(nb.criterion||nb.ask)?`${nb.criterion?`<b>${esc(nb.criterion)}</b> · `:''}${nb.ask?'ask: '+esc(nb.ask):''}`:'the one answer that moves the picture most'}</em></span><span class="tc"><button class="y" data-a="present">✓</button><button class="n" data-a="absent">✕</button></span>`;
     nx.querySelectorAll('.tc button').forEach(b=>b.addEventListener('click',()=>{snap(probs());ans[nb.id]=b.dataset.a;refresh(false);}));
   } else nx.style.display='none';
 }
@@ -1427,11 +1641,11 @@ function buildHx(){
   document.getElementById('main').innerHTML='<div class="clerk" style="order:-10"><div id="queue"></div></div>'
   +'<div class="dxlead" style="order:-5">Working differential</div>'
   +DX.map(d=>`
-    <div class="dx open" data-id="${d.id}" style="--dxc:${d.c}">
+    <div class="dx open" data-id="${esc(d.id)}" style="--dxc:${esc(d.c)}">
       <div class="accent"></div>
       <div class="col">
         <div class="dx-head" style="cursor:default">
-          <span class="nm"><span class="name">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm" title="Must not miss"></span>':''}</span>
+          <span class="nm"><span class="name">${esc(d.name)}</span><span class="icd">${esc(d.icd)}</span>${d.mnm?'<span class="dot-mnm" title="Must not miss"></span>':''}</span>
           <span class="metric"><span class="delta" data-delta></span><span class="mini"><span class="f" data-mini></span></span><span class="pct tnum" data-pct>0</span></span>
         </div>
         <div class="body"><div class="script" data-script></div></div>
@@ -1454,7 +1668,7 @@ function paintHx(p,first){
     const dl=el.querySelector('[data-delta]'),ch=Math.round((p[d.id]-last[d.id])*100);
     if(!first&&Math.abs(ch)>=1){dl.className='delta '+(ch>0?'up':'down');dl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}else{dl.className='delta';dl.textContent='';}
     const matched=featsForAll(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
-    el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${w}</b>`:w).join('');
+    el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${esc(w)}</b>`:esc(w)).join('');
   });
   if(firstRel)requestAnimationFrame(()=>{cards.forEach(c=>{const dy=firstRel.get(c)-relTop(c);if(Math.abs(dy)>1){c.style.transition='none';c.style.transform=`translateY(${dy}px)`;requestAnimationFrame(()=>{c.style.transition='transform .42s cubic-bezier(.22,1,.36,1)';c.style.transform='';});}});});
   // ---- the global rolling clerking queue (≤5 per stream, highest-yield first) ----
@@ -1477,22 +1691,22 @@ function paintHx(p,first){
     // gated on "!child", which silently forced every follow-up question back
     // to a yes/no tick regardless of its real type — e.g. "how long ago was
     // the hysterectomy?" rendered as present/absent. That was the bug.)
-    if(f.checklist)return `<div class="feat feat-cl str-${st}${child?' child':''}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
+    if(f.checklist)return `<div class="feat feat-cl str-${esc(st)}${child?' child':''}${ans[f.id]?' on':''}" data-f="${esc(f.id)}"><div class="fl"><span class="sdot ${esc(st)}"></span>${esc(f.lbl)}<em>tick the signs you see</em></div>${sub}${clChips(f)}</div>`;
     // A small enumerable answer set (common procedures, delivery mode, contraception
     // type…) gets tap chips — minimises typing to the genuine "none of these fit" case.
-    if(f.kind==='choice')return `<div class="feat feat-cl str-${st}${child?' child':''}${ans[f.id]?' on':''}" data-f="${f.id}"><div class="fl"><span class="sdot ${st}"></span>${f.lbl}</div>${sub}${chChips(f)}</div>${kids(f)}`;
+    if(f.kind==='choice')return `<div class="feat feat-cl str-${esc(st)}${child?' child':''}${ans[f.id]?' on':''}" data-f="${esc(f.id)}"><div class="fl"><span class="sdot ${esc(st)}"></span>${esc(f.lbl)}</div>${sub}${chChips(f)}</div>${kids(f)}`;
     // Free-text answers (an indication, a procedure name, "what medication") get
     // a text field, never a yes/no tick — a y/n control doesn't fit an open answer.
-    if(f.kind==='text')return `<div class="feat str-${st}${child?' child':''} has-sub text${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="txtin"><input type="text" placeholder="type answer…" data-txt value="${(val[f.id]||'').replace(/"/g,'&quot;')}"></span></div>${kids(f)}`;
-    if(f.num){const nb=numBadge(f);return `<div class="feat str-${st}${child?' child':''} has-sub num${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${val[f.id]??''}"><span class="unit">${f.num.unit||''}</span></span><span class="badge${nb.c?' show '+nb.c:''}">${nb.t}</span></span></div>${kids(f)}`;}
-    return `<div class="feat str-${st}${child?' child':''}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${f.id}"><span class="fl"><span class="fll"><span class="sdot ${st}"></span>${f.lbl}</span>${sub}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>${kids(f)}`;
+    if(f.kind==='text')return `<div class="feat str-${esc(st)}${child?' child':''} has-sub text${ans[f.id]?' on':''}" data-f="${esc(f.id)}"><span class="fl"><span class="fll"><span class="sdot ${esc(st)}"></span>${esc(f.lbl)}</span>${sub}</span><span class="txtin"><input type="text" placeholder="type answer…" data-txt value="${esc(val[f.id]||'')}"></span></div>${kids(f)}`;
+    if(f.num){const nb=numBadge(f);return `<div class="feat str-${esc(st)}${child?' child':''} has-sub num${ans[f.id]?' on':''}" data-f="${esc(f.id)}"><span class="fl"><span class="fll"><span class="sdot ${esc(st)}"></span>${esc(f.lbl)}</span>${sub}</span><span class="numin"><span class="field"><input inputmode="numeric" placeholder="—" data-num value="${esc(val[f.id]??'')}"><span class="unit">${esc(f.num.unit||'')}</span></span><span class="badge${nb.c?' show '+esc(nb.c):''}">${esc(nb.t)}</span></span></div>${kids(f)}`;}
+    return `<div class="feat str-${esc(st)}${child?' child':''}${(f.criterion||f.ask)?' has-sub':''}${ans[f.id]?' on':''}" data-f="${esc(f.id)}"><span class="fl"><span class="fll"><span class="sdot ${esc(st)}"></span>${esc(f.lbl)}</span>${sub}</span><span class="tc"><button class="y${ans[f.id]==='present'?' sel':''}" data-a="present">✓</button><button class="n${ans[f.id]==='absent'?' sel':''}" data-a="absent">✕</button></span></div>${kids(f)}`;
   }
   const recdChip=f=>{
     const base=f.lbl.split(' (')[0];
     const pre=presetIds.has(f.id)?' preset':'';
-    if((f.kind==='text'||f.kind==='choice')&&val[f.id])return `<button class="recdchip present${pre}" data-reopen="${f.id}">${base}: "${val[f.id]}"</button>`;
-    if(f.num&&f.num.lo==null&&f.num.hi==null&&val[f.id])return `<button class="recdchip present${pre}" data-reopen="${f.id}">${base}: ${val[f.id]}${f.num.unit?' '+f.num.unit:''}</button>`;
-    return `<button class="recdchip ${ans[f.id]}${pre}" data-reopen="${f.id}">${base} ${ans[f.id]==='present'?'✓':'✕'}</button>`;
+    if((f.kind==='text'||f.kind==='choice')&&val[f.id])return `<button class="recdchip present${pre}" data-reopen="${esc(f.id)}">${esc(base)}: "${esc(val[f.id])}"</button>`;
+    if(f.num&&f.num.lo==null&&f.num.hi==null&&val[f.id])return `<button class="recdchip present${pre}" data-reopen="${esc(f.id)}">${esc(base)}: ${esc(val[f.id])}${f.num.unit?' '+esc(f.num.unit):''}</button>`;
+    return `<button class="recdchip ${esc(ans[f.id])}${pre}" data-reopen="${esc(f.id)}">${esc(base)} ${ans[f.id]==='present'?'✓':'✕'}</button>`;
   };
   const streamBlock=(S,label)=>{
     const list=FEAT.filter(f=>f.stream===S);
@@ -1506,12 +1720,12 @@ function paintHx(p,first){
     // driving questions. "Satisfied on the diagnostic stuff → now the rest."
     const discPending=open.filter(isDiscrim).length;
     const completenessPhase=discPending===0&&open.length>0&&list.some(isDiscrim);
-    const phaseTag=completenessPhase?`<div class="phasecut"><span>◆</span>Diagnostic ${label.toLowerCase()} answered — for completeness (background, not diagnosis-moving)</div>`:'';
-    const doneMsg=S==='hx'?'✓ History complete — move to Examination':`✓ All ${label.toLowerCase()} covered`;
+    const phaseTag=completenessPhase?`<div class="phasecut"><span>◆</span>Diagnostic ${esc(label.toLowerCase())} answered — for completeness (background, not diagnosis-moving)</div>`:'';
+    const doneMsg=S==='hx'?'✓ History complete — move to Examination':`✓ All ${esc(label.toLowerCase())} covered`;
     const rows=shown.length?phaseTag+shown.map(f=>featRow(f,false)).join(''):`<div class="qdone">${doneMsg}</div>`;
-    const moreTag=more>0?`<div class="qmore">+${more} more ${label.toLowerCase()} question${more>1?'s':''} queued</div>`:'';
+    const moreTag=more>0?`<div class="qmore">+${more} more ${esc(label.toLowerCase())} question${more>1?'s':''} queued</div>`:'';
     const recd=done.length?`<div class="recd"><span class="recdh">Recorded</span>${done.map(recdChip).join('')}</div>`:'';
-    return `<div class="qstream qs-${S}"><div class="qhd"><span class="sdot ${S}"></span>${label}<span class="qct">${done.length}/${list.length}</span></div>${rows}${moreTag}${recd}</div>`;
+    return `<div class="qstream qs-${esc(S)}"><div class="qhd"><span class="sdot ${esc(S)}"></span>${esc(label)}<span class="qct">${done.length}/${list.length}</span></div>${rows}${moreTag}${recd}</div>`;
   };
   const qwrap=document.getElementById('queue');if(!qwrap)return;
   qwrap.innerHTML=streamBlock('hx','History')+streamBlock('exam','Examination');
@@ -1535,16 +1749,16 @@ function buildIx(){
   const item=t=>{
     const gated=t.gateOn&&ans[t.gateOn]!=='present';
     const gateSrc=gated?IX.find(x=>x.id===t.gateOn):null;
-    return `<div class="ixin${gated?' gated':''}" data-t="${t.id}">
+    return `<div class="ixin${gated?' gated':''}" data-t="${esc(t.id)}">
       <div class="top">
-        <span class="lab"><div class="t">${t.lbl}</div><div class="sub">${t.binary?'':'normal '+t.norm+' · '}<span class="dxc">discriminates ${t.dx}</span></div>${gated?`<div class="gatenote">send once ${gateSrc?gateSrc.lbl:'the prior test'} is positive</div>`:''}</span>
-        ${t.binary||gated?'':`<span class="field"><input inputmode="decimal" placeholder="—" data-in value="${val[t.id]??''}"><span class="unit">${t.unit||''}</span></span>`}
+        <span class="lab"><div class="t">${esc(t.lbl)}</div><div class="sub">${t.binary?'':'normal '+esc(t.norm)+' · '}<span class="dxc">discriminates ${esc(t.dx)}</span></div>${gated?`<div class="gatenote">send once ${gateSrc?esc(gateSrc.lbl):'the prior test'} is positive</div>`:''}</span>
+        ${t.binary||gated?'':`<span class="field"><input inputmode="decimal" placeholder="—" data-in value="${esc(val[t.id]??'')}"><span class="unit">${esc(t.unit||'')}</span></span>`}
         <span class="badge" data-badge></span>
       </div>
       <div class="qk">${gated?'':`<button class="y" data-a="present">${t.binary?'Positive':'Abnormal'}</button><button class="n" data-a="absent">${t.binary?'Negative':'Normal'}</button>`}</div>
     </div>`;
   };
-  const sections=CATS.map(([c,label],i)=>{const items=IX.filter(t=>(t.cat||'lab')===c).sort((a,b)=>yieldOf(b)-yieldOf(a));return items.length?`<div class="ixsec"><div class="ixhd"><span class="ixstep">${i+1}</span><span class="ixdot ${c}"></span>${label}<span class="ixn">${items.length}</span></div>${items.map(item).join('')}</div>`:'';}).join('');
+  const sections=CATS.map(([c,label],i)=>{const items=IX.filter(t=>(t.cat||'lab')===c).sort((a,b)=>yieldOf(b)-yieldOf(a));return items.length?`<div class="ixsec"><div class="ixhd"><span class="ixstep">${i+1}</span><span class="ixdot ${esc(c)}"></span>${esc(label)}<span class="ixn">${items.length}</span></div>${items.map(item).join('')}</div>`:'';}).join('');
   document.getElementById('main').innerHTML=`<div class="panel">${sections}</div>`;
   IX.forEach(t=>{
     const row=document.querySelector(`.ixin[data-t="${t.id}"]`);
@@ -1575,7 +1789,7 @@ function showShift(tid){
   const old=row.querySelector('.ixshift');if(old)old.remove();
   if(!movers.length)return;
   const el=document.createElement('div');el.className='ixshift';
-  el.innerHTML=movers.map(m=>`<span class="mv ${m.ch>0?'up':'down'}" style="--c:${m.d.c}">${m.ch>0?'▲':'▼'} ${shortName(m.d)} ${m.ch>0?'+':''}${m.ch}</span>`).join('');
+  el.innerHTML=movers.map(m=>`<span class="mv ${m.ch>0?'up':'down'}" style="--c:${esc(m.d.c)}">${m.ch>0?'▲':'▼'} ${esc(shortName(m.d))} ${m.ch>0?'+':''}${m.ch}</span>`).join('');
   row.appendChild(el);
   setTimeout(()=>{if(el.parentNode)el.remove();},2600);
 }
@@ -1632,28 +1846,28 @@ function rxRow(m,i,sec,ctx){
     :`<span class="pill-a src-est" title="No matching guideline entry — verify this dose">AI estimate — verify</span>`):'';
   const pills=(warn?`<span class="pill-a warn">HOLD</span>`:'')+((m.activeKeys||m.active)?`<span class="pill-a act">ACTIVE</span>`:'')+(m.ind?`<span class="pill-a ind">INDICATED</span>`:'')+(m.sign?`<span class="pill-a sign">sign-off</span>`:'')+srcPill;
   const note=activeNote||m.active||m.ind;
-  return `<div class="rx${warn?' rx-warn':''}" data-rx="${sec}-${i}">`
-    +`<div class="rxtop"><span class="n">${m.rx}</span>${pills}<button class="give" title="mark given">✓</button></div>`
-    +`<div class="rxbot"><span class="for">${m.for}</span><span class="dosechip">${m.dose}</span>${note?`<span class="rxnote">${note}</span>`:''}</div>`
-    +(warn?`<div class="rxwarnmsg">⚠ ${warn}</div>`:'')
+  return `<div class="rx${warn?' rx-warn':''}" data-rx="${esc(sec)}-${i}">`
+    +`<div class="rxtop"><span class="n">${esc(m.rx)}</span>${pills}<button class="give" title="mark given">✓</button></div>`
+    +`<div class="rxbot"><span class="for">${esc(m.for)}</span><span class="dosechip">${esc(m.dose)}</span>${note?`<span class="rxnote">${esc(note)}</span>`:''}</div>`
+    +(warn?`<div class="rxwarnmsg">⚠ ${esc(warn)}</div>`:'')
     +`</div>`;
 }
 function buildMx(){
   const p=probs(),c=cap(p);
   if(genPlanPending&&caseId==='__gen'){
-    document.getElementById('main').innerHTML=`<div class="mx"><div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div><div class="planwait"><div class="pwrow"><span class="ispin"></span><b>Writing the dosed management plan…</b></div><div class="pwsub">The board is ready — the plan and pathophysiology are generated in the background so the differential shows first.</div></div></div>`;
+    document.getElementById('main').innerHTML=`<div class="mx"><div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${esc(c.lead.name)}</b>. Doses need clinician <b>sign-off</b>.</span></div><div class="planwait"><div class="pwrow"><span class="ispin"></span><b>Writing the dosed management plan…</b></div><div class="pwsub">The board is ready — the plan and pathophysiology are generated in the background so the differential shows first.</div></div></div>`;
     return;
   }
   document.getElementById('main').innerHTML=`<div class="mx">
-    <div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${c.lead.name}</b>. Doses need clinician <b>sign-off</b>.</span></div>
-    ${MX.investigate&&MX.investigate.length?`<div class="mxsec ixref"><div class="hd"><span class="bar" style="background:var(--rr)"></span>⌾ Investigate first — enter results on the Ix tab</div><div class="invg">${MX.investigate.map(v=>`<button class="invrow" data-goix="${v.ix||''}"><span class="invl">${v.lbl}</span><span class="invr">${v.when?`<span class="invwhen">${v.when}</span>`:''}<span class="invarrow">Ix →</span></span></button>`).join('')}</div></div>`:''}
+    <div class="phd"><span>◆</span><span>Plan tracks the working diagnosis — <b>${esc(c.lead.name)}</b>. Doses need clinician <b>sign-off</b>.</span></div>
+    ${MX.investigate&&MX.investigate.length?`<div class="mxsec ixref"><div class="hd"><span class="bar" style="background:var(--rr)"></span>⌾ Investigate first — enter results on the Ix tab</div><div class="invg">${MX.investigate.map(v=>`<button class="invrow" data-goix="${esc(v.ix||'')}"><span class="invl">${esc(v.lbl)}</span><span class="invr">${v.when?`<span class="invwhen">${esc(v.when)}</span>`:''}<span class="invarrow">Ix →</span></span></button>`).join('')}</div></div>`:''}
     <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--bad)"></span>Immediate</div>${MX.immediate.map((m,i)=>rxRow(m,i,'im',c)).join('')}</div>
-    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--brand)"></span>Short-term · treat ${shortName(c.lead)}</div>${MX.definitive.map((m,i)=>rxRow(m,i,'df',c)).join('')}</div>
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--brand)"></span>Short-term · treat ${esc(shortName(c.lead))}</div>${MX.definitive.map((m,i)=>rxRow(m,i,'df',c)).join('')}</div>
     ${MX.longterm&&MX.longterm.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hx-c)"></span>Long-term</div>${MX.longterm.map((m,i)=>rxRow(m,i,'lt',c)).join('')}</div>`:''}
-    ${MX.holistic&&MX.holistic.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--good)"></span>Counselling &amp; health promotion</div><div class="holi">${MX.holistic.map(h=>`<div class="hrow"><span class="hlbl">${h.label}</span>${(h.chips&&h.chips.length)?`<span class="hchips">${h.chips.map(x=>`<span class="chip">${x}</span>`).join('')}</span>`:''}${h.note?`<span class="hnote">${h.note}</span>`:''}</div>`).join('')}</div></div>`:''}
-    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--ink-mute)"></span>Monitor</div><div class="chips">${MX.monitor.map(x=>`<span class="chip">${x}</span>`).join('')}</div></div>
+    ${MX.holistic&&MX.holistic.length?`<div class="mxsec"><div class="hd"><span class="bar" style="background:var(--good)"></span>Counselling &amp; health promotion</div><div class="holi">${MX.holistic.map(h=>`<div class="hrow"><span class="hlbl">${esc(h.label)}</span>${(h.chips&&h.chips.length)?`<span class="hchips">${h.chips.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</span>`:''}${h.note?`<span class="hnote">${esc(h.note)}</span>`:''}</div>`).join('')}</div></div>`:''}
+    <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--ink-mute)"></span>Monitor</div><div class="chips">${MX.monitor.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></div>
     <div class="mxsec"><div class="hd"><span class="bar" style="background:var(--hellp)"></span>Treat-and-see · response is evidence</div>
-      <div class="tns">${MX.levers.map(l=>`<div class="lv"><div class="lvtop"><span class="g">${l.give}</span><span class="ar">→</span><span class="rs">${l.resp}</span></div><div class="lvbot"><span class="m">${l.means}</span>${l.wired?`<span class="resp" data-lever="${l.id}"><button class="up" data-a="present">improved</button><button class="no" data-a="absent">no change</button></span>`:''}</div></div>`).join('')}</div>
+      <div class="tns">${MX.levers.map(l=>`<div class="lv"><div class="lvtop"><span class="g">${esc(l.give)}</span><span class="ar">→</span><span class="rs">${esc(l.resp)}</span></div><div class="lvbot"><span class="m">${esc(l.means)}</span>${l.wired?`<span class="resp" data-lever="${esc(l.id)}"><button class="up" data-a="present">improved</button><button class="no" data-a="absent">no change</button></span>`:''}</div></div>`).join('')}</div>
     </div>
     <div class="mxsec" data-cover></div>
     <div class="mxcite"><span>❦</span><span>Doses follow <b>local protocol / Standard Treatment Guidelines</b> — verify against your formulary and obtain clinician sign-off before administering. No free-hand dosing.</span></div>
@@ -1677,7 +1891,7 @@ function buildMx(){
 }
 function paintMx(p){
   const c=cap(p),cv=document.querySelector('[data-cover]');
-  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${c.live.map(shortName).join(' + ')} not excluded: treat the lead empirically and prioritise ${c.live.map(disc).join(' & ')} to rule ${c.live.length>1?'them':'it'} out.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${shortName(c.lead)} and continue the definitive plan.</div>`;}
+  if(cv){cv.innerHTML=c.capped?`<div class="cover"><b>Cover while uncertain</b> — ${c.live.map(d=>esc(shortName(d))).join(' + ')} not excluded: treat the lead empirically and prioritise ${c.live.map(d=>esc(disc(d))).join(' &amp; ')} to rule ${c.live.length>1?'them':'it'} out.</div>`:`<div class="cover ok"><b>Killers excluded</b> — narrow to ${esc(shortName(c.lead))} and continue the definitive plan.</div>`;}
   document.querySelectorAll('[data-lever]').forEach(el=>{const a=ans[el.dataset.lever];el.querySelector('.up').classList.toggle('sel',a==='present');el.querySelector('.no').classList.toggle('sel',a==='absent');});
 }
 
@@ -1690,6 +1904,26 @@ function positives(){return allFeats().filter(f=>(f.stream==='hx'||f.stream==='e
   return base;
 });}
 function negatives(){return allFeats().filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]==='absent').map(f=>f.lbl.split(' (')[0]);}
+// The spine answers are a real part of the history, so they belong in the written
+// note — otherwise "complete" would be a number on a screen and nothing on paper.
+// Domains still unasked are named as unasked rather than quietly left out: a note
+// that hides its own gaps is worse than one that shows them.
+function spineLines(){
+  const out=[];
+  for(const d of spineState()){
+    const said=d.items.filter(i=>ans[i.id]).map(i=>{
+      if(i.kind==='checklist')return checks[i.id]&&checks[i.id].size?`${i.lbl}: ${[...checks[i.id]].join(', ').toLowerCase()}`:`${i.lbl}: nothing further`;
+      return `${i.lbl}: ${val[i.id]||'—'}`;
+    });
+    if(said.length)out.push({lbl:d.lbl,text:said.join('; '),asked:true});
+    else if(d.byBoard)out.push({lbl:d.lbl,text:'covered in the history above',asked:true});
+    else out.push({lbl:d.lbl,text:'not asked',asked:false});
+  }
+  return out;
+}
+function spineBlock(){
+  return spineLines().map(l=>`<div class="sec"><b>${esc(l.lbl)}</b><p${l.asked?'':' style="opacity:.6"'}>${esc(l.text)}</p></div>`).join('');
+}
 function labsEntered(){return IX.filter(t=>ans[t.id]).map(t=>({lbl:t.lbl,val:val[t.id]||'',state:ans[t.id]==='present'?(t.binary?'positive':(t.dir==='below'?'low':'high')):(t.binary?'negative':'normal')}));}
 function pendingTests(){return IX.filter(t=>!ans[t.id]).map(t=>t.lbl);}
 function leadInfo(){const p=probs(),c=cap(p);let conf=p[c.lead.id];if(c.capped)conf=Math.min(conf,c.ceil);return{lead:c.lead,conf:Math.round(conf*100),capped:c.capped,live:c.live};}
@@ -1697,30 +1931,31 @@ function shortName(d){return d.name.replace(' of pregnancy','');}
 function obsLine(){return VITALS.map(v=>v.k+' '+v.v).join(', ');}
 function docSBAR(){
   const C=CASES[caseId],li=leadInfo(),pos=positives(),labs=labsEntered(),pend=pendingTests();
-  const capline=li.capped?` Confidence capped at ${li.conf}% — ${li.live.map(shortName).join(' and ')} not yet excluded.`:'';
-  const ixLine=`${labs.length?' Results — '+labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; ')+'.':''}${pend.length?' Pending — '+pend.join(', ')+'.':(labs.length?'':' Investigations pending.')}`;
-  return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${PT.summaryLine}, presenting with ${PT.complaint}. Current obs: ${obsLine()}.</p></div></div>
-   <div class="block"><span class="ltr">B</span><div><b>Background</b><p>${PT.background}</p></div></div>
-   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence.${capline} Supporting findings: ${pos.join(', ')||'—'}.${ixLine}</p></div></div>
-   <div class="block"><span class="ltr">R</span><div><b>Recommendation</b><p>${C.recommendation}</p></div></div>`;
+  const capline=li.capped?` Confidence capped at ${li.conf}% — ${esc(li.live.map(shortName).join(' and '))} not yet excluded.`:'';
+  const ixLine=`${labs.length?' Results — '+esc(labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; '))+'.':''}${pend.length?' Pending — '+esc(pend.join(', '))+'.':(labs.length?'':' Investigations pending.')}`;
+  return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${esc(PT.summaryLine)}, presenting with ${esc(PT.complaint)}. Current obs: ${esc(obsLine())}.</p></div></div>
+   <div class="block"><span class="ltr">B</span><div><b>Background</b><p>${esc(PT.background)}</p></div></div>
+   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${esc(li.lead.name)}</b> (${esc(li.lead.icd)}), ${li.conf}% confidence.${capline} Supporting findings: ${esc(pos.join(', '))||'—'}.${ixLine}</p></div></div>
+   <div class="block"><span class="ltr">R</span><div><b>Recommendation</b><p>${esc(C.recommendation)}</p></div></div>`;
 }
 function docClerk(){
   const pos=positives(),neg=negatives(),labs=labsEntered(),li=leadInfo();
-  return `<div class="sec"><b>Presenting complaint</b><p>${PT.complaint}.</p></div>
-   ${PT.obsHx?`<div class="sec"><b>Obstetric history</b><p>${PT.obsHx}.</p></div>`:`<div class="sec"><b>Background</b><p>${PT.background}</p></div>`}
-   <div class="sec"><b>Observations</b><p>${VITALS.map(v=>v.k+' '+v.v).join(' · ')}</p></div>
-   <div class="sec"><b>Positive findings</b><p>${pos.join(', ')||'none recorded'}</p></div>
-   <div class="sec"><b>Pertinent negatives</b><p>${neg.join(', ')||'none recorded'}</p></div>
-   <div class="sec"><b>Investigations</b><p>${labs.length?labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; '):''}${pendingTests().length?(labs.length?'; ':'')+'pending: '+pendingTests().join(', '):(labs.length?'':'awaited')}</p></div>
-   <div class="sec"><b>Impression</b><p>${li.lead.name} (${li.lead.icd}), ${li.conf}%${li.capped?'; must-not-miss not excluded: '+li.live.map(shortName).join(', '):''}.</p></div>
-   <div class="sec"><b>Plan</b><p>${CASES[caseId].planLine}</p></div>`;
+  return `<div class="sec"><b>Presenting complaint</b><p>${esc(PT.complaint)}.</p></div>
+   ${PT.obsHx?`<div class="sec"><b>Obstetric history</b><p>${esc(PT.obsHx)}.</p></div>`:`<div class="sec"><b>Background</b><p>${esc(PT.background)}</p></div>`}
+   <div class="sec"><b>Observations</b><p>${esc(VITALS.map(v=>v.k+' '+v.v).join(' · '))}</p></div>
+   <div class="sec"><b>Positive findings</b><p>${esc(pos.join(', '))||'none recorded'}</p></div>
+   <div class="sec"><b>Pertinent negatives</b><p>${esc(neg.join(', '))||'none recorded'}</p></div>
+   ${spineBlock()}
+   <div class="sec"><b>Investigations</b><p>${labs.length?esc(labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; ')):''}${pendingTests().length?(labs.length?'; ':'')+'pending: '+esc(pendingTests().join(', ')):(labs.length?'':'awaited')}</p></div>
+   <div class="sec"><b>Impression</b><p>${esc(li.lead.name)} (${esc(li.lead.icd)}), ${li.conf}%${li.capped?'; must-not-miss not excluded: '+esc(li.live.map(shortName).join(', ')):''}.</p></div>
+   <div class="sec"><b>Plan</b><p>${esc(CASES[caseId].planLine)}</p></div>`;
 }
 function docRef(){
   const C=CASES[caseId],li=leadInfo(),pos=positives();
-  return `<p class="lt">Dear ${C.referTo},</p>
-   <p class="lt">Please urgently review this ${PT.summaryLine} presenting with ${PT.complaint}. My working diagnosis is <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% confidence${li.capped?', with '+li.live.map(shortName).join(' and ')+' not yet excluded pending investigations':''}.</p>
-   ${PT.obsHx?`<p class="lt">Obstetric history: ${PT.obsHx} — relevant to mode of delivery.</p>`:`<p class="lt">Background: ${PT.background}</p>`}
-   <p class="lt">Positive findings: ${pos.join(', ')||'—'}. Initial management: ${C.planLine}</p>
+  return `<p class="lt">Dear ${esc(C.referTo)},</p>
+   <p class="lt">Please urgently review this ${esc(PT.summaryLine)} presenting with ${esc(PT.complaint)}. My working diagnosis is <b>${esc(li.lead.name)}</b> (${esc(li.lead.icd)}), ${li.conf}% confidence${li.capped?', with '+esc(li.live.map(shortName).join(' and '))+' not yet excluded pending investigations':''}.</p>
+   ${PT.obsHx?`<p class="lt">Obstetric history: ${esc(PT.obsHx)} — relevant to mode of delivery.</p>`:`<p class="lt">Background: ${esc(PT.background)}</p>`}
+   <p class="lt">Positive findings: ${esc(pos.join(', '))||'—'}. Initial management: ${esc(C.planLine)}</p>
    <p class="lt">I would be grateful for urgent review.</p>
    <p class="lt">Kind regards,<br>Admitting clinician</p>`;
 }
@@ -1739,28 +1974,28 @@ function docRound(){
   const resp=MX.levers.filter(l=>l.wired&&l.id&&ans[l.id]).map(l=>`${l.give} → ${ans[l.id]==='present'?l.resp+' (improving)':'no change — reconsider'}`);
   const p=probs(),dl=Math.round((p[li.lead.id]-(last[li.lead.id]??p[li.lead.id]))*100);
   const trend=dl>0?`▲ up ${dl}% since last review`:dl<0?`▼ down ${Math.abs(dl)}%`:'stable';
-  return `<div class="sec"><b>Ward round — today</b><p>${PT.summaryLine}, admitted with ${PT.complaint}.</p></div>
-   <div class="sec"><b>New complaints / events today</b><textarea id="todayin" class="todayta" placeholder="e.g. new pleuritic pain overnight · febrile to 38.9 · passing less urine · feeds improving…">${todayNote.replace(/</g,'&lt;')}</textarea></div>
-   <div class="sec"><b>Observations</b><p>${VITALS.map(v=>v.k+' '+v.v).join(' · ')}</p></div>
-   <div class="sec"><b>Response to treatment</b><p>${resp.length?resp.join('; '):'no treat-and-see markers recorded on the Mx tab yet'}</p></div>
-   <div class="sec"><b>On review</b><p>${pos.join(', ')||'no positives recorded'}</p></div>
-   <div class="sec"><b>Results</b><p>${labs.length?labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; '):''}${pend.length?(labs.length?'; ':'')+'pending: '+pend.join(', '):(labs.length?'':'awaited')}</p></div>
-   <div class="sec"><b>Assessment</b><p>Working diagnosis <b>${li.lead.name}</b> (${li.lead.icd}), ${li.conf}% (${trend}) — ${li.capped?'must-not-miss not yet excluded: '+li.live.map(shortName).join(', '):'killers excluded'}.</p></div>
-   <div class="sec"><b>Plan / what to improve</b><p>${roundPlan(li,pend)}</p></div>`;
+  return `<div class="sec"><b>Ward round — today</b><p>${esc(PT.summaryLine)}, admitted with ${esc(PT.complaint)}.</p></div>
+   <div class="sec"><b>New complaints / events today</b><textarea id="todayin" class="todayta" placeholder="e.g. new pleuritic pain overnight · febrile to 38.9 · passing less urine · feeds improving…">${esc(todayNote)}</textarea></div>
+   <div class="sec"><b>Observations</b><p>${esc(VITALS.map(v=>v.k+' '+v.v).join(' · '))}</p></div>
+   <div class="sec"><b>Response to treatment</b><p>${resp.length?esc(resp.join('; ')):'no treat-and-see markers recorded on the Mx tab yet'}</p></div>
+   <div class="sec"><b>On review</b><p>${esc(pos.join(', '))||'no positives recorded'}</p></div>
+   <div class="sec"><b>Results</b><p>${labs.length?esc(labs.map(l=>`${l.lbl} ${l.val} — ${l.state}`).join('; ')):''}${pend.length?(labs.length?'; ':'')+'pending: '+esc(pend.join(', ')):(labs.length?'':'awaited')}</p></div>
+   <div class="sec"><b>Assessment</b><p>Working diagnosis <b>${esc(li.lead.name)}</b> (${esc(li.lead.icd)}), ${li.conf}% (${esc(trend)}) — ${li.capped?'must-not-miss not yet excluded: '+esc(li.live.map(shortName).join(', ')):'killers excluded'}.</p></div>
+   <div class="sec"><b>Plan / what to improve</b><p>${esc(roundPlan(li,pend))}</p></div>`;
 }
 const DOCS={sbar:{label:'SBAR',title:'SBAR — urgent referral',f:docSBAR},clerk:{label:'Clerking',title:'Admission clerking note',f:docClerk},round:{label:'Ward round',title:'Ward round — daily review',f:docRound},ref:{label:'Referral',title:'Referral letter',f:docRef}};
 function buildDocs(){
   const d=DOCS[docType];
   document.getElementById('main').innerHTML=`<div class="doc">
-    <div class="docpick">${Object.entries(DOCS).map(([k,v])=>`<button data-d="${k}" class="${k===docType?'on':''}">${v.label}</button>`).join('')}</div>
-    <div class="paper"><div class="doctitle">${d.title}<span>${docType==='round'?'today':'on admission'}</span></div><div class="paperbody">${d.f()}</div></div>
+    <div class="docpick">${Object.entries(DOCS).map(([k,v])=>`<button data-d="${esc(k)}" class="${k===docType?'on':''}">${esc(v.label)}</button>`).join('')}</div>
+    <div class="paper"><div class="doctitle">${esc(d.title)}<span>${docType==='round'?'today':'on admission'}</span></div><div class="paperbody">${d.f()}</div></div>
     <div class="docact"><button class="pri" data-copy>Copy</button><button data-exp>Export PDF</button><button data-ward>Send to Ward →</button></div>
     <div class="docflag">◆ Auto-generated from the clerking — review and sign before use.</div>
   </div>`;
   document.querySelectorAll('.docpick button').forEach(b=>b.addEventListener('click',()=>{docType=b.dataset.d;buildDocs();}));
   const ta=document.getElementById('todayin');if(ta)ta.addEventListener('input',e=>{todayNote=e.target.value;});
   const cp=document.querySelector('[data-copy]');
-  cp.addEventListener('click',()=>{try{navigator.clipboard.writeText(document.querySelector('.paperbody').innerText);}catch(e){}cp.textContent='Copied ✓';setTimeout(()=>{cp.textContent='Copy';},1400);});
+  cp.addEventListener('click',()=>{hostCopy(document.querySelector('.paperbody').innerText);cp.textContent='Copied ✓';setTimeout(()=>{cp.textContent='Copy';},1400);});
   // "Export PDF" had no handler at all — clicking it silently did nothing.
   // Print-to-PDF via the browser's own dialog, scoped to just the note via
   // the @media print rule above, needs no PDF library.
@@ -1782,7 +2017,11 @@ function buildDocs(){
       plan:CASES[caseId].planLine.replace(/<[^>]+>/g,''),
       obs:{rr:num('RR'),spo2:num('SpO₂'),o2:'air',sbp,hr:num('HR'),temp:num('T'),acvpu:'A'},
     };
-    try{localStorage.setItem('medai_ward_handoff',JSON.stringify(handoff));wardBtn.textContent='Sent ✓ — open Inpatient Ward';}catch(e){wardBtn.textContent='Could not send';}
+    // This board runs in a locked-down frame with no access to the app's own
+    // storage (that lock is what stops a crafted presentation from reaching the
+    // saved access key), so the host writes the handoff on its behalf.
+    if(hostWrite('medai_ward_handoff',JSON.stringify(handoff))){wardBtn.textContent='Sent ✓ — open Inpatient Ward';}
+    else{wardBtn.textContent='Could not send';}
     setTimeout(()=>{wardBtn.textContent='Send to Ward →';},2200);
   });
 }
@@ -1798,21 +2037,21 @@ function forAgainst(d){
 function whyNarrative(){
   const p=probs(),c=cap(p),li=leadInfo(),fa=forAgainst(c.lead);
   const drivers=fa.pro.slice(0,2).map(i=>i.lbl).join(' and ');
-  let s=`<b>${c.lead.name}</b> leads at <b>${li.conf}%</b>${li.capped?' — held there on purpose':''}. `;
-  if(drivers)s+=`The weight is mostly ${drivers}. `;
-  if(fa.con[0])s+=`Pulling against it: ${fa.con[0].lbl} (${lrTxt(fa.con[0].lr)}). `;
-  if(c.capped){const t=c.live.map(disc);s+=`Confidence is capped at ${Math.round(c.ceil*100)}% because ${c.live.map(shortName).join(' and ')} could still kill and ${c.live.length>1?'are':'is'} not excluded until ${t.join(' and ')} ${t.length>1?'are':'is'} back — MedAI will not fake certainty over an unexcluded must-not-miss.`;}
+  let s=`<b>${esc(c.lead.name)}</b> leads at <b>${li.conf}%</b>${li.capped?' — held there on purpose':''}. `;
+  if(drivers)s+=`The weight is mostly ${esc(drivers)}. `;
+  if(fa.con[0])s+=`Pulling against it: ${esc(fa.con[0].lbl)} (${esc(lrTxt(fa.con[0].lr))}). `;
+  if(c.capped){const t=c.live.map(disc);s+=`Confidence is capped at ${Math.round(c.ceil*100)}% because ${esc(c.live.map(shortName).join(' and '))} could still kill and ${c.live.length>1?'are':'is'} not excluded until ${esc(t.join(' and '))} ${t.length>1?'are':'is'} back — MedAI will not fake certainty over an unexcluded must-not-miss.`;}
   else s+=`Every must-not-miss rival is now excluded, so the number is trustworthy.`;
   return s;
 }
-function whyNext(){const p=probs(),nb=nextBest(p);if(!nb)return 'History and exam are saturated — the picture now moves on investigations.';const aff=Object.keys(nb.eff).map(id=>shortName(DX.find(d=>d.id===id))).join(' vs ');return `<b>${nb.lbl}</b> is the highest-yield next question — it best separates ${aff}.`;}
-function whyPremortem(){const p=probs(),c=cap(p);const r=[...DX].filter(d=>d.mnm&&d.id!==c.lead.id).sort((a,b)=>p[b.id]-p[a.id])[0];if(!r)return 'No must-not-miss rival remains in play.';return `If this call is wrong, the dangerous miss is <b>${shortName(r)}</b> — exclude it with <b>${disc(r)}</b> before committing.`;}
+function whyNext(){const p=probs(),nb=nextBest(p);if(!nb)return 'History and exam are saturated — the picture now moves on investigations.';const aff=Object.keys(nb.eff).map(id=>shortName(DX.find(d=>d.id===id))).join(' vs ');return `<b>${esc(nb.lbl)}</b> is the highest-yield next question — it best separates ${esc(aff)}.`;}
+function whyPremortem(){const p=probs(),c=cap(p);const r=[...DX].filter(d=>d.mnm&&d.id!==c.lead.id).sort((a,b)=>p[b.id]-p[a.id])[0];if(!r)return 'No must-not-miss rival remains in play.';return `If this call is wrong, the dangerous miss is <b>${esc(shortName(r))}</b> — exclude it with <b>${esc(disc(r))}</b> before committing.`;}
 function ledger(d,p,capTo){
   const fa=forAgainst(d),pc=Math.round(p[d.id]*100);
-  const col=(items,cls,head)=>`<div class="${cls}"><div class="colh">${head}</div>${items.length?items.map(i=>`<div class="li"><span>${i.lbl}</span><span class="lr">${lrTxt(i.lr)}</span></div>`).join(''):'<div class="li dim">—</div>'}</div>`;
-  return `<div class="wledger" style="--dxc:${d.c}"><div class="wlhd"><span class="n">${d.name}</span><span class="icd">${d.icd}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${d.c}">${pc}%</span></div>
+  const col=(items,cls,head)=>`<div class="${cls}"><div class="colh">${head}</div>${items.length?items.map(i=>`<div class="li"><span>${esc(i.lbl)}</span><span class="lr">${esc(lrTxt(i.lr))}</span></div>`).join(''):'<div class="li dim">—</div>'}</div>`;
+  return `<div class="wledger" style="--dxc:${esc(d.c)}"><div class="wlhd"><span class="n">${esc(d.name)}</span><span class="icd">${esc(d.icd)}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${esc(d.c)}">${pc}%</span></div>
     <div class="cols">${col(fa.pro,'col-f','For')}${col(fa.con,'col-a','Against')}</div>
-    <div class="wscript">illness script — ${d.script}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> — ${d.patho}</div>`:''}</div>`;
+    <div class="wscript">illness script — ${esc(d.script)}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> — ${esc(d.patho)}</div>`:''}</div>`;
 }
 function buildWhy(){
   const p=probs(),c=cap(p),li=leadInfo(),ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
@@ -1832,13 +2071,13 @@ function render(){if(tab==='hx')buildHx();else if(tab==='ix')buildIx();else if(t
 function paintCaseUI(){
   const entries=Object.entries(CASES).filter(([k])=>!k.startsWith('__'));
   document.getElementById('casebar').innerHTML='<span class="cl">Case</span>'
-    +entries.map(([k,c])=>`<button data-c="${k}" class="${k===caseId?'on':''}"><b>${c.specialty}</b> ${c.label}</button>`).join('')
-    +(caseId.startsWith('__')?`<button data-c="${caseId}" class="on gen"><b>✦ ${CASES[caseId].specialty}</b> ${CASES[caseId].label}</button>`:'')
+    +entries.map(([k,c])=>`<button data-c="${esc(k)}" class="${k===caseId?'on':''}"><b>${esc(c.specialty)}</b> ${esc(c.label)}</button>`).join('')
+    +(caseId.startsWith('__')?`<button data-c="${esc(caseId)}" class="on gen"><b>✦ ${esc(CASES[caseId].specialty)}</b> ${esc(CASES[caseId].label)}</button>`:'')
     +'<button class="newcase" id="newcase">＋ New case</button>';
   document.getElementById('casebar').querySelectorAll('button[data-c]').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);paintCaseUI();}));
   document.getElementById('newcase').addEventListener('click',showIntake);
   document.getElementById('estbanner').classList.toggle('show',isEstimated());
-  document.getElementById('who').innerHTML=PT.line;
+  document.getElementById('who').textContent=PT.line;
   paintVitals();
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab==='hx'));
   snap(probs());render();
@@ -1904,7 +2143,7 @@ async function generateCase(text){
     const msg=/failed to fetch|networkerror|load failed/i.test(raw)
       ?'Couldn\'t reach the case generator — try a worked example below, or check your connection.'
       :(raw||'Could not build the board.');
-    istatus('err', msg);
+    istatus('err', esc(msg));
   }
   finally{ btn.disabled=false; }
 }
@@ -1918,7 +2157,7 @@ function init(){
   }));
   // intake wiring
   document.getElementById('igen').addEventListener('click',()=>generateCase(document.getElementById('itext').value));
-  document.getElementById('ichips').innerHTML=Object.entries(CASES).filter(([k])=>!k.startsWith('__')).map(([k,c])=>`<button data-c="${k}">${c.specialty} · ${c.label}</button>`).join('');
+  document.getElementById('ichips').innerHTML=Object.entries(CASES).filter(([k])=>!k.startsWith('__')).map(([k,c])=>`<button data-c="${esc(k)}">${esc(c.specialty)} · ${esc(c.label)}</button>`).join('');
   document.getElementById('ichips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{loadCase(b.dataset.c);hideIntake();paintCaseUI();}));
   // When embedded in the app, route generation through the host (which holds the tools key).
   if(window.parent&&window.parent!==window){
