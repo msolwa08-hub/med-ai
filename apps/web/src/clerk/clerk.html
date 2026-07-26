@@ -82,17 +82,21 @@
      answer, so the screen visibly thinks alongside him rather than reporting
      afterwards. Completeness rides underneath as a hairline, deliberately
      quieter: it is a gauge you glance at, not an instrument you watch. */
-  .gauge{margin-top:13px;padding:13px 15px 12px;border-radius:16px;
-         background:linear-gradient(160deg,var(--surface) 0%,color-mix(in oklab,var(--brand) 4%,var(--surface)) 100%);
-         border:1px solid var(--line);box-shadow:var(--shadow)}
-  .gtop{display:flex;align-items:baseline;gap:8px;min-width:0}
+  /* The console holds both. One surface, two stacked rows — nothing floats
+     separately, so they can never collide with each other. */
+  .console{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0 auto;max-width:430px;
+           background:color-mix(in oklab,var(--surface) 93%,transparent);backdrop-filter:blur(16px);
+           border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+           padding-bottom:env(safe-area-inset-bottom);
+           box-shadow:0 -10px 34px -18px rgba(14,26,28,.4)}
+  .gauge{padding:10px 15px 9px}
+  /* The delta arrow is gone. It said the same thing the movement badge already
+     says, half a second later and in a smaller voice — and beside a capped
+     number it could only ever be confusing. One announcement per event. */
   .glead{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink-soft);letter-spacing:-.01em;overflow-wrap:anywhere}
-  .gdelta{flex:none;font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .3s}
-  .gdelta.show{opacity:1}
-  .gdelta.up{color:var(--good)} .gdelta.down{color:var(--bad)}
-  .grow{display:flex;align-items:center;gap:12px;margin:2px 0 9px}
-  .gval{font-size:40px;font-weight:800;letter-spacing:-.035em;line-height:1;color:var(--ink);flex:none}
-  .gtrace{flex:1;min-width:0;height:34px;overflow:visible}
+  .grow{display:flex;align-items:center;gap:11px;margin-bottom:7px}
+  .gval{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--ink);flex:none}
+  .gtrace{flex:none;width:64px;height:24px;overflow:visible}
   .gtrace path{fill:none;stroke:var(--brand);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;
                 opacity:.85;transition:stroke .3s}
   .gauge.pulse .gtrace path{animation:sweep .9s cubic-bezier(.3,.9,.4,1)}
@@ -226,11 +230,8 @@
      with its two answers as the largest touch targets in the product. It floats
      above the content rather than pushing it, so the differential stays visible
      while you answer — which is the whole point of watching it move. */
-  .next{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0 auto;max-width:430px;
-        background:color-mix(in oklab,var(--surface) 92%,transparent);backdrop-filter:blur(14px);
-        border-top:1px solid var(--line);border-radius:18px 18px 0 0;padding:11px 13px calc(11px + env(safe-area-inset-bottom));
-        display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-        box-shadow:0 -8px 30px -16px rgba(14,26,28,.35);transition:transform .3s cubic-bezier(.22,1,.36,1)}
+  .next{border-top:1px solid var(--line-soft);padding:10px 13px 11px;
+        display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .next .tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-strong);
              background:var(--brand-tint);padding:3px 7px;border-radius:6px;flex:none}
   .next .qt{flex:1;font-size:14.5px;font-weight:700;min-width:0;line-height:1.25;letter-spacing:-.01em}
@@ -243,7 +244,10 @@
   .next .nxtop{display:flex;align-items:center;gap:10px;width:100%}
   .next .nxdone{font-size:11px;font-weight:700;color:var(--brand-strong);background:var(--brand-tint);border:none;border-radius:9px;padding:7px 12px;cursor:pointer;flex:none}
   .next .clchips,.next .cchips{width:100%}
-  body.hasnext .wrap{padding-bottom:118px}
+  /* The console is always on screen, so the page always reserves room for it —
+     the gauge alone when no question is pending, both rows when there is one. */
+  .wrap{padding-bottom:96px}
+  body.hasnext .wrap{padding-bottom:172px}
 
   /* The moment an answer moves the picture, said loudly and briefly. This is
      the closest thing the product has to a heartbeat, so it is the one piece of
@@ -253,8 +257,8 @@
          transform:translateY(24px);opacity:0;transition:transform .34s cubic-bezier(.22,1,.36,1),opacity .34s}
   /* Rides ABOVE the question bar. A notification that lands on the control you
      are reaching for is worse than no notification at all. */
-  .shift.show{opacity:1;transform:translateY(-22px)}
-  body.hasnext .shift.show{transform:translateY(-96px)}
+  .shift.show{opacity:1;transform:translateY(-84px)}
+  body.hasnext .shift.show{transform:translateY(-158px)}
   .shift .mv{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:-.01em;
              color:#fff;background:var(--ink);border-radius:99px;padding:7px 13px;box-shadow:var(--shadow)}
   .shift .mv.up{background:var(--good)} .shift .mv.down{background:var(--bad)}
@@ -583,25 +587,6 @@
     <div class="casebar" id="casebar" hidden></div>
     <div class="vitals" id="vitals"></div>
 
-    <!-- The instrument. One number is live and one is a background gauge, so
-         they are no longer identical twins: the lead diagnosis and its
-         confidence carry the weight, with a trace that redraws whenever the
-         picture moves, and completeness runs underneath as a thin rail. -->
-    <div class="gauge">
-      <div class="gtop">
-        <span class="glead" id="gLead">—</span>
-        <span class="gdelta" id="confD"></span>
-      </div>
-      <div class="grow">
-        <span class="gval tnum" id="confV">—</span>
-        <svg class="gtrace" id="gTrace" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"><path id="gPath" d=""/></svg>
-      </div>
-      <div class="gbar"><div class="gfill" id="confF"></div></div>
-      <div class="gfoot">
-        <span class="gasked" id="gAsked"></span>
-        <span class="gcomp">clerking <b class="tnum" id="compV">—</b><span class="grail"><i class="gcfill" id="compF"></i></span></span>
-      </div>
-    </div>
     <div class="spine" id="spine"></div>
     <div class="cap" id="cap"></div>
     <div class="scorebar" id="scorebar"></div>
@@ -619,10 +604,27 @@
 
   <main id="main"></main>
 
-  <!-- Thumb geography: he is holding this one-handed at a bedside, so the one
-       question being asked and its two answers live where the thumb already is,
-       not at the top of the screen beside the reading matter. -->
-  <div class="next" id="next"></div>
+  <!-- The console. Everything he acts on and everything he watches while acting
+       sit together at the bottom, in thumb reach: the instrument on top, the
+       question and its two answers beneath it. Reading matter (the patient, the
+       vitals, the queue) scrolls above and is never covered by either.
+       His call, and it is the right one — a gauge belongs beside the controls
+       it responds to, not at the far end of the screen from them. -->
+  <div class="console" id="console">
+    <div class="gauge">
+      <div class="grow">
+        <span class="glead" id="gLead">—</span>
+        <svg class="gtrace" id="gTrace" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"><path id="gPath" d=""/></svg>
+        <span class="gval tnum" id="confV">—</span>
+      </div>
+      <div class="gbar"><div class="gfill" id="confF"></div></div>
+      <div class="gfoot">
+        <span class="gasked" id="gAsked"></span>
+        <span class="gcomp">clerking <b class="tnum" id="compV">—</b><span class="grail"><i class="gcfill" id="compF"></i></span></span>
+      </div>
+    </div>
+    <div class="next" id="next"></div>
+  </div>
   <!-- The movement is the product. When an answer shifts the picture this says
        so loudly for a moment and then gets out of the way. -->
   <div class="shift" id="shift" aria-live="polite"></div>
@@ -1621,12 +1623,9 @@ function paintScores(){
 // picture resolves. It is the form this user reads all day, which is why it
 // communicates faster here than a line chart would.
 const confHist=[];
-// The last percentage actually printed on the gauge — the only honest baseline
-// for the delta beside it (see paintHeader).
-let shownPc=null;
 function drawTrace(pc,reset){
   const path=document.getElementById('gPath'); if(!path)return;
-  if(reset){confHist.length=0;shownPc=null;}
+  if(reset)confHist.length=0;
   if(confHist[confHist.length-1]!==pc)confHist.push(pc);
   if(confHist.length>14)confHist.shift();
   const pts=confHist.length>1?confHist:[pc,pc];
@@ -1730,16 +1729,6 @@ function paintHeader(p,first){
   const asked=allFeats().filter(f=>(f.stream==='hx'||f.stream==='exam')&&ans[f.id]).length;
   document.getElementById('gAsked').textContent=asked?`${asked} question${asked===1?'':'s'} in`:'no questions yet';
   drawTrace(cPc,first);
-  // The delta describes the number printed beside it, so it is measured against
-  // the LAST DISPLAYED figure — not the raw probability. Those two diverge the
-  // moment the must-not-miss cap holds confidence down: the raw value moves, the
-  // shown value does not, and reading one against the other put a red "▼ 9" next
-  // to a percentage that had not changed. A gauge that contradicts itself is
-  // worse than a gauge with no delta at all.
-  const dEl=document.getElementById('confD'),ch=cPc-(shownPc??cPc);
-  if(!first&&Math.abs(ch)>=1){dEl.className='gdelta show '+(ch>0?'up':'down');dEl.textContent=(ch>0?'▲ ':'▼ ')+Math.abs(ch);}
-  else{dEl.className='gdelta';dEl.textContent='';}
-  shownPc=cPc;
   const capEl=document.getElementById('cap');
   if(c.capped){capEl.style.display='flex';capEl.innerHTML='<span>◆</span><span><b>Confidence capped at '+Math.round(c.ceil*100)+'%</b> — '+esc(listOf(c.live.map(d=>d.name.replace(' of pregnancy',''))))+' not yet excluded. Enter the pending results under Tests to release it.</span>';}
   else capEl.style.display='none';
