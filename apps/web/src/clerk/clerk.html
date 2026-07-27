@@ -778,7 +778,6 @@ const CASES={
    // Score-only input, no `eff` — HEART's own "History" component is a clinician
    // gestalt rating (this is how real HEART Pathway tools capture it, not derived
    // from the individual findings already scored above, which would double-count).
-   {id:'heartHx',lbl:'History — how suspicious does the story sound overall?',stream:'hx',kind:'choice',options:['Slightly suspicious','Moderately suspicious','Highly suspicious'],ask:'the HEART score’s own history component — a gestalt read, not a new finding'},
    {id:'diaph',lbl:'Diaphoresis / distress',stream:'exam',eff:{acs:[2,.7]},preset:'present'},
    {id:'asym',lbl:'Unequal arm BP / pulse deficit',stream:'exam',eff:{dissection:[6,.4]}},
    {id:'jvp',lbl:'Raised JVP / RV strain',stream:'exam',eff:{pe:[3,.6]}},
@@ -815,26 +814,10 @@ const CASES={
     {label:'Lifestyle',chips:['Cardiac rehabilitation','Mediterranean diet','Regular aerobic exercise','Weight management','Reduce alcohol']},
     {label:'Educate & safety-net',note:'Explain red-flag return: recurrent or worsening chest pain, breathlessness or syncope; adherence to secondary-prevention meds.'}],
    levers:[{give:'GTN',resp:'pain settles',means:'consistent with ischaemia — not specific'},{give:'After full analgesia',resp:'pain persists',means:'concerning — reconsider dissection'}]},
-  // HEART score (Six AJ et al., 2008; Backus AE et al., 2010) — the field's
-  // real bedside chest-pain risk score (HEART Pathway). ECG and Troponin here
-  // read the pack's existing binary findings (present→highest tier) rather
-  // than the full 3-tier original, a stated simplification, not silent.
-  SCORES:[{id:'heart',name:'HEART score',
-   items:[
-    {label:'History',featId:'heartHx',map:(a,v)=>({'Slightly suspicious':0,'Moderately suspicious':1,'Highly suspicious':2}[v]??0)},
-    {label:'ECG',featId:'ecgisch',pts:2},
-    {label:'Age (58 — 45–64 band)',fixed:1},
-    {label:'Risk factors',agg:(ans,val)=>{
-      const present=['htn','dm','lipids','famhx'].filter(id=>ans[id]==='present').length+(val['smoking']==='Current smoker'?1:0);
-      const known=['htn','dm','lipids','famhx'].some(id=>ans[id]!==undefined)||ans['smoking']!==undefined;
-      if(!known) return{pts:0,unanswered:true};
-      return{pts:present>=3?2:present>=1?1:0,unanswered:false};
-    }},
-    {label:'Troponin',featId:'trop',pts:2}],
-   bands:[
-    {min:0,label:'Low (0–3)',cls:'good',action:'~1.7% 30-day MACE — HEART Pathway supports early discharge if troponin stays normal.'},
-    {min:4,label:'Moderate (4–6)',cls:'amber',action:'~12–16.6% 30-day MACE — admit for observation and serial troponin.'},
-    {min:7,label:'High (7–10)',cls:'bad',action:'~50–65% 30-day MACE — early invasive strategy, do not defer.'}]}],
+  // The HEART score was removed from this pack on his instruction (2026-07-26).
+  // The score machinery itself is untouched and still runs for the packs that
+  // carry one — this is a per-pack removal, not a feature deletion.
+  SCORES:[],
  },
  surg:{
   specialty:'Surgery', label:'RIF pain',
