@@ -309,6 +309,18 @@
   .dx.open .body{display:block}
   .script{font-size:11.5px;color:var(--ink-mute);line-height:1.45;margin:0 0 11px;padding:8px 10px;background:var(--surface-alt);border-radius:9px}
   .script b{color:var(--dxc);font-weight:650}
+  /* Defining criteria — counted and shown, never multiplied into the odds. */
+  .critbox{font-size:11px;line-height:1.45;margin:0 0 11px;padding:8px 10px;border-radius:9px;border:1px dashed color-mix(in oklab,var(--dxc) 45%,transparent);background:color-mix(in oklab,var(--dxc) 6%,transparent)}
+  .critbox .ch{display:flex;justify-content:space-between;gap:8px;font-weight:650;color:var(--dxc);margin-bottom:5px}
+  .critbox .ch .cn{font-variant-numeric:tabular-nums;font-weight:700}
+  .critbox .cr{display:flex;gap:6px;align-items:baseline;color:var(--ink-mute);margin:2px 0}
+  .critbox .cr .cm{width:11px;flex:0 0 11px;text-align:center;font-weight:700}
+  .critbox .cr.yes{color:var(--ink)}
+  .critbox .cr.yes .cm{color:var(--good)}
+  .critbox .cr.no .cm{color:var(--bad)}
+  .critbox .cr.open .cm{opacity:.45}
+  .critbox .cset{font-size:10px;opacity:.65;margin-left:auto;font-style:italic}
+  .critnote{font-size:10px;color:var(--ink-mute);opacity:.8;margin-top:6px;font-style:italic}
   .feat{display:flex;align-items:center;gap:9px;padding:5px 0}
   .feat .fl{flex:1;font-size:13px;color:var(--ink-soft);min-width:0}
   .feat.has-sub{align-items:flex-start}
@@ -663,9 +675,9 @@ const CASES={
    {id:'chorio',name:'Chorioamnionitis',icd:'O41.1',c:'var(--chorio)',prior:.09,mnm:true,script:'fever + uterine tenderness + fetal tachycardia ± ruptured membranes'},
    {id:'aflp',name:'Acute fatty liver of pregnancy',icd:'O26.6',c:'var(--aflp)',prior:.05,mnm:true,script:'3rd trimester + hypoglycaemia + coagulopathy + high LFTs'}],
   FEAT:[
-   {id:'headache',lbl:'Headache',stream:'hx',eff:{pet:[2.2,.6]},preset:'present'},
-   {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pet:[2.4,.6],hellp:[3,.5],aflp:[2,.7]},preset:'present'},
-   {id:'vis',lbl:'Visual disturbance',stream:'hx',eff:{pet:[3,.5]}},
+   {id:'headache',lbl:'Headache',stream:'hx',crit:{pet:'ACOG severe features'},preset:'present'},
+   {id:'epi',lbl:'Epigastric pain',stream:'hx',crit:{pet:'ACOG severe features',aflp:'Swansea criteria'},eff:{hellp:[3,1,'Own estimate. Epigastric/RUQ pain is a common presenting symptom of HELLP but is NOT one of the three Tennessee criteria, so it stays evidence rather than definition. Absent-weight 1.0: a substantial minority of HELLP presents without abdominal pain.']},preset:'present'},
+   {id:'vis',lbl:'Visual disturbance',stream:'hx',crit:{pet:'ACOG severe features'}},
    // Antenatal history — informational (no eff): this doesn't move the PET/HELLP
    // odds, but a complete obstetric presentation needs it regardless. This is
    // what Completeness measures and Confidence deliberately does not.
@@ -694,33 +706,37 @@ const CASES={
      {id:'pshxwhen',lbl:'Time since procedure',stream:'hx',num:{unit:'years'}}]},
    {id:'drughx',lbl:'Current medications',stream:'hx',kind:'text'},
    {id:'allergy',lbl:'Known drug allergies',stream:'hx',kind:'choice',options:['No known allergies','Penicillin','Sulfa drugs','NSAIDs']},
-   {id:'bp',lbl:'BP ≥160/110',stream:'exam',eff:{pet:[4,.3]},preset:'present'},
-   {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,.6]}},
-   {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',eff:{pet:[3,.4]}},
-   {id:'uterus',lbl:'Uterine tenderness',stream:'exam',eff:{chorio:[4,.4]}},
+   {id:'bp',lbl:'BP ≥160/110',stream:'exam',crit:{pet:'ACOG severe features'},preset:'present'},
+   {id:'clonus',lbl:'Hyperreflexia / clonus',stream:'exam',eff:{pet:[2.6,1,'Own estimate. Brisk reflexes/clonus is a recognised sign of CNS irritability in pre-eclampsia but is NOT an enumerated ACOG severe feature, so it stays in the chain as evidence. Absent-weight 1.0: many women with severe pre-eclampsia never develop clonus.']}},
+   {id:'dip',lbl:'Proteinuria (bedside dip)',stream:'exam',crit:{pet:'ISSHP / ACOG diagnostic criteria'}},
+   {id:'uterus',lbl:'Uterine tenderness',stream:'exam',crit:{chorio:'Gibbs criteria'}},
    // Abruption (2026-07-22 audit, critical-clinical): the most obvious
    // consultant-level differential for headache+abdo-pain in severe HTN at
    // 33 weeks was missing entirely.
-   {id:'pvbleed',lbl:'Vaginal bleeding',stream:'hx',eff:{abruption:[4,.5]},ask:'have you had any vaginal bleeding?'},
-   {id:'woodyuterus',lbl:'Tense / woody, constantly-contracted uterus',stream:'exam',eff:{abruption:[6,.4]}},
-   {id:'fhrabn',lbl:'Abnormal fetal heart rate / CTG',stream:'exam',eff:{abruption:[3,.6]}},
+   {id:'pvbleed',lbl:'Vaginal bleeding',stream:'hx',eff:{abruption:[4,1,'Own estimate. Revealed bleeding is the classic abruption sign but roughly one in five abruptions is concealed, so absence cannot count against — absent-weight 1.0.']},ask:'have you had any vaginal bleeding?'},
+   {id:'woodyuterus',lbl:'Tense / woody, constantly-contracted uterus',stream:'exam',eff:{abruption:[6,1,'Own estimate. A woody uterus is highly specific for a significant abruption but is a late/severe sign — small abruptions have a soft uterus, so absent-weight 1.0.']}},
+   {id:'fhrabn',lbl:'Abnormal fetal heart rate / CTG',stream:'exam',eff:{abruption:[3,1,'Own estimate. Fetal compromise is common in significant abruption but a normal CTG is entirely compatible with a small one, so absent-weight 1.0.']}},
    // Grounded in the real trigger, not a bare "multiple pregnancy?" tick: SFH
    // measured against gestational age is what actually raises the suspicion.
    {id:'sfh',lbl:'Symphysis-fundal height',stream:'exam',num:{unit:'cm'},criterion:'compare to gestation in weeks — normally ≈ equal ± 2 cm',ask:'if larger than expected for dates: consider multiple pregnancy, polyhydramnios, macrosomia, wrong dates, or fibroids'},
-   {id:'liquor',lbl:'Ruptured membranes / offensive liquor',stream:'exam',eff:{chorio:[5,.5]}},
-   {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',eff:{chorio:[3,.6]}},
-   {id:'plt',lbl:'Platelets < 100',stream:'ix',eff:{hellp:[8,.2]},key:'hellp',short:'platelets'},
-   {id:'ast',lbl:'AST / ALT raised',stream:'ix',eff:{hellp:[4,.4],aflp:[3,.5]}},
-   {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',eff:{hellp:[3,.5]}},
-   {id:'glu',lbl:'Hypoglycaemia',stream:'ix',eff:{aflp:[6,.4]},key:'aflp',short:'glucose'},
-   {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',eff:{aflp:[5,.5]}},
-   {id:'rx_dex',lbl:'Dextrose trial → improves',stream:'rx',eff:{aflp:[2.6,.55]}},
+   // Split (structural audit): "ruptured membranes / offensive liquor" merged two
+   // clinically different observations. Ruptured membranes is a risk state and stays
+   // evidence; OFFENSIVE liquor is an enumerated Gibbs criterion and so is a criterion,
+   // not a test.
+   {id:'rom',lbl:'Ruptured membranes',stream:'exam',eff:{chorio:[3,1,'Own estimate. Ruptured membranes is the usual route of ascending infection, so its presence raises chorioamnionitis — but intact-membrane chorioamnionitis is well described, so absent-weight 1.0.']},ask:'have your waters broken, and when?'},
+   {id:'offliquor',lbl:'Offensive / foul-smelling liquor',stream:'exam',crit:{chorio:'Gibbs criteria'}},
+   {id:'ftachy',lbl:'Fetal tachycardia',stream:'exam',crit:{chorio:'Gibbs criteria'}},
+   {id:'plt',lbl:'Platelets < 100',stream:'ix',crit:{hellp:'Tennessee criteria'},key:'hellp',short:'platelets'},
+   {id:'ast',lbl:'AST / ALT raised',stream:'ix',crit:{hellp:'Tennessee criteria',aflp:'Swansea criteria'}},
+   {id:'ldh',lbl:'LDH / haemolysis',stream:'ix',crit:{hellp:'Tennessee criteria'}},
+   {id:'glu',lbl:'Hypoglycaemia',stream:'ix',crit:{aflp:'Swansea criteria'},key:'aflp',short:'glucose'},
+   {id:'inr',lbl:'Coagulopathy (↑INR)',stream:'ix',crit:{aflp:'Swansea criteria'}},
    // Safety-audit fix (2026-07-23): abruption and chorio were added as
    // must-not-miss diagnoses without a confirmatory `key` finding, so the
    // confidence-cap safety mechanism silently could not see them as unresolved
    // rivals — confirmed live, a real gap, not cosmetic.
-   {id:'usabruption',lbl:'Ultrasound — retroplacental clot / excludes praevia',stream:'ix',eff:{abruption:[5,.3]},key:'abruption',short:'US — abruption'},
-   {id:'amnioculture',lbl:'Amniotic fluid Gram stain / culture positive',stream:'ix',eff:{chorio:[8,.2]},key:'chorio',short:'amniotic fluid culture'}],
+   {id:'usabruption',lbl:'Ultrasound — retroplacental clot',stream:'ix',eff:{abruption:[5,1,'Own estimate. A retroplacental clot is seen in only about 2–25% of confirmed abruptions, so a negative scan cannot count against it — absent-weight 1.0, one-directional. Abruption remains a clinical diagnosis; the scan is also done to exclude praevia before any vaginal examination.']},key:'abruption',short:'US — abruption'},
+   {id:'amnioculture',lbl:'Amniotic fluid Gram stain / culture positive',stream:'ix',crit:{chorio:'reference standard'},key:'chorio',short:'amniotic fluid culture'}],
   IX:[
    {id:'plt',cat:'lab',lbl:'Platelets',unit:'×10⁹/L',norm:'150–400',lo:100,dir:'below',dx:'HELLP'},
    {id:'ast',cat:'lab',lbl:'AST / ALT',unit:'U/L',norm:'< 40',hi:40,dir:'above',dx:'HELLP · AFLP'},
@@ -735,7 +751,10 @@ const CASES={
    definitive:[{rx:'Delivery',for:'the only definitive cure',dose:'plan once mother stable'},{rx:'Betamethasone',for:'fetal lung maturity',dose:'12 mg IM, 2 doses 24 h apart',sign:true,ind:'33+4 wk — give'}],
    longterm:[{rx:'Postnatal BP review',for:'PET resolves over weeks',dose:'BP checks + wean antihypertensives'},{rx:'Future-pregnancy prophylaxis',for:'high recurrence risk',dose:'aspirin 150 mg nocte from 12 wk + calcium',sign:true},{rx:'Cardiovascular risk follow-up',for:'lifelong ↑ CVD / HTN risk',dose:'BP, weight, metabolic screen'}],
    monitor:['Hourly BP + reflexes','Strict fluid balance','Urine output','FBC · U&E · LFT trend'],
-   levers:[{id:'rx_dex',give:'IV dextrose',resp:'glucose corrects, rouses',means:'supports AFLP / hypoglycaemia',wired:true},{give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},{give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'}]},
+   // The "dextrose trial → improves = supports AFLP" lever was deleted (structural
+   // audit): no such diagnostic test exists. Correcting hypoglycaemia is treatment,
+   // and it tells you nothing about its cause.
+   levers:[{give:'MgSO₄',resp:'clonus resolves',means:'confirms CNS irritability (PET)'},{give:'Antihypertensive',resp:'BP falls',means:'severity control — not diagnostic'}]},
  },
  cp:{
   specialty:'IM / EM', label:'Chest pain',
@@ -754,20 +773,20 @@ const CASES={
    {id:'ptx',name:'Tension pneumothorax',icd:'J93.0',c:'var(--rr)',prior:.03,mnm:true,script:'sudden pleuritic pain + dyspnoea + hyper-resonance + tracheal deviation + absent breath sounds'},
    {id:'boerhaave',name:'Oesophageal rupture (Boerhaave)',icd:'K22.3',c:'var(--hr)',prior:.02,mnm:true,script:'severe retching/vomiting immediately before pain + subcutaneous emphysema — a real, easily-missed mimic'}],
   FEAT:[
-   {id:'crush',lbl:'Crushing pain radiating to arm/jaw',stream:'hx',eff:{acs:[3,.5]},preset:'present'},
-   {id:'exert',lbl:'Exertional onset',stream:'hx',eff:{acs:[2.5,.6]}},
+   {id:'crush',lbl:'Crushing pain radiating to arm/jaw',stream:'hx',eff:{acs:[3,1,'Own estimate, anchored on the published LR+ ~2–4 for radiation to arm/shoulder. Absent-weight 1.0: atypical and painless presentations are common (women, diabetics, the elderly), so absence must never argue against ACS.']},preset:'present'},
+   {id:'exert',lbl:'Exertional onset',stream:'hx',eff:{acs:[2.5,1,'Own estimate. Exertional onset raises ischaemia, but a large share of infarcts begin at rest, so absent-weight 1.0.']}},
    // Discrete, consultant-level risk-factor elicitation — not one bundled tick.
    // Each is individually documentable (and individually manageable) rather than
    // collapsed into a single "cardiac risk factors: yes" checkbox.
-   {id:'htn',lbl:'Hypertension',stream:'hx',eff:{acs:[1.3,.85]},preset:'present',ask:'has a doctor told you your blood pressure is high, or are you on tablets for it?'},
-   {id:'dm',lbl:'Diabetes',stream:'hx',eff:{acs:[1.3,.85]},ask:'do you have diabetes / high sugar, or are you on tablets or insulin for it?'},
-   {id:'lipids',lbl:'High cholesterol',stream:'hx',eff:{acs:[1.25,.9]},preset:'present',ask:'has a doctor said your cholesterol is high, or are you on a statin tablet?'},
-   {id:'famhx',lbl:'Family history of heart disease',stream:'hx',eff:{acs:[1.4,.85]},preset:'present',ask:'has your father, mother, brother or sister had a heart attack young?'},
-   {id:'pleur',lbl:'Pleuritic (worse on inspiration)',stream:'hx',eff:{pe:[2.5,.6],pericarditis:[3,.5],acs:[.6,1.1]}},
-   {id:'tear',lbl:'Tearing pain radiating to back',stream:'hx',eff:{dissection:[8,.4]},ask:'did the pain feel like tearing, ripping through to your back?'},
-   {id:'immob',lbl:'Recent immobility / DVT risk',stream:'hx',eff:{pe:[3,.5]},ask:'any long trip, bed rest, recent surgery, or swelling/pain in one leg?'},
-   {id:'ssf',lbl:'Relieved sitting forward',stream:'hx',eff:{pericarditis:[4,.5]}},
-   {id:'retchpain',lbl:'Severe vomiting/retching immediately before pain onset',stream:'hx',eff:{boerhaave:[6,.3]},ask:'did you vomit or retch hard right before the pain started?'},
+   {id:'htn',lbl:'Hypertension',stream:'hx',eff:{acs:[1.3,1,'Own estimate. A risk factor raises pre-test probability modestly; NOT having it is a poor discriminator in someone already presenting with chest pain, so absent-weight 1.0.']},preset:'present',ask:'has a doctor told you your blood pressure is high, or are you on tablets for it?'},
+   {id:'dm',lbl:'Diabetes',stream:'hx',eff:{acs:[1.3,1,'Own estimate. Same shape as hypertension — a modest raise when present, nothing when absent.']},ask:'do you have diabetes / high sugar, or are you on tablets or insulin for it?'},
+   {id:'lipids',lbl:'High cholesterol',stream:'hx',eff:{acs:[1.25,1,'Own estimate. Weakest of the four risk factors; one-directional.']},preset:'present',ask:'has a doctor said your cholesterol is high, or are you on a statin tablet?'},
+   {id:'famhx',lbl:'Family history of heart disease',stream:'hx',eff:{acs:[1.4,1,'Own estimate. Premature family history is the strongest of the four risk factors here; one-directional — no family history does not protect.']},preset:'present',ask:'has your father, mother, brother or sister had a heart attack young?'},
+   {id:'pleur',lbl:'Pleuritic (worse on inspiration)',stream:'hx',eff:{pe:[2.5,1,'Own estimate. Pleuritic pain is common in PE but a large share of PEs present with dyspnoea alone, so absent-weight 1.0.'],pericarditis:[3,1,'Own estimate. Typical of pericarditis but not universal, so one-directional.'],acs:[.6,1,'Own estimate. Pleuritic quality argues modestly AGAINST ACS when present. The old absent-weight of 1.1 quietly promoted ACS every time the question was answered "no" — a second bite at the same observation. Absence now does nothing.']}},
+   {id:'tear',lbl:'Tearing pain radiating to back',stream:'hx',eff:{dissection:[8,1,'Own estimate. Highly specific when present, but classic tearing/ripping quality is reported by only about half of confirmed dissections (IRAD) — absent-weight 1.0, one-directional.']},ask:'did the pain feel like tearing, ripping through to your back?'},
+   {id:'immob',lbl:'Recent immobility / DVT risk',stream:'hx',eff:{pe:[3,1,'Own estimate, consistent with the weight Wells gives this item. Roughly half of PEs are unprovoked, so absence must not argue against — absent-weight 1.0.']},ask:'any long trip, bed rest, recent surgery, or swelling/pain in one leg?'},
+   {id:'ssf',lbl:'Relieved sitting forward',stream:'hx',eff:{pericarditis:[4,1,'Own estimate. Postural relief is characteristic but not always present or elicited; one-directional.']}},
+   {id:'retchpain',lbl:'Severe vomiting/retching immediately before pain onset',stream:'hx',eff:{boerhaave:[6,1,'Own estimate. Barogenic rupture usually follows forceful vomiting, but atypical presentations without a vomiting history are well described and Mackler\'s triad is complete in only ~14% — so absent-weight 1.0 rather than a rule-out.']},ask:'did you vomit or retch hard right before the pain started?'},
    // Universal background — smoking is already diagnostically weighted for ACS
    // via cardiac risk above; this captures full current status for the record.
    {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker'],ask:'do you smoke now, or did you used to?'},
@@ -778,22 +797,42 @@ const CASES={
    // Score-only input, no `eff` — HEART's own "History" component is a clinician
    // gestalt rating (this is how real HEART Pathway tools capture it, not derived
    // from the individual findings already scored above, which would double-count).
-   {id:'diaph',lbl:'Diaphoresis / distress',stream:'exam',eff:{acs:[2,.7]},preset:'present'},
-   {id:'asym',lbl:'Unequal arm BP / pulse deficit',stream:'exam',eff:{dissection:[6,.4]}},
-   {id:'jvp',lbl:'Raised JVP / RV strain',stream:'exam',eff:{pe:[3,.6]}},
-   {id:'rub',lbl:'Pericardial friction rub',stream:'exam',eff:{pericarditis:[8,.3]}},
-   {id:'hypox',lbl:'Tachycardia + hypoxia',stream:'exam',eff:{pe:[2.5,.6]},preset:'present'},
-   {id:'ptxsigns',lbl:'Hyper-resonance + tracheal deviation + absent breath sounds (one side)',stream:'exam',eff:{ptx:[10,.1]},ask:'percuss and auscultate both sides — this is a clinical diagnosis, do not wait for imaging if the patient is unstable'},
-   {id:'subcutemph',lbl:'Subcutaneous emphysema (crepitus in neck/chest wall)',stream:'exam',eff:{boerhaave:[10,.1]}},
-   {id:'armurmur',lbl:'New early diastolic murmur (aortic regurgitation)',stream:'exam',eff:{dissection:[5,.4]},ask:'listen at the left sternal edge, sitting forward, in expiration'},
-   {id:'trop',lbl:'Troponin raised',stream:'ix',eff:{acs:[8,.2]},key:'acs',short:'troponin'},
-   {id:'ecgisch',lbl:'ECG ischaemia',stream:'ix',eff:{acs:[6,.3]}},
-   {id:'ddimer',lbl:'D-dimer raised',stream:'ix',eff:{pe:[2.5,.5]}},
-   {id:'ctpa',lbl:'CTPA positive',stream:'ix',eff:{pe:[15,.1]},key:'pe',short:'CTPA'},
-   {id:'ctaorta',lbl:'CT aorta — dissection flap',stream:'ix',eff:{dissection:[14,.08]},key:'dissection',short:'CT aorta'},
-   {id:'ecgperi',lbl:'ECG diffuse ST / PR depression',stream:'ix',eff:{pericarditis:[5,.4]}},
-   {id:'cxrcp',lbl:'CXR — pneumothorax / widened mediastinum / free mediastinal air',stream:'ix',eff:{ptx:[12,.08],dissection:[3,.5],boerhaave:[4,.4]},key:'ptx',short:'CXR'},
-   {id:'ctchest',lbl:'CT chest / contrast swallow — oesophageal leak',stream:'ix',eff:{boerhaave:[14,.06]},key:'boerhaave',short:'CT chest'}],
+   {id:'diaph',lbl:'Diaphoresis / distress',stream:'exam',eff:{acs:[2,1,'Own estimate, anchored on published LR+ ~2 for diaphoresis in suspected ACS. Absent-weight 1.0 — plenty of infarcts are not sweaty.']},preset:'present'},
+   // Split (structural audit): "unequal arm BP / pulse deficit" merged two different
+   // bedside measurements with very different operating characteristics.
+   {id:'bpdiff',lbl:'Inter-arm systolic BP difference >20 mmHg',stream:'exam',eff:{dissection:[4,1,'Own estimate. Specific when present but reported in only a minority of confirmed dissections, and inter-arm differences also occur in healthy people — one-directional.']},ask:'measure the blood pressure in BOTH arms'},
+   {id:'pulsedef',lbl:'Pulse deficit (absent or asymmetric peripheral pulse)',stream:'exam',eff:{dissection:[6,1,'Own estimate. A pulse deficit is present in about 31% of confirmed aortic dissection, so roughly two thirds of dissections have normal pulses — absent-weight 1.0, strictly one-directional.']},ask:'palpate radial, brachial and femoral pulses on both sides'},
+   {id:'jvp',lbl:'Raised JVP / RV strain',stream:'exam',eff:{pe:[3,1,'Own estimate. Right-heart strain signs appear in larger PEs only, so absence says nothing — one-directional.']}},
+   {id:'rub',lbl:'Pericardial friction rub',stream:'exam',eff:{pericarditis:[8,1,'Own estimate. Near-pathognomonic when heard, but a rub is intermittent and audible in only about a third of cases — absent-weight 1.0.']}},
+   // Split (structural audit): "tachycardia + hypoxia" was one tick covering two
+   // separate observations, each measured independently at the bedside.
+   {id:'tachyc',lbl:'Tachycardia (HR > 100)',stream:'exam',eff:{pe:[2,1,'Own estimate. Tachycardia is common in PE and is a Wells item, but it is non-specific and absent in many small PEs — one-directional.']},preset:'present'},
+   {id:'hypoxcp',lbl:'Hypoxia (SpO₂ < 94% on air)',stream:'exam',eff:{pe:[2.5,1,'Own estimate. Roughly a quarter of confirmed PEs have a normal oxygen saturation, so a normal SpO₂ must never argue against PE — absent-weight 1.0.']},preset:'present'},
+   // Split (structural audit): one tick previously carried three separate chest
+   // findings. They are examined separately and each is separately insensitive —
+   // tracheal deviation especially is a late sign. Weights reduced so the three
+   // together do not exceed what the single merged row used to contribute.
+   {id:'hyperres',lbl:'Hyper-resonance to percussion (one side)',stream:'exam',eff:{ptx:[4,1,'Own estimate, de-weighted from the merged row so the three split signs together approximate its original effect. Absent-weight 1.0 — percussion is unreliable in a noisy resuscitation room.']},ask:'percuss both sides and compare'},
+   {id:'absentbs',lbl:'Absent / reduced breath sounds (one side)',stream:'exam',eff:{ptx:[5,1,'Own estimate, de-weighted from the merged row. Absent-weight 1.0 — a small pneumothorax has audible breath sounds.']},ask:'auscultate both sides and compare'},
+   {id:'trachdev',lbl:'Tracheal deviation away from the affected side',stream:'exam',eff:{ptx:[8,1,'Own estimate. Highly specific but a LATE sign present in a minority of tension pneumothoraces — waiting for it kills people, so absent-weight is 1.0 and this can never lower the suspicion.']},ask:'this is a late sign — a tension pneumothorax is a clinical diagnosis, do not wait for imaging or for the trachea to shift if the patient is unstable'},
+   {id:'subcutemph',lbl:'Subcutaneous emphysema (crepitus in neck/chest wall)',stream:'exam',eff:{boerhaave:[10,1,'Own estimate. Very specific when felt, but reported in only about a third to a half of confirmed ruptures — absent-weight 1.0.']}},
+   {id:'armurmur',lbl:'New early diastolic murmur (aortic regurgitation)',stream:'exam',eff:{dissection:[5,1,'Own estimate. Aortic regurgitation accompanies roughly a third of type A dissections and none of most type B — absent-weight 1.0.']},ask:'listen at the left sternal edge, sitting forward, in expiration'},
+   {id:'trop',lbl:'Troponin raised',stream:'ix',eff:{acs:[8,.25,'Own estimate. Serial high-sensitivity troponin is one of the few findings genuinely sensitive enough for absence to count: taken as a serial pair it detects the large majority of acute coronary syndromes. Held at 0.25 rather than lower because ACS here includes unstable angina, which is troponin-negative by definition.',.9]},key:'acs',short:'troponin'},
+   {id:'ecgisch',lbl:'ECG ischaemia',stream:'ix',eff:{acs:[6,1,'Own estimate. The initial ECG is normal or non-diagnostic in a third to a half of confirmed ACS, so a clean ECG must not lower the odds — absent-weight 1.0.']}},
+   {id:'ddimer',lbl:'D-dimer raised',stream:'ix',eff:{pe:[2.5,.5,'Own estimate. D-dimer is the textbook case for a legitimate negative weight: it is designed as a rule-out with sensitivity around 95%, so a negative result genuinely lowers PE. Kept at 0.5 rather than the mathematical floor because its rule-out validity depends on a low pre-test probability.',.95]}},
+   {id:'ctpa',lbl:'CTPA positive',stream:'ix',eff:{pe:[15,.12,'Own estimate. CTPA sensitivity is around 90% (PIOPED II), so a negative scan is a strong but not absolute rule-out; 0.12 sits just above the floor a 90% sensitivity permits.',.9]},key:'pe',short:'CTPA'},
+   {id:'ctaorta',lbl:'CT aorta — dissection flap',stream:'ix',eff:{dissection:[14,.08,'Own estimate. CT angiography of the aorta has sensitivity around 98% for dissection, which is what licenses a strong negative weight here.',.98]},key:'dissection',short:'CT aorta'},
+   {id:'ecgperi',lbl:'ECG diffuse ST / PR depression',stream:'ix',eff:{pericarditis:[5,1,'Own estimate. The classic diffuse ST elevation with PR depression appears in roughly 60% of pericarditis and evolves through stages, so a normal ECG does not exclude it — absent-weight 1.0.']}},
+   // Split (structural audit): ONE chest X-ray previously drove three diagnoses from a
+   // single yes/no. These are three different radiographic findings on the same film,
+   // each read and each absent-or-present in its own right.
+   {id:'cxrptx',lbl:'CXR — pneumothorax',stream:'ix',eff:{ptx:[12,1,'Own estimate. Plain-film sensitivity for pneumothorax is poor supine and imperfect erect, and tension pneumothorax must never be excluded on a film — absent-weight 1.0.']},key:'ptx',short:'CXR — pneumothorax'},
+   {id:'cxrmed',lbl:'CXR — widened mediastinum',stream:'ix',eff:{dissection:[3,1,'Own estimate. A widened mediastinum is seen in roughly 60% of dissections, so a normal mediastinal contour is common in confirmed disease — absent-weight 1.0.']},short:'CXR — mediastinum'},
+   {id:'cxrair',lbl:'CXR — free mediastinal air / pneumomediastinum',stream:'ix',eff:{boerhaave:[4,1,'Own estimate. Pneumomediastinum takes hours to appear and is absent on early films in a large share of ruptures — absent-weight 1.0.']},short:'CXR — mediastinal air'},
+   // Split (structural audit): CT chest and a contrast swallow are two different
+   // investigations with different sensitivity — they cannot share one weight.
+   {id:'ctchest',lbl:'CT chest — oesophageal leak / extraluminal air',stream:'ix',eff:{boerhaave:[14,.1,'Own estimate. CT of the chest is the most sensitive test for oesophageal perforation (around 90%+), which is what permits a negative weight at all.',.9]},key:'boerhaave',short:'CT chest'},
+   {id:'swallow',lbl:'Water-soluble contrast swallow — extravasation',stream:'ix',eff:{boerhaave:[10,1,'Own estimate. A contrast swallow misses roughly a fifth of perforations (false-negative rate is well recognised), so a normal study cannot exclude rupture — absent-weight 1.0.']},short:'contrast swallow'}],
   IX:[
    {id:'trop',cat:'lab',lbl:'Troponin (hs)',unit:'ng/L',norm:'< 14',hi:14,dir:'above',dx:'ACS'},
    {id:'ddimer',cat:'lab',lbl:'D-dimer',unit:'µg/L',norm:'< 0.5',hi:0.5,dir:'above',dx:'PE'},
@@ -801,10 +840,13 @@ const CASES={
    {id:'ctpa',cat:'imaging',lbl:'CTPA',binary:true,dx:'PE'},
    {id:'ctaorta',cat:'imaging',lbl:'CT aorta',binary:true,dx:'Dissection'},
    {id:'ecgperi',cat:'bedside',lbl:'ECG — pericarditis pattern',binary:true,dx:'Pericarditis'},
-   {id:'cxrcp',cat:'imaging',lbl:'Chest X-ray',binary:true,dx:'Pneumothorax / Boerhaave / dissection'},
-   {id:'ctchest',cat:'imaging',lbl:'CT chest / contrast swallow',binary:true,dx:'Boerhaave'}],
+   {id:'cxrptx',cat:'imaging',lbl:'Chest X-ray — pneumothorax?',binary:true,dx:'Pneumothorax'},
+   {id:'cxrmed',cat:'imaging',lbl:'Chest X-ray — widened mediastinum?',binary:true,dx:'Dissection'},
+   {id:'cxrair',cat:'imaging',lbl:'Chest X-ray — free mediastinal air?',binary:true,dx:'Boerhaave'},
+   {id:'ctchest',cat:'imaging',lbl:'CT chest',binary:true,dx:'Boerhaave'},
+   {id:'swallow',cat:'imaging',lbl:'Water-soluble contrast swallow',binary:true,dx:'Boerhaave'}],
   MX:{
-   investigate:[{lbl:'12-lead ECG',when:'within 10 min of arrival',ix:'ecgisch'},{lbl:'Bloods — troponin · D-dimer',when:'now (serial troponin)',ix:'trop'},{lbl:'CXR — before assuming ACS/PE, exclude pneumothorax and Boerhaave',when:'now, first line',ix:'cxrcp'}],
+   investigate:[{lbl:'12-lead ECG',when:'within 10 min of arrival',ix:'ecgisch'},{lbl:'Bloods — troponin · D-dimer',when:'now (serial troponin)',ix:'trop'},{lbl:'CXR — before assuming ACS/PE, exclude pneumothorax and Boerhaave',when:'now, first line',ix:'cxrptx'}],
    immediate:[{rx:'Needle decompression',for:'tension pneumothorax — a clinical diagnosis, do not wait for CXR if the patient is unstable',dose:'14G cannula, 2nd intercostal space midclavicular line (or 5th ICS anterior axillary line) → formal chest drain after',sign:true,warnIf:{dxLead:'ptx',msg:'Tension pneumothorax is the leading diagnosis — decompress now, before any other step.'}},{rx:'Aspirin',for:'if ACS likely — hold if dissection, pneumothorax or Boerhaave are still live possibilities',dose:'300 mg PO chewed, stat',sign:true},{rx:'Analgesia + antiemetic',for:'pain and distress',dose:'morphine 2.5–5 mg IV titrated + metoclopramide 10 mg IV',sign:true}],
    definitive:[{rx:'Reperfusion (PCI / lysis)',for:'STEMI pathway',dose:'primary PCI < 120 min · or tenecteplase (weight-based) if PCI unavailable'},{rx:'Anticoagulation',for:'confirmed PE / NSTEMI — not if dissection',dose:'enoxaparin 1 mg/kg SC 12-hly (renal-adjust) · or fondaparinux 2.5 mg SC OD',sign:true},{rx:'Aortic control + CT surgery',for:'dissection',dose:'keep SBP 100–120 / HR < 60 (IV labetalol); urgent cardiothoracic referral'}],
    longterm:[{rx:'Secondary prevention',for:'post-ACS',dose:'dual antiplatelet 12 mth + high-intensity statin + ACE-inhibitor + beta-blocker',sign:true},{rx:'Cardiac rehabilitation + risk-factor control',for:'reduce recurrence',dose:'structured programme; BP, lipids, glucose, smoking'}],
@@ -832,47 +874,58 @@ const CASES={
    {id:'torsion',name:'Ovarian torsion',icd:'N83.5',c:'var(--hellp)',prior:.08,mnm:true,script:'sudden severe unilateral pain + nausea + tender adnexal mass'},
    {id:'adenitis',name:'Mesenteric adenitis',icd:'I88.0',c:'var(--aflp)',prior:.10,mnm:false,script:'recent viral illness + diffuse tenderness without guarding'}],
   FEAT:[
-   {id:'migrate',lbl:'Pain migrated central → RIF',stream:'hx',eff:{appy:[3,.5]},preset:'present'},
-   {id:'anorexia',lbl:'Anorexia',stream:'hx',eff:{appy:[2,.6]}},
-   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{ectopic:[4,.4]}},
-   {id:'suddensev',lbl:'Sudden severe onset',stream:'hx',eff:{torsion:[3,.5]}},
-   {id:'viral',lbl:'Recent viral illness',stream:'hx',eff:{adenitis:[3,.5]}},
+   {id:'migrate',lbl:'Pain migrated central → RIF',stream:'hx',eff:{appy:[3,1,'Own estimate, anchored on the published LR+ of about 3 for migration. Absent-weight 1.0: classic migration is described by only about half of confirmed appendicitis.']},preset:'present'},
+   {id:'anorexia',lbl:'Anorexia',stream:'hx',eff:{appy:[2,1,'Own estimate. Common but far from universal, and non-specific in an acute abdomen — one-directional.']}},
+   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{ectopic:[4,1,'Own estimate. Many ectopics present without a clearly missed period (bleeding is mistaken for one), so absence must not argue against — absent-weight 1.0.']}},
+   {id:'suddensev',lbl:'Sudden severe onset',stream:'hx',eff:{torsion:[3,1,'Own estimate. Torsion can also present with intermittent or gradual pain from partial/repeated torsion, so absent-weight 1.0.']}},
+   {id:'viral',lbl:'Recent viral illness',stream:'hx',eff:{adenitis:[3,1,'Own estimate. A preceding viral illness supports mesenteric adenitis but is frequently not recalled — one-directional.']}},
    // Real ectopic risk factors — grounded, not filler: previous ectopic and
    // tubal damage (PID / tubal surgery) materially raise pre-test probability.
-   {id:'priorectopic',lbl:'Previous ectopic pregnancy',stream:'hx',eff:{ectopic:[4,.85]},ask:'have you ever had a pregnancy in the tube before?'},
-   {id:'pidhx',lbl:'Previous pelvic infection or tubal surgery',stream:'hx',eff:{ectopic:[3,.9]},ask:'have you ever had a pelvic infection (PID), or an operation on your tubes?'},
+   {id:'priorectopic',lbl:'Previous ectopic pregnancy',stream:'hx',eff:{ectopic:[4,1,'Own estimate. A strong risk factor when present; most ectopics are first ectopics, so absence says nothing — absent-weight 1.0.']},ask:'have you ever had a pregnancy in the tube before?'},
+   {id:'pidhx',lbl:'Previous pelvic infection or tubal surgery',stream:'hx',eff:{ectopic:[3,1,'Own estimate. Tubal damage raises risk substantially, but most ectopics occur without a documented history of it — one-directional.']},ask:'have you ever had a pelvic infection (PID), or an operation on your tubes?'},
    // Rupture/instability recognition (2026-07-22 audit, critical-clinical fix):
    // the pack could confirm a pregnancy but had no way to catch a RUPTURED one
    // — the actual emergency. Vaginal bleeding is part of the classic triad;
    // shoulder-tip pain and syncope are the specific bedside signs of
    // haemoperitoneum from a bleeding ectopic (RCOG Green-top 21).
-   {id:'pvbleed',lbl:'Vaginal bleeding',stream:'hx',eff:{ectopic:[2.5,.7]},ask:'have you had any vaginal bleeding with this pain?'},
-   {id:'shouldertip',lbl:'Shoulder-tip pain',stream:'hx',eff:{ectopic:[6,.8]},ask:'have you had any pain at the tip of your shoulder?'},
-   {id:'syncope',lbl:'Dizziness, fainting or collapse',stream:'hx',eff:{ectopic:[5,.8],torsion:[1.5,.9]},ask:'have you felt faint, dizzy, or actually collapsed with this pain?'},
+   {id:'pvbleed',lbl:'Vaginal bleeding',stream:'hx',eff:{ectopic:[2.5,1,'Own estimate. Part of the classic triad, but a substantial share of ectopics present with pain alone — absent-weight 1.0.']},ask:'have you had any vaginal bleeding with this pain?'},
+   {id:'shouldertip',lbl:'Shoulder-tip pain',stream:'hx',eff:{ectopic:[6,1,'Own estimate. Diaphragmatic irritation from haemoperitoneum is a specific sign when present, but it only appears once there is significant free blood — most ectopics do not have it, so absent-weight 1.0.']},ask:'have you had any pain at the tip of your shoulder?'},
+   {id:'syncope',lbl:'Dizziness, fainting or collapse',stream:'hx',eff:{ectopic:[5,1,'Own estimate. Signals possible rupture and must raise the alarm hard when present; absence is entirely normal in an unruptured ectopic, so absent-weight 1.0.'],torsion:[1.5,1,'Own estimate. Weak, driven by pain/vagal response rather than anything specific to torsion; one-directional.']},ask:'have you felt faint, dizzy, or actually collapsed with this pain?'},
    {id:'parity',lbl:'Previous pregnancies (parity)',stream:'hx',num:{unit:'pregnancies'}},
    {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
    {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker']},
    {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent']},
    {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
    {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
-   {id:'rifguard',lbl:'RIF tenderness + guarding',stream:'exam',eff:{appy:[4,.4]},preset:'present'},
-   {id:'rebound',lbl:'Rebound / percussion tenderness',stream:'exam',eff:{appy:[3,.5]}},
-   {id:'adnexal',lbl:'Adnexal tenderness / cervical excitation',stream:'exam',eff:{ectopic:[3,.5],torsion:[2,.7]}},
-   {id:'mass',lbl:'Palpable tender adnexal mass',stream:'exam',eff:{torsion:[5,.5]}},
+   // Split (structural audit): RIF tenderness and guarding are two different exam
+   // findings. Tenderness is near-universal in appendicitis — which is precisely why
+   // it is one of the very few findings allowed a negative weight. Guarding is not.
+   {id:'riftend',lbl:'Right iliac fossa tenderness',stream:'exam',eff:{appy:[4,.2,'Own estimate. RIF tenderness is present in around 95% of confirmed appendicitis — one of the genuinely near-universal findings in this whole file, which is what licenses a negative weight. A completely non-tender right iliac fossa makes appendicitis unlikely.',.95]},preset:'present'},
+   {id:'rifguard',lbl:'Guarding / rigidity',stream:'exam',eff:{appy:[3,1,'Own estimate. Guarding indicates peritoneal irritation and appears later; early appendicitis is frequently soft, so absent-weight 1.0.']},preset:'present'},
+   {id:'rebound',lbl:'Rebound / percussion tenderness',stream:'exam',eff:{appy:[3,1,'Own estimate. Supports peritonism when present; absent in a large share of early appendicitis — one-directional.']}},
+   {id:'adnexal',lbl:'Adnexal tenderness / cervical excitation',stream:'exam',eff:{ectopic:[3,1,'Own estimate. Frequently absent in an unruptured ectopic and uncomfortable to elicit reliably — absent-weight 1.0.'],torsion:[2,1,'Own estimate. Weak and non-specific; one-directional.']}},
+   {id:'mass',lbl:'Palpable tender adnexal mass',stream:'exam',eff:{torsion:[5,1,'Own estimate. A palpable adnexal mass is found in only about 24% of confirmed ovarian torsion — so three quarters of torsions have no palpable mass and absence must count for nothing. Absent-weight 1.0.']}},
    // Two DISTINCT tests, staged like real practice — never collapse them into
    // one "quantitative at presentation" number. (1) bedside urine screen: instant,
    // qualitative, the actual rule-out gate. (2) only once that's positive do you
    // SEND a quantitative serum level to the lab — it comes back later and its
    // value (vs the discriminatory zone) is what shapes the ectopic workup.
-   {id:'bhcg',lbl:'βhCG positive (urine, bedside)',stream:'ix',eff:{ectopic:[6,.1]},key:'ectopic',short:'urine βhCG'},
-   {id:'bhcgquant',lbl:'Quantitative serum βhCG',stream:'ix',eff:{ectopic:[3,.6]}},
+   // A positive pregnancy test is the ENTRY CONDITION for this differential, not
+   // evidence inside it: without it there is no ectopic to weigh, and with it every
+   // pregnancy-related diagnosis is on the table at once. It stays the gate (and
+   // still resolves the must-not-miss cap) but it no longer multiplies odds.
+   {id:'bhcg',lbl:'βhCG positive (urine, bedside)',stream:'ix',crit:{ectopic:'entry condition for the pregnancy differential'},key:'ectopic',short:'urine βhCG'},
+   {id:'bhcgquant',lbl:'Quantitative serum βhCG',stream:'ix',eff:{ectopic:[3,1,'Own estimate. A level above the discriminatory zone with an empty uterus supports ectopic; a level below it is entirely compatible with an early ectopic, so absent-weight 1.0.']}},
    // Wording fixed 2026-07-22: ~60% of surgically confirmed torsion still
    // shows NORMAL Doppler flow (JOGC 2018) — the old label implied absent
    // flow was needed to raise torsion, which teaches a false-negative trap.
-   {id:'usadnexa',lbl:'US — adnexal mass seen (flow may be normal even in torsion)',stream:'ix',eff:{torsion:[8,.2]},key:'torsion',short:'pelvic US'},
-   {id:'wcc',lbl:'WCC raised',stream:'ix',eff:{appy:[2.5,.5],adenitis:[1.3,.9]}},
-   {id:'crp',lbl:'CRP raised',stream:'ix',eff:{appy:[2,.6],adenitis:[1.2,.9]}},
-   {id:'usappy',lbl:'US / CT — appendicitis',stream:'ix',eff:{appy:[10,.2]}},
+   {id:'usadnexa',lbl:'US — adnexal mass seen (flow may be normal even in torsion)',stream:'ix',eff:{torsion:[8,1,'Own estimate. About 60% of surgically confirmed torsion still shows NORMAL Doppler flow, and a scan can be read as normal in real torsion — so a negative pelvic ultrasound must never lower torsion. Absent-weight 1.0.']},key:'torsion',short:'pelvic US'},
+   {id:'wcc',lbl:'WCC raised',stream:'ix',eff:{appy:[2.5,1,'Own estimate. A normal white count occurs in a meaningful minority of confirmed appendicitis, especially early — absent-weight 1.0.'],adenitis:[1.3,1,'Own estimate. Weak and non-specific; one-directional.']}},
+   {id:'crp',lbl:'CRP raised',stream:'ix',eff:{appy:[2,1,'Own estimate. CRP lags the onset of inflammation by hours, so an early normal CRP is expected in real appendicitis — absent-weight 1.0.'],adenitis:[1.2,1,'Own estimate. Weak and non-specific; one-directional.']}},
+   // Split (structural audit): ultrasound and CT were merged into one row. They have
+   // different sensitivity and are used at different points in the pathway.
+   {id:'usappy',lbl:'US — appendicitis',stream:'ix',eff:{appy:[8,1,'Own estimate. Ultrasound for appendicitis is operator-dependent and the appendix is frequently not visualised at all, so a negative or non-diagnostic scan cannot lower the odds — absent-weight 1.0.']}},
+   {id:'ctappy',lbl:'CT abdomen — appendicitis',stream:'ix',eff:{appy:[10,.15,'Own estimate. CT for appendicitis has sensitivity around 94%, which is what makes a negative scan meaningful — one of the few negative weights kept in this pack.',.94]}},
    {id:'gxm',lbl:'Group & crossmatch + Rh group sent',stream:'ix',ask:'needed before theatre, and to know if anti-D is required'},
    {id:'allergy',lbl:'Known drug allergies',stream:'hx',kind:'choice',options:['No known allergies','Penicillin','Sulfa drugs','NSAIDs'],ask:'are you allergic to any medicines — penicillin, "-mycin" antibiotics, or painkillers like ibuprofen/Voltaren?'}],
   IX:[
@@ -881,7 +934,8 @@ const CASES={
    {id:'usadnexa',cat:'imaging',lbl:'Pelvic ultrasound',binary:true,dx:'Torsion'},
    {id:'wcc',cat:'lab',lbl:'WCC',unit:'×10⁹/L',norm:'4–11',hi:11,dir:'above',dx:'Appendicitis'},
    {id:'crp',cat:'lab',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Appendicitis'},
-   {id:'usappy',cat:'imaging',lbl:'US / CT abdomen',binary:true,dx:'Appendicitis'},
+   {id:'usappy',cat:'imaging',lbl:'US abdomen / pelvis',binary:true,dx:'Appendicitis'},
+   {id:'ctappy',cat:'imaging',lbl:'CT abdomen',binary:true,dx:'Appendicitis'},
    {id:'gxm',cat:'lab',lbl:'Group & crossmatch + Rh group',binary:true,dx:'Pre-theatre + anti-D need'}],
   MX:{
    investigate:[{lbl:'Urine βhCG',when:'first — any reproductive-age woman',ix:'bhcg'},{lbl:'WCC · CRP + US / CT abdomen',when:'now',ix:'wcc'},{lbl:'Quantitative serum βhCG',when:'send once urine screen positive',ix:'bhcgquant'},{lbl:'Group & crossmatch + Rh group',when:'now — before theatre, and to know if anti-D is needed',ix:'gxm'}],
@@ -904,14 +958,14 @@ const CASES={
    {id:'uti',name:'Urinary tract infection',icd:'N39.0',c:'var(--pet)',prior:.22,mnm:false,script:'fever without source + offensive urine + positive dip / culture'},
    {id:'viral',name:'Viral illness',icd:'J06.9',c:'var(--aflp)',prior:.30,mnm:false,script:'coryza + well-appearing between fevers + self-limiting'}],
   FEAT:[
-   {id:'irrit',lbl:'Irritable / lethargic',stream:'hx',eff:{meningitis:[3,.4]},preset:'present'},
-   {id:'feeds',lbl:'Reduced feeds',stream:'hx',eff:{meningitis:[1.5,.8],uti:[1.3,.9]},preset:'present'},
-   {id:'cough',lbl:'Cough',stream:'hx',eff:{pneumonia:[2.5,.6]},preset:'present',follow:[
-     {id:'sputum',lbl:'Productive — brings up sputum',stream:'hx',eff:{pneumonia:[2,.7]},follow:[
-       {id:'purulent',lbl:'Colour change (green / yellow)',stream:'hx',eff:{pneumonia:[2.2,.7]}},
-       {id:'haemoptysis',lbl:'Blood in it (haemoptysis)',stream:'hx',eff:{pneumonia:[1.3,.95]}}]},
-     {id:'wob',lbl:'Working hard to breathe',stream:'hx',eff:{pneumonia:[2,.7]}}]},
-   {id:'coryza',lbl:'Coryza',stream:'hx',eff:{viral:[3,.4]}},
+   {id:'irrit',lbl:'Irritable / lethargic',stream:'hx',eff:{meningitis:[3,1,'Own estimate. Irritability is the classic infant meningitis sign but is non-specific, and a settled infant early in the illness is common — absent-weight 1.0.']},preset:'present'},
+   {id:'feeds',lbl:'Reduced feeds',stream:'hx',eff:{meningitis:[1.5,1,'Own estimate. Weak and non-specific; one-directional.'],uti:[1.3,1,'Own estimate. Weak and non-specific; one-directional.']},preset:'present'},
+   {id:'cough',lbl:'Cough',stream:'hx',eff:{pneumonia:[2.5,1,'Own estimate. Common but not universal in infant pneumonia — young infants often present with fever and tachypnoea alone, so absent-weight 1.0.']},preset:'present',follow:[
+     {id:'sputum',lbl:'Productive — brings up sputum',stream:'hx',eff:{pneumonia:[2,1,'Own estimate. Infants rarely expectorate at all, so absence carries no information — absent-weight 1.0.']},follow:[
+       {id:'purulent',lbl:'Colour change (green / yellow)',stream:'hx',eff:{pneumonia:[2.2,1,'Own estimate. Sputum colour is a weak discriminator between bacterial and viral disease; one-directional.']}},
+       {id:'haemoptysis',lbl:'Blood in it (haemoptysis)',stream:'hx',eff:{pneumonia:[1.3,1,'Own estimate. Rare in infant pneumonia and near-useless as a discriminator; kept weak and one-directional.']}}]},
+     {id:'wob',lbl:'Working hard to breathe',stream:'hx',eff:{pneumonia:[2,1,'Own estimate. Increased work of breathing supports pneumonia but is shared with bronchiolitis and other causes; one-directional.']}}]},
+   {id:'coryza',lbl:'Coryza',stream:'hx',eff:{viral:[3,1,'Own estimate. Supports a viral cause when present, but a bacterial infection can follow a coryzal illness, and absence does not exclude a viral illness — absent-weight 1.0.']}},
    // South African paediatric context: home/traditional remedies (muthi, herbal
    // preparations, enemas) matter for toxicity risk, delayed presentation, and
    // diagnostic confounding — a standard question, not an optional extra.
@@ -920,30 +974,46 @@ const CASES={
    {id:'hivexp',lbl:'HIV exposure status',stream:'hx',kind:'choice',options:['HIV-unexposed','HIV-exposed, on prophylaxis','HIV-exposed, status unknown','Confirmed HIV-positive'],ask:'is the mother HIV-positive, and is baby on PMTCT prophylaxis?'},
    {id:'tbcontact',lbl:'Known household TB contact',stream:'hx',kind:'choice',options:['No known contact','Contact — on treatment','Contact — status unknown'],ask:'does anyone at home have TB, or cough for a long time?'},
    {id:'prevadmit',lbl:'Previous hospital admissions',stream:'hx',kind:'text',ask:'has the baby ever been in hospital before?'},
-   {id:'smokeexp',lbl:'Household smoke exposure',stream:'hx',eff:{pneumonia:[1.3,.9]},ask:'does anyone at home smoke around the baby?'},
+   {id:'smokeexp',lbl:'Household smoke exposure',stream:'hx',eff:{pneumonia:[1.3,1,'Own estimate. A modest risk factor for lower respiratory infection; a smoke-free home does not protect against pneumonia, so absent-weight 1.0.']},ask:'does anyone at home smoke around the baby?'},
    // WHO IMCI general danger signs (2026-07-22 audit, critical-clinical gap) —
    // the most sensitive first-pass screen for a sick under-5, asked for every
    // febrile child regardless of which source the fever turns out to have.
    {id:'notdrink',lbl:'Not able to drink or breastfeed at all',stream:'hx',ask:'is the baby able to drink or breastfeed at all right now?'},
    {id:'vomitall',lbl:'Vomiting everything',stream:'hx',ask:'does the baby vomit everything given, including breastmilk/water?'},
-   {id:'convuls',lbl:'Convulsions (this illness)',stream:'hx',eff:{meningitis:[4,.7]},ask:'has the baby had any fits or convulsions during this illness?'},
-   {id:'fontanelle',lbl:'Bulging fontanelle / neck stiffness',stream:'exam',eff:{meningitis:[6,.4]}},
-   {id:'rash',lbl:'Non-blanching rash',stream:'exam',eff:{meningitis:[8,.5]}},
-   {id:'perf',lbl:'Prolonged capillary refill / mottled',stream:'exam',eff:{meningitis:[3,.6]},preset:'present'},
-   {id:'cyan',lbl:'Central cyanosis',stream:'exam',eff:{pneumonia:[3,.8],meningitis:[2,.9]}},
-   {id:'dehyd',lbl:'Dehydration / sunken fontanelle',stream:'exam',eff:{uti:[1.5,.8],meningitis:[1.3,.9]}},
-   {id:'tachypnoea',lbl:'Tachypnoea / recession',stream:'exam',eff:{pneumonia:[3,.5]},preset:'present'},
-   {id:'focal',lbl:'Focal chest signs / hypoxia',stream:'exam',eff:{pneumonia:[4,.4]},preset:'present'},
-   {id:'crp',lbl:'CRP / procalcitonin raised',stream:'ix',eff:{meningitis:[3,.4],uti:[1.5,.8],pneumonia:[2,.7]}},
-   {id:'lp',lbl:'LP — CSF pleocytosis',stream:'ix',eff:{meningitis:[12,.1]},key:'meningitis',short:'LP'},
-   {id:'urine',lbl:'Urine dip / culture positive',stream:'ix',eff:{uti:[8,.2]}},
-   {id:'cxr',lbl:'CXR — consolidation',stream:'ix',eff:{pneumonia:[8,.2]}},
+   {id:'convuls',lbl:'Convulsions (this illness)',stream:'hx',eff:{meningitis:[4,1,'Own estimate. A red-flag when present; most infant meningitis does not convulse, so absent-weight 1.0.']},ask:'has the baby had any fits or convulsions during this illness?'},
+   // Split (structural audit): a bulging fontanelle and neck stiffness were one tick.
+   // They are separate manoeuvres, and both are insensitive in infants.
+   {id:'fontanelle',lbl:'Bulging fontanelle',stream:'exam',eff:{meningitis:[5,1,'Own estimate. A bulging fontanelle is present in only about a third of infants with meningitis, so two thirds of real cases have a normal fontanelle — absent-weight 1.0, strictly one-directional.']}},
+   {id:'neckstiff',lbl:'Neck stiffness',stream:'exam',eff:{meningitis:[4,1,'Own estimate. Neck stiffness is unreliable under 18 months and frequently absent in infant meningitis — absent-weight 1.0. This is exactly the sign whose absence has killed children.']}},
+   {id:'rash',lbl:'Non-blanching rash',stream:'exam',eff:{meningitis:[8,1,'Own estimate. Highly specific for meningococcal disease when present, but most bacterial meningitis has no rash at all — absent-weight 1.0.']}},
+   {id:'perf',lbl:'Prolonged capillary refill / mottled',stream:'exam',eff:{meningitis:[3,1,'Own estimate. A late perfusion sign; a well-perfused infant can still have meningitis — absent-weight 1.0.']},preset:'present'},
+   {id:'cyan',lbl:'Central cyanosis',stream:'exam',eff:{pneumonia:[3,1,'Own estimate. A very late sign; absence is the norm even in significant pneumonia — one-directional.'],meningitis:[2,1,'Own estimate. Weak and non-specific; one-directional.']}},
+   {id:'dehyd',lbl:'Dehydration / sunken fontanelle',stream:'exam',eff:{uti:[1.5,1,'Own estimate. Weak and non-specific; one-directional.'],meningitis:[1.3,1,'Own estimate. Weak and non-specific; one-directional.']}},
+   {id:'tachypnoea',lbl:'Tachypnoea / recession',stream:'exam',eff:{pneumonia:[3,1,'Own estimate. Fast breathing is the WHO screening sign for pneumonia, but its sensitivity against radiographic pneumonia is around 70–75% — not near-universal, so absent-weight 1.0.']},preset:'present'},
+   // Split (structural audit): auscultation findings and hypoxia were merged into one
+   // tick. They are separately measured and separately insensitive.
+   {id:'focalchest',lbl:'Focal chest signs on auscultation',stream:'exam',eff:{pneumonia:[3,1,'Own estimate. Auscultation in an infant is notoriously insensitive — a clear chest is entirely compatible with radiographic pneumonia, so absent-weight 1.0.']},preset:'present'},
+   {id:'hypoxia',lbl:'Hypoxia (SpO₂ < 94% in air)',stream:'exam',eff:{pneumonia:[3,1,'Own estimate. Hypoxia marks severity rather than presence; most childhood pneumonia is not hypoxic at presentation — absent-weight 1.0.']}},
+   // Split (structural audit): CRP and procalcitonin are two different assays with
+   // different behaviour and are frequently not both sent.
+   {id:'crp',lbl:'CRP raised',stream:'ix',eff:{meningitis:[3,1,'Own estimate. CRP lags onset by 12–24 hours, so an early normal CRP is common in real bacterial infection — absent-weight 1.0.'],uti:[1.5,1,'Own estimate. Weak; one-directional.'],pneumonia:[2,1,'Own estimate. Weak and overlaps heavily with viral illness; one-directional.']}},
+   {id:'pct',lbl:'Procalcitonin raised',stream:'ix',eff:{meningitis:[3,1,'Own estimate. Rises earlier than CRP and is more bacterial-specific, but is not sensitive enough to exclude — absent-weight 1.0.'],pneumonia:[2,1,'Own estimate. Weak; one-directional.']}},
+   // CSF pleocytosis IS the reference standard that defines meningitis — it is the
+   // diagnosis, not a test for it. It still gates the must-not-miss cap.
+   {id:'lp',lbl:'LP — CSF pleocytosis',stream:'ix',crit:{meningitis:'reference standard'},key:'meningitis',short:'LP'},
+   // Split (structural audit): the bedside dip and the culture were one row. The dip is
+   // a screening test; the culture is the reference standard that defines UTI.
+   {id:'urinedip',lbl:'Urine dip — leucocytes / nitrites',stream:'ix',eff:{uti:[6,1,'Own estimate. Nitrites are specific but insensitive in infants (short bladder dwell time), so a negative dip cannot exclude a UTI in this age group — absent-weight 1.0.']}},
+   {id:'urineculture',lbl:'Urine culture — significant pure growth',stream:'ix',crit:{uti:'reference standard'}},
+   {id:'cxr',lbl:'CXR — consolidation',stream:'ix',eff:{pneumonia:[8,1,'Own estimate. Radiographic consolidation is strong evidence when present, but early and viral pneumonias are radiologically silent and inter-observer agreement on paediatric films is poor — absent-weight 1.0. Kept in the chain rather than treated as a defining criterion because pneumonia in a child is a clinical diagnosis, not a radiological one.']}},
    {id:'bloodcx',lbl:'Blood culture sent',stream:'ix',ask:'the reference standard for bacteraemia/sepsis — every dose above is meaningless without a recorded weight, so record that here too'},
    {id:'weight',lbl:'Weight',stream:'ix',num:{unit:'kg'},ask:'needed — every dose in this pack is mg/kg'}],
   IX:[
    {id:'crp',cat:'lab',lbl:'CRP',unit:'mg/L',norm:'< 10',hi:10,dir:'above',dx:'Meningitis / UTI'},
+   {id:'pct',cat:'lab',lbl:'Procalcitonin',unit:'ng/mL',norm:'< 0.5',hi:0.5,dir:'above',dx:'Bacterial infection'},
    {id:'lp',cat:'lab',lbl:'Lumbar puncture',binary:true,dx:'Meningitis'},
-   {id:'urine',cat:'bedside',lbl:'Urine dip / culture',binary:true,dx:'UTI'},
+   {id:'urinedip',cat:'bedside',lbl:'Urine dip',binary:true,dx:'UTI — screen'},
+   {id:'urineculture',cat:'lab',lbl:'Urine culture',binary:true,dx:'UTI — reference standard'},
    {id:'cxr',cat:'imaging',lbl:'Chest X-ray',binary:true,dx:'Pneumonia'},
    {id:'bloodcx',cat:'lab',lbl:'Blood culture',binary:true,dx:'Bacteraemia / sepsis'}],
   MX:{
@@ -964,7 +1034,8 @@ const CASES={
     {label:'Not drinking / feeding at all',featId:'notdrink',pts:100},
     {label:'Vomiting everything',featId:'vomitall',pts:100},
     {label:'Convulsions',featId:'convuls',pts:100},
-    {label:'Bulging fontanelle / neck stiffness',featId:'fontanelle',pts:100},
+    {label:'Bulging fontanelle',featId:'fontanelle',pts:100},
+    {label:'Neck stiffness',featId:'neckstiff',pts:100},
     {label:'Non-blanching rash',featId:'rash',pts:100},
     {label:'Prolonged CRT / mottled',featId:'perf',pts:100},
     {label:'Central cyanosis',featId:'cyan',pts:100},
@@ -990,39 +1061,49 @@ const CASES={
    {id:'rcvs',name:'Reversible cerebral vasoconstriction syndrome',icd:'I67.848',c:'var(--hr)',prior:.08,mnm:true,script:'recurrent thunderclap episodes over days-weeks + a vasoactive trigger (sex, Valsalva, SSRIs) + often-normal early imaging'},
    {id:'migraine',name:'Migraine',icd:'G43.9',c:'var(--pet)',prior:.24,mnm:false,script:'gradual throbbing pain + prior similar attacks + aura + relief in a dark room'}],
   FEAT:[
-   {id:'thunder',lbl:'Thunderclap (peak < 1 min)',stream:'hx',eff:{sah:[5,.3]},preset:'present'},
-   {id:'worst',lbl:'Worst-ever headache',stream:'hx',eff:{sah:[3,.5]},preset:'present'},
-   {id:'prior',lbl:'Prior similar headaches',stream:'hx',eff:{migraine:[4,.4]}},
+   {id:'thunder',lbl:'Thunderclap (peak < 1 min)',stream:'hx',eff:{sah:[5,1,'Own estimate. Abrupt onset is the hallmark of SAH and an Ottawa criterion, but onset time is reported unreliably and a non-thunderclap history does not exclude SAH — absent-weight 1.0, one-directional. The Ottawa rule below is where absence is allowed to do work, because that instrument was validated for exactly that job.']},preset:'present'},
+   {id:'worst',lbl:'Worst-ever headache',stream:'hx',eff:{sah:[3,1,'Own estimate. "Worst ever" is subjective and heavily dependent on how it is asked; one-directional.']},preset:'present'},
+   {id:'prior',lbl:'Prior similar headaches',stream:'hx',eff:{migraine:[4,1,'Own estimate. A prior identical pattern supports migraine, but a first migraine has to happen sometime — absent-weight 1.0.']}},
    // 2026-07-22 audit: the Ottawa SAH Rule (JAMA 2013) — the field's actual
    // validated rule-out tool for exactly this presentation — was never
    // implemented, only a home-grown LR. These two are the missing Ottawa
    // criteria beyond thunderclap/neck-stiffness, which the pack already has.
-   {id:'loc',lbl:'Witnessed loss of consciousness',stream:'hx',eff:{sah:[3,.8]},ask:'did anyone see you lose consciousness or pass out?'},
-   {id:'exertional',lbl:'Onset during exertion',stream:'hx',eff:{sah:[2,.85]},ask:'did the headache start during exercise, straining, or sex?'},
+   {id:'loc',lbl:'Witnessed loss of consciousness',stream:'hx',eff:{sah:[3,1,'Own estimate. An Ottawa criterion; present in a minority of SAH, so absence must count for nothing here — absent-weight 1.0.']},ask:'did anyone see you lose consciousness or pass out?'},
+   {id:'exertional',lbl:'Onset during exertion',stream:'hx',eff:{sah:[2,1,'Own estimate. An Ottawa criterion; most SAH is not exertional, so one-directional.']},ask:'did the headache start during exercise, straining, or sex?'},
    // RCVS: recurrent episodes over days-weeks + a recognised trigger — real
    // discriminators against a first, single SAH-type thunderclap.
-   {id:'recurrentTCH',lbl:'Recurrent thunderclap episodes over days–weeks',stream:'hx',eff:{rcvs:[6,.3]},ask:'has this kind of sudden severe headache happened more than once recently?'},
-   {id:'vasotrigger',lbl:'Trigger: sex, straining, or a vasoactive drug (SSRI, decongestant)',stream:'hx',eff:{rcvs:[4,.5]},ask:'did anything like sex, straining, or a new medication bring this on?'},
-   {id:'anticoag',lbl:'Anticoagulant / antiplatelet use',stream:'hx',eff:{sah:[1.5,.9]},ask:'are you on warfarin, a DOAC, aspirin, or clopidogrel? — this changes whether a lumbar puncture is safe'},
-   {id:'feverh',lbl:'Fever',stream:'hx',eff:{meningitis:[3,.4]}},
-   {id:'prothromb',lbl:'OCP / prothrombotic risk',stream:'hx',eff:{cvst:[3,.5]},ask:'are you on the contraceptive pill, pregnant, or have you ever had a blood clot?'},
+   {id:'recurrentTCH',lbl:'Recurrent thunderclap episodes over days–weeks',stream:'hx',eff:{rcvs:[6,1,'Own estimate. Recurrence over days to weeks is the most characteristic RCVS history, but a patient presenting on the FIRST episode has not had it yet — absence at first presentation must not argue against. Absent-weight 1.0.']},ask:'has this kind of sudden severe headache happened more than once recently?'},
+   {id:'vasotrigger',lbl:'Trigger: sex, straining, or a vasoactive drug (SSRI, decongestant)',stream:'hx',eff:{rcvs:[4,1,'Own estimate. A recognised trigger is found in only about half to two thirds of RCVS — one-directional.']},ask:'did anything like sex, straining, or a new medication bring this on?'},
+   {id:'anticoag',lbl:'Anticoagulant / antiplatelet use',stream:'hx',eff:{sah:[1.5,1,'Own estimate. Weak risk modifier; its real value here is that it changes whether an LP is safe, not the odds. One-directional.']},ask:'are you on warfarin, a DOAC, aspirin, or clopidogrel? — this changes whether a lumbar puncture is safe'},
+   {id:'feverh',lbl:'Fever',stream:'hx',eff:{meningitis:[3,.25,'Own estimate. Fever is one of the genuinely near-universal findings in bacterial meningitis (present in roughly 95% at presentation, even though the complete classic triad appears in under half), which is what licenses a negative weight here. Held at 0.25, well above the floor a 90% sensitivity allows, because immunosuppressed and very elderly patients can be afebrile.',.9]}},
+   {id:'prothromb',lbl:'OCP / prothrombotic risk',stream:'hx',eff:{cvst:[3,1,'Own estimate. A prothrombotic state raises CVST substantially when present, but a sizeable share of CVST has no identified risk factor — absent-weight 1.0.']},ask:'are you on the contraceptive pill, pregnant, or have you ever had a blood clot?'},
    {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker'],preset:'present'},
    {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent']},
    {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
    {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
    {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
-   {id:'neck',lbl:'Neck stiffness',stream:'exam',eff:{sah:[3,.5],meningitis:[4,.4]},preset:'present'},
-   {id:'neckflex',lbl:'Limited neck flexion on examination',stream:'exam',eff:{sah:[2,.7],meningitis:[2,.7]},ask:'the specific exam maneuver — distinct from the patient reporting neck stiffness'},
-   {id:'photo',lbl:'Photophobia',stream:'exam',eff:{meningitis:[2.5,.6],migraine:[1.5,.8]}},
-   {id:'focaln',lbl:'Focal neurology / seizure',stream:'exam',eff:{cvst:[4,.4],sah:[2,.7]}},
-   {id:'gcs',lbl:'Reduced GCS',stream:'exam',eff:{sah:[4,.4]}},
-   {id:'ct',lbl:'CT head — blood',stream:'ix',eff:{sah:[15,.2]},key:'sah',short:'CT head'},
-   {id:'lpxan',lbl:'LP — xanthochromia',stream:'ix',eff:{sah:[8,.3]}},
-   {id:'csf',lbl:'CSF pleocytosis',stream:'ix',eff:{meningitis:[10,.2]},key:'meningitis',short:'LP'},
-   {id:'ctv',lbl:'CT venogram — sinus thrombosis',stream:'ix',eff:{cvst:[14,.1]},key:'cvst',short:'CT venogram'},
+   {id:'neck',lbl:'Neck stiffness',stream:'exam',eff:{sah:[3,1,'Own estimate. Meningism from blood in the CSF takes hours to develop and is absent early — absent-weight 1.0.'],meningitis:[4,1,'Own estimate. Nuchal rigidity is present in roughly 70% of bacterial meningitis, and the provocative signs are far worse — Kernig\'s and Brudzinski\'s are positive in only about 5% of adults with meningitis. Nowhere near universal, so absent-weight 1.0.']},preset:'present'},
+   // One observation, one weight (structural audit): this used to carry its own
+   // likelihood ratios on top of the neck-stiffness row above, so the same physical
+   // observation moved the odds twice. It stays in the clerking — it is a separate
+   // Ottawa criterion, and the Ottawa rule below still reads it — but it no longer
+   // multiplies the differential.
+   {id:'neckflex',lbl:'Limited neck flexion on examination',stream:'exam',ask:'the specific exam manoeuvre — distinct from the patient reporting neck stiffness. Scored by the Ottawa SAH Rule; it does not weigh the differential separately from neck stiffness above.'},
+   {id:'photo',lbl:'Photophobia',stream:'exam',eff:{meningitis:[2.5,1,'Own estimate. Common but not universal, and heavily dependent on how it is asked — one-directional.'],migraine:[1.5,1,'Own estimate. Weak; one-directional.']}},
+   // Split (structural audit): focal neurology and seizure are different findings with
+   // different implications — a seizure points at CVST far more than a focal deficit does.
+   {id:'focalneuro',lbl:'Focal neurological deficit',stream:'exam',eff:{cvst:[4,1,'Own estimate. Focal signs support CVST but a large share presents with isolated headache and raised intracranial pressure only — absent-weight 1.0.'],sah:[2,1,'Own estimate. Focal signs appear in a minority of SAH; one-directional.']}},
+   {id:'seizure',lbl:'Seizure with this headache',stream:'exam',eff:{cvst:[4,1,'Own estimate. Seizure is much commoner in CVST than in the other causes here, but most CVST does not seize — absent-weight 1.0.'],sah:[1.5,1,'Own estimate. Weak; one-directional.']},ask:'has there been any fit or convulsion with this headache?'},
+   {id:'gcs',lbl:'Reduced GCS',stream:'exam',eff:{sah:[4,1,'Own estimate. A reduced conscious level marks a higher-grade bleed; most SAH presenting to an emergency department is alert (that is precisely the Ottawa population) — absent-weight 1.0.']}},
+   {id:'ct',lbl:'CT head — blood',stream:'ix',eff:{sah:[15,.2,'Own estimate. Non-contrast CT is close to 100% sensitive within 6 hours of onset and falls to roughly 90% by 24 hours — genuinely near-universal early, which is what licenses the negative weight. Held at 0.2, above the floor a 92% sensitivity permits, because the sensitivity depends entirely on how soon the scan is done.',.92]},key:'sah',short:'CT head'},
+   {id:'lpxan',lbl:'LP — xanthochromia',stream:'ix',eff:{sah:[8,.3,'Own estimate. Xanthochromia is close to universal in SAH when the sample is taken in the correct window (12 hours to 2 weeks after onset) — outside that window it is unreliable, so the weight is kept well above its mathematical floor.',.95]}},
+   // CSF pleocytosis IS the reference standard that defines meningitis. It still gates
+   // the must-not-miss cap; it no longer multiplies odds.
+   {id:'csf',lbl:'CSF pleocytosis',stream:'ix',crit:{meningitis:'reference standard'},key:'meningitis',short:'LP'},
+   {id:'ctv',lbl:'CT venogram — sinus thrombosis',stream:'ix',eff:{cvst:[14,.1,'Own estimate. CT venography is around 95% sensitive for sinus thrombosis, which is what licenses the negative weight.',.95]},key:'cvst',short:'CT venogram'},
    // Safety-audit fix (2026-07-23): rcvs had no confirmatory `key` finding —
    // same class of gap as abruption/chorio above.
-   {id:'mra',lbl:'MRA / CTA — segmental "string of beads" vasoconstriction',stream:'ix',eff:{rcvs:[10,.1]},key:'rcvs',short:'MRA/CTA'}],
+   {id:'mra',lbl:'MRA / CTA — segmental "string of beads" vasoconstriction',stream:'ix',eff:{rcvs:[10,1,'Own estimate. Early angiography is frequently NORMAL in RCVS — the vasoconstriction often only appears after the first week, which is why the protocol repeats it at 12 weeks. A normal early scan therefore cannot lower RCVS at all: absent-weight 1.0.']},key:'rcvs',short:'MRA/CTA'}],
   IX:[
    {id:'ct',cat:'imaging',lbl:'CT head (non-contrast)',binary:true,dx:'SAH'},
    {id:'lpxan',cat:'lab',lbl:'LP — xanthochromia',binary:true,dx:'SAH'},
@@ -1070,26 +1151,33 @@ const CASES={
    {id:'mallory',name:'Mallory–Weiss tear',icd:'K22.6',c:'var(--hellp)',prior:.15,mnm:false,script:'retching / vomiting then small streaks of blood',patho:'Forceful retching spikes intragastric pressure and tears the mucosa at the gastro-oesophageal junction — so the vomiting precedes, and the bleed is usually small streaks.'},
    {id:'malig',name:'Upper GI malignancy',icd:'C16.9',c:'var(--aflp)',prior:.07,mnm:false,script:'weight loss + anorexia + chronic anaemia in an older patient',patho:'A friable tumour surface bleeds slowly and chronically → the anaemia, weight loss and anorexia build over weeks rather than the acute picture.'}],
   FEAT:[
-   {id:'nsaid',lbl:'NSAID use',stream:'hx',eff:{pud:[3,.6]},preset:'present',ask:'do you take ibuprofen, Voltaren, or other painkillers regularly?'},
-   {id:'etoh',lbl:'Alcohol excess',stream:'hx',eff:{varices:[3,.5]},preset:'present',ask:'how much alcohol do you drink, and how often?'},
-   {id:'retch',lbl:'Retching before the bleed',stream:'hx',eff:{mallory:[4,.5]}},
-   {id:'wtloss',lbl:'Weight loss / anorexia',stream:'hx',eff:{malig:[3,.5]}},
-   {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pud:[2,.7]}},
+   {id:'nsaid',lbl:'NSAID use',stream:'hx',eff:{pud:[3,1,'Own estimate. A major risk factor when present; plenty of ulcers are H. pylori-driven with no NSAID exposure at all, so absent-weight 1.0.']},preset:'present',ask:'do you take ibuprofen, Voltaren, or other painkillers regularly?'},
+   {id:'etoh',lbl:'Alcohol excess',stream:'hx',eff:{varices:[3,1,'Own estimate. Alcohol is the commonest route to cirrhosis here, but varices also arise from viral hepatitis, schistosomiasis and portal vein thrombosis — absent-weight 1.0.']},preset:'present',ask:'how much alcohol do you drink, and how often?'},
+   {id:'retch',lbl:'Retching before the bleed',stream:'hx',eff:{mallory:[4,1,'Own estimate. The classic mechanism, but roughly a quarter of Mallory–Weiss tears have no antecedent retching history — absent-weight 1.0.']}},
+   {id:'wtloss',lbl:'Weight loss / anorexia',stream:'hx',eff:{malig:[3,1,'Own estimate. Supports malignancy when present; early tumours bleed without any constitutional symptoms — absent-weight 1.0.']}},
+   {id:'epi',lbl:'Epigastric pain',stream:'hx',eff:{pud:[2,1,'Own estimate. A meaningful share of bleeding ulcers — particularly NSAID-related ones — are entirely painless, so absence must not argue against. Absent-weight 1.0.']}},
    {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker']},
    {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
    {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
    {id:'pshx',lbl:'Past surgical history / hospitalisations',stream:'hx',kind:'text',ask:'have you ever been in hospital or had an operation before?'},
-   {id:'cld',lbl:'Chronic liver disease',stream:'exam',eff:{varices:[7,.3]},checklist:['Jaundice','Spider naevi','Palmar erythema','Ascites','Gynaecomastia','Asterixis']},
-   {id:'melaena',lbl:'Melaena on PR',stream:'exam',eff:{pud:[2,.6],varices:[2,.6]}},
+   {id:'cld',lbl:'Chronic liver disease',stream:'exam',eff:{varices:[7,1,'Own estimate. Peripheral stigmata are strong evidence when found, but compensated cirrhosis frequently shows none of them and can still bleed from varices — absent-weight 1.0.']},checklist:['Jaundice','Spider naevi','Palmar erythema','Ascites','Gynaecomastia','Asterixis']},
+   {id:'melaena',lbl:'Melaena on PR',stream:'exam',eff:{pud:[2,1,'Own estimate. Melaena needs time and volume to appear; an early or brisk bleed has none on the first PR — absent-weight 1.0.'],varices:[2,1,'Own estimate. Same reasoning; one-directional.']}},
    // Glasgow-Blatchford components not already captured elsewhere in the pack
    // (2026-07-22 audit — the score was named in the recommendation text but
    // never computed; several of its inputs simply weren't asked at all).
-   {id:'syncope',lbl:'Syncope / collapse with this bleed',stream:'hx',eff:{varices:[2,.7],pud:[1.5,.8]},ask:'did you feel faint, or actually pass out, with this bleed?'},
+   {id:'syncope',lbl:'Syncope / collapse with this bleed',stream:'hx',eff:{varices:[2,1,'Own estimate. Marks volume of blood lost rather than its source, so it tilts weakly towards the large-volume causes; absence is normal in a significant bleed — absent-weight 1.0.'],pud:[1.5,1,'Own estimate. Weak; one-directional.']},ask:'did you feel faint, or actually pass out, with this bleed?'},
    {id:'cardfail',lbl:'Known heart failure',stream:'hx',ask:'has a doctor told you that you have heart failure, or fluid on your lungs?'},
-   {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{pud:[1.5,.8],varices:[1.5,.8]},key:'pud',short:'endoscopy'},
+   // The `key` (must-not-miss discriminator) used to sit on this row while calling
+   // itself "endoscopy" — a haemoglobin cannot exclude an ulcer. It has been moved to
+   // the endoscopy row below, which now resolves BOTH bleeding must-not-misses.
+   {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{pud:[1.5,1,'Own estimate. A low haemoglobin measures how much blood has been lost, not where from — it barely discriminates between these sources, and an acute bleed has a normal haemoglobin until haemodilution. Absent-weight 1.0.'],varices:[1.5,1,'Own estimate. Same reasoning; one-directional.']}},
    {id:'hbval',lbl:'Haemoglobin (value)',stream:'ix',num:{unit:'g/L'},ask:'the actual result, for the Glasgow-Blatchford score'},
    {id:'urea',lbl:'Urea',stream:'ix',num:{unit:'mmol/L'},ask:'needed for the Glasgow-Blatchford score'},
-   {id:'endo',lbl:'OGD — bleeding source seen',stream:'ix',eff:{varices:[8,.15]},key:'varices',short:'endoscopy'}],
+   // Endoscopy is the reference standard that DEFINES which of these bleeding sources
+   // this is — it is the answer, not evidence towards it. Removed from the odds chain
+   // and rendered as a criterion. It still gates the must-not-miss cap, now for both
+   // bleeding must-not-misses rather than only varices.
+   {id:'endo',lbl:'OGD — bleeding source seen',stream:'ix',crit:{varices:'reference standard',pud:'reference standard'},key:['varices','pud'],short:'endoscopy'}],
   IX:[
    {id:'hb',lbl:'Haemoglobin',cat:'lab',unit:'g/L',norm:'130–170',lo:100,dir:'below',dx:'Bleed severity'},
    {id:'urea',lbl:'Urea',cat:'lab',unit:'mmol/L',norm:'< 6.5',hi:6.5,dir:'above',dx:'Glasgow-Blatchford component'},
@@ -1141,17 +1229,19 @@ const CASES={
    {id:'adeno',name:'Adenomyosis',icd:'N80.0',c:'var(--spo2)',prior:.10,mnm:false,script:'heavy + painful periods + globally bulky, tender (not focally irregular) uterus',patho:'Endometrial tissue within the myometrium bleeds with each cycle, causing uterine enlargement, tenderness and pain distinct from a fibroid\'s focal distortion.'},
    {id:'coag',name:'Coagulopathy (e.g. von Willebrand disease)',icd:'D68.0',c:'var(--temp)',prior:.05,mnm:true,script:'heavy bleeding since menarche + bruising/epistaxis/gum bleeding + family history + normal pelvic anatomy',patho:'An inherited clotting-factor deficiency impairs the platelet plug and clot formation at the endometrial vessels, so bleeding is heavy from the very first period rather than newly acquired.'}],
   FEAT:[
-   {id:'heavy',lbl:'Heavy menstrual bleeding',stream:'hx',eff:{fibroid:[2.5,.6],anov:[1.5,.8]},preset:'present',criterion:'≥ 80 mL per cycle',ask:'soaking a pad or tampon every ≤ 2 h, flooding, clots > 2.5 cm, or double protection?'},
-   {id:'prolonged',lbl:'Bleeding duration',stream:'hx',eff:{fibroid:[2,.7],anov:[1.8,.8]},preset:'present',num:{unit:'days',hi:8},criterion:'> 8 days per cycle',ask:'how many days do you bleed for each period?'},
-   {id:'irregular',lbl:'Cycle length',stream:'hx',eff:{anov:[4,.4]},num:{unit:'days',lo:24,hi:38},criterion:'normal 24–38 days',ask:'days from the start of one period to the start of the next?'},
-   {id:'imb',lbl:'Intermenstrual bleeding',stream:'hx',eff:{canc:[3,.5],fibroid:[1.5,.8],polyp:[3,.4]},criterion:'bleeding between periods',ask:'any bleeding or spotting between your periods, or after sex?'},
-   {id:'risk',lbl:'Endometrial-cancer risk',stream:'hx',eff:{canc:[3,.5]},criterion:'age ≥ 45, BMI ≥ 30, nulliparity, unopposed oestrogen, diabetes',ask:'age, weight, any children, and diabetes?'},
-   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{preg:[4,.4]},criterion:'possible pregnancy',ask:'when was your last normal period, and could you be pregnant?'},
-   {id:'postmeno',lbl:'Bleeding after 12+ months of no periods (postmenopausal)',stream:'hx',eff:{canc:[6,.25]},criterion:'any bleeding after 12 consecutive months of amenorrhoea',ask:'have your periods stopped completely for a year or more, and is this new bleeding since then?'},
-   {id:'dysmen',lbl:'Painful periods (dysmenorrhoea)',stream:'hx',eff:{adeno:[2.5,.6]},ask:'do your periods hurt more than they used to, or is the pain new?'},
-   {id:'menarche',lbl:'Heavy since the very first period',stream:'hx',eff:{coag:[3.5,.5]},ask:'has this always been heavy from your very first period, or did it start recently?'},
-   {id:'bruising',lbl:'Easy bruising / nosebleeds / gum bleeding',stream:'hx',eff:{coag:[4,.4]}},
-   {id:'famhxbleed',lbl:'Family history of a bleeding disorder',stream:'hx',eff:{coag:[3,.5]}},
+   {id:'heavy',lbl:'Heavy menstrual bleeding',stream:'hx',eff:{fibroid:[2.5,1,'Own estimate. Heavy loss is the typical fibroid pattern, but submucosal fibroids can present with intermenstrual bleeding instead — absent-weight 1.0.'],anov:[1.5,1,'Own estimate. Weak; anovulatory bleeding is as often light and erratic as heavy. One-directional.']},preset:'present',criterion:'≥ 80 mL per cycle',ask:'soaking a pad or tampon every ≤ 2 h, flooding, clots > 2.5 cm, or double protection?'},
+   {id:'prolonged',lbl:'Bleeding duration',stream:'hx',eff:{fibroid:[2,1,'Own estimate. Prolonged bleeding fits the fibroid pattern; plenty of fibroids bleed heavily but briefly — absent-weight 1.0.'],anov:[1.8,1,'Own estimate. Weak; one-directional.']},preset:'present',num:{unit:'days',hi:8},criterion:'> 8 days per cycle',ask:'how many days do you bleed for each period?'},
+   // Irregular cycle length IS the definition of ovulatory dysfunction (AUB-O) — using
+   // it as evidence for AUB-O is circular. Rendered as a criterion, not as odds.
+   {id:'irregular',lbl:'Cycle length',stream:'hx',crit:{anov:'defining criterion for AUB-O'},num:{unit:'days',lo:24,hi:38},criterion:'normal 24–38 days',ask:'days from the start of one period to the start of the next?'},
+   {id:'imb',lbl:'Intermenstrual bleeding',stream:'hx',eff:{canc:[3,1,'Own estimate. Intermenstrual bleeding is a red flag when present; endometrial cancer commonly presents as heavy or postmenopausal bleeding instead — absent-weight 1.0.'],fibroid:[1.5,1,'Own estimate. Weak; one-directional.'],polyp:[3,1,'Own estimate. The classic polyp pattern, but polyps are frequently found incidentally in women with a purely heavy-bleeding history — absent-weight 1.0.']},criterion:'bleeding between periods',ask:'any bleeding or spotting between your periods, or after sex?'},
+   {id:'risk',lbl:'Endometrial-cancer risk',stream:'hx',eff:{canc:[3,1,'Own estimate. Risk factors raise pre-test probability; endometrial cancer occurs in women with none of them, so their absence must never be reassuring — absent-weight 1.0. This is the single most dangerous place in this pack for absence to subtract.']},criterion:'age ≥ 45, BMI ≥ 30, nulliparity, unopposed oestrogen, diabetes',ask:'age, weight, any children, and diabetes?'},
+   {id:'missed',lbl:'Missed / late period',stream:'hx',eff:{preg:[4,1,'Own estimate. Bleeding in early pregnancy is regularly mistaken for a period, so a woman may not report a missed one — absent-weight 1.0.']},criterion:'possible pregnancy',ask:'when was your last normal period, and could you be pregnant?'},
+   {id:'postmeno',lbl:'Bleeding after 12+ months of no periods (postmenopausal)',stream:'hx',eff:{canc:[6,1,'Own estimate. Postmenopausal bleeding is the single strongest pointer to endometrial cancer here, but the majority of endometrial cancers in this pack\'s population are perimenopausal — so a premenopausal patient must not have cancer discounted. Absent-weight 1.0.']},criterion:'any bleeding after 12 consecutive months of amenorrhoea',ask:'have your periods stopped completely for a year or more, and is this new bleeding since then?'},
+   {id:'dysmen',lbl:'Painful periods (dysmenorrhoea)',stream:'hx',eff:{adeno:[2.5,1,'Own estimate. Characteristic of adenomyosis but a substantial minority of adenomyosis is painless — absent-weight 1.0.']},ask:'do your periods hurt more than they used to, or is the pain new?'},
+   {id:'menarche',lbl:'Heavy since the very first period',stream:'hx',eff:{coag:[3.5,1,'Own estimate. Lifelong heavy bleeding is the classic inherited-bleeding-disorder history, but milder von Willebrand disease is often only noticed later — absent-weight 1.0.']},ask:'has this always been heavy from your very first period, or did it start recently?'},
+   {id:'bruising',lbl:'Easy bruising / nosebleeds / gum bleeding',stream:'hx',eff:{coag:[4,1,'Own estimate. Mucocutaneous bleeding elsewhere supports a systemic coagulopathy; many women with von Willebrand disease bleed only from the endometrium — absent-weight 1.0.']}},
+   {id:'famhxbleed',lbl:'Family history of a bleeding disorder',stream:'hx',eff:{coag:[3,1,'Own estimate. Family history is frequently unknown or undiagnosed, so its absence carries no weight — 1.0.']}},
    {id:'parity',lbl:'Parity (previous deliveries)',stream:'hx',num:{unit:'deliveries'},follow:[
      {id:'delmode',lbl:'Mode of delivery(s)',stream:'hx',kind:'text'}]},
    {id:'priorgynsurg',lbl:'Prior gynaecological surgery',stream:'hx',criterion:'e.g. myomectomy, hysteroscopy, hysterectomy',ask:'have you ever had any womb / gynaecological surgery?',follow:[
@@ -1162,18 +1252,32 @@ const CASES={
    {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent']},
    {id:'hiv',lbl:'HIV status',stream:'hx',kind:'choice',options:['Negative','Positive — on ART','Positive — not on ART','Not done / declined']},
    {id:'tb',lbl:'TB history / current treatment',stream:'hx',kind:'choice',options:['No history of TB','Previously treated — completed','Currently on TB treatment','Not screened'],ask:'have you ever had TB, or are you on TB treatment right now?'},
-   {id:'bulky',lbl:'Bulky / irregular uterus',stream:'exam',eff:{fibroid:[4,.4]},criterion:'palpable ≥ 12-week size or irregular contour',ask:'bimanual: is the uterus enlarged or irregular?'},
-   {id:'tenderuterus',lbl:'Globally enlarged, tender uterus (not focally irregular)',stream:'exam',eff:{adeno:[3.5,.4],fibroid:[.6,1.4]},ask:'bimanual: is the whole uterus softly enlarged and tender, rather than a focal firm mass?'},
-   {id:'pallor',lbl:'Pallor / signs of anaemia',stream:'exam',eff:{fibroid:[1.3,.9],anov:[1.3,.9]}},
-   {id:'bhcg',lbl:'βhCG positive',stream:'ix',eff:{preg:[10,.05]},key:'preg',short:'βhCG'},
-   {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{fibroid:[1.4,.9],anov:[1.4,.9]}},
-   {id:'tvus',lbl:'TVUS — fibroid / thick endometrium / polyp',stream:'ix',eff:{fibroid:[6,.3],canc:[3,.5],polyp:[5,.3],adeno:[3,.5]}},
-   {id:'biopsy',lbl:'Endometrial biopsy — hyperplasia / cancer',stream:'ix',eff:{canc:[12,.15]},key:'canc',short:'endometrial biopsy'},
-   {id:'coagscreen',lbl:'Coagulation screen / vWF panel abnormal',stream:'ix',eff:{coag:[8,.15]},key:'coag',short:'coag screen'}],
+   {id:'bulky',lbl:'Bulky / irregular uterus',stream:'exam',eff:{fibroid:[4,1,'Own estimate. A normal bimanual examination is found in about 52% of women with ultrasound-confirmed fibroids — barely better than a coin toss, so a normal examination must not lower fibroids at all. Absent-weight 1.0.']},criterion:'palpable ≥ 12-week size or irregular contour',ask:'bimanual: is the uterus enlarged or irregular?'},
+   {id:'tenderuterus',lbl:'Globally enlarged, tender uterus (not focally irregular)',stream:'exam',eff:{adeno:[3.5,1,'Own estimate. The characteristic adenomyosis finding, but bimanual examination is insensitive and adenomyosis frequently coexists with fibroids — absent-weight 1.0.'],fibroid:[.6,1,'Own estimate. A softly enlarged tender uterus argues modestly against a focally irregular fibroid uterus when present. The old absent-weight of 1.4 promoted fibroids every time the question was answered "no" — a second bite at the same examination. Absence now does nothing.']},ask:'bimanual: is the whole uterus softly enlarged and tender, rather than a focal firm mass?'},
+   {id:'pallor',lbl:'Pallor / signs of anaemia',stream:'exam',eff:{fibroid:[1.3,1,'Own estimate. Clinical pallor is an unreliable sign and points at blood loss rather than its cause; one-directional.'],anov:[1.3,1,'Own estimate. Same reasoning; one-directional.']}},
+   // A positive pregnancy test does not raise the odds of "pregnancy-related bleeding" —
+   // it IS that diagnosis. Entry condition, rendered as a criterion.
+   {id:'bhcg',lbl:'βhCG positive',stream:'ix',crit:{preg:'defining criterion — a positive test is the diagnosis'},key:'preg',short:'βhCG'},
+   {id:'hb',lbl:'Haemoglobin low',stream:'ix',eff:{fibroid:[1.4,1,'Own estimate. Measures the consequence of bleeding, not its cause; one-directional.'],anov:[1.4,1,'Own estimate. Same reasoning; one-directional.']}},
+   // Split (structural audit): ONE transvaginal scan previously drove FOUR diagnoses
+   // from a single yes/no, so a positive "TVUS" simultaneously raised fibroids, cancer,
+   // polyp and adenomyosis. These are four distinct things a sonographer reports.
+   {id:'tvusfib',lbl:'TVUS — fibroid seen',stream:'ix',eff:{fibroid:[6,1,'Own estimate. Transvaginal ultrasound is good for fibroids, but small submucosal lesions are missed and are found later at hysteroscopy — absent-weight 1.0.']},short:'TVUS — fibroid'},
+   {id:'tvusendo',lbl:'TVUS — thickened endometrium',stream:'ix',eff:{canc:[3,1,'Own estimate. Endometrial thickness is a screening threshold, not a diagnosis, and cancer occurs with a thin endometrium — which is exactly why any postmenopausal bleeding is biopsied regardless of the measurement. Absent-weight 1.0.']},short:'TVUS — endometrium'},
+   {id:'tvuspolyp',lbl:'TVUS — polyp seen',stream:'ix',eff:{polyp:[5,1,'Own estimate. Polyps are frequently missed on ultrasound and only seen at hysteroscopy or saline infusion sonography — absent-weight 1.0.']},short:'TVUS — polyp'},
+   {id:'tvusadeno',lbl:'TVUS — adenomyosis features (globular uterus, myometrial cysts)',stream:'ix',eff:{adeno:[3,1,'Own estimate. Ultrasound features of adenomyosis are operator-dependent and MRI is more sensitive, so a negative scan cannot exclude it — absent-weight 1.0.']},short:'TVUS — adenomyosis'},
+   // Histology is the reference standard that defines hyperplasia/carcinoma, and an
+   // abnormal coagulation/vWF panel is the reference standard that defines the
+   // coagulopathy. Both are the answer, not evidence towards it.
+   {id:'biopsy',lbl:'Endometrial biopsy — hyperplasia / cancer',stream:'ix',crit:{canc:'reference standard (histology)'},key:'canc',short:'endometrial biopsy'},
+   {id:'coagscreen',lbl:'Coagulation screen / vWF panel abnormal',stream:'ix',crit:{coag:'reference standard'},key:'coag',short:'coag screen'}],
   IX:[
    {id:'bhcg',lbl:'Urine βhCG',cat:'bedside',binary:true,dx:'Pregnancy'},
    {id:'hb',lbl:'Haemoglobin',cat:'lab',unit:'g/L',norm:'120–160',lo:120,dir:'below',dx:'Bleed severity'},
-   {id:'tvus',lbl:'Transvaginal ultrasound',cat:'imaging',binary:true,dx:'Fibroid / polyp / adenomyosis / endometrium'},
+   {id:'tvusfib',lbl:'TVUS — fibroid?',cat:'imaging',binary:true,dx:'Fibroid'},
+   {id:'tvusendo',lbl:'TVUS — endometrial thickness raised?',cat:'imaging',binary:true,dx:'Hyperplasia / cancer'},
+   {id:'tvuspolyp',lbl:'TVUS — polyp?',cat:'imaging',binary:true,dx:'Polyp'},
+   {id:'tvusadeno',lbl:'TVUS — adenomyosis features?',cat:'imaging',binary:true,dx:'Adenomyosis'},
    {id:'biopsy',lbl:'Endometrial biopsy',cat:'lab',binary:true,dx:'Hyperplasia / cancer'},
    {id:'coagscreen',cat:'lab',lbl:'Coagulation screen / vWF panel',binary:true,dx:'Coagulopathy'}],
   MX:{
@@ -1203,21 +1307,26 @@ const CASES={
    {id:'adjustment',name:'Adjustment disorder / normal grief',icd:'F43.21',c:'var(--aflp)',prior:.35,mnm:false,script:'clear recent stressor + symptoms proportionate + no full depressive syndrome + expected to resolve'},
    {id:'organic',name:'Organic mood disorder (e.g. thyroid)',icd:'F06.30',c:'var(--rr)',prior:.05,mnm:true,script:'mood symptoms explained by a medical condition (thyroid disease commonest) — never diagnose a primary psychiatric disorder until this is excluded'}],
   FEAT:[
-   {id:'lowmood',lbl:'Low mood, most of the day, nearly every day',stream:'hx',eff:{mdd:[3,.4]},preset:'present',ask:'have you been feeling down, sad, or hopeless most days?'},
-   {id:'anhedonia',lbl:'Loss of interest or pleasure in things you used to enjoy',stream:'hx',eff:{mdd:[3,.4]},preset:'present',ask:'have you lost interest or pleasure in things you usually enjoy?'},
-   {id:'sleepch',lbl:'Sleep change',stream:'hx',kind:'choice',options:['No change','Trouble falling/staying asleep','Sleeping much more than usual'],eff:{mdd:[2,.6]},ask:'how has your sleep been?'},
-   {id:'appetitech',lbl:'Appetite / weight change',stream:'hx',kind:'choice',options:['No change','Eating much less','Eating much more'],eff:{mdd:[1.6,.8]},ask:'has your appetite or weight changed?'},
-   {id:'energy',lbl:'Fatigue or loss of energy nearly every day',stream:'hx',eff:{mdd:[2,.6]},ask:'have you been feeling tired or low on energy?'},
-   {id:'concentration',lbl:'Trouble concentrating or making decisions',stream:'hx',eff:{mdd:[1.8,.7]},ask:'has it been hard to concentrate, or to make decisions?'},
-   {id:'guilt',lbl:'Feelings of worthlessness or excessive guilt',stream:'hx',eff:{mdd:[2.2,.7]},ask:'have you been feeling worthless, or guilty about things that aren’t really your fault?'},
-   {id:'psychomotor',lbl:'Noticeably slowed down or restless/agitated',stream:'hx',eff:{mdd:[1.6,.85]},ask:'has anyone else noticed you moving or talking slower — or more restless — than usual?'},
+   // ── DSM-5 criterion A for a major depressive episode ──────────────────────────
+   // These nine symptoms plus the functional-impairment criterion below ARE the
+   // definition of a depressive episode. Multiplying the odds of depression by them
+   // is circular: you cannot use the definition as evidence for the thing it defines.
+   // They are counted and displayed as criteria met, and they no longer move odds.
+   {id:'lowmood',lbl:'Low mood, most of the day, nearly every day',stream:'hx',crit:{mdd:'DSM-5 criterion A1'},preset:'present',ask:'have you been feeling down, sad, or hopeless most days?'},
+   {id:'anhedonia',lbl:'Loss of interest or pleasure in things you used to enjoy',stream:'hx',crit:{mdd:'DSM-5 criterion A2'},preset:'present',ask:'have you lost interest or pleasure in things you usually enjoy?'},
+   {id:'sleepch',lbl:'Sleep change',stream:'hx',kind:'choice',options:['No change','Trouble falling/staying asleep','Sleeping much more than usual'],crit:{mdd:'DSM-5 criterion A4'},ask:'how has your sleep been?'},
+   {id:'appetitech',lbl:'Appetite / weight change',stream:'hx',kind:'choice',options:['No change','Eating much less','Eating much more'],crit:{mdd:'DSM-5 criterion A3'},ask:'has your appetite or weight changed?'},
+   {id:'energy',lbl:'Fatigue or loss of energy nearly every day',stream:'hx',crit:{mdd:'DSM-5 criterion A6'},ask:'have you been feeling tired or low on energy?'},
+   {id:'concentration',lbl:'Trouble concentrating or making decisions',stream:'hx',crit:{mdd:'DSM-5 criterion A8'},ask:'has it been hard to concentrate, or to make decisions?'},
+   {id:'guilt',lbl:'Feelings of worthlessness or excessive guilt',stream:'hx',crit:{mdd:'DSM-5 criterion A7'},ask:'have you been feeling worthless, or guilty about things that aren’t really your fault?'},
+   {id:'psychomotor',lbl:'Noticeably slowed down or restless/agitated',stream:'hx',crit:{mdd:'DSM-5 criterion A5'},ask:'has anyone else noticed you moving or talking slower — or more restless — than usual?'},
    {id:'duration',lbl:'How long has this been going on',stream:'hx',num:{unit:'weeks'},criterion:'≥ 2 weeks needed for a depressive episode',ask:'how many weeks has this been going on for?'},
    // 2026-07-22 audit: DSM-5-TR requires functional impairment as a core
    // criterion for MDD — the script asserted it, nothing actually asked it.
-   {id:'functimpact',lbl:'Affecting studies, work, or relationships',stream:'hx',eff:{mdd:[1.8,.7]},ask:'has this affected your studies, work, or relationships?'},
+   {id:'functimpact',lbl:'Affecting studies, work, or relationships',stream:'hx',crit:{mdd:'DSM-5 criterion B — functional impairment'},ask:'has this affected your studies, work, or relationships?'},
    // Safety is never optional — a plain "any thoughts of suicide" gates a full
    // cascade the moment it's present, exactly like any other must-not-miss cascade.
-   {id:'siwish',lbl:'Thoughts that life isn’t worth living, or of suicide',stream:'hx',eff:{mdd:[1.3,.95]},ask:'have you had any thoughts that life isn’t worth living, or of harming or killing yourself?',follow:[
+   {id:'siwish',lbl:'Thoughts that life isn’t worth living, or of suicide',stream:'hx',crit:{mdd:'DSM-5 criterion A9'},ask:'have you had any thoughts that life isn’t worth living, or of harming or killing yourself?',follow:[
      {id:'siplan',lbl:'Has a specific plan',stream:'hx',ask:'have you thought about how you would do it?'},
      {id:'simeans',lbl:'Access to means',stream:'hx',ask:'do you have access to what you’d use?'},
      {id:'siintent',lbl:'Intent to act on it',stream:'hx',ask:'do you feel you might act on these thoughts?'},
@@ -1228,16 +1337,24 @@ const CASES={
    {id:'selfharm',lbl:'Self-harm (not intended to end life)',stream:'hx',ask:'have you done anything to hurt yourself on purpose, even if you didn’t mean to end your life?'},
    // Mania/hypomania screen — this is the "screen toward bipolar, not just assume
    // unipolar depression" the whole case is built to teach.
-   {id:'manicepisode',lbl:'Ever had days of unusually high, elated, or irritable mood',stream:'hx',eff:{bipolar:[6,.25]},key:'bipolar',short:'mania screen',criterion:'≥ 4 days, clearly different from your usual self',ask:'have you ever had a stretch of days where you felt unusually high, full of energy, or irritable — very different from your normal self?',follow:[
+   // A past manic or hypomanic episode IS the DSM-5 criterion that defines bipolar
+   // disorder — it does not raise the odds of bipolar, it establishes it. It stays the
+   // screen (and still gates the must-not-miss cap) but no longer multiplies odds.
+   {id:'manicepisode',lbl:'Ever had days of unusually high, elated, or irritable mood',stream:'hx',crit:{bipolar:'DSM-5 criterion A for a manic / hypomanic episode'},key:'bipolar',short:'mania screen',criterion:'≥ 4 days, clearly different from your usual self',ask:'have you ever had a stretch of days where you felt unusually high, full of energy, or irritable — very different from your normal self?',follow:[
      {id:'manicsleep',lbl:'Needed much less sleep but still felt full of energy',stream:'hx',ask:'during that time, could you get by on much less sleep than usual and still feel fine?'},
      {id:'manicgrandiose',lbl:'Felt unusually important, talented, or powerful',stream:'hx',ask:'did you feel unusually important, talented, or that you could do things others couldn’t?'},
      {id:'manicspeech',lbl:'Talked much faster or more than usual',stream:'hx',ask:'did people say you were talking faster, or more, than usual?'},
      {id:'manicrisky',lbl:'Reckless spending, sex, or other risky behaviour',stream:'hx',ask:'did you do anything risky during that time — spending, sex, driving — that wasn’t like you?'},
      {id:'manicgambling',lbl:'Gambling or other compulsive behaviour during that time',stream:'hx',ask:'did you gamble, or do anything else compulsively, during that time?'}]},
-   {id:'psychotic',lbl:'Hearing voices or unusual beliefs others don’t share',stream:'hx',eff:{mdd:[.8,1.05]},ask:'have you heard voices when no one is there, or believed things other people say aren’t true?'},
-   {id:'stressor',lbl:'Recent significant loss or life stressor',stream:'hx',eff:{adjustment:[3,.5]},preset:'present',ask:'has anything difficult happened recently — a breakup, loss, or big change?'},
-   {id:'drughx2',lbl:'Recreational drug use',stream:'hx',kind:'choice',options:['None','Cannabis','Stimulants (cocaine/meth)','Other'],eff:{substance:[3,.5]},ask:'do you use any recreational drugs — cannabis, tik, cocaine, or anything else?'},
-   {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent'],eff:{substance:[2,.7]},ask:'do you drink alcohol, and how much / how often?'},
+   {id:'psychotic',lbl:'Hearing voices or unusual beliefs others don’t share',stream:'hx',eff:{mdd:[.8,1,'Own estimate. Psychotic features argue modestly away from an uncomplicated depressive episode and towards bipolar or a psychotic disorder. The old absent-weight of 1.05 promoted depression every time the question was answered "no"; absence now does nothing.']},ask:'have you heard voices when no one is there, or believed things other people say aren’t true?'},
+   // An identifiable stressor is DSM-5 criterion A for adjustment disorder — the
+   // definition, not evidence for it.
+   {id:'stressor',lbl:'Recent significant loss or life stressor',stream:'hx',crit:{adjustment:'DSM-5 criterion A — identifiable stressor'},preset:'present',ask:'has anything difficult happened recently — a breakup, loss, or big change?'},
+   // `pos` lists which options count as PRESENT. Without it, choosing "None" set the
+   // finding to present and multiplied substance-induced disorder up — answering the
+   // question honestly with a negative made the diagnosis more likely (found in audit).
+   {id:'drughx2',lbl:'Recreational drug use',stream:'hx',kind:'choice',options:['None','Cannabis','Stimulants (cocaine/meth)','Other'],pos:['Cannabis','Stimulants (cocaine/meth)','Other'],eff:{substance:[3,1,'Own estimate. Current use raises a substance-induced picture, but it is the TEMPORAL LINK to intoxication or withdrawal that defines the diagnosis, not use itself — so use stays evidence. Absent-weight 1.0: no drug use does not exclude an alcohol- or medication-induced mood disorder.']},ask:'do you use any recreational drugs — cannabis, tik, cocaine, or anything else?'},
+   {id:'alcohol',lbl:'Alcohol use',stream:'hx',kind:'choice',options:['None','Occasional','Regular','Heavy / dependent'],pos:['Regular','Heavy / dependent'],eff:{substance:[2,1,'Own estimate. Only regular or dependent drinking is counted as present. Absent-weight 1.0 — abstinence does not exclude a drug-induced picture.']},ask:'do you drink alcohol, and how much / how often?'},
    {id:'prevadmit',lbl:'Previous psychiatric admissions',stream:'hx',kind:'text',ask:'have you ever been admitted to hospital for a mental health reason before?'},
    {id:'prevdx',lbl:'Previous psychiatric diagnosis or treatment',stream:'hx',kind:'text',ask:'have you seen a psychiatrist or psychologist before, or been on any medication for your mood?'},
    {id:'smoking',lbl:'Smoking status',stream:'hx',kind:'choice',options:['Never smoked','Ex-smoker','Current smoker']},
@@ -1250,15 +1367,22 @@ const CASES={
    // Mental state examination — findings a consultant would EXPECT given the
    // history above, formally documented rather than assumed.
    {id:'appearance',lbl:'Appearance & behaviour',stream:'exam',checklist:['Kempt / appropriate','Unkempt / self-neglect','Psychomotor retardation','Psychomotor agitation','Poor eye contact']},
-   {id:'speechrate',lbl:'Speech',stream:'exam',kind:'choice',options:['Normal rate & volume','Slowed / quiet / monotone','Rapid / pressured / loud'],eff:{bipolar:[3,.85],mdd:[1.4,.9]}},
+   // Pressured speech is DSM-5 manic criterion B3, and slowed speech is part of the
+   // psychomotor criterion already counted above — so this row was scoring the same
+   // criteria a second time, and worse, any selection (including "Normal") counted as
+   // present and raised bipolar. Documented, not weighted.
+   {id:'speechrate',lbl:'Speech',stream:'exam',kind:'choice',options:['Normal rate & volume','Slowed / quiet / monotone','Rapid / pressured / loud'],crit:{bipolar:'DSM-5 manic criterion B3 — pressured speech'}},
    {id:'objmood',lbl:'Objective mood & affect',stream:'exam',kind:'text',ask:'observed — e.g. "low, congruent affect" or "elevated, labile affect"'},
-   {id:'thoughtform',lbl:'Thought form',stream:'exam',kind:'choice',options:['Normal / linear','Flight of ideas','Poverty of thought / slowed'],eff:{bipolar:[3,.9],mdd:[1.3,.9]}},
+   {id:'thoughtform',lbl:'Thought form',stream:'exam',kind:'choice',options:['Normal / linear','Flight of ideas','Poverty of thought / slowed'],crit:{bipolar:'DSM-5 manic criterion B4 — flight of ideas'}},
    {id:'thoughtcontent',lbl:'Thought content',stream:'exam',checklist:['Hopelessness','Guilt','Suicidal ideation','Grandiosity','Preoccupation with stressor']},
    {id:'perception',lbl:'Perceptual disturbances',stream:'exam',checklist:['Auditory hallucinations','Visual hallucinations','Other']},
    {id:'cognition',lbl:'Cognition grossly intact (orientation, memory, concentration)',stream:'exam',preset:'present'},
    {id:'insight',lbl:'Insight & judgement',stream:'exam',kind:'choice',options:['Good','Partial','Poor']},
-   {id:'tsh',lbl:'TSH abnormal',stream:'ix',eff:{organic:[6,.2]},key:'organic',short:'TSH'},
-   {id:'uds',lbl:'Urine drug screen positive',stream:'ix',eff:{substance:[6,.25]},key:'substance',short:'urine drug screen'}],
+   // An abnormal TSH is what makes the diagnosis "organic (thyroid) mood disorder" —
+   // it is the criterion, not a test towards it. A positive drug screen is the same
+   // shape for substance-induced mood disorder. Both still gate the must-not-miss cap.
+   {id:'tsh',lbl:'TSH abnormal',stream:'ix',crit:{organic:'defining criterion — a demonstrated medical cause'},key:'organic',short:'TSH'},
+   {id:'uds',lbl:'Urine drug screen positive',stream:'ix',crit:{substance:'defining criterion for a substance-induced disorder'},key:'substance',short:'urine drug screen'}],
   IX:[
    {id:'uds',cat:'bedside',lbl:'Urine drug screen',binary:true,dx:'Substance-induced mood disorder'},
    {id:'tsh',cat:'lab',lbl:'TSH',unit:'mIU/L',norm:'0.4–4.0',hi:4.0,lo:0.4,dir:'above',dx:'Organic (thyroid) mood disorder'},
@@ -1287,6 +1411,72 @@ const CASES={
 // a broken tag.
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
+// ═══ THE WEIGHTING CONTRACT ═════════════════════════════════════════════════
+// Every weighting in this file is written as:
+//
+//     eff:{ diagnosisId: [ lrPresent, lrAbsent, basis, sensitivity? ] }
+//
+//   lrPresent  — how much finding it multiplies the odds of that diagnosis by.
+//   lrAbsent   — how much NOT finding it multiplies the odds by. Almost always
+//                exactly 1.0: absence of a sign is not evidence of absence of
+//                disease unless the sign is near-universal in that disease.
+//   basis      — free text saying WHY this number is what it is. Published
+//                likelihood ratios do not exist for most of these pairs, so we
+//                derive our own — but a derived number that isn't written down
+//                can't be checked or improved, so an empty basis is a failure.
+//   sensitivity — REQUIRED whenever lrAbsent < 1. It is the share of people with
+//                the disease in whom the finding is present, and it puts a hard
+//                floor under how strong a negative weight is allowed to be:
+//                the best possible negative likelihood ratio is (1 − sensitivity),
+//                achieved only at perfect specificity. Claiming a stronger one is
+//                claiming a test is better than sensitivity permits.
+//
+// Both rules are enforced at load. A pack that breaks either does not quietly
+// run with bad numbers — it stops and says so on screen.
+const WEIGHT_TOL=1e-9;
+function auditPack(pack,packId){
+  const out=[],dxIds=new Set((pack.DX||[]).map(d=>d.id));
+  (function walk(list){
+    for(const f of list||[]){
+      const where=w=>`${packId} · ${f.id||'(no id)'} → ${w}`;
+      if(f.crit) for(const dx of Object.keys(f.crit)){
+        if(!dxIds.has(dx)) out.push(`${where(dx)}: named as a defining criterion for a diagnosis that is not in this pack`);
+        if(f.eff&&f.eff[dx]) out.push(`${where(dx)}: is both a defining criterion AND a weighting for the same diagnosis — a criterion cannot also be evidence for itself`);
+      }
+      if(f.eff) for(const dx of Object.keys(f.eff)){
+        const w=f.eff[dx];
+        if(!dxIds.has(dx)){out.push(`${where(dx)}: weights a diagnosis that is not in this pack`);continue;}
+        if(!Array.isArray(w)||typeof w[0]!=='number'||typeof w[1]!=='number'){out.push(`${where(dx)}: malformed weighting — expected [present, absent, basis, sensitivity?]`);continue;}
+        if(!(w[0]>0)||!(w[1]>0)) out.push(`${where(dx)}: likelihood ratios must be greater than zero`);
+        if(typeof w[2]!=='string'||!w[2].trim()) out.push(`${where(dx)}: no basis recorded. Every weighting must say why it has the value it has — where no published figure exists we derive one, but it has to be written down so it can be checked.`);
+        if(w[1]<1-WEIGHT_TOL){
+          const sens=w[3];
+          if(typeof sens!=='number'||!(sens>0&&sens<=1)){
+            out.push(`${where(dx)}: absent-weight ${w[1]} counts the ABSENCE of this finding against the diagnosis, but no sensitivity is stated. Absence may only argue against when the finding is near-universal in the disease — declare the sensitivity or set the absent-weight to 1.0.`);
+          }else{
+            const floor=1-sens;
+            if(w[1]<floor-WEIGHT_TOL) out.push(`${where(dx)}: absent-weight ${w[1]} is stronger than a sensitivity of ${Math.round(sens*100)}% can justify. At that sensitivity the strongest possible negative likelihood ratio is ${floor.toFixed(3)} (and only at perfect specificity).`);
+          }
+        }
+      }
+      if(f.follow) walk(f.follow);
+    }
+  })(pack.FEAT);
+  return out;
+}
+function auditAll(){const out=[];for(const id of Object.keys(CASES))out.push(...auditPack(CASES[id],id));return out;}
+// Fail loudly, on screen. A silent console warning is how bad numbers survive.
+function reportAudit(problems){
+  const box=document.getElementById('weightaudit');
+  if(!problems.length){if(box)box.remove();return;}
+  console.error('[clerk] weighting contract violated:\n'+problems.join('\n'));
+  const el=box||Object.assign(document.createElement('div'),{id:'weightaudit'});
+  el.setAttribute('style','position:fixed;inset:auto 0 0 0;z-index:9999;max-height:52vh;overflow:auto;background:#7f1d1d;color:#fff;font:12px/1.5 ui-monospace,Menlo,monospace;padding:14px 16px;box-shadow:0 -8px 24px rgba(0,0,0,.4)');
+  el.innerHTML='<b style="font-size:13px">This board is not safe to read — '+problems.length+' weighting'+(problems.length>1?'s':'')+' broke the weighting contract.</b>'
+    +'<div style="margin-top:8px">'+problems.map(p=>'<div style="margin:4px 0">• '+esc(p)+'</div>').join('')+'</div>';
+  if(!box)document.body.appendChild(el);
+}
+
 // Two small errands this board cannot run for itself once it is properly
 // locked down: saving a ward handoff, and putting a note on the clipboard.
 // Both need the app's own origin, which the frame deliberately does not have.
@@ -1307,6 +1497,16 @@ let caseId='pre', DX, FEAT, IX, MX, VITALS, PT, ans={}, val={}, given=new Set(),
 // elicited — a teaching tool should let the learner tell those apart.
 function collectPresetIds(){const out=new Set();(function w(l){for(const f of l){if(f.preset)out.add(f.id);if(f.follow)w(f.follow);}})(FEAT);return out;}
 const featsFor=id=>FEAT.filter(f=>f.eff&&f.eff[id]);
+// The confirmatory test that resolves a must-not-miss. One investigation can resolve
+// more than one of them (an endoscopy answers ulcer AND varices at once), so `key`
+// accepts either a diagnosis id or a list of them.
+const hasKey=(f,id)=>Array.isArray(f.key)?f.key.indexOf(id)>=0:f.key===id;
+const keyFeat=id=>FEAT.find(f=>f.key&&hasKey(f,id));
+// The findings that are this diagnosis's DEFINING criteria rather than evidence for
+// it. These are deliberately outside the odds chain — you cannot use a definition as
+// evidence for the thing it defines — so they are counted and shown, never multiplied.
+const critFeats=id=>allFeats().filter(f=>f.crit&&f.crit[id]);
+function critState(id){const list=critFeats(id);return{list,met:list.filter(f=>ans[f.id]==='present'),answered:list.filter(f=>ans[f.id]).length};}
 // A finding may carry follow-up children (revealed when it is present) that
 // characterise it — cough → productive → colour change / blood. They live
 // nested on the parent; these helpers flatten the tree for the engine.
@@ -1320,7 +1520,10 @@ function clearFollow(f){if(!f||!f.follow)return;for(const c of f.follow){delete 
 const SYS_MAP=[[/^I/,'cardiac',2,66],[/^J/,'resp',206,58],[/^G/,'neuro',268,46],[/^F/,'psych',248,40],[/^D[5-8]/,'haem',344,58],[/^[CD]/,'onc',222,22],[/^K/,'GI',33,64],[/^N/,'renal',176,50],[/^E/,'endo',30,72],[/^[AB]/,'infective',146,46],[/^O/,'obstetric',324,54],[/^M/,'MSK',20,32]];
 function sysOf(icd){const s=(icd||'').trim().toUpperCase();for(const r of SYS_MAP)if(r[0].test(s))return r;return[null,'general',192,26];}
 function assignSystemColors(dx){const cnt={};dx.forEach(d=>{const r=sysOf(d.icd),k=r[1],i=cnt[k]||0;cnt[k]=i+1;const L=Math.max(40,60-i*11);d.c=`hsl(${r[2]} ${r[3]}% ${L}%)`;d.sys=k;});}
-function loadCase(id){caseId=id;const c=CASES[id];DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;todayNote='';otherOpen=new Set();presetIds=collectPresetIds();scoreOpen=new Set();}
+function loadCase(id){caseId=id;const c=CASES[id];
+  // Generated packs arrive after startup, so the contract is re-checked on every
+  // load rather than only once over the hand-authored ones.
+  reportAudit(auditPack(c,id));DX=c.DX;FEAT=c.FEAT;IX=c.IX;MX=c.MX;VITALS=c.VITALS;PT=c.PT;assignSystemColors(DX);ans={};FEAT.forEach(f=>{if(f.preset)ans[f.id]=f.preset;});val={};given=new Set();last={};tab='hx';docType='sbar';checks={};pinNext=null;todayNote='';otherOpen=new Set();presetIds=collectPresetIds();scoreOpen=new Set();}
 // SAFETY: is the CURRENT board an AI-generated estimate rather than one of the
 // 8 hand-authored demo packs? Both the generated-board id and an explicit
 // pack.estimated flag are honoured (the server tags every generated pack, the
@@ -1341,6 +1544,7 @@ function wireClChips(root){root.querySelectorAll('[data-clf]').forEach(function(
 // "Other" reveals a one-off text field only when none of the common options fit;
 // otherOpen tracks that reveal explicitly so the field appears the instant
 // "Other" is tapped, before any text exists (val alone can't signal that).
+function chosenState(fid,v){const f=findFeat(fid);return (f&&f.pos&&f.pos.indexOf(v)<0)?'absent':'present';}
 function chChips(f){
   const opts=f.options||[],cur=val[f.id]||'',showOther=otherOpen.has(f.id)||(cur!==''&&!opts.includes(cur));
   return '<div class="cchips" data-chf="'+esc(f.id)+'">'+opts.map(function(o){return '<button class="cchip'+(cur===o?' sel':'')+'" data-v="'+esc(o)+'">'+esc(o)+'</button>';}).join('')
@@ -1350,14 +1554,17 @@ function chChips(f){
 function wireChChips(root){
   root.querySelectorAll('[data-chf]').forEach(function(c){var fid=c.dataset.chf;c.querySelectorAll('.cchip').forEach(function(b){b.addEventListener('click',function(){snap(probs());
     if(b.hasAttribute('data-other')){otherOpen.add(fid);refresh(false);return;}
-    otherOpen.delete(fid);val[fid]=b.dataset.v;ans[fid]='present';refresh(false);
+    // `pos` names the options that count as PRESENT. Without it every option counted
+    // as present — including "None" — so answering a question in the negative pushed
+    // the diagnosis UP. Any option outside `pos` is recorded as absent.
+    otherOpen.delete(fid);val[fid]=b.dataset.v;ans[fid]=chosenState(fid,b.dataset.v);refresh(false);
   });});});
-  root.querySelectorAll('[data-cotxt]').forEach(function(inp){inp.addEventListener('change',function(){const fid=inp.dataset.cotxt,raw=inp.value.trim();snap(probs());val[fid]=raw;if(raw)ans[fid]='present';else delete ans[fid];refresh(false);});});
+  root.querySelectorAll('[data-cotxt]').forEach(function(inp){inp.addEventListener('change',function(){const fid=inp.dataset.cotxt,raw=inp.value.trim();snap(probs());val[fid]=raw;if(raw)ans[fid]=chosenState(fid,raw);else delete ans[fid];refresh(false);});});
 }
 
 
 function probs(){const o={};for(const d of DX){let odds=d.prior/(1-d.prior);for(const f of featsForAll(d.id)){const a=ans[f.id];if(!a)continue;odds*=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];}o[d.id]=odds/(1+odds);}return o;}
-function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=FEAT.find(f=>f.key===d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
+function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX.filter(d=>d.mnm&&d.id!==lead.id).filter(d=>{const k=keyFeat(d.id);return k&&!ans[k.id];});return{lead,live,capped:live.length>0,ceil:.80};}
 
 // ── Real named clinical scores, actually computed ─────────────────────────
 // The audit (2026-07-22) found every pack NAMED a validated score (HEART,
@@ -1499,7 +1706,21 @@ function completeness(){
 // The highest-yield unanswered question. Scoped to the page he is on: asking an
 // examination question while he is still taking the history sends him back and
 // forth across the patient, which is exactly what splitting the pages fixed.
-function nextBest(p,stream){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;if(stream&&f.stream!==stream)continue;const g=Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*p[dx],0);if(g>by){by=g;b=f;}}return b;}
+// How much asking this is worth right now. Two sources, because a finding can matter
+// in two different ways: it can MOVE the odds (a likelihood ratio, weighted by how
+// likely that diagnosis currently is), or it can DECIDE a diagnosis outright by being
+// one of its defining criteria. Criteria carry no likelihood ratio by design, so
+// without this second term the single most important question on a criteria-defined
+// case (is there proteinuria? are the platelets low?) would rank below smoking status.
+const CRIT_YIELD=Math.log(3);
+function yieldOfFeat(f,p){
+  if(!f)return 0;
+  let g=0;
+  for(const dx in (f.eff||{})) g+=Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0);
+  for(const dx in (f.crit||{})) g+=CRIT_YIELD*(p[dx]||0);
+  return g;
+}
+function nextBest(p,stream){let b=null,by=-1;for(const f of FEAT){if(f.stream==='ix'||f.stream==='rx'||ans[f.id])continue;if(stream&&f.stream!==stream)continue;const g=yieldOfFeat(f,p);if(g>by){by=g;b=f;}}return b;}
 function tween(el,to,suf='',ms=450){if(!el)return;const from=parseFloat(el.textContent)||0,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/ms);el.textContent=Math.round(from+(to-from)*k)+suf;if(k<1)requestAnimationFrame(s);})(performance.now());}
 function snap(p){DX.forEach(d=>last[d.id]=p[d.id]);}
 function ixState(f){const a=ans[f.id];if(!a)return{cls:'pend',txt:'→ enter'};return a==='present'?{cls:'hi',txt:'abnormal'}:{cls:'ok',txt:'normal'};}
@@ -1797,7 +2018,7 @@ function buildHx(){
           <span class="nm"><span class="name">${esc(d.name)}</span><span class="icd">${esc(d.icd)}</span>${d.mnm?'<span class="dot-mnm" title="Must not miss"></span>':''}</span>
           <span class="metric"><span class="delta" data-delta></span><span class="mini"><span class="f" data-mini></span></span><span class="pct tnum" data-pct>0</span></span>
         </div>
-        <div class="body"><div class="script" data-script></div></div>
+        <div class="body"><div class="script" data-script></div><div data-crit></div></div>
       </div>
     </div>`).join('');
 }
@@ -1808,6 +2029,23 @@ function buildHx(){
 // one event this tool exists to show, was blurred by everything else moving
 // under it. Staging is what makes a change readable rather than merely visible:
 // an element should never change position and value at once. ~1s in total.
+// A criteria-defined diagnosis (HELLP by the Tennessee criteria, a depressive episode
+// by DSM-5, severe pre-eclampsia by the ACOG severe features) is not decided by odds
+// and never was — it is decided by whether the criteria are met. Those findings are
+// out of the probability chain entirely; this is where they are shown instead.
+function critBox(d){
+  const list=critFeats(d.id); if(!list.length) return '';
+  const met=list.filter(f=>ans[f.id]==='present').length;
+  const sets=[...new Set(list.map(f=>f.crit[d.id]))].join(' · ');
+  const row=f=>{
+    const a=ans[f.id],cls=a==='present'?'yes':a==='absent'?'no':'open',mk=a==='present'?'✓':a==='absent'?'✕':'·';
+    const v=(a&&val[f.id])?' — '+val[f.id]:'';
+    return `<div class="cr ${esc(cls)}"><span class="cm">${mk}</span><span>${esc(f.lbl)}${esc(v)}</span></div>`;
+  };
+  return `<div class="critbox"><div class="ch"><span>Defining criteria</span><span class="cset">${esc(sets)}</span><span class="cn">${met}/${list.length} met</span></div>`
+    +list.map(row).join('')
+    +`<div class="critnote">Counted, not weighed. These findings define this diagnosis, so they are shown as criteria met rather than multiplied into its probability — a definition cannot be evidence for itself.</div></div>`;
+}
 const RANK_MS=460, WEIGHT_MS=540;
 let stageTimer=null;
 function paintHx(p,first){
@@ -1828,6 +2066,7 @@ function paintHx(p,first){
     const el=document.querySelector(`.dx[data-id="${d.id}"]`);if(!el)return;el.style.order=i;
     const matched=featsForAll(d.id).filter(f=>ans[f.id]==='present').map(f=>f.lbl.toLowerCase().split(' (')[0]);
     el.querySelector('[data-script]').innerHTML='<b>script</b> — '+d.script.split(/(\W+)/).map(w=>matched.some(m=>m.includes(w.toLowerCase())&&w.length>3)?`<b>${esc(w)}</b>`:esc(w)).join('');
+    const cb=el.querySelector('[data-crit]'); if(cb)cb.innerHTML=critBox(d);
   });
   // Stage 2 — the weights. Every card is written in ONE pass so the cards that
   // moved the same way this round change together and read as a group.
@@ -1857,8 +2096,11 @@ function paintHx(p,first){
   else applyWeights();
   // ---- the global rolling clerking queue (≤5 per stream, highest-yield first) ----
   const QLIMIT=5;
-  const yieldOf=f=>Object.keys(f.eff||{}).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0),0);
-  const isDiscrim=f=>!!(f.eff&&Object.keys(f.eff).length); // does it actually move a differential, or is it background/completeness
+  const yieldOf=f=>yieldOfFeat(f,p);
+  // Does this bear on the differential at all, or is it background/completeness? A
+  // defining criterion counts: it decides a diagnosis even though it carries no
+  // likelihood ratio, so it must not be filed under "for completeness".
+  const isDiscrim=f=>!!((f.eff&&Object.keys(f.eff).length)||(f.crit&&Object.keys(f.crit).length));
   function hasOpenDesc(f){if(!f.follow)return false;for(const c of f.follow){if(!ans[c.id])return true;if(ans[c.id]==='present'&&hasOpenDesc(c))return true;}return false;}
   const needsWork=f=>!ans[f.id]||(ans[f.id]==='present'&&hasOpenDesc(f));
   const rank=f=>(ans[f.id]==='present'&&hasOpenDesc(f))?0:1; // finish an open cascade before starting fresh
@@ -1911,6 +2153,13 @@ function paintHx(p,first){
     // ones it separates, so the intern knows what they are looking for and why
     // before they lay a hand on the patient.
     const sep=f=>{
+      // A defining criterion doesn't separate two diagnoses — it settles one. Say that
+      // instead of borrowing the language of discrimination.
+      const critIds=Object.keys(f.crit||{});
+      if(critIds.length&&!f.eff){
+        const cn=critIds.map(id=>DX.find(d=>d.id===id)).filter(Boolean).map(shortName);
+        return cn.length?`<div class="separates">a defining criterion for <b>${esc(cn.join(' and '))}</b></div>`:'';
+      }
       const ids=Object.keys(f.eff||{}); if(!ids.length)return '';
       const names=ids.map(id=>DX.find(d=>d.id===id)).filter(Boolean)
         .sort((a,b)=>p[b.id]-p[a.id]).slice(0,2).map(shortName);
@@ -1947,7 +2196,7 @@ function buildIx(){
   // Weight each test by how much it would move the differential right now, so
   // the heaviest-yield test sits first — but keep the chronological bedside →
   // lab → imaging order (you reach for point-of-care before you send bloods).
-  const yieldOf=t=>{const f=allFeats().find(x=>x.id===t.id&&x.eff);return f?Object.keys(f.eff).reduce((s,dx)=>s+Math.abs(Math.log(f.eff[dx][0]))*(p[dx]||0),0):0;};
+  const yieldOf=t=>yieldOfFeat(allFeats().find(x=>x.id===t.id&&(x.eff||x.crit)),p);
   const CATS=[['bedside','Bedside'],['lab','Laboratory'],['imaging','Imaging']];
   // A test that's only sent once an earlier one screens positive (e.g. quantitative
   // serum βhCG after the urine screen) must not be enterable up front — that would
@@ -2271,7 +2520,7 @@ function buildDocs(){
 
 // ---- Why (tab 5) — the reasoning trace; the only place full sentences live ----
 const lrTxt=lr=>'×'+(+lr).toFixed(1);
-const disc=d=>{const k=FEAT.find(f=>f.key===d.id);return k?(k.short||k.lbl.split(' (')[0].toLowerCase()):'its discriminating test';};
+const disc=d=>{const k=keyFeat(d.id);return k?(k.short||k.lbl.split(' (')[0].toLowerCase()):'its discriminating test';};
 function forAgainst(d){
   const items=[];
   for(const f of featsFor(d.id)){const a=ans[f.id];if(!a)continue;const lr=a==='present'?f.eff[d.id][0]:f.eff[d.id][1];items.push({lbl:f.lbl.split(' (')[0]+(a==='absent'?' (absent)':''),lr,pro:lr>=1});}
@@ -2287,13 +2536,29 @@ function whyNarrative(){
   else s+=`Every must-not-miss rival is now excluded, so the number is trustworthy.`;
   return s;
 }
-function whyNext(){const p=probs(),nb=nextBest(p);if(!nb)return 'History and exam are saturated — the picture now moves on investigations.';const aff=Object.keys(nb.eff).map(id=>shortName(DX.find(d=>d.id===id))).join(' vs ');return `<b>${esc(nb.lbl)}</b> is the highest-yield next question — it best separates ${esc(aff)}.`;}
+function whyNext(){
+  const p=probs(),nb=nextBest(p);
+  if(!nb)return 'History and exam are saturated — the picture now moves on investigations.';
+  const aff=Object.keys(nb.eff||{}).map(id=>shortName(DX.find(d=>d.id===id))).filter(Boolean).join(' vs ');
+  // A finding can now legitimately carry no likelihood ratios at all: defining
+  // criteria are counted rather than weighed, and background questions never moved
+  // the differential. Both still have to be asked, so say what they are FOR instead
+  // of claiming a separation they do not make.
+  if(!aff){
+    const cr=nb.crit?[...new Set(Object.keys(nb.crit).map(id=>shortName(DX.find(d=>d.id===id))).filter(Boolean))].join(' and '):'';
+    return cr
+      ? `<b>${esc(nb.lbl)}</b> is next — it is a defining criterion for <b>${esc(cr)}</b>, so it decides whether that diagnosis can be made at all rather than shifting a probability.`
+      : `<b>${esc(nb.lbl)}</b> is next — it completes the clerking rather than moving the differential.`;
+  }
+  return `<b>${esc(nb.lbl)}</b> is the highest-yield next question — it best separates ${esc(aff)}.`;
+}
 function whyPremortem(){const p=probs(),c=cap(p);const r=[...DX].filter(d=>d.mnm&&d.id!==c.lead.id).sort((a,b)=>p[b.id]-p[a.id])[0];if(!r)return 'No must-not-miss rival remains in play.';return `If this call is wrong, the dangerous miss is <b>${esc(shortName(r))}</b> — exclude it with <b>${esc(disc(r))}</b> before committing.`;}
 function ledger(d,p,capTo){
   const fa=forAgainst(d),pc=Math.round(p[d.id]*100);
   const col=(items,cls,head)=>`<div class="${cls}"><div class="colh">${head}</div>${items.length?items.map(i=>`<div class="li"><span>${esc(i.lbl)}</span><span class="lr">${esc(lrTxt(i.lr))}</span></div>`).join(''):'<div class="li dim">—</div>'}</div>`;
   return `<div class="wledger" style="--dxc:${esc(d.c)}"><div class="wlhd"><span class="n">${esc(d.name)}</span><span class="icd">${esc(d.icd)}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${esc(d.c)}">${pc}%</span></div>
     <div class="cols">${col(fa.pro,'col-f','For')}${col(fa.con,'col-a','Against')}</div>
+    ${critBox(d)}
     <div class="wscript">illness script — ${esc(d.script)}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> — ${esc(d.patho)}</div>`:''}</div>`;
 }
 function buildWhy(){
@@ -2397,6 +2662,7 @@ function showIntake(){document.getElementById('intake').classList.remove('hide')
 function hideIntake(){document.getElementById('intake').classList.add('hide');}
 
 function init(){
+  reportAudit(auditAll());
   document.getElementById('foot').innerHTML='<b><span class="sw" style="background:var(--good)">✓</span>present</b><b><span class="sw" style="background:var(--bad)">✕</span>absent</b>';
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
     // Moving between history and examination is moving between two acts, so the
