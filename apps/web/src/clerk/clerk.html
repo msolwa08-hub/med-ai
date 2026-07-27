@@ -1738,7 +1738,16 @@ function paintHeader(p,first){
     else{
       const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]).slice(0,3);
       dsEl.className='diffstrip show';
-      dsEl.innerHTML=ranked.map(d=>`<span class="diffchip" style="--c:${esc(d.c)}"><span class="dot"></span>${esc(shortName(d))} <b>${Math.round(p[d.id]*100)}%</b></span>`).join('');
+      // The strip must show the SAME number the gauge shows. It was reading raw
+      // probability while the gauge above it applied the must-not-miss ceiling,
+      // so on Tests/Plan/Note/Why the lead diagnosis appeared at (say) 90% one
+      // line under a banner saying it was capped at 80%. A board that contradicts
+      // itself once is a board the reader stops believing — and the whole safety
+      // argument for the cap dies with it.
+      dsEl.innerHTML=ranked.map(d=>{
+        const shown=(c.capped&&d.id===c.lead.id)?Math.min(p[d.id],c.ceil):p[d.id];
+        return `<span class="diffchip" style="--c:${esc(d.c)}"><span class="dot"></span>${esc(shortName(d))} <b>${Math.round(shown*100)}%</b></span>`;
+      }).join('');
     }
   }
   let nb=null;
