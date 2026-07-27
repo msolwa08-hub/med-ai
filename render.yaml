@@ -23,7 +23,12 @@ services:
     name: medai-beta
     runtime: docker
     dockerfilePath: ./Dockerfile
-    branch: claude/ai-medical-history-app-1lh4wv # build the full app (patient + cockpit + tools)
+    # Deploys track main. They used to track a work branch, which quietly came
+    # apart from what was being built: every fix landed somewhere the deploy
+    # never looked, so the app being tested on a phone was days older than the
+    # app being reported as fixed. The branch a person tests must be the branch
+    # the work lands on.
+    branch: main
     plan: free # no payment required; sleeps when idle (~30s cold start)
     region: frankfurt # closest free Render region to South Africa
     healthCheckPath: /health
