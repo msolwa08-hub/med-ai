@@ -6,7 +6,7 @@ import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { ConsultWorkspace } from './ConsultWorkspace';
 import { cockpitApi } from './cockpitApi';
 import { storage } from '../storage';
-import { Spinner } from '../tools/components/ui';
+import { Spinner } from '../components/ui';
 
 interface Props {
   onBack: () => void;

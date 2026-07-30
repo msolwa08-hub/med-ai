@@ -1,7 +1,7 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { SummaryView } from '../components/SummaryView';
-import { Spinner } from '../tools/components/ui';
+import { Spinner } from '../components/ui';
 
 interface Props {
   doctorKey: string;

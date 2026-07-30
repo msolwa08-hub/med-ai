@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Stethoscope, Activity, FileText } from 'lucide-react';
-import { Button } from '../tools/components/ui';
+import { Button } from './ui';
 
 interface Props {
   label: string;

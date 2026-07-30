@@ -1,0 +1,106 @@
+{
+  "base": "http://localhost:3000",
+  "liveOutcome": "generator FAILED: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CdYoqCM7eaPUqETStsVMt\"} (HTTP 502)",
+  "results": [
+    {
+      "name": "the clerk gates access on its own, with no other tool needed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "root URL lands straight on the clerk",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no built-in example cases on the front door",
+      "pass": true,
+      "detail": "0 example chips found"
+    },
+    {
+      "name": "live model call produced a board",
+      "pass": false,
+      "detail": "generator FAILED: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CdYoqCM7eaPUqETStsVMt\"} (HTTP 502)"
+    },
+    {
+      "name": "every differential carries a spelled-out urgency band",
+      "pass": true,
+      "detail": "IMMEDIATE / IMMEDIATE / TODAY / STABLE"
+    },
+    {
+      "name": "ACS bands red, chest-wall pain bands blue",
+      "pass": true,
+      "detail": "uband red | uband blue"
+    },
+    {
+      "name": "the tile accent is painted from the urgency scale, not an organ-system hue",
+      "pass": true,
+      "detail": "#c62f24 vs red #c62f24"
+    },
+    {
+      "name": "confidence cap fires while a must-not-miss is unexcluded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "answering the pinned question moves the differential",
+      "pass": true,
+      "detail": "chest-wall pain 7% → 11%"
+    },
+    {
+      "name": "tab \"exam\" renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "tab \"ix\" renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "tab \"mx\" renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "tab \"docs\" renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "tab \"why\" renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "management items carry urgency bands too",
+      "pass": true,
+      "detail": "7 bands, 3 distinct: IMMEDIATE/TODAY/STABLE"
+    },
+    {
+      "name": "every dose declares whether it matched a guideline",
+      "pass": true,
+      "detail": "5 provenance tags"
+    },
+    {
+      "name": "for/against weights are marked as estimates",
+      "pass": true,
+      "detail": "2 column tags"
+    },
+    {
+      "name": "a line in words says the weights are not published ratios",
+      "pass": true,
+      "detail": "The ×-weights are this model's estimate of how strongly each…"
+    },
+    {
+      "name": "the AI-estimate notice is reachable, not buried under the console",
+      "pass": true,
+      "detail": "{\"visible\":true,\"coveredByConsole\":false}"
+    },
+    {
+      "name": "urgency bands survive the dark-mode repaint",
+      "pass": true,
+      "detail": "dark, red renders rgb(255, 111, 99)"
+    }
+  ]
+}

@@ -1,27 +1,23 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import LandingPage from './LandingPage';
 import { VersionBadge } from './components/VersionBadge';
 
 const ChatView = lazy(() => import('./components/ChatView'));
 const DoctorApp = lazy(() => import('./doctor/DoctorAppLazy'));
-const ToolsApp = lazy(() => import('./tools/ToolsAppLazy'));
 const ClerkApp = lazy(() => import('./clerk/ClerkApp'));
-const WardApp = lazy(() => import('./ward/WardApp'));
 
-type Route = 'landing' | 'chat' | 'doctor' | 'tools' | 'clerk' | 'ward';
+// 2026-07-30 — this app is the Reasoning Clerk and nothing else. The Intern
+// Tools console and the Inpatient Ward were deleted, and with them the landing
+// page whose only job was choosing between the three. The clerk's own intake
+// card is the front door now: describe a patient, get a board.
+// The patient chat (?s=…) and the doctor cockpit (/doctor) are a separate
+// product line reached by their own links, so they stay routable.
+type Route = 'clerk' | 'chat' | 'doctor';
 
 function getRoute(): Route {
   const params = new URLSearchParams(window.location.search);
-  const path = window.location.pathname;
-
   if (params.get('s')) return 'chat';
-  if (path === '/doctor') return 'doctor';
-  if (path === '/tools') return 'tools';
-  if (path === '/clerk') return 'clerk';
-  if (path === '/ward') return 'ward';
-  // Auto-route to tools if the user has already set up their key
-  if (path === '/' && localStorage.getItem('medai_tools_key')) return 'tools';
-  return 'landing';
+  if (window.location.pathname === '/doctor') return 'doctor';
+  return 'clerk';
 }
 
 function RouteFallback() {
@@ -44,10 +40,9 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  function navigate(r: Route) {
-    const url = r === 'landing' ? '/' : `/${r}`;
-    window.history.pushState({}, '', url);
-    setRoute(r);
+  function goClerk() {
+    window.history.pushState({}, '', '/');
+    setRoute('clerk');
   }
 
   const view = (() => {
@@ -55,11 +50,10 @@ export default function App() {
       const sessionId = new URLSearchParams(window.location.search).get('s') ?? '';
       return <Suspense fallback={<RouteFallback />}><ChatView sessionId={sessionId} /></Suspense>;
     }
-    if (route === 'doctor') return <Suspense fallback={<RouteFallback />}><DoctorApp onBack={() => navigate('landing')} /></Suspense>;
-    if (route === 'tools') return <Suspense fallback={<RouteFallback />}><ToolsApp onBack={() => navigate('landing')} /></Suspense>;
-    if (route === 'clerk') return <Suspense fallback={<RouteFallback />}><ClerkApp onBack={() => navigate('landing')} /></Suspense>;
-    if (route === 'ward') return <Suspense fallback={<RouteFallback />}><WardApp onBack={() => navigate('landing')} /></Suspense>;
-    return <LandingPage onNavigate={navigate} />;
+    if (route === 'doctor') {
+      return <Suspense fallback={<RouteFallback />}><DoctorApp onBack={goClerk} /></Suspense>;
+    }
+    return <Suspense fallback={<RouteFallback />}><ClerkApp /></Suspense>;
   })();
 
   return (

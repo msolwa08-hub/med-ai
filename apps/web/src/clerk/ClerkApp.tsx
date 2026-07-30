@@ -1,5 +1,22 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AccessKeyGate } from '../components/AccessKeyGate';
 import clerkFragment from './clerk.html?raw';
+
+const KEY_STORAGE = 'medai_tools_key';
+
+// Every call to the generator is key-gated, and until now the ONLY place that
+// key could be entered was the Intern Tools console — which has been deleted.
+// That left the clerk permanently unreachable: describe a patient, get "add
+// your tools key first", with nowhere left to add it. The clerk now carries its
+// own gate, so the front door and the key live in the same place.
+async function validateToolsKey(key: string): Promise<boolean> {
+  const res = await fetch('/tools/validate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-tools-key': key },
+    body: '{}',
+  });
+  return res.ok;
+}
 
 // The reasoning clerk is a self-contained, offline likelihood-ratio engine.
 // It is mounted here as an isolated document so it inherits its own theming and
@@ -13,8 +30,9 @@ const srcDoc =
   clerkFragment +
   '</body></html>';
 
-export default function ClerkApp({ onBack }: { onBack: () => void }) {
+export default function ClerkApp() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [key, setKey] = useState<string>(() => localStorage.getItem(KEY_STORAGE) ?? '');
 
   // Wake the free-tier API (sleeps when idle) as soon as the clerk mounts, so the
   // container is warm before the user submits a presentation.
@@ -37,6 +55,28 @@ export default function ClerkApp({ onBack }: { onBack: () => void }) {
         fetch('/health').catch(() => {});
         return;
       }
+      // The board runs sandboxed with no access to this origin, so it asks the
+      // host to put a finished note on the clipboard. This handler was missing:
+      // every Copy in the Docs tab posted a message nobody listened for and
+      // reported "Copied ✓" regardless. Clipboard writes can reject (no user
+      // gesture in this frame, denied permission) — fall back to the textarea
+      // trick rather than swallowing it.
+      if (data.type === 'medai-copy') {
+        const text = data.text ?? '';
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); } catch { /* nothing more to try */ }
+          ta.remove();
+        }
+        return;
+      }
       if (data.type !== 'medai-generate' || !data.id) return;
       const win = iframeRef.current?.contentWindow;
       if (!win) return;
@@ -49,7 +89,12 @@ export default function ClerkApp({ onBack }: { onBack: () => void }) {
         });
         if (!res.ok) {
           if (res.status === 401) {
-            throw new Error('Add your tools key first (open Intern Tools once), then try again.');
+            // The stored key stopped being accepted (rotated, or revoked).
+            // Clear it so the gate comes back rather than leaving the clinician
+            // staring at an error with no way to re-enter one.
+            localStorage.removeItem(KEY_STORAGE);
+            setKey('');
+            throw new Error('That access key is no longer valid — enter it again.');
           }
           let detail = '';
           try {
@@ -59,7 +104,7 @@ export default function ClerkApp({ onBack }: { onBack: () => void }) {
             /* body was not JSON */
           }
           throw new Error(
-            (detail || 'The reasoning service is unavailable right now — try a worked example') +
+            (detail || 'The reasoning service is unavailable right now — try again in a moment') +
               ` (HTTP ${res.status})`,
           );
         }
@@ -76,48 +121,23 @@ export default function ClerkApp({ onBack }: { onBack: () => void }) {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0e1718' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '8px 14px',
-          borderBottom: '1px solid rgba(148,163,163,0.18)',
-          background: '#0e1718',
-          color: '#e9f0ef',
-          flex: 'none',
-        }}
-      >
-        <button
-          onClick={onBack}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#5eead4',
-            background: 'rgba(45,212,191,0.12)',
-            border: '1px solid rgba(45,212,191,0.25)',
-            borderRadius: 8,
-            padding: '5px 11px',
-            cursor: 'pointer',
-          }}
-        >
-          ← MedAI
-        </button>
-        <span style={{ fontSize: 12, letterSpacing: '0.02em', color: '#8ba3a3' }}>
-          Reasoning clerk · beta
-        </span>
-      </div>
-      <iframe
-        ref={iframeRef}
-        title="MedAI reasoning clerk"
-        srcDoc={srcDoc}
-        style={{ flex: 1, width: '100%', border: 0, display: 'block' }}
+  if (!key) {
+    return (
+      <AccessKeyGate
+        label="Reasoning Clerk — enter your access key"
+        storageKey={KEY_STORAGE}
+        onKey={(k) => { localStorage.setItem(KEY_STORAGE, k); setKey(k); }}
+        validate={validateToolsKey}
       />
-    </div>
+    );
+  }
+
+  return (
+    <iframe
+      ref={iframeRef}
+      title="MedAI reasoning clerk"
+      srcDoc={srcDoc}
+      style={{ width: '100%', height: '100vh', border: 0, display: 'block' }}
+    />
   );
 }

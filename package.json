@@ -26,9 +26,11 @@
     "smoke": "node scripts/smoke-test.mjs",
     "smoke:ai": "node scripts/ai-smoke-test.mjs",
     "smoke:anc": "node scripts/anc-followup-smoke-test.mjs",
-    "smoke:payments": "node scripts/payment-smoke-test.mjs"
+    "smoke:payments": "node scripts/payment-smoke-test.mjs",
+    "test:clerk": "node scripts/clerk-live-test.mjs"
   },
   "devDependencies": {
+    "playwright": "^1.55.0",
     "typescript": "^5.4.5"
   },
   "dependencies": {
