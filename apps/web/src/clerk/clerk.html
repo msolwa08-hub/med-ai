@@ -193,7 +193,40 @@
   .scorebar .score.open .sitems{display:block}
   .scorebar .srow{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;color:var(--ink-soft)}
   .scorebar .srow .rp{font-weight:700;font-variant-numeric:tabular-nums}
-  .scorebar .srow.unanswered{opacity:.5;font-style:italic}
+  .scorebar .srow.unanswered,.scorelib .srow.unanswered{opacity:.75}
+  /* A partial total wears a neutral chip, never a banded one — a half-answered
+     score showing "low risk" in green is a lie with a colour on it. */
+  .sband.part{color:var(--ink-mute);background:var(--surface-alt);border:1px solid var(--line)}
+  .srow.col{display:block;padding:9px 0}
+  .srow.col .spl{display:block;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px;line-height:1.35}
+  .srow.col .rp{display:none}
+  .srow.auto{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .srow.auto .spl{font-size:11.5px;color:var(--ink-soft)}
+  .srow .rp em{font-style:normal;font-weight:600;color:var(--ink-mute);font-size:10px;margin-left:4px}
+  .srow .rp.none{color:var(--ink-mute);font-weight:600}
+  .srow.col .spopts{display:flex;flex-wrap:wrap;gap:5px}
+  .srow.col .spopt{font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-alt);
+                   border:1px solid var(--line);border-radius:99px;padding:5px 11px;cursor:pointer}
+  .srow.col .spopt.sel{color:var(--surface);background:var(--ink);border-color:var(--ink)}
+  .sflag{font-size:11.5px;font-weight:700;color:var(--u-red);background:var(--u-red-tint);
+         border-top:1px solid color-mix(in oklab,var(--u-red) 25%,transparent);padding:9px 10px;line-height:1.45}
+  .ssrc{font-size:10px;color:var(--ink-mute);padding:8px 0 2px;border-top:1px dotted var(--line);margin-top:8px;line-height:1.4}
+  /* The full library, on the Tests tab. Same rows, own container. */
+  .scorelib{display:none;border:1px solid var(--line);border-radius:12px;background:var(--surface-alt);overflow:hidden}
+  .scorelib.show{display:block}
+  .scorelib .score+.score{border-top:1px solid var(--line)}
+  .scorelib .shd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 11px;cursor:pointer}
+  .scorelib .sname{font-size:12px;font-weight:700;color:var(--ink-soft)}
+  .scorelib .stot{display:flex;align-items:center;gap:8px}
+  .scorelib .spts{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+  .scorelib .sband{font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:99px}
+  .scorelib .sband.good{color:var(--good);background:var(--good-tint)}
+  .scorelib .sband.amber{color:var(--u-orange);background:var(--u-orange-tint)}
+  .scorelib .sband.bad{color:var(--u-red);background:var(--u-red-tint)}
+  .scorelib .spartial{font-size:10px;color:var(--ink-mute);font-style:italic}
+  .scorelib .said{font-size:10.5px;color:var(--ink-mute);line-height:1.4;padding:0 11px 9px}
+  .scorelib .sitems{display:none;border-top:1px solid var(--line);padding:7px 11px}
+  .scorelib .score.open .sitems{display:block}
   .diffstrip{display:none;flex-wrap:wrap;gap:6px;margin-top:10px}
   .diffstrip.show{display:flex}
   .diffchip{font-size:10.5px;font-weight:750;padding:4px 10px;border-radius:99px;background:var(--surface);border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px;color:var(--ink-soft)}
@@ -815,6 +848,20 @@ function cap(p){const lead=[...DX].sort((a,b)=>p[b.id]-p[a.id])[0];const live=DX
 // component hasn't been entered yet, so a total is always honestly partial
 // until every component has an answer.
 function scoreDetail(comp){
+  // A carried-across library score answers in the same ans/val state as any
+  // finding, keyed by `id`. `pointsByIndex` maps a tapped option to its points
+  // so the option list stays readable clinical language ("Responds to pain")
+  // instead of a bare number the clinician has to look up.
+  if(comp.pointsByIndex){
+    const v=val[comp.id]; const i=(comp.options||[]).indexOf(v);
+    if(i<0) return{pts:0,unanswered:true};
+    return{pts:comp.pointsByIndex[i]??0,unanswered:false};
+  }
+  if(comp.kind==='toggle'){
+    const a=ans[comp.id];
+    if(a===undefined) return{pts:0,unanswered:true};
+    return{pts:a==='present'?(comp.pts??1):0,unanswered:false};
+  }
   // A component is one of: `fixed` (a known vignette fact, e.g. the patient's
   // age — always "answered", nothing to elicit); `agg` (a function reading the
   // full ans/val state — for components built from several findings at once,
@@ -831,7 +878,8 @@ function computeScore(sc){
   let total=0,answeredAll=true;
   const parts=sc.items.map(it=>{const d=scoreDetail(it);total+=d.pts;if(d.unanswered)answeredAll=false;return{...it,...d};});
   const band=[...sc.bands].reverse().find(b=>total>=b.min)||sc.bands[0];
-  return{total,band,answeredAll,parts};
+  const flag=sc.redFlag?(()=>{const d=scoreDetail(sc.items.find(i=>i.id===sc.redFlag.item)||{});return !d.unanswered&&d.pts>sc.redFlag.over;})():false;
+  return{total,band,answeredAll,parts,flag};
 }
 // Completeness and Confidence answer different questions and must stay
 // decoupled: Confidence is diagnosis-focused (a few high-yield findings can
@@ -848,6 +896,230 @@ function relevantFeats(){
   (function walk(list){for(const f of list){out.push(f);if(ans[f.id]==='present'&&f.follow&&f.follow.length)walk(f.follow);}})(FEAT);
   return out;
 }
+
+// ══ THE VALIDATED-SCORE LIBRARY ══════════════════════════════════════════════
+// Carried across from the Intern Tools console when it was deleted (2026-07-30,
+// his call: "take everything from there and bring it to the clerking tool").
+//
+// These are the only numbers in this product with a real published source, and
+// that is exactly why they matter here: everything else on the board — the
+// probabilities, the ×-weights, an unmatched dose — is the model's estimate and
+// says so. A score computed from fixed, published criteria is a different kind
+// of fact, so each one carries its origin and renders it.
+//
+// Two things changed in the crossing, and they are the reason this is a port
+// and not a paste:
+//   1. A score AUTO-FILLS from the clerking wherever the board already holds
+//      the value. qSOFA should not ask for a respiratory rate that is sitting
+//      in the vitals row. Auto-filled components say so, so a clinician can
+//      always see where a point came from.
+//   2. A score SURFACES ITSELF when the board makes it relevant, instead of
+//      waiting in a drawer of twenty-odd calculators for someone to remember
+//      it exists. Remembering to open MEOWS is the failure it prevents.
+// Nothing is hidden by that: the full library stays reachable under Tests.
+//
+// Every component id is prefixed `sc-` and lives in the same ans/val state as
+// any other finding, so a score answer flows into the clerking note without a
+// second code path — and so the existing computeScore/scoreDetail engine runs
+// these unchanged.
+
+// Read a vital off the board by key, as a number, or null when not recorded.
+function vitalNum(k){
+  const v=(VITALS||[]).find(x=>x.k===k||x.k===k.replace('₂','2'));
+  const n=parseFloat(v&&v.v); return isNaN(n)?null:n;
+}
+function bpParts(){
+  const v=(VITALS||[]).find(x=>x.k==='BP'); const m=/(\d+)\D+(\d+)/.exec((v&&v.v)||'');
+  return m?{sys:+m[1],dia:+m[2]}:null;
+}
+// An auto-filled component: `read` returns a number of points, or null when the
+// board does not hold the value yet (in which case it stays honestly unanswered
+// rather than silently scoring zero — a missing observation is not a normal one).
+function auto(read,note){
+  return {agg:()=>{const p=read();return p==null?{pts:0,unanswered:true}:{pts:p,unanswered:false,auto:note||'from the clerking'};}};
+}
+const gte=(v,t)=>v==null?null:(v>=t?1:0);
+const lte=(v,t)=>v==null?null:(v<=t?1:0);
+
+const SCORELIB=[
+  {id:'qsofa', name:'qSOFA', max:'/3', source:'Sepsis-3 (Singer et al., JAMA 2016)',
+   offer:/sepsis|septic|pneumonia|infect|meningit|pyelonephritis|cellulitis|cholangitis/i,
+   items:[
+     {id:'sc-qsofa-rr', label:'Respiratory rate ≥ 22', ...auto(()=>gte(vitalNum('RR'),22),'from the vitals')},
+     {id:'sc-qsofa-sbp', label:'Systolic BP ≤ 100', ...auto(()=>{const b=bpParts();return b?lte(b.sys,100):null;},'from the vitals')},
+     {id:'sc-qsofa-ms', label:'Altered mental state (GCS < 15)', kind:'toggle', pts:1},
+   ],
+   bands:[{min:0,label:'Low risk',cls:'good',action:'Below the threshold — it does not exclude sepsis, it just does not flag it.'},
+          {min:2,label:'HIGH risk',cls:'bad',action:'2 or more: treat as possible sepsis — cultures, lactate, antibiotics within the hour, senior review.'}]},
+
+  {id:'crb65', name:'CRB-65', max:'/4', source:'British Thoracic Society community-acquired pneumonia severity',
+   offer:/pneumonia|chest infection|lower respiratory|LRTI/i,
+   items:[
+     {id:'sc-crb-c', label:'Confusion (new)', kind:'toggle', pts:1},
+     {id:'sc-crb-r', label:'Respiratory rate ≥ 30', ...auto(()=>gte(vitalNum('RR'),30),'from the vitals')},
+     {id:'sc-crb-b', label:'BP systolic < 90 or diastolic ≤ 60', ...auto(()=>{const b=bpParts();return b?((b.sys<90||b.dia<=60)?1:0):null;},'from the vitals')},
+     {id:'sc-crb-a', label:'Age ≥ 65', ...auto(()=>{const y=ageYears();return y==null?null:(y>=65?1:0);},'from the patient line')},
+   ],
+   bands:[{min:0,label:'0 — home',cls:'good',action:'30-day mortality under 1% — outpatient management is usually appropriate.'},
+          {min:1,label:'1–2 — consider admission',cls:'amber',action:'30-day mortality roughly 1–10% — hospital assessment.'},
+          {min:3,label:'3+ — urgent admission',cls:'bad',action:'30-day mortality 15% and above — urgent admission, consider critical care.'}]},
+
+  {id:'wellspe', name:"Wells' score — PE", max:'', source:'Wells et al., pulmonary embolism pre-test probability',
+   offer:/pulmonary embol|\bPE\b|I26/i,
+   items:[
+     {id:'sc-wpe-dvt', label:'Clinical signs of DVT', kind:'toggle', pts:3},
+     {id:'sc-wpe-alt', label:'PE is the most likely diagnosis, or equally likely', kind:'toggle', pts:3},
+     {id:'sc-wpe-hr', label:'Heart rate > 100', ...auto(()=>{const h=vitalNum('HR');return h==null?null:(h>100?1.5:0);},'from the vitals')},
+     {id:'sc-wpe-immob', label:'Immobilised ≥ 3 days or surgery in the last 4 weeks', kind:'toggle', pts:1.5},
+     {id:'sc-wpe-prev', label:'Previous DVT or PE', kind:'toggle', pts:1.5},
+     {id:'sc-wpe-haem', label:'Haemoptysis', kind:'toggle', pts:1},
+     {id:'sc-wpe-ca', label:'Active malignancy', kind:'toggle', pts:1},
+   ],
+   bands:[{min:0,label:'Low probability',cls:'good',action:'Consider a D-dimer to rule out rather than imaging first.'},
+          {min:2.5,label:'Moderate probability',cls:'amber',action:'D-dimer, and image if it is raised.'},
+          {min:6.5,label:'High probability',cls:'bad',action:'Go straight to imaging — a negative D-dimer does not exclude PE at this probability.'}]},
+
+  {id:'wellsdvt', name:"Wells' score — DVT", max:'', source:'Wells et al., deep vein thrombosis pre-test probability',
+   offer:/deep vein|\bDVT\b|I80|leg swelling|calf/i,
+   items:[
+     {id:'sc-wdvt-ca', label:'Active cancer', kind:'toggle', pts:1},
+     {id:'sc-wdvt-par', label:'Paralysis, paresis or recent plaster cast', kind:'toggle', pts:1},
+     {id:'sc-wdvt-bed', label:'Bedridden > 3 days, or major surgery in 12 weeks', kind:'toggle', pts:1},
+     {id:'sc-wdvt-tend', label:'Localised tenderness along the deep venous system', kind:'toggle', pts:1},
+     {id:'sc-wdvt-leg', label:'Entire leg swollen', kind:'toggle', pts:1},
+     {id:'sc-wdvt-calf', label:'Calf > 3 cm larger than the other side', kind:'toggle', pts:1},
+     {id:'sc-wdvt-oed', label:'Pitting oedema, symptomatic leg only', kind:'toggle', pts:1},
+     {id:'sc-wdvt-coll', label:'Collateral superficial veins (non-varicose)', kind:'toggle', pts:1},
+     {id:'sc-wdvt-prev', label:'Previously documented DVT', kind:'toggle', pts:1},
+     {id:'sc-wdvt-alt', label:'An alternative diagnosis is at least as likely', kind:'toggle', pts:-2},
+   ],
+   bands:[{min:-2,label:'Low probability',cls:'good',action:'A negative D-dimer excludes DVT at this probability.'},
+          {min:1,label:'Moderate probability',cls:'amber',action:'D-dimer, and ultrasound if raised.'},
+          {min:3,label:'High probability',cls:'bad',action:'Proximal leg ultrasound — do not rely on a D-dimer here.'}]},
+
+  {id:'heart', name:'HEART score', max:'/10', source:'Six & Backus, chest pain risk in the emergency department',
+   offer:/coronary|angina|\bACS\b|myocardial|chest pain|I2[0-5]/i,
+   items:[
+     {id:'sc-heart-h', label:'History', kind:'choice', options:['Slightly suspicious','Moderately suspicious','Highly suspicious'], pointsByIndex:[0,1,2]},
+     {id:'sc-heart-e', label:'ECG', kind:'choice', options:['Normal','Non-specific repolarisation','Significant ST deviation'], pointsByIndex:[0,1,2]},
+     {id:'sc-heart-a', label:'Age', ...auto(()=>{const y=ageYears();return y==null?null:(y>=65?2:y>=45?1:0);},'from the patient line')},
+     {id:'sc-heart-r', label:'Risk factors', kind:'choice', options:['None','1 or 2','3 or more, or known atherosclerotic disease'], pointsByIndex:[0,1,2]},
+     {id:'sc-heart-t', label:'Troponin', kind:'choice', options:['Normal','1–3× the upper limit','More than 3× the upper limit'], pointsByIndex:[0,1,2]},
+   ],
+   bands:[{min:0,label:'0–3 · low',cls:'good',action:'Roughly 2% risk of a major cardiac event at 6 weeks — discharge is usually defensible.'},
+          {min:4,label:'4–6 · moderate',cls:'amber',action:'Admit for observation and serial troponin.'},
+          {min:7,label:'7–10 · high',cls:'bad',action:'Early invasive strategy — involve cardiology now.'}]},
+
+  {id:'gcs', name:'Glasgow Coma Scale', max:'/15', source:'Teasdale & Jennett, 1974',
+   offer:/head injur|coma|reduced level|consciousness|stroke|meningit|encephal|overdose|seizure|S06|G40/i,
+   items:[
+     {id:'sc-gcs-e', label:'Eye opening', kind:'choice', options:['None','To pain','To voice','Spontaneous'], pointsByIndex:[1,2,3,4]},
+     {id:'sc-gcs-v', label:'Verbal response', kind:'choice', options:['None','Sounds','Words','Confused','Orientated'], pointsByIndex:[1,2,3,4,5]},
+     {id:'sc-gcs-m', label:'Best motor response', kind:'choice', options:['None','Extends','Abnormal flexion','Withdraws','Localises','Obeys commands'], pointsByIndex:[1,2,3,4,5,6]},
+   ],
+   bands:[{min:3,label:'Severe',cls:'bad',action:'8 or less: the airway is not safe — call for anaesthetic help now.'},
+          {min:9,label:'Moderate',cls:'amber',action:'Half-hourly neurological observations and urgent imaging.'},
+          {min:13,label:'Mild',cls:'good',action:'Still observe — a mild score does not exclude a bleed.'}]},
+
+  {id:'sofa', name:'SOFA', max:'/24', source:'Vincent et al., Sequential Organ Failure Assessment',
+   offer:/sepsis|septic|shock|organ failure|critical|ICU|multi-?organ/i,
+   items:[
+     {id:'sc-sofa-resp', label:'Respiratory (PaO₂/FiO₂)', kind:'choice', options:['0','1','2','3','4'], pointsByIndex:[0,1,2,3,4]},
+     {id:'sc-sofa-coag', label:'Coagulation (platelets)', kind:'choice', options:['0','1','2','3','4'], pointsByIndex:[0,1,2,3,4]},
+     {id:'sc-sofa-liver', label:'Liver (bilirubin)', kind:'choice', options:['0','1','2','3','4'], pointsByIndex:[0,1,2,3,4]},
+     {id:'sc-sofa-cvs', label:'Cardiovascular (MAP / vasopressors)', kind:'choice', options:['0','1','2','3','4'], pointsByIndex:[0,1,2,3,4]},
+     {id:'sc-sofa-cns', label:'CNS (GCS)', kind:'choice', options:['0','1','2','3','4'], pointsByIndex:[0,1,2,3,4]},
+     {id:'sc-sofa-renal', label:'Renal (creatinine / urine output)', kind:'choice', options:['0','1','2','3','4'], pointsByIndex:[0,1,2,3,4]},
+   ],
+   bands:[{min:0,label:'0–1',cls:'good',action:'Reported mortality under 10%.'},
+          {min:2,label:'2–5',cls:'amber',action:'A rise of 2 or more from baseline is the Sepsis-3 definition of sepsis.'},
+          {min:6,label:'6–9',cls:'amber',action:'Reported mortality around 40% — critical care review.'},
+          {min:10,label:'10+',cls:'bad',action:'Reported mortality 50% and above — critical care now.'}]},
+
+  {id:'meows', name:'MEOWS — obstetric early warning', max:'', source:'Modified Early Obstetric Warning System (UK CEMACH)',
+   offer:/pregnan|obstetric|antenatal|postpartum|eclamps|pre-?eclamps|O1[0-9]|O[0-9]{2}|labour|puerper/i,
+   items:[
+     {id:'sc-meows-rr', label:'Respiratory rate', ...auto(()=>{const r=vitalNum('RR');if(r==null)return null;if(r<5||r>35)return 2;if(r<10||r>29)return 1;return 0;},'from the vitals')},
+     {id:'sc-meows-spo2', label:'Oxygen saturation', ...auto(()=>{const s=vitalNum('SpO₂');if(s==null)return null;if(s<92)return 2;if(s<95)return 1;return 0;},'from the vitals')},
+     {id:'sc-meows-sbp', label:'Systolic BP', ...auto(()=>{const b=bpParts();if(!b)return null;if(b.sys<80)return 2;if(b.sys<90||b.sys>160)return 1;return 0;},'from the vitals')},
+     {id:'sc-meows-hr', label:'Heart rate', ...auto(()=>{const h=vitalNum('HR');if(h==null)return null;if(h<40||h>130)return 2;if(h<50||h>110)return 1;return 0;},'from the vitals')},
+     {id:'sc-meows-t', label:'Temperature', ...auto(()=>{const t=vitalNum('T');if(t==null)return null;return (t<36||t>38)?1:0;},'from the vitals')},
+     {id:'sc-meows-avpu', label:'Level of consciousness', kind:'choice', options:['Alert','Responds to voice','Responds to pain','Unresponsive'], pointsByIndex:[0,1,2,2]},
+   ],
+   bands:[{min:0,label:'Routine',cls:'good',action:'Continue routine observations.'},
+          {min:3,label:'Increase observations',cls:'amber',action:'Increase the frequency of observations and inform the midwife in charge.'},
+          {min:5,label:'Medical review',cls:'amber',action:'Ask for medical review now.'},
+          {min:7,label:'Emergency',cls:'bad',action:'Emergency call — senior obstetric and anaesthetic review immediately.'}]},
+
+  {id:'phq9', name:'PHQ-9', max:'/27', source:'Kroenke & Spitzer, Patient Health Questionnaire',
+   offer:/depress|low mood|mood disorder|suicid|self-?harm|F3[0-9]|psychiatr/i,
+   items:[0,1,2,3,4,5,6,7,8].map((i)=>({
+     id:'sc-phq-'+i,
+     label:['Little interest or pleasure in doing things','Feeling down, depressed or hopeless','Trouble falling or staying asleep, or sleeping too much','Feeling tired or having little energy','Poor appetite or overeating','Feeling bad about yourself, or that you are a failure','Trouble concentrating','Moving or speaking slowly, or being restless','Thoughts that you would be better off dead, or of hurting yourself'][i],
+     kind:'choice', options:['Not at all','Several days','More than half the days','Nearly every day'], pointsByIndex:[0,1,2,3]})),
+   bands:[{min:0,label:'Minimal',cls:'good',action:''},{min:5,label:'Mild',cls:'good',action:'Watchful waiting; repeat at follow-up.'},
+          {min:10,label:'Moderate',cls:'amber',action:'Treatment plan — talking therapy or medication.'},
+          {min:15,label:'Moderately severe',cls:'bad',action:'Active treatment with medication and/or therapy.'},
+          {min:20,label:'Severe',cls:'bad',action:'Start treatment and refer to specialist mental-health services.'}],
+   redFlag:{item:'sc-phq-8', over:0, msg:'Item 9 is positive — ask about suicidal thinking directly and assess risk before this patient leaves.'}},
+
+  {id:'epds', name:'Edinburgh Postnatal Depression Scale', max:'/30', source:'Cox, Holden & Sagovsky, 1987',
+   offer:/postnatal|postpartum|puerperal|perinatal mental|maternal mood/i,
+   items:[0,1,2,3,4,5,6,7,8,9].map((i)=>({
+     id:'sc-epds-'+i,
+     label:['I have been able to laugh and see the funny side of things','I have looked forward with enjoyment to things','I have blamed myself unnecessarily when things went wrong','I have been anxious or worried for no good reason','I have felt scared or panicky for no good reason','Things have been getting on top of me','I have been so unhappy that I have had difficulty sleeping','I have felt sad or miserable','I have been so unhappy that I have been crying','The thought of harming myself has occurred to me'][i],
+     kind:'choice', options:['0','1','2','3'], pointsByIndex:[0,1,2,3]})),
+   bands:[{min:0,label:'Low',cls:'good',action:''},
+          {min:10,label:'Possible depression',cls:'amber',action:'Review needed — repeat in two weeks and arrange follow-up.'},
+          {min:13,label:'Likely depression',cls:'bad',action:'Urgent review and referral to perinatal mental-health services.'}],
+   redFlag:{item:'sc-epds-9', over:0, msg:'Item 10 is positive — assess risk of self-harm now, whatever the total says.'}},
+
+  {id:'bishop', name:'Bishop score', max:'/13', source:'Bishop, 1964 — favourability for induction',
+   offer:/induction|labour|post-?dates|cervix|IOL|O48|O80/i,
+   items:[
+     {id:'sc-bish-dil', label:'Cervical dilatation', kind:'choice', options:['Closed','1–2 cm','3–4 cm','5 cm or more'], pointsByIndex:[0,1,2,3]},
+     {id:'sc-bish-eff', label:'Effacement', kind:'choice', options:['0–30%','40–50%','60–70%','80% or more'], pointsByIndex:[0,1,2,3]},
+     {id:'sc-bish-sta', label:'Station', kind:'choice', options:['−3','−2','−1 / 0','+1 / +2'], pointsByIndex:[0,1,2,3]},
+     {id:'sc-bish-con', label:'Consistency', kind:'choice', options:['Firm','Medium','Soft'], pointsByIndex:[0,1,2]},
+     {id:'sc-bish-pos', label:'Position', kind:'choice', options:['Posterior','Mid','Anterior'], pointsByIndex:[0,1,2]},
+   ],
+   bands:[{min:0,label:'Unfavourable',cls:'bad',action:'Consider cervical ripening before induction.'},
+          {min:6,label:'Borderline',cls:'amber',action:'Induction may succeed; discuss the alternatives.'},
+          {min:8,label:'Favourable',cls:'good',action:'Induction is likely to succeed.'}]},
+
+  {id:'apgar', name:'Apgar score', max:'/10', source:'Apgar, 1953 — scored at 1 and 5 minutes',
+   offer:/newborn|neonat|birth|delivery|resuscitation of the newborn|P0[0-9]/i,
+   items:[
+     {id:'sc-apg-a', label:'Appearance (colour)', kind:'choice', options:['Blue or pale all over','Body pink, extremities blue','Pink all over'], pointsByIndex:[0,1,2]},
+     {id:'sc-apg-p', label:'Pulse', kind:'choice', options:['Absent','Below 100','100 or above'], pointsByIndex:[0,1,2]},
+     {id:'sc-apg-g', label:'Grimace (reflex irritability)', kind:'choice', options:['No response','Grimace','Cry or active withdrawal'], pointsByIndex:[0,1,2]},
+     {id:'sc-apg-ac', label:'Activity (tone)', kind:'choice', options:['Limp','Some flexion','Active movement'], pointsByIndex:[0,1,2]},
+     {id:'sc-apg-r', label:'Respiration', kind:'choice', options:['Absent','Slow or irregular','Good, crying'], pointsByIndex:[0,1,2]},
+   ],
+   bands:[{min:0,label:'Resuscitation needed',cls:'bad',action:'Call for neonatal help and start resuscitation now.'},
+          {min:4,label:'Needs intervention',cls:'amber',action:'Stimulate, support ventilation, and reassess at 5 minutes.'},
+          {min:7,label:'Normal',cls:'good',action:'Routine care; repeat at 5 minutes.'}]},
+
+  {id:'rotterdam', name:'Rotterdam criteria — PCOS', max:'/3', source:'Rotterdam ESHRE/ASRM consensus, 2003',
+   offer:/polycystic|\bPCOS\b|oligomenorrh|hirsut|anovulat|E28/i,
+   items:[
+     {id:'sc-rot-ovul', label:'Oligo-ovulation or anovulation', kind:'toggle', pts:1},
+     {id:'sc-rot-andr', label:'Clinical or biochemical hyperandrogenism', kind:'toggle', pts:1},
+     {id:'sc-rot-us', label:'Polycystic ovaries on ultrasound', kind:'toggle', pts:1},
+   ],
+   bands:[{min:0,label:'Criteria not met',cls:'good',action:'Fewer than two of three — PCOS is not established on these grounds.'},
+          {min:2,label:'Criteria met',cls:'amber',action:'Two of three, once other causes are excluded, establishes the diagnosis.'}]},
+];
+// Which scores this board makes relevant — matched on the differential names,
+// their ICD codes and the specialty, never on a hardcoded case. A score that
+// does not match is not hidden, only unpinned: the whole library is reachable
+// under Tests, because the one thing worse than an unasked score is a score the
+// tool decided you did not need.
+function relevantScores(){
+  const hay=[(DX||[]).map(d=>d.name+' '+d.icd).join(' '),(CASES[caseId]||{}).specialty||'',(CASES[caseId]||{}).label||'',(PT||{}).complaint||''].join(' ');
+  return SCORELIB.filter(s=>s.offer.test(hay));
+}
+
 // ─── THE CLERKING SPINE ──────────────────────────────────────────────────────
 // Completeness used to be answered-findings ÷ findings-the-model-generated. That
 // denominator was written by the same model being scored, so if it never thought
@@ -1042,21 +1314,64 @@ function paintVitals(){
 // plainly ("N of M answered") rather than showing a total that looks final
 // when it isn't.
 function paintScores(){
-  const el=document.getElementById('scorebar');
-  const scores=(CASES[caseId]||{}).SCORES;
-  if(!scores||!scores.length){el.className='scorebar';el.innerHTML='';return;}
-  el.className='scorebar show';
+  paintScoreList(document.getElementById('scorebar'),
+    [...(((CASES[caseId]||{}).SCORES)||[]), ...relevantScores()], 'scorebar');
+}
+// One renderer for both places a score can appear: pinned under the header when
+// the board makes it relevant, and in the full library under Tests. A score is
+// ANSWERABLE here — the components are the controls. That is the difference
+// between carrying a calculator across and carrying its result across: the
+// intern taps the three qSOFA rows and the total is already on the board, in
+// the note, and banded, instead of living in a separate tool nobody reopens.
+function paintScoreList(el,scores,cls){
+  if(!el)return;
+  if(!scores||!scores.length){el.className=cls;el.innerHTML='';return;}
+  el.className=cls+' show';
   el.innerHTML=scores.map(sc=>{
     const r=computeScore(sc),open=scoreOpen.has(sc.id),answered=r.parts.filter(p=>!p.unanswered).length;
-    const bandCls=r.band.cls||'amber';
+    const bandCls=r.answeredAll?(r.band.cls||'amber'):'';
     return `<div class="score${open?' open':''}" data-sid="${esc(sc.id)}">`
       +`<div class="shd" data-shd="${esc(sc.id)}"><span class="sname">${esc(sc.name)}${!r.answeredAll?` <span class="spartial">(${answered}/${sc.items.length} answered)</span>`:''}</span>`
-      +`<span class="stot"><span class="spts">${r.total}${sc.maxNote?esc(sc.maxNote):''}</span><span class="sband ${esc(bandCls)}">${esc(r.band.label)}</span></span></div>`
+      // Until every component is in, the total is partial — so it is shown in a
+      // neutral chip rather than a banded one. A half-answered score wearing a
+      // green "low risk" badge is the failure this guards against.
+      +`<span class="stot"><span class="spts">${r.total}${esc(sc.max||sc.maxNote||'')}</span>`
+      +`<span class="sband ${esc(bandCls||'part')}">${r.answeredAll?esc(r.band.label):'partial'}</span></span></div>`
       +(r.answeredAll&&r.band.action?`<div class="said">${esc(r.band.action)}</div>`:'')
-      +`<div class="sitems">${sc.items.map((it,i)=>{const p=r.parts[i];return `<div class="srow${p.unanswered?' unanswered':''}"><span>${esc(it.label)}</span><span class="rp">${p.unanswered?'— not yet answered':p.pts+' pt'+(p.pts===1?'':'s')}</span></div>`;}).join('')}</div>`
-      +`</div>`;
+      +(r.flag&&sc.redFlag?`<div class="sflag">⚠ ${esc(sc.redFlag.msg)}</div>`:'')
+      +`<div class="sitems">${sc.items.map((it,i)=>scoreRow(sc,it,r.parts[i])).join('')}`
+      // A validated score is the one number here with a real published source,
+      // so it says whose it is. Everything else on this board is an estimate and
+      // is marked as one; this is the distinction that makes that marking mean
+      // something.
+      +(sc.source?`<div class="ssrc">${esc(sc.source)}</div>`:'')+`</div></div>`;
   }).join('');
-  el.querySelectorAll('[data-shd]').forEach(h=>h.addEventListener('click',()=>{const id=h.dataset.shd;scoreOpen.has(id)?scoreOpen.delete(id):scoreOpen.add(id);paintScores();}));
+  wireScoreList(el);
+}
+function scoreRow(sc,it,p){
+  const head=`<span class="spl">${esc(it.label)}</span>`;
+  const pts=p.unanswered?'<span class="rp none">not answered</span>'
+    :`<span class="rp">${p.pts} pt${p.pts===1?'':'s'}${p.auto?` <em>${esc(p.auto)}</em>`:''}</span>`;
+  // An auto-filled row is READ-ONLY on purpose: it came off the vitals or the
+  // patient line, and the place to correct it is there, once, not here in a
+  // copy that would then disagree with the board.
+  if(it.agg) return `<div class="srow auto${p.unanswered?' unanswered':''}">${head}${pts}</div>`;
+  if(it.pointsByIndex) return `<div class="srow col" data-sc="${esc(it.id)}">${head}${pts}`
+    +`<div class="spopts">${it.options.map(o=>`<button class="spopt${val[it.id]===o?' sel':''}" data-scv="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`;
+  return `<div class="srow col" data-sc="${esc(it.id)}">${head}${pts}`
+    +`<div class="spopts"><button class="spopt${ans[it.id]==='present'?' sel':''}" data-sct="present">Yes</button>`
+    +`<button class="spopt${ans[it.id]==='absent'?' sel':''}" data-sct="absent">No</button></div></div>`;
+}
+function wireScoreList(el){
+  el.querySelectorAll('[data-shd]').forEach(h=>h.addEventListener('click',()=>{
+    const id=h.dataset.shd;scoreOpen.has(id)?scoreOpen.delete(id):scoreOpen.add(id);refresh(false);
+  }));
+  el.querySelectorAll('[data-scv]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.closest('[data-sc]').dataset.sc;val[id]=b.dataset.scv;ans[id]='present';refresh(false);
+  }));
+  el.querySelectorAll('[data-sct]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.closest('[data-sc]').dataset.sc;ans[id]=b.dataset.sct;refresh(false);
+  }));
 }
 
 // The confidence history, drawn as a rhythm strip. It is not decoration: each
@@ -1397,7 +1712,17 @@ function buildIx(){
     </div>`;
   };
   const sections=CATS.map(([c,label],i)=>{const items=IX.filter(t=>(t.cat||'lab')===c).sort((a,b)=>yieldOf(b)-yieldOf(a));return items.length?`<div class="ixsec"><div class="ixhd"><span class="ixstep">${i+1}</span><span class="ixdot ${esc(c)}"></span>${esc(label)}<span class="ixn">${items.length}</span></div>${items.map(item).join('')}</div>`:'';}).join('');
-  document.getElementById('main').innerHTML=`<div class="panel">${sections}</div>`;
+  // Every validated score the product has, not only the ones this board made
+  // relevant. Pinning the relevant ones under the header is the help; hiding
+  // the rest would be the tool deciding what the clinician is allowed to think
+  // of, which is the opposite of the help.
+  const pinned=new Set(relevantScores().map(x=>x.id));
+  const rest=SCORELIB.filter(x=>!pinned.has(x.id));
+  document.getElementById('main').innerHTML=`<div class="panel">${sections}`
+    +`<div class="ixsec"><div class="ixhd"><span class="ixstep">✦</span>Validated scores<span class="ixn">${SCORELIB.length}</span></div>`
+    +`<div class="phd" style="margin-bottom:10px">These compute from published criteria and cite their source — unlike the probabilities and weights on this board, which are the model's estimate. <b>${pinned.size}</b> ${pinned.size===1?'is':'are'} pinned under the header because this presentation calls for ${pinned.size===1?'it':'them'}.</div>`
+    +`<div class="scorelib" id="scorelib"></div></div></div>`;
+  paintScoreList(document.getElementById('scorelib'), rest, 'scorelib');
   IX.forEach(t=>{
     const row=document.querySelector(`.ixin[data-t="${t.id}"]`);
     const inp=row.querySelector('[data-in]');
@@ -1587,13 +1912,18 @@ function listOf(arr,conj='and'){
 // back inside a sentence they have to stop shouting.
 function inSentence(arr){return listOf(arr.map(s=>String(s).charAt(0).toLowerCase()+String(s).slice(1)));}
 function obsLine(){return VITALS.map(v=>v.k+' '+v.v).join(', ');}
+function scoresForNote(){
+  const all=[...(((CASES[caseId]||{}).SCORES)||[]),...SCORELIB];
+  return all.map(sc=>{const r=computeScore(sc);return r.answeredAll?`${sc.name} ${r.total}${sc.max||''} (${r.band.label})`:null;}).filter(Boolean);
+}
+function scoreLine(){const l=scoresForNote();return l.length?` Scores — ${l.join('; ')}.`:'';}
 function docSBAR(){
   const C=CASES[caseId],li=leadInfo(),pos=positives(),labs=labsEntered(),pend=pendingTests();
   const capline=li.capped?` Confidence capped at ${li.conf}% — ${esc(listOf(li.live.map(shortName)))} not yet excluded.`:'';
   const ixLine=`${labs.length?' Results — '+esc(labs.map(l=>`${l.lbl} ${l.val} (${l.state})`).join('; '))+'.':''}${pend.length?' Pending — '+esc(pend.join(', '))+'.':(labs.length?'':' Investigations pending.')}`;
   return `<div class="block"><span class="ltr">S</span><div><b>Situation</b><p>${esc(PT.summaryLine)}, presenting with ${esc(PT.complaint)}. Current obs: ${esc(obsLine())}.</p></div></div>
    <div class="block"><span class="ltr">B</span><div><b>Background</b><p>${esc(PT.background)}</p></div></div>
-   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${esc(li.lead.name)}</b> (${esc(li.lead.icd)}), ${li.conf}% confidence.${capline} Supporting findings: ${esc(pos.join(', '))||'—'}.${ixLine}</p></div></div>
+   <div class="block"><span class="ltr">A</span><div><b>Assessment</b><p>Working diagnosis <b>${esc(li.lead.name)}</b> (${esc(li.lead.icd)}), ${li.conf}% confidence.${capline} Supporting findings: ${esc(pos.join(', '))||'—'}.${ixLine}${esc(scoreLine())}</p></div></div>
    <div class="block"><span class="ltr">R</span><div><b>Recommendation</b><p>${esc(C.recommendation)}</p></div></div>`;
 }
 function docClerk(){

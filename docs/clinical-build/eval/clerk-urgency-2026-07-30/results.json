@@ -1,6 +1,6 @@
 {
   "base": "http://localhost:3000",
-  "liveOutcome": "generator FAILED: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CdYoqCM7eaPUqETStsVMt\"} (HTTP 502)",
+  "liveOutcome": "generator FAILED: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CdYpkkb58bPM71bKhkYLd\"} (HTTP 502)",
   "results": [
     {
       "name": "the clerk gates access on its own, with no other tool needed",
@@ -20,7 +20,7 @@
     {
       "name": "live model call produced a board",
       "pass": false,
-      "detail": "generator FAILED: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CdYoqCM7eaPUqETStsVMt\"} (HTTP 502)"
+      "detail": "generator FAILED: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CdYpkkb58bPM71bKhkYLd\"} (HTTP 502)"
     },
     {
       "name": "every differential carries a spelled-out urgency band",
@@ -45,7 +45,32 @@
     {
       "name": "answering the pinned question moves the differential",
       "pass": true,
-      "detail": "chest-wall pain 7% → 11%"
+      "detail": "chest-wall pain 8% → 11%"
+    },
+    {
+      "name": "the board pins the scores this presentation calls for",
+      "pass": true,
+      "detail": "wellspe, heart"
+    },
+    {
+      "name": "HEART age scores itself off the patient line (58 → 1 point)",
+      "pass": true,
+      "detail": "Age 1 pt from the patient line"
+    },
+    {
+      "name": "a half-answered score refuses to wear a risk band",
+      "pass": true,
+      "detail": "partial"
+    },
+    {
+      "name": "a validated score names its source",
+      "pass": true,
+      "detail": "Six & Backus, chest pain risk in the emergency department"
+    },
+    {
+      "name": "a fully answered score computes and bands itself",
+      "pass": true,
+      "detail": "6/10 — 4–6 · moderate"
     },
     {
       "name": "tab \"exam\" renders",
@@ -68,6 +93,11 @@
       "detail": ""
     },
     {
+      "name": "a completed score reaches the handover note",
+      "pass": true,
+      "detail": "Scores — HEART score 6/10 (4–6 · moderate)"
+    },
+    {
       "name": "tab \"why\" renders",
       "pass": true,
       "detail": ""
@@ -76,6 +106,11 @@
       "name": "management items carry urgency bands too",
       "pass": true,
       "detail": "7 bands, 3 distinct: IMMEDIATE/TODAY/STABLE"
+    },
+    {
+      "name": "the unpinned scores stay reachable under Tests",
+      "pass": true,
+      "detail": "11 more scores listed"
     },
     {
       "name": "every dose declares whether it matched a guideline",

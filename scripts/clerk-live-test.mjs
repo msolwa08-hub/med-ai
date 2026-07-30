@@ -198,11 +198,46 @@ const run = async () => {
   const after = parseInt(await clerk().locator('.dx[data-id="msk"] [data-pct]').innerText(), 10);
   check('answering the pinned question moves the differential', before !== after, `chest-wall pain ${before}% → ${after}%`);
 
+  // ── validated scores, carried across from the deleted Intern Tools ──────
+  const pinned = await clerk().locator('#scorebar .score').evaluateAll((els) => els.map((e) => e.dataset.sid));
+  check('the board pins the scores this presentation calls for',
+    pinned.includes('heart') && pinned.includes('wellspe'), pinned.join(', ') || 'none');
+
+  await clerk().locator('#scorebar [data-shd="heart"]').click();
+  const heartRows = await clerk().locator('#scorebar .score[data-sid="heart"] .srow').allInnerTexts();
+  const ageRow = heartRows.find((t) => /^Age/.test(t)) || '';
+  check('HEART age scores itself off the patient line (58 → 1 point)',
+    /1 pt/.test(ageRow) && /patient line/.test(ageRow), ageRow.replace(/\s+/g, ' '));
+
+  const partialChip = await clerk().locator('#scorebar .score[data-sid="heart"] .sband').innerText();
+  check('a half-answered score refuses to wear a risk band', /partial/i.test(partialChip), partialChip);
+
+  const src = await clerk().locator('#scorebar .score[data-sid="heart"] .ssrc').innerText();
+  check('a validated score names its source', src.length > 10, src);
+
+  // answer HEART's four manual components and watch it band itself
+  for (const [row, option] of [['History', 'Highly suspicious'], ['ECG', 'Normal'],
+                               ['Risk factors', '1 or 2'], ['Troponin', 'More than 3× the upper limit']]) {
+    await clerk().locator(`#scorebar .score[data-sid="heart"] .srow.col`, { hasText: row })
+      .locator('.spopt', { hasText: option }).first().click();
+  }
+  const banded = await clerk().locator('#scorebar .score[data-sid="heart"] .sband').innerText();
+  const totalTxt = await clerk().locator('#scorebar .score[data-sid="heart"] .spts').innerText();
+  check('a fully answered score computes and bands itself',
+    !/partial/i.test(banded) && /\/10/.test(totalTxt), `${totalTxt} — ${banded}`);
+  await page.screenshot({ path: `${SHOTS}/06-scores.png`, fullPage: true });
+
   // ── every tab renders on a live board ────────────────────────────────────
   for (const [tab, marker] of [['exam', '#queue'], ['ix', '.ixin'], ['mx', '.rx'], ['docs', '.paper'], ['why', '.wledger']]) {
     await clerk().locator(`.tab[data-tab="${tab}"]`).click();
     const ok = await clerk().locator(marker).first().isVisible().catch(() => false);
     check(`tab "${tab}" renders`, ok);
+    if (tab === 'docs') {
+      const note = await clerk().locator('.paperbody').innerText();
+      check('a completed score reaches the handover note',
+        /HEART score 6\/10 \(4–6 · moderate\)/.test(note),
+        (note.match(/Scores — [^.]*/) || ['not in the note'])[0]);
+    }
     await page.screenshot({ path: `${SHOTS}/tab-${tab}.png`, fullPage: true });
   }
 
@@ -212,6 +247,14 @@ const run = async () => {
   const mxBands = await clerk().locator('.mx .uband').allInnerTexts();
   const distinct = [...new Set(mxBands)];
   check('management items carry urgency bands too', mxBands.length > 0, `${mxBands.length} bands, ${distinct.length} distinct: ${distinct.join('/')}`);
+  // the rest of the library is reachable, not hidden
+  await clerk().locator('.tab[data-tab="ix"]').click();
+  await clerk().locator('#scorelib').waitFor();
+  const libCount = await clerk().locator('#scorelib .score').count();
+  check('the unpinned scores stay reachable under Tests', libCount >= 10, `${libCount} more scores listed`);
+
+  await clerk().locator('.tab[data-tab="mx"]').click();
+  await clerk().locator('.rx').first().waitFor();
   const doseTag = await clerk().locator('.pill-a.src-stg, .pill-a.src-est').count();
   check('every dose declares whether it matched a guideline', doseTag > 0, `${doseTag} provenance tags`);
 
