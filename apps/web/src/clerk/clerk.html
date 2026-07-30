@@ -527,9 +527,14 @@
   .whysum{font-size:13px;line-height:1.55;color:var(--ink);background:linear-gradient(160deg,var(--brand-tint),transparent);border:1px solid color-mix(in oklab,var(--brand) 26%,transparent);border-radius:13px;padding:13px 14px;margin-bottom:14px}
   .whysum b{font-weight:750}
   .wledger{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dxc);border-radius:12px;padding:11px 12px;margin-bottom:10px}
-  .wlhd{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+  .wlhd{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+  .wledger.open .wlhd{margin-bottom:9px}
+  .wcaret{color:var(--ink-mute);font-size:11px;width:9px;flex:none;transition:transform .2s}
+  .wledger.open .wcaret{transform:rotate(90deg)}
   .wlhd .n{font-size:13.5px;font-weight:700;color:var(--dxc);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
   .wlhd .pc{font-size:15px;font-weight:800;flex:none;letter-spacing:-.02em}
+  .wbody{display:none}
+  .wledger.open .wbody{display:block}
   .capchip{font-size:9px;font-weight:800;letter-spacing:.02em;color:var(--amber);background:var(--amber-tint);border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:5px;padding:2px 6px;flex:none}
   .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .col-f,.col-a{border-radius:9px;padding:7px 9px}
@@ -1788,19 +1793,35 @@ function buildHx(){
   // highest-yield first; answer one and it drops into the Recorded strip while
   // the next slides up. The ranked differential is the "picture" beneath it.
   // (Discriminating tests live on the Ix tab only — not here.)
+  //
+  // TILES, NOT A REPORT (his correction, 2026-07-30): while he's taking a
+  // history, the only thing he wants moving in front of him is the
+  // differential itself — name, percentage, which way it's trending. The
+  // reasoning behind a diagnosis is real content, but it's verification
+  // material for after the fact, not something that should be visible and
+  // competing with the clerking queue by default. It now sits under a tap —
+  // the collapse/expand CSS (.dx.open .body) already existed, unused; this
+  // wires it up instead of forcing every card open.
   document.getElementById('main').innerHTML='<div class="clerk" style="order:-10"><div id="queue"></div></div>'
   +'<div class="dxlead" style="order:-5">Working differential</div>'
   +DX.map(d=>`
-    <div class="dx open" data-id="${esc(d.id)}" style="--dxc:${esc(d.c)}">
+    <div class="dx" data-id="${esc(d.id)}" style="--dxc:${esc(d.c)}">
       <div class="accent"></div>
       <div class="col">
-        <div class="dx-head" style="cursor:default">
+        <div class="dx-head" data-toggle>
+          <span class="caret">▸</span>
           <span class="nm"><span class="name">${esc(d.name)}</span><span class="icd">${esc(d.icd)}</span>${d.mnm?'<span class="dot-mnm" title="Must not miss"></span>':''}</span>
           <span class="metric"><span class="delta" data-delta></span><span class="mini"><span class="f" data-mini></span></span><span class="pct tnum" data-pct>0</span></span>
         </div>
         <div class="body"><div class="script" data-script></div></div>
       </div>
     </div>`).join('');
+  // One delegated listener for the whole differential list — tap a tile's
+  // head, its reasoning drops down beneath it; tap again to close. Never
+  // more than a deliberate look away from the tile you tapped.
+  document.querySelectorAll('.dx [data-toggle]').forEach(h=>{
+    h.addEventListener('click',()=>h.closest('.dx').classList.toggle('open'));
+  });
 }
 function paintHx(p,first){
   const ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
@@ -2265,9 +2286,15 @@ function ledger(d,p,capTo){
   // Same provenance-pill pattern as rxRow's dose tag: only shows on a
   // generated board (isEstimated()); the 8 curated demo packs are silent.
   const pathoPill=(d.patho&&isEstimated())?`<span class="pill-a src-est" title="Model's own reasoning — not checked against a dataset">AI recall — unverified</span>`:'';
-  return `<div class="wledger" style="--dxc:${esc(d.c)}"><div class="wlhd"><span class="n">${esc(d.name)}</span><span class="icd">${esc(d.icd)}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${esc(d.c)}">${pc}%</span></div>
+  // TILE, NOT A REPORT (his correction, 2026-07-30): the for/against factors
+  // are verification material — real content, checked when he wants to
+  // double-check the call, not a wall of text he reads by default for every
+  // diagnosis. Same collapse pattern as the Hx·Exam differential tiles.
+  return `<div class="wledger" style="--dxc:${esc(d.c)}"><div class="wlhd" data-toggle><span class="wcaret">▸</span><span class="n">${esc(d.name)}</span><span class="icd">${esc(d.icd)}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${esc(d.c)}">${pc}%</span></div>
+    <div class="wbody">
     <div class="cols">${col(fa.pro,'col-f','For')}${col(fa.con,'col-a','Against')}</div>
-    <div class="wscript">illness script — ${esc(d.script)}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> ${pathoPill}— ${esc(d.patho)}</div>`:''}</div>`;
+    <div class="wscript">illness script — ${esc(d.script)}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> ${pathoPill}— ${esc(d.patho)}</div>`:''}
+    </div></div>`;
 }
 function buildWhy(){
   const p=probs(),c=cap(p),li=leadInfo(),ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
@@ -2278,6 +2305,9 @@ function buildWhy(){
     <div class="whycard"><div class="h"><span>➜</span>Highest-yield next</div><p>${whyNext()}</p></div>
     <div class="whycard pm"><div class="h"><span>⚠</span>Pre-mortem — what would change my mind</div><p>${whyPremortem()}</p></div>
   </div>`;
+  document.querySelectorAll('.wledger [data-toggle]').forEach(h=>{
+    h.addEventListener('click',()=>h.closest('.wledger').classList.toggle('open'));
+  });
 }
 
 const EMPTY={};
