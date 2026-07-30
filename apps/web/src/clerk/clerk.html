@@ -14,7 +14,10 @@
     --temp:#d97706;                  /* thermal: amber */
     --shadow-sm:0 1px 2px rgba(14,26,28,.06);
     --shadow:0 2px 6px rgba(14,26,28,.06),0 12px 28px -14px rgba(14,26,28,.18);
-    --page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);
+    /* CRAFT (2026-07-30): was a radial gradient — Apple's reference for this
+       pass runs zero decorative gradients on any surface; the product/data
+       carries the visual weight, not the canvas. Flat ground, same tone. */
+    --page:#f5f8f8;
   }
   @media (prefers-color-scheme:dark){:root{
     --ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;
@@ -27,10 +30,10 @@
     --hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;
     --shadow-sm:0 1px 2px rgba(0,0,0,.35);
     --shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);
-    --page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);
+    --page:#0e1718;
   }}
-  :root[data-theme="dark"]{--hx-c:#60a5fa;--exam-c:#a78bfa;--ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;--surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;--brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;--good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;--amber:#e0a05a;--amber-tint:#2f2417;--pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;--bar-track:#1c2a2b;--hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;--shadow-sm:0 1px 2px rgba(0,0,0,.35);--shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);--page:radial-gradient(120% 60% at 50% 0%,#10201f 0%,#0e1718 55%);}
-  :root[data-theme="light"]{--hx-c:#2563eb;--exam-c:#7c3aed;--ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;--surface:#fff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;--brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;--good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;--amber:#b45309;--amber-tint:#fbf1e3;--pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;--bar-track:#eaf0f0;--hr:#e5484d;--bp:#a51d2d;--rr:#0284c7;--spo2:#0891b2;--temp:#d97706;--page:radial-gradient(120% 60% at 50% 0%,#eef6f5 0%,#f5f8f8 46%,#f2f6f6 100%);}
+  :root[data-theme="dark"]{--hx-c:#60a5fa;--exam-c:#a78bfa;--ink:#e9f0ef;--ink-soft:#aebdbc;--ink-mute:#7b8d8f;--surface:#131e1f;--surface-alt:#0e1718;--line:#26383a;--line-soft:#1c2a2b;--brand:#2dd4bf;--brand-strong:#5eead4;--brand-tint:#123230;--good:#2dd4bf;--good-tint:#123230;--bad:#fb7185;--bad-tint:#3a1620;--amber:#e0a05a;--amber-tint:#2f2417;--pet:#2dd4bf;--hellp:#a78bfa;--chorio:#fb7185;--aflp:#fbbf24;--bar-track:#1c2a2b;--hr:#ff7a7f;--bp:#f0616b;--rr:#38bdf8;--spo2:#22d3ee;--temp:#fbbf24;--shadow-sm:0 1px 2px rgba(0,0,0,.35);--shadow:0 2px 6px rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.65);--page:#0e1718;}
+  :root[data-theme="light"]{--hx-c:#2563eb;--exam-c:#7c3aed;--ink:#0e1a1c;--ink-soft:#415356;--ink-mute:#7a8a8e;--surface:#fff;--surface-alt:#f5f8f8;--line:#e5eced;--line-soft:#eff4f4;--brand:#0d9488;--brand-strong:#0f766e;--brand-tint:#e6f6f3;--good:#0d9488;--good-tint:#e6f6f3;--bad:#e11d48;--bad-tint:#fdeaef;--amber:#b45309;--amber-tint:#fbf1e3;--pet:#0d9488;--hellp:#7c3aed;--chorio:#e11d48;--aflp:#d97706;--bar-track:#eaf0f0;--hr:#e5484d;--bp:#a51d2d;--rr:#0284c7;--spo2:#0891b2;--temp:#d97706;--page:#f5f8f8;}
   *{box-sizing:border-box}
   body{margin:0;background:var(--page);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
   .wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:20px}
@@ -115,7 +118,7 @@
 
   /* vitals — colour-coded by organ system */
   .vitals{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
-  .vital{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 9px 4px 7px;box-shadow:var(--shadow-sm)}
+  .vital{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 9px 4px 7px}
   .vital .dot{width:7px;height:7px;border-radius:99px;background:var(--vc);flex:none}
   .vital .lbl{font-weight:600;color:var(--ink-mute);letter-spacing:.01em}
   .vital b{color:var(--vc);font-weight:800;font-variant-numeric:tabular-nums}
@@ -2255,9 +2258,16 @@ function whyPremortem(){const p=probs(),c=cap(p);const r=[...DX].filter(d=>d.mnm
 function ledger(d,p,capTo){
   const fa=forAgainst(d),pc=Math.round(p[d.id]*100);
   const col=(items,cls,head)=>`<div class="${cls}"><div class="colh">${head}</div>${items.length?items.map(i=>`<div class="li"><span>${esc(i.lbl)}</span><span class="lr">${esc(lrTxt(i.lr))}</span></div>`).join(''):'<div class="li dim">—</div>'}</div>`;
+  // SAFETY (Q28/E37): pathophysiology text is the model's own recall, never
+  // checked against a dataset the way STG-matched doses are — the diagnosis
+  // doc flagged this exact gap 2026-07-23 ("Differentials and pathophysiology
+  // → AI recall, must be labeled as such") and it went unlabeled until now.
+  // Same provenance-pill pattern as rxRow's dose tag: only shows on a
+  // generated board (isEstimated()); the 8 curated demo packs are silent.
+  const pathoPill=(d.patho&&isEstimated())?`<span class="pill-a src-est" title="Model's own reasoning — not checked against a dataset">AI recall — unverified</span>`:'';
   return `<div class="wledger" style="--dxc:${esc(d.c)}"><div class="wlhd"><span class="n">${esc(d.name)}</span><span class="icd">${esc(d.icd)}</span>${d.mnm?'<span class="dot-mnm"></span>':''}${capTo!=null?`<span class="capchip">capped → ${capTo}%</span>`:''}<span class="pc" style="color:${esc(d.c)}">${pc}%</span></div>
     <div class="cols">${col(fa.pro,'col-f','For')}${col(fa.con,'col-a','Against')}</div>
-    <div class="wscript">illness script — ${esc(d.script)}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> — ${esc(d.patho)}</div>`:''}</div>`;
+    <div class="wscript">illness script — ${esc(d.script)}</div>${d.patho?`<div class="wpatho"><b>why this fits</b> ${pathoPill}— ${esc(d.patho)}</div>`:''}</div>`;
 }
 function buildWhy(){
   const p=probs(),c=cap(p),li=leadInfo(),ranked=[...DX].sort((a,b)=>p[b.id]-p[a.id]);
